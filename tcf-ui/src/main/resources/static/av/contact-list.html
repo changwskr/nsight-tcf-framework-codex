@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AV 고객연락처 목록</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/eb-admin.css">
+</head>
+<body>
+  <div class="eb-admin-wrap">
+    <header>
+      <h1>AV 고객연락처 목록</h1>
+      <p>화면 ID <code>AV-CCT-0100</code> · <code>AV.CustomerContact.selectList</code> / <code>selectDetail</code></p>
+      <div class="nav-links">
+        <a class="nav-link" href="/index.html">← 업무 목록</a>
+      </div>
+    </header>
+
+    <section class="eb-meta-bar">
+      <div class="eb-meta-card">
+        <div class="label">연결 대상</div>
+        <div class="value" id="metaTargetUrl">-</div>
+      </div>
+      <div class="eb-meta-card">
+        <div class="label">목록 / 상세</div>
+        <div class="value">AV-INQ-0002 / AV-INQ-0003 (거래코드 미확정)</div>
+      </div>
+    </section>
+
+    <section class="eb-filter-bar">
+      <div class="field">
+        <label for="filterCustomerNo">고객번호 *</label>
+        <input id="filterCustomerNo" type="text" placeholder="예: C0001" value="C0001">
+      </div>
+      <div class="field">
+        <label for="filterContactType">연락처유형</label>
+        <input id="filterContactType" type="text" placeholder="예: MOBILE (선택)">
+      </div>
+      <div class="eb-actions">
+        <button type="button" class="btn-primary" id="btnSearch">조회</button>
+        <button type="button" class="btn-secondary" id="btnClearFilter">필터 초기화</button>
+      </div>
+    </section>
+
+    <div id="alertBox" class="eb-alert info" hidden></div>
+
+    <section class="eb-table-panel">
+      <h2>연락처 목록 (USE_YN=Y · 연락처 마스킹)</h2>
+      <div class="eb-table-wrap">
+        <table class="eb-table">
+          <thead>
+            <tr>
+              <th>연락처ID</th>
+              <th>고객번호</th>
+              <th>유형</th>
+              <th>연락처(마스킹)</th>
+              <th>사용</th>
+              <th>변경일시</th>
+            </tr>
+          </thead>
+          <tbody id="contactTableBody">
+            <tr><td colspan="6" class="eb-empty">조회 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="pagination" class="eb-pagination" hidden></div>
+    </section>
+
+    <section class="eb-table-panel">
+      <h2>상세</h2>
+      <pre id="detailPanel" class="eb-empty">행을 클릭하면 상세를 조회합니다.</pre>
+    </section>
+  </div>
+
+  <script src="/_shared/ui-context.js"></script>
+  <script src="/_shared/av-admin.js"></script>
+  <script>
+    const PAGE_SIZE = 15;
+    let pageNo = 1;
+
+    function readFilters() {
+      const customerNo = document.getElementById('filterCustomerNo').value.trim();
+      const contactType = document.getElementById('filterContactType').value.trim();
+      const filters = { pageNo, pageSize: PAGE_SIZE };
+      if (customerNo) filters.customerNo = customerNo;
+      if (contactType) filters.contactType = contactType;
+      return filters;
+    }
+
+    function renderRows(rows) {
+      const tbody = document.getElementById('contactTableBody');
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="eb-empty">조회된 연락처가 없습니다.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(row => {
+        const contactId = AvAdmin.field(row, 'contactId');
+        return `
+          <tr data-contact-id="${contactId}" style="cursor:pointer">
+            <td><strong>${contactId}</strong></td>
+            <td>${AvAdmin.field(row, 'customerNo')}</td>
+            <td>${AvAdmin.field(row, 'contactType')}</td>
+            <td>${AvAdmin.field(row, 'contactValue')}</td>
+            <td>${AvAdmin.chipForUseYn(AvAdmin.field(row, 'useYn'))}</td>
+            <td>${AvAdmin.formatTs(AvAdmin.field(row, 'updDtm'))}</td>
+          </tr>`;
+      }).join('');
+      tbody.querySelectorAll('tr[data-contact-id]').forEach(tr => {
+        tr.addEventListener('click', () => loadDetail(tr.getAttribute('data-contact-id')));
+      });
+    }
+
+    async function loadList(nextPage) {
+      if (nextPage != null) pageNo = nextPage;
+      const tbody = document.getElementById('contactTableBody');
+      tbody.innerHTML = '<tr><td colspan="6" class="eb-empty">조회 중...</td></tr>';
+      AvAdmin.hideAlert(document.getElementById('alertBox'));
+      try {
+        const { body } = await AvAdmin.inquiry('selectList', readFilters());
+        renderRows(body.rows || []);
+        AvAdmin.renderPagination(
+          document.getElementById('pagination'),
+          body.pageNo || pageNo,
+          body.pageSize || PAGE_SIZE,
+          body.totalCount || 0,
+          loadList
+        );
+      } catch (error) {
+        tbody.innerHTML = `<tr><td colspan="6" class="eb-empty">${error.message || '조회 실패'}</td></tr>`;
+        document.getElementById('pagination').hidden = true;
+        AvAdmin.showAlert(document.getElementById('alertBox'), error.message || '조회 실패', 'error');
+      }
+    }
+
+    async function loadDetail(contactId) {
+      const panel = document.getElementById('detailPanel');
+      panel.textContent = '상세 조회 중...';
+      try {
+        const { body } = await AvAdmin.inquiry('selectDetail', { contactId });
+        panel.textContent = JSON.stringify(body, null, 2);
+      } catch (error) {
+        panel.textContent = error.message || '상세 조회 실패';
+      }
+    }
+
+    function clearFilter() {
+      document.getElementById('filterCustomerNo').value = 'C0001';
+      document.getElementById('filterContactType').value = '';
+      pageNo = 1;
+      loadList(1);
+    }
+
+    document.getElementById('btnSearch').addEventListener('click', () => loadList(1));
+    document.getElementById('btnClearFilter').addEventListener('click', clearFilter);
+    document.getElementById('filterCustomerNo').addEventListener('keydown', e => {
+      if (e.key === 'Enter') loadList(1);
+    });
+
+    AvAdmin.loadConfig()
+      .then(() => {
+        document.getElementById('metaTargetUrl').textContent = AvAdmin.getTargetUrl();
+        return loadList(1);
+      })
+      .catch(error => {
+        alert('화면 초기화 실패: ' + error.message);
+      });
+  </script>
+</body>
+</html>

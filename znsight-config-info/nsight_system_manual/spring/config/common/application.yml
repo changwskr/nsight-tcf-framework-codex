@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: nsight-marketing-platform
+
+  profiles:
+    active: prd
+    include:
+      - session-jdbc
+      - datasource
+      - mybatis
+      - transaction
+      - security
+      - management
+      - cache
+
+  main:
+    banner-mode: console
+    allow-bean-definition-overriding: false
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+  forward-headers-strategy: framework
+
+nsight:
+  system-id: NSIGHT-MP
+  domain: nh.marketing.com
+  service-group: marketing
+  default-locale: ko_KR
+
+  guid:
+    header-name: X-GUID
+    trace-header-name: X-Trace-Id
+    generate-if-absent: true
+
+  timeout:
+    online-transaction-seconds: 5
+    db-query-seconds: 3
+    external-connect-millis: 3000
+    external-read-millis: 5000

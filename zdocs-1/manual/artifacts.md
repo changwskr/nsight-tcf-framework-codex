@@ -1,0 +1,378 @@
+# 빌드 산출물·기동 파일 배치
+
+| 항목 | 내용 |
+|------|------|
+| 대상 | 로컬 개발·ztomcat·운영 배포 담당자 |
+| 관련 | [gradle.md](gradle.md), [lib-module.md](lib-module.md), [environment-variables.md](environment-variables.md), [22-build-project.md](../architecture/22-build-project.md), [16-deploy.md](../architecture/16-deploy.md), [ztomcat/README.md](../../ztomcat/README.md) |
+
+---
+
+## 1. 개요 — JAR를 어디에 둬야 하나?
+
+NSIGHT TCF는 **실행 방식에 따라 필요한 물리 파일이 다릅니다.**
+
+| 실행 방식 | 기동 주체 | 프레임워크 JAR를 따로 둘 필요 | 배포 단위 |
+|-----------|-----------|:----------------------------:|-----------|
+| **`bootRun`** (개발) | Gradle 내장 Tomcat | **없음** — Gradle classpath | 소스 + Gradle 빌드 캐시 |
+| **`bootWar` + ztomcat** (통합) | 외부 Tomcat 8080 | **없음** — WAR 안에 포함 | `*.war` 19개 |
+| **`bootJar`** (선택) | `java -jar` | **없음** — fat JAR 1개 | `tcf-ui.jar`, `tcf-batch.jar` |
+
+핵심:
+
+1. **`tcf-util` / `tcf-core` / `tcf-web` / `tcf-cache` JAR는 Tomcat `lib/`에 넣지 않습니다.**  
+   `bootWar`가 `WEB-INF/lib/`에 **함께 패키징**합니다.
+2. **소스 트리만 있으면 `bootRun` 가능** — Gradle이 의존 JAR를 빌드·연결합니다.
+3. **ztomcat 기동**에는 `{모듈}/build/libs/*.war`를 Tomcat `webapps/`(또는 `wars/`)에 복사해야 합니다.
+
+---
+
+## 2. 모듈 유형과 산출물
+
+`settings.gradle` 기준 **24개 서브프로젝트** 중 기동에 관여하는 것만 정리합니다.
+
+### 2.1 프레임워크 라이브러리 (JAR만 생성)
+
+| Gradle 모듈 | 빌드 태스크 | 산출물 경로 | Tomcat 단독 배포 |
+|-------------|-------------|-------------|:----------------:|
+| `:tcf-util` | `build` | `tcf-util/build/libs/tcf-util-1.0.0-SNAPSHOT.jar` | ✕ |
+| `:tcf-core` | `build` | `tcf-core/build/libs/tcf-core-1.0.0-SNAPSHOT.jar` | ✕ |
+| `:tcf-web` | `build` | `tcf-web/build/libs/tcf-web-1.0.0-SNAPSHOT.jar` | ✕ |
+| `:tcf-cache` | `build` | `tcf-cache/build/libs/tcf-cache-1.0.0-SNAPSHOT.jar` | ✕ |
+
+- 버전·파일명: `com.nh.nsight` / `1.0.0-SNAPSHOT` (루트 `build.gradle` `group`·`version`)
+- **직접 실행 불가** — 업무 WAR·`tcf-om`·`tcf-batch`가 `implementation project(...)`로 참조
+- `bootWar` 시 WAR 내부 `WEB-INF/lib/tcf-*-1.0.0-SNAPSHOT.jar`로 복사됨
+
+### 2.2 실행 모듈 (WAR / JAR)
+
+| Gradle 모듈 | bootWar 산출물 | bootJar (선택) | ztomcat 배포 파일 | Context |
+|-------------|----------------|----------------|-------------------|---------|
+| `cc-service` … `mg-service` (16) | `{code}.war` | — | `webapps/{code}.war` | `/{code}` |
+| `tcf-om` | `tcf-om.war` | — | `webapps/om.war` | `/om` |
+| `tcf-batch` | `tcf-batch.war` | `tcf-batch.jar` | `wars/zz-batch.war` | `/batch` |
+| `tcf-ui` | `tcf-ui.war` | `tcf-ui.jar` | `webapps/ui.war` | `/ui` |
+| `om-service` | `om.war` | — | **미배포** (레거시) | — |
+
+**WAR 빌드 경로 (공통):**
+
+```text
+{모듈}/build/libs/{archiveFileName}
+예) sv-service/build/libs/sv.war
+    tcf-om/build/libs/tcf-om.war
+```
+
+`bootWar` 실행 시 같은 디렉터리에 `-plain.war`(얇은 WAR)도 생길 수 있으나, **배포·복사 대상은 `archiveFileName`으로 고정된 파일**입니다 (`sv.war`, `tcf-om.war` 등).
+
+---
+
+## 3. 빌드 산출물 디렉터리 (`build/libs/`)
+
+Gradle `build` / `bootWar` 후 프로젝트 트리:
+
+```text
+nsight-tcf-framework/
+├── tcf-util/build/libs/
+│   └── tcf-util-1.0.0-SNAPSHOT.jar
+├── tcf-core/build/libs/
+│   └── tcf-core-1.0.0-SNAPSHOT.jar
+├── tcf-web/build/libs/
+│   └── tcf-web-1.0.0-SNAPSHOT.jar
+├── tcf-cache/build/libs/
+│   └── tcf-cache-1.0.0-SNAPSHOT.jar
+├── sv-service/build/libs/
+│   ├── sv.war                    ← ztomcat·운영 배포용 (fat WAR)
+│   └── sv-service-1.0.0-SNAPSHOT-plain.war   (참고용, 배포 X)
+├── tcf-om/build/libs/
+│   └── tcf-om.war
+├── tcf-batch/build/libs/
+│   ├── tcf-batch.war
+│   └── tcf-batch.jar
+└── tcf-ui/build/libs/
+    ├── tcf-ui.war
+    └── tcf-ui.jar
+```
+
+| 일괄 빌드 | 명령 | WAR 개수 |
+|-----------|------|:--------:|
+| 업무 + OM | `gradle buildBusinessWars` | 17 |
+| ztomcat 전체 | `gradle buildZtomcatWars` | 19 |
+
+상세 Gradle 명령: [gradle.md](gradle.md)
+
+---
+
+## 4. WAR 내부 구조 (왜 lib JAR를 따로 안 두는가)
+
+`bootWar`는 Spring Boot **실행 가능 WAR(fat WAR)** 입니다. 업무 WAR(`sv.war`) 기준:
+
+```text
+sv.war
+├── META-INF/
+├── WEB-INF/
+│   ├── classes/              ← sv-service 컴파일 클래스·application*.yml
+│   ├── lib/                  ← 모든 runtime JAR (의존성 + TCF)
+│   │   ├── tcf-util-1.0.0-SNAPSHOT.jar
+│   │   ├── tcf-core-1.0.0-SNAPSHOT.jar
+│   │   ├── tcf-web-1.0.0-SNAPSHOT.jar
+│   │   ├── spring-boot-*.jar
+│   │   ├── mybatis-*.jar
+│   │   ├── h2-2.2.224.jar
+│   │   └── … (수십 개)          ← Maven Central JAR — 상세: [lib-module.md](lib-module.md) §1
+│   └── …
+└── org/springframework/boot/loader/…   ← WAR 부트스트랩
+```
+
+### 4.1 Maven·NSIGHT lib — PC 저장 위치 (요약)
+
+**상세 참조:** [lib-module.md](lib-module.md) — NSIGHT lib 모듈(`tcf-*`)·Maven lib(`spring-boot`, `mybatis`, `h2` 등)의 ①②③ 단계·모듈별 포함表.
+
+```text
+Maven Central → ① Gradle 캐시 → ② WAR (WEB-INF/lib) → ③ Tomcat exploded
+NSIGHT tcf-*  → ⓪ 프로젝트 build/ ──────────────────→ ②③ WEB-INF/lib
+```
+
+| 단계 | Windows 예 (sv-service) | bootRun | ztomcat |
+|------|-------------------------|:-------:|:-------:|
+| ① | `%USERPROFILE%\.gradle\caches\modules-2\files-2.1\...` | ● Maven lib | — |
+| ⓪ | `tcf-core/build/libs/tcf-core-1.0.0-SNAPSHOT.jar` | ● NSIGHT lib | — |
+| ② | `sv-service/build/libs/sv.war` | — | deploy 소스 |
+| ③ | `ztomcat/.../webapps/sv/WEB-INF/lib/*.jar` | — | ● runtime |
+
+| 모듈 | WAR `WEB-INF/lib`에 포함되는 TCF JAR |
+|------|--------------------------------------|
+| 업무 `*-service` | `tcf-util`, `tcf-core`, `tcf-web` |
+| `tcf-om` | 위 + `tcf-cache` |
+| `tcf-batch` | `tcf-core`, `tcf-web` (MyBatis·session 없음) |
+| `tcf-ui` | **TCF JAR 없음** (Spring Web만) |
+
+Tomcat은 `providedRuntime spring-boot-starter-tomcat`으로 **내장 Tomcat JAR를 WAR에서 제외**하고, 컨테이너(Tomcat 10)가 Servlet API를 제공합니다.
+
+애플리케이션 진입: `NsightWarBootstrap` → 각 모듈 `*Application` (`SpringBootServletInitializer`).
+
+---
+
+## 5. 실행 방식별 — 물리적으로 있어야 하는 파일
+
+### 5.1 bootRun (단일 모듈 개발)
+
+**별도 JAR/WAR 복사 불필요.** 다음만 있으면 됩니다.
+
+| 필요 | 경로·조건 |
+|------|-----------|
+| 소스 트리 | `settings.gradle` 있는 프로젝트 루트 |
+| JDK 21 | `JAVA_HOME` |
+| Gradle 8.x | `GRADLE_HOME` 또는 PATH |
+| (자동 생성) | `{모듈}/build/classes/`, `{모듈}/build/libs/` — Gradle이 빌드 |
+| (자동 생성) | `data/nsight-txlog/` — 거래로그 H2 (bootRun·PostProcessor) |
+
+```powershell
+gradle :sv-service:bootRun
+# → http://localhost:8086/sv/online
+```
+
+Gradle이 `:tcf-util` → `:tcf-core` → `:tcf-web` → `:sv-service` 순으로 **프로젝트 의존을 컴파일**하고, Maven Central 의존(`spring-boot`, `h2`, `mybatis` 등)은 **`%USERPROFILE%\.gradle\caches\modules-2\files-2.1\`** 에서 classpath에 올립니다.  
+상세 경로·예시: [lib-module.md](lib-module.md) §1.
+
+### 5.2 ztomcat (Tomcat 8080 통합)
+
+**13개 WAR** (`deploy-wars.sh`) + Tomcat 설치본 + 설정이 필요합니다.
+
+#### Tomcat 설치 (최초 1회)
+
+```text
+ztomcat/apache-tomcat-10.1.34/     ← install-tomcat 후 생성 (~150MB, git 제외)
+├── bin/catalina.bat|sh
+├── conf/server.xml
+├── conf/Catalina/localhost/batch.xml   ← batch context (deploy-wars가 갱신)
+└── webapps/
+```
+
+#### WAR 배포 위치 (deploy-wars 기준)
+
+| 코드 | Gradle 모듈 | 빌드 산출물 (`build/libs/`) | Tomcat 물리 경로 | URL |
+|------|-------------|----------------------------|------------------|-----|
+| cc | `cc-service` | `cc.war` | `webapps/cc.war` | `/cc` |
+| ic | `ic-service` | `ic.war` | `webapps/ic.war` | `/ic` |
+| pc | `pc-service` | `pc.war` | `webapps/pc.war` | `/pc` |
+| bc | `bc-service` | `bc.war` | `webapps/bc.war` | `/bc` |
+| ms | `ms-service` | `ms.war` | `webapps/ms.war` | `/ms` |
+| sv | `sv-service` | `sv.war` | `webapps/sv.war` | `/sv` |
+| pd | `pd-service` | `pd.war` | `webapps/pd.war` | `/pd` |
+| cm | `cm-service` | `cm.war` | `webapps/cm.war` | `/cm` |
+| eb | `eb-service` | `eb.war` | `webapps/eb.war` | `/eb` |
+| ep | `ep-service` | `ep.war` | `webapps/ep.war` | `/ep` |
+| bp | `bp-service` | `bp.war` | `webapps/bp.war` | `/bp` |
+| bd | `bd-service` | `bd.war` | `webapps/bd.war` | `/bd` |
+| ss | `ss-service` | `ss.war` | `webapps/ss.war` | `/ss` |
+| cs | `cs-service` | `cs.war` | `webapps/cs.war` | `/cs` |
+| ct | `ct-service` | `ct.war` | `webapps/ct.war` | `/ct` |
+| mg | `mg-service` | `mg.war` | `webapps/mg.war` | `/mg` |
+| om | `tcf-om` | `tcf-om.war` | `webapps/om.war` | `/om` |
+| ui | `tcf-ui` | `tcf-ui.war` | `webapps/ui.war` | `/ui` |
+| batch | `tcf-batch` | `tcf-batch.war` | `wars/zz-batch.war` | `/batch` |
+
+**batch만 예외:** `webapps/batch.war`가 아니라 **`ztomcat/wars/zz-batch.war`** 에 두고,  
+`conf/Catalina/localhost/batch.xml`이 `docBase`로 가리킵니다 (마지막 배포·Hikari 초기화 순서 제어).
+
+Tomcat **autoDeploy** 후 exploded 디렉터리가 생깁니다:
+
+```text
+webapps/sv.war
+webapps/sv/              ← Tomcat이 풀어 둔 디렉터리 (재배포 시 deploy-wars가 삭제 후 WAR 재복사)
+webapps/om.war
+webapps/om/
+…
+```
+
+#### ztomcat 전체 트리 (기동 가능 상태)
+
+```text
+nsight-tcf-framework/
+├── data/nsight-txlog/              ← H2 거래로그 (NSIGHT_TXLOG_PATH)
+│   └── nsight_om/                  ← OM·batch·txlog 공유 DB 파일
+├── ztomcat/
+│   ├── apache-tomcat-10.1.34/
+│   │   ├── bin/setenv.bat|sh       ← conf/setenv.* 복사본 (apply-config)
+│   │   └── webapps/
+│   │       ├── cc.war … mg.war     (16)
+│   │       ├── om.war
+│   │       └── ui.war
+│   ├── wars/
+│   │   └── zz-batch.war
+│   └── conf/
+│       ├── setenv.bat|sh
+│       └── Catalina/localhost/batch.xml
+└── {각 모듈}/build/libs/*.war      ← 빌드 산출물 (deploy-wars가 webapps/wars로 복사)
+```
+
+빌드·복사 자동화: `ztomcat/deploy-wars.bat all` 또는 `gradle buildZtomcatWars` 후 수동 복사.
+
+### 5.3 bootJar (fat JAR 단독 실행, 선택)
+
+Tomcat 없이 **단일 JAR**로 기동할 때:
+
+| 모듈 | 산출물 | 실행 예 |
+|------|--------|---------|
+| `tcf-ui` | `tcf-ui/build/libs/tcf-ui.jar` | `java -jar tcf-ui.jar` (8099) |
+| `tcf-batch` | `tcf-batch/build/libs/tcf-batch.jar` | `java -jar tcf-batch.jar` (8098) |
+
+업무 `*-service`는 **bootJar 태스크를 쓰지 않음** — WAR 또는 bootRun만 지원.
+
+---
+
+## 6. bootRun 포트 ↔ WAR context 대응
+
+| 코드 | 모듈 | bootRun 포트 | ztomcat context |
+|------|------|:------------:|:---------------:|
+| cc | `cc-service` | 8081 | `/cc` |
+| ic | `ic-service` | 8082 | `/ic` |
+| pc | `pc-service` | 8083 | `/pc` |
+| bc | `bc-service` | 8084 | `/bc` |
+| ms | `ms-service` | 8085 | `/ms` |
+| sv | `sv-service` | 8086 | `/sv` |
+| pd | `pd-service` | 8087 | `/pd` |
+| cm | `cm-service` | 8088 | `/cm` |
+| eb | `eb-service` | 8089 | `/eb` |
+| ep | `ep-service` | 8090 | `/ep` |
+| bp | `bp-service` | 8091 | `/bp` |
+| bd | `bd-service` | 8092 | `/bd` |
+| ss | `ss-service` | 8093 | `/ss` |
+| cs | `cs-service` | 8094 | `/cs` |
+| ct | `ct-service` | 8095 | `/ct` |
+| mg | `mg-service` | 8096 | `/mg` |
+| om | `tcf-om` | 8097 | `/om` |
+| batch | `tcf-batch` | 8098 | `/batch` |
+| ui | `tcf-ui` | 8099 | `/ui` |
+
+ztomcat은 **전 모듈 8080** — context path로 구분.
+
+---
+
+## 7. 기동에 필요한 비-JAR 데이터·설정
+
+JAR/WAR 외에 **런타임에 읽는 경로**입니다.
+
+| 경로 | 생성 시점 | 용도 |
+|------|-----------|------|
+| `data/nsight-txlog/` | 첫 거래·batch 수집 시 | H2 `TCF_TX_LOG` (`nsight_om` DB 파일) |
+| `data/nsight-txlog/nsight_om/` | H2 file DB | OM·batch·txlog **공유** (bootRun ↔ ztomcat 일치 필수) |
+| `{CATALINA_BASE}/logs/` | Tomcat 기동 | `nsight-*.log` (dev yml) |
+| `tcf-om` UD (운영) | 설정·업로드 시 | `NSIGHT_UPDOWNLOAD_PATH` (기본 `/var/nsight/updownload`) |
+
+환경변수·JVM: [environment-variables.md](environment-variables.md)
+
+---
+
+## 8. 외부 의존 JAR (Maven) — 저장 위치 요약
+
+Maven lib·NSIGHT lib의 **①②③ 단계·모듈별 포함表**는 [lib-module.md](lib-module.md)를 참고하세요.
+
+| 실행 방식 | Maven lib (`spring-boot`, `h2`, …) | NSIGHT lib (`tcf-*`) |
+|-----------|-----------------------------------|----------------------|
+| **`bootRun`** | ① Gradle 캐시 | ⓪ `{모듈}/build/` |
+| **ztomcat** | ③ `webapps/{code}/WEB-INF/lib/` | ③ 동일 |
+
+로컬 dev H2(`com.h2database:h2:2.2.224`)는 **WAR에 포함**되어 ②·③ 경로에도 복사됩니다.  
+**운영 Oracle** ojdbc는 저장소에 없으므로, 배포 시 WAR `WEB-INF/lib/` 또는 Tomcat `lib/`에 **수동 추가**해야 합니다 (`NSIGHT_{CODE}_DB_DRIVER=oracle.jdbc.OracleDriver`).
+
+### 8.1 캐시 용량·정리
+
+| 작업 | 명령·경로 |
+|------|-----------|
+| 캐시 전체 크기 확인 | `%USERPROFILE%\.gradle\caches\` 폴더 속성 |
+| Gradle 공식 정리 | `gradle --stop` 후 `gradle clean` (프로젝트 `build/`만 삭제) |
+| Maven 캐시만 삭제 | `modules-2` 폴더 삭제 — **다음 빌드 시 재다운로드** |
+
+프로젝트 `build/`를 `gradle clean`으로 지워도 **Gradle 캐시(`\.gradle`)는 남습니다.**  
+반대로 캐시를 지워도 `build/libs/*.war`가 남아 있으면 ztomcat은 기존 WAR로 기동 가능합니다.
+
+---
+
+## 9. 시나리오별 최소 파일 체크리스트
+
+### A. SV만 bootRun으로 개발
+
+- [ ] `sv-service/` 소스 + 프레임워크 모듈 소스 (`tcf-util`, `tcf-core`, `tcf-web`)
+- [ ] JDK 21, Gradle 8.x
+- [ ] `gradle :sv-service:bootRun` (내부적으로 lib JAR 빌드)
+- [ ] (선택) `data/nsight-txlog/` — txlog 사용 시
+
+### B. ztomcat 13 context (`deploy-wars.sh`)
+
+- [ ] `ztomcat/apache-tomcat-10.1.34/` (install-tomcat)
+- [ ] `webapps/` — 업무 9 + `om.war` + `ui.war` + `jwt.war` + `batch.war`
+- [ ] `wars/zz-batch.war` + `conf/Catalina/localhost/batch.xml`
+- [ ] `conf/setenv.*` → JDK 21, `-Dspring.profiles.active=dev`, `NSIGHT_TXLOG_PATH`
+- [ ] `data/nsight-txlog/` (OM·batch DB 공유)
+
+### C. 운영 Tomcat (prod)
+
+- [ ] 동일 WAR 13개 (또는 필요 context만)
+- [ ] `setenv.prod.*` — `spring.profiles.active=prod`, `NSIGHT_GATEWAY_BASE_URL`, `NSIGHT_*_DB_*`
+- [ ] Oracle JDBC 드라이버 JAR
+- [ ] 거래로그·업무 DB (Oracle), UD 스토리지 경로
+
+---
+
+## 10. 자주 하는 오해
+
+| 오해 | 실제 |
+|------|------|
+| `tcf-core.jar`를 Tomcat `lib/`에 넣어야 한다 | ✕ — 각 WAR `WEB-INF/lib`에 이미 포함 |
+| `build/libs/`만 있으면 bootRun 가능 | △ — **소스 없이 WAR만**이면 bootRun 불가; WAR는 Tomcat용 |
+| `om-service/build/libs/om.war`를 ztomcat에 올린다 | ✕ — **`tcf-om.war` → `om.war`** (deploy-wars·buildBusinessWars) |
+| `batch.war`를 webapps에 둔다 | ✕ — **`wars/zz-batch.war`** + `batch.xml` |
+| Gradle Wrapper(`gradlew`)가 있다 | ✕ — 시스템 Gradle 필요 ([gradle.md](gradle.md)) |
+
+---
+
+## 11. 관련 문서·스크립트
+
+| 문서/경로 | 내용 |
+|-----------|------|
+| [gradle.md](gradle.md) | `bootWar`, `buildZtomcatWars` |
+| [environment-variables.md](environment-variables.md) | `NSIGHT_TXLOG_PATH`, DB env |
+| [22-build-project.md](../architecture/22-build-project.md) | 모듈 의존·Gradle 구조 |
+| [16-deploy.md](../architecture/16-deploy.md) | 배포 토폴로지 |
+| [ztomcat/README.md](../../ztomcat/README.md) | deploy-wars·verify-deploy |
+| `tcf-cicd/local/script/deploy-wars.ps1` | 빌드 → webapps/wars 복사 매핑 |

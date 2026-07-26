@@ -1,0 +1,892 @@
+34. 로그 작성 기준
+34.1 도입 전 안내말
+로그는 단순히 개발자가 디버깅하기 위해 남기는 문자열이 아니다.NSIGHT TCF Framework에서 로그는 거래 추적, 장애 분석, 성능 분석, 감사 대응, 재처리 판단, 운영 대시보드 지표 생성을 위한 운영 증적이다.
+NSIGHT 전처리·후처리 기준에서도 모든 온라인 거래는 표준 전문으로 수신되고, GUID, TraceId, TransactionId 기반으로 추적되어야 하며, 거래로그·성능로그·감사로그·모니터링 지표를 제공해야 한다고 정의되어 있다. 또한 전처리 단계에서는 거래 시작 로그와 PROCESSING 상태 저장, 후처리 단계에서는 거래 종료 로그, 감사로그, 성능 메트릭, 거래 상태 갱신을 수행하도록 정리되어 있다.
+기본 흐름은 다음과 같다.
+요청 수신
+  ↓
+GUID / TraceId 생성 또는 수신
+  ↓
+MDC 설정
+  ↓
+거래 시작 로그 기록
+  ↓
+업무 처리 로그 기록
+  ↓
+SQL / 연계 / 오류 / 성능 로그 기록
+  ↓
+거래 종료 로그 기록
+  ↓
+감사로그 / 메트릭 기록
+  ↓
+MDC / ThreadLocal 정리
+
+핵심 문장은 다음이다.
+로그는 많이 남기는 것이 아니라, 장애 발생 시 원인을 찾을 수 있게 남기는 것이다.모든 로그는 GUID, TraceId, ServiceId 기준으로 연결되어야 한다.
+
+34.2 로그 작성 기준 결론
+구분
+기준
+로그 식별 기준
+GUID, TraceId, TransactionId
+업무 식별 기준
+businessCode, serviceId, transactionCode
+사용자 식별 기준
+userId, branchId, channelId
+로그 자동 포함
+Logback MDC
+거래 시작
+STF 전처리에서 기록
+거래 종료
+ETF 후처리에서 기록
+거래 상태
+PROCESSING, SUCCESS, FAIL, TIMEOUT, UNKNOWN, BLOCKED
+파일 로그
+application.log, transaction.log, error.log, audit.log
+DB 로그
+TCF_TX_LOG, TCF_TX_STEP_LOG, TCF_PERFORMANCE_LOG, OM_AUDIT_LOG
+성능 로그
+AP 처리시간, DB 처리시간, 연계 처리시간 분리
+감사 로그
+고객정보 조회, 다운로드, 권한 위반, 관리자 변경
+보안 기준
+개인정보·계좌번호·토큰·SQL 전문 로그 금지
+MDC 정리
+요청 종료 후 반드시 MDC.clear()
+운영 조회
+OM 거래로그 / 감사로그 화면
+보관 정책
+로그 유형별 보관기간 분리
+
+34.3 로그 유형 분리
+NSIGHT 로그는 목적별로 분리한다.
+로그 유형
+저장 위치
+목적
+필수 여부
+Application Log
+application.log
+일반 애플리케이션 동작 확인
+필수
+Transaction Log
+transaction.log, TCF_TX_LOG
+거래 시작·종료·상태 추적
+필수
+Error Log
+error.log
+예외, 시스템 오류, StackTrace
+필수
+Performance Log
+TCF_PERFORMANCE_LOG, APM
+AP/DB/연계 처리시간 분석
+필수
+Audit Log
+audit.log, OM_AUDIT_LOG
+고객정보 조회, 권한 위반, 다운로드 증적
+필수
+SQL Log
+MyBatis / SQL ID 기반
+느린 SQL, Timeout SQL 추적
+선택·운영 제한
+Integration Log
+연계 로그, 거래 상세 로그
+서비스 간 호출, 외부연계 추적
+필수
+Security Log
+보안 로그
+인증 실패, 권한 위반, 위변조 의심
+필수
+Batch Log
+배치 실행 로그
+배치 시작·종료·실패·재처리
+필수
+Access Log
+Apache / Gateway
+진입 경로, 응답코드, 지연시간
+필수
+거래로그 관리 기준에서도 로그는 거래 요약 로그, 거래 상세 로그, 성능 로그, 감사 로그, 파일 로그, 오류 로그로 분리하고, DB 거래로그와 파일 거래로그를 병행하는 방식을 권장한다.
+
+34.4 로그별 역할
+로그
+역할
+Application Log
+개발·운영자가 애플리케이션 흐름을 확인
+Transaction Log
+거래 1건의 시작, 종료, 상태, 응답시간 확인
+Error Log
+예외 원인과 StackTrace 확인
+Performance Log
+어느 구간에서 지연되었는지 확인
+Audit Log
+누가, 언제, 어떤 민감행위를 했는지 증적 관리
+SQL Log
+어떤 SQL이 지연 또는 오류를 냈는지 확인
+Integration Log
+어느 대상 서비스 호출이 실패했는지 확인
+Security Log
+인증·권한·위변조·비정상 접근 확인
+Access Log
+Apache/Gateway에서 사용자 요청 유입 확인
+거래로그는 단순 로그 파일이 아니라 거래 상태 관리 테이블로 봐야 하며, 장애 추적, 성능 분석, Timeout 판단, 재처리 판단, 감사 대응, 운영 대시보드 지표에 활용된다.
+
+34.5 GUID / TraceId / MDC 기준
+모든 로그에는 GUID, TraceId, ServiceId, UserId가 자동 포함되어야 한다.
+요청 수신
+  ↓
+GUID 생성 또는 Header에서 수신
+  ↓
+TraceId 생성
+  ↓
+MDC 저장
+  ↓
+모든 로그에 자동 출력
+  ↓
+거래로그 DB 저장
+  ↓
+응답 Header 반환
+  ↓
+MDC.clear()
+
+전처리 요구사항에서도 요청 Header에 GUID가 없으면 신규 생성하고, TraceId와 SpanId를 생성해야 하며, GUID, TraceId, UserId, ServiceId를 MDC에 설정하여 모든 로그에 자동 포함해야 한다고 정의되어 있다. 통합 운영 매뉴얼도 X-GUID, X-Trace-Id를 생성·응답 Header로 반환하고, MDC 저장 후 finally에서 MDC.clear()를 수행하도록 정리한다.
+
+34.6 MDC 표준 항목
+MDC Key
+설명
+예시
+guid
+End-to-End 거래 식별자
+GUID-20260704-000001
+traceId
+AP 내부 추적 ID
+TRC-20260704-000001
+spanId
+하위 처리 구간 ID
+SPN-0001
+transactionId
+전문 거래 ID
+TX-20260704-000001
+serviceId
+실행 서비스 ID
+SV.Customer.selectSummary
+transactionCode
+거래코드
+SV-INQ-0001
+businessCode
+업무코드
+SV
+userId
+사용자 ID
+U12345
+branchId
+지점코드
+001234
+channelId
+채널 ID
+WEBTOP
+sessionId
+세션 ID
+JSESSIONID 일부 마스킹
+clientIp
+사용자 IP
+10.10.10.10
+apId
+AP 노드 ID
+ap01
+
+34.7 Logback 패턴 기준
+Logback 패턴에는 MDC 항목을 포함한다.
+<property name="LOG_PATTERN"
+          value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] 
+[guid=%X{guid}] 
+[traceId=%X{traceId}] 
+[userId=%X{userId}] 
+[branchId=%X{branchId}] 
+[serviceId=%X{serviceId}] 
+[txCode=%X{transactionCode}] 
+%logger{36} - %msg%n"/>
+
+표준 로그 출력 예시는 다음과 같다.
+2026-07-04 10:00:01.234 INFO [http-nio-8080-exec-12]
+[guid=GUID-20260704-000001]
+[traceId=TRC-20260704-000001]
+[userId=U12345]
+[branchId=001234]
+[serviceId=SV.Customer.selectSummary]
+[txCode=SV-INQ-0001]
+c.n.n.sv.SvCustomerService - customer summary inquiry completed. elapsedMs=1230
+
+TCF 설계 기준에서도 표준 Application Log는 guid, traceId, userId, serviceId, txCode, elapsedMs를 포함하는 형식으로 제시되어 있다.
+
+34.8 로그 레벨 기준
+Level
+사용 기준
+예시
+TRACE
+운영 기본 비활성, 상세 디버깅
+파라미터 상세 추적
+DEBUG
+개발·검증 환경 중심
+조건 분기, 내부 상태
+INFO
+정상 거래 흐름, 시작·종료 요약
+거래 시작, 거래 종료
+WARN
+업무상 경고, 재시도 가능, 권한 위반 시도
+미등록 코드, 권한 없음
+ERROR
+시스템 오류, DB 오류, 연계 오류
+SQL Timeout, 연계 실패
+FATAL
+사용 지양, 시스템 중단 수준은 ERROR + 알림
+JVM 중단, 필수 설정 누락
+운영 기본 로그 레벨은 다음을 권장한다.
+환경
+Root Level
+업무 Package
+SQL
+local
+DEBUG
+DEBUG
+DEBUG 가능
+dev
+DEBUG 또는 INFO
+DEBUG
+제한적 DEBUG
+stg
+INFO
+INFO
+느린 SQL 중심
+prd
+INFO
+INFO
+SQL 전문 출력 금지
+
+34.9 계층별 로그 작성 기준
+계층
+로그 기준
+금지 사항
+Controller
+요청 수신 최소 로그, TCF 전달
+Body 전체 출력
+STF
+Header 검증, GUID, 세션, 거래통제 결과
+개인정보 출력
+Dispatcher
+ServiceId 매핑 결과
+Handler 내부 상세 출력
+Handler
+Facade 호출 전후 요약
+업무 로직 상세 판단 로그 남발
+Facade
+트랜잭션 시작·종료, Timeout 기준
+SQL 직접 출력
+Service
+업무 흐름 주요 분기
+고객정보 원문 출력
+Rule
+검증 실패, 업무 조건 불일치
+정상 검증마다 과도한 INFO
+DAO
+SQL ID, Mapper 호출 요약
+SQL 전문·파라미터 원문 출력
+Mapper
+MyBatis 설정 기반
+Mapper XML에 로그 로직 작성 금지
+Integration Adapter
+대상 서비스, elapsedMs, 결과
+연계 요청/응답 전문 전체 출력
+ETF
+결과코드, 오류코드, 거래 종료 상태
+응답 Body 전체 출력
+GlobalExceptionHandler
+미처리 예외 표준화
+StackTrace 사용자 응답 노출
+
+34.10 거래 시작 로그 기준
+거래 시작 시점에는 STF 전처리에서 로그를 기록한다.
+거래 시작 시점
+  - 요청 수신
+  - GUID / TraceId 확정
+  - Header 검증
+  - 세션 / 인증 / 권한 검증
+  - 거래통제 확인
+  - 거래로그 PROCESSING 저장
+
+Application Log 예시는 다음과 같다.
+INFO [guid=GUID-20260704-000001]
+[traceId=TRC-20260704-000001]
+[userId=U12345]
+[serviceId=SV.Customer.selectSummary]
+[txCode=SV-INQ-0001]
+message="transaction started"
+
+DB 거래로그에는 다음을 저장한다.
+항목
+예시
+GUID
+GUID-20260704-000001
+TRACE_ID
+TRC-20260704-000001
+SERVICE_ID
+SV.Customer.selectSummary
+TRANSACTION_CODE
+SV-INQ-0001
+BUSINESS_CODE
+SV
+USER_ID
+U12345
+BRANCH_ID
+001234
+CHANNEL_ID
+WEBTOP
+START_TIME
+요청 수신 시각
+TX_STATUS
+PROCESSING
+거래로그 관리 기준도 거래 시작 시점에 PROCESSING 로그를 생성하고, 종료 시점에 SUCCESS / FAIL / TIMEOUT / UNKNOWN 상태로 갱신하도록 정의한다.
+
+34.11 거래 종료 로그 기준
+거래 종료 시점에는 ETF 후처리에서 로그를 기록한다.
+거래 종료 시점
+  - 결과코드 변환
+  - 오류코드 매핑
+  - 응답 전문 조립
+  - 거래로그 상태 갱신
+  - 감사로그 기록
+  - 성능 메트릭 기록
+  - MDC 정리
+
+정상 종료 로그 예시는 다음과 같다.
+INFO [guid=GUID-20260704-000001]
+[traceId=TRC-20260704-000001]
+[userId=U12345]
+[serviceId=SV.Customer.selectSummary]
+[txCode=SV-INQ-0001]
+[elapsedMs=1230]
+message="transaction completed. status=SUCCESS"
+
+오류 종료 로그 예시는 다음과 같다.
+ERROR [guid=GUID-20260704-000001]
+[traceId=TRC-20260704-000001]
+[userId=U12345]
+[serviceId=SV.Customer.selectSummary]
+[txCode=SV-INQ-0001]
+[elapsedMs=3012]
+[errorCode=E-COM-TIME-DB-0001]
+message="transaction failed. status=TIMEOUT, sqlId=SV.Customer.selectSummary"
+
+ETF 처리 기준에서도 결과코드 변환, 오류코드 매핑, 표준응답 조립, 데이터 마스킹, 거래 종료 로그, 감사로그, 성능 메트릭, 거래상태 갱신, MDC 정리를 수행하도록 정의되어 있다.
+
+34.12 성능 로그 기준
+성능 로그는 전체 응답시간만 남기지 않고 구간별로 남긴다.
+구간
+항목
+설명
+전체 처리
+elapsedMs
+요청 수신부터 응답까지
+STF
+preProcessMs
+Header, 세션, 권한, 거래통제
+Handler
+handlerMs
+Handler 실행
+Service
+serviceMs
+업무 처리
+DB
+dbElapsedMs
+DAO / Mapper / SQL
+연계
+integrationMs
+내부/외부 서비스 호출
+ETF
+postProcessMs
+응답 조립, 로그, 감사
+대기
+waitMs
+Thread/Pool 대기 가능 시 기록
+거래로그 JSON 요약 예시는 다음과 같다.
+{
+  "guid": "GUID-20260704-000001",
+  "traceId": "TRC-20260704-000001",
+  "serviceId": "SV.Customer.selectSummary",
+  "transactionCode": "SV-INQ-0001",
+  "businessCode": "SV",
+  "txStatus": "SUCCESS",
+  "elapsedMs": 1230,
+  "dbElapsedMs": 320,
+  "integrationMs": 0,
+  "errorCode": null
+}
+
+TCF 설계 기준에서도 거래로그 JSON에는 elapsedMs, dbElapsedMs, errorCode 등 거래 상태와 성능 정보를 함께 기록하는 예시가 제시되어 있다.
+
+34.13 SQL 로그 기준
+SQL 로그는 운영에서 매우 신중하게 사용한다.
+항목
+기준
+SQL ID
+반드시 남김
+Mapper ID
+운영 로그에 남김
+수행시간
+반드시 남김
+DataSource
+RDW / ADW / LOGDB / SESSIONDB 구분
+SQL 전문
+운영 기본 출력 금지
+파라미터 원문
+운영 기본 출력 금지
+개인정보 파라미터
+마스킹 또는 출력 금지
+Slow SQL
+기준 초과 시 별도 로그 또는 APM 전송
+권장 로그 예시는 다음과 같다.
+INFO [guid=GUID-20260704-000001]
+[serviceId=SV.Customer.selectSummary]
+sqlId=SV.Customer.selectSummary
+mapperId=SvCustomerMapper.selectCustomerSummary
+dataSource=RDW
+elapsedMs=245
+rowCount=1
+message="sql executed"
+
+금지 예시는 다음과 같다.
+DEBUG SQL=SELECT * FROM CUSTOMER WHERE CUSTOMER_NO='1234567890'
+
+SQL 전문과 고객번호 원문이 노출되므로 운영 로그에 남기면 안 된다.
+
+34.14 연계 로그 기준
+서비스 간 연동과 외부 연계 호출은 별도 로그를 남긴다.
+항목
+설명
+callerServiceId
+호출한 서비스
+targetBusinessCode
+대상 업무코드
+targetServiceId
+대상 서비스 ID
+targetUrl
+대상 URL, 운영 로그에서는 필요 시 마스킹
+connectTimeoutMs
+연결 Timeout
+readTimeoutMs
+응답 Timeout
+elapsedMs
+연계 소요시간
+resultStatus
+SUCCESS / FAIL / TIMEOUT
+errorCode
+연계 오류코드
+retryYn
+재시도 여부
+연계 시작 로그 예시는 다음과 같다.
+INFO [guid=GUID-20260704-000001]
+[traceId=TRC-20260704-000001]
+[serviceId=IC.Customer.inquiry]
+targetServiceId=SV.Customer.selectSummary
+targetBusinessCode=SV
+message="integration call started"
+
+연계 종료 로그 예시는 다음과 같다.
+INFO [guid=GUID-20260704-000001]
+[traceId=TRC-20260704-000001]
+[serviceId=IC.Customer.inquiry]
+targetServiceId=SV.Customer.selectSummary
+elapsedMs=350
+resultStatus=SUCCESS
+message="integration call completed"
+
+
+34.15 감사 로그 기준
+감사로그는 일반 거래로그와 목적이 다르다.
+거래로그 = 거래가 어떻게 처리되었는가
+감사로그 = 누가 민감한 행위를 했는가
+
+감사로그 대상은 다음과 같다.
+대상
+예시
+고객정보 조회
+고객 요약, 고객 상세, 거래내역 조회
+개인정보 다운로드
+엑셀, 파일, 대량 다운로드
+권한 위반
+메뉴권한, 기능권한, 데이터권한 위반
+관리자 변경
+사용자, 권한, 메뉴, ServiceId, 오류코드 변경
+거래통제 변경
+Allow-List 등록·수정·중지
+Timeout 정책 변경
+서비스별 Timeout 변경
+배포 승인
+운영 배포 승인·반려
+강제 로그아웃
+운영자 세션 강제 종료
+토큰 폐기
+JWT 강제 폐기
+감사로그는 “증적”이 목적이지 “개인정보 원문 보관”이 목적이 아니다. 거래로그와 감사로그에는 고객번호, 계좌번호, 주민등록번호, 전화번호, 이메일, 파일명 등을 원문 그대로 저장하지 않고 마스킹해야 한다.
+
+34.16 보안 / 마스킹 기준
+로그에는 민감정보를 원문으로 남기지 않는다.
+데이터
+로그 저장 기준
+예시
+고객번호
+일부 마스킹
+CUST-****1234
+계좌번호
+일부 마스킹
+***-**-123456
+주민등록번호
+저장 금지 또는 완전 마스킹
+******-*******
+전화번호
+일부 마스킹
+010-****-1234
+이메일
+일부 마스킹
+ab***@nh.com
+카드번호
+저장 금지 또는 일부 마스킹
+****-****-****-1234
+JWT
+원문 저장 금지
+Token ID만 저장
+비밀번호
+절대 저장 금지
+출력 금지
+요청 Body
+전체 저장 금지
+검색조건 요약
+응답 Body
+전체 저장 금지
+건수, 결과 요약
+파일명
+필요 시 마스킹
+고객목록_****.xlsx
+Java 코딩 스타일 기준에서도 운영 가능성을 위해 GUID, traceId, MDC, 표준 오류코드, 감사로그를 기록해야 하며, 보안 기본 원칙으로 민감정보는 코드·로그·응답에 노출하지 않고 마스킹해야 한다고 정리되어 있다.
+
+34.17 로그 작성 코드 기준
+34.17.1 좋은 로그 예시
+log.info("customer summary inquiry completed. customerNo={}, elapsedMs={}",
+        MaskingUtils.maskCustomerNo(customerNo),
+        elapsedMs);
+
+34.17.2 나쁜 로그 예시
+log.info("customerNo={}, name={}, rrn={}, accountNo={}",
+        customerNo,
+        customerName,
+        rrn,
+        accountNo);
+
+문제점은 다음과 같다.
+문제
+설명
+고객번호 원문
+고객 식별정보 노출
+고객명 원문
+개인정보 노출
+주민번호 원문
+민감정보 노출
+계좌번호 원문
+금융정보 노출
+
+34.18 Slf4j 사용 기준
+문자열 결합 방식 대신 {} Placeholder를 사용한다.
+좋은 예
+log.info("service completed. serviceId={}, elapsedMs={}", serviceId, elapsedMs);
+
+나쁜 예
+log.info("service completed. serviceId=" + serviceId + ", elapsedMs=" + elapsedMs);
+
+예외 로그는 마지막 파라미터로 Throwable을 전달한다.
+log.error("db query failed. sqlId={}, mapperId={}", sqlId, mapperId, e);
+
+다음은 금지한다.
+e.printStackTrace();
+
+
+34.19 로그 작성 위치 기준
+위치
+작성 기준
+Filter / Interceptor
+GUID, TraceId, MDC 설정·정리
+STF
+거래 시작, Header 검증 실패, 거래통제 실패
+Dispatcher
+ServiceId 매핑 성공·실패
+Handler
+업무 진입 요약
+Facade
+트랜잭션 경계, Timeout 기준
+Service
+업무 흐름 핵심 이벤트
+Rule
+검증 실패, 업무 조건 불일치
+DAO
+SQL ID 기준 DB 호출 실패
+Integration Adapter
+대상 서비스 호출 시작·종료·오류
+ETF
+거래 종료, 결과코드, 오류코드, 성능요약
+GlobalExceptionHandler
+미처리 예외 변환
+Batch
+Job 시작·종료·실패
+OM
+관리자 변경 이력, 감사 이벤트
+
+34.20 로그 보관 기준
+로그는 유형별로 보관기간을 다르게 둔다.
+로그
+보관 기간 권장
+비고
+거래 요약 로그
+13개월
+운영 조회, 장애 추적
+거래 상세 로그
+3~6개월
+용량이 크므로 짧게
+감사 로그
+5년 이상 검토
+내부 감사 기준 확인 필요
+transaction.log
+90일
+압축 보관
+application.log
+30일
+장애 분석용
+error.log
+180일
+장애·보안 분석용
+Access Log
+90일 이상
+보안·접속 추적
+Batch Log
+6~13개월
+배치 재처리·감사
+Security Log
+1년 이상
+보안 정책 기준 검토
+거래로그 관리 기준에서도 거래 요약 로그 13개월, 거래 상세 로그 3~6개월, 감사 로그 5년 이상 검토, transaction.log 90일, application.log 30일, error.log 180일을 권장 보관 기준으로 제시한다.
+
+34.21 Logback Rolling 기준
+운영 서버에서는 Rolling 정책을 적용한다.
+<appender name="APPLICATION"
+          class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>/logs/nsight/application.log</file>
+
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+        <fileNamePattern>/logs/nsight/archive/application.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+        <maxFileSize>100MB</maxFileSize>
+        <maxHistory>30</maxHistory>
+        <totalSizeCap>10GB</totalSizeCap>
+    </rollingPolicy>
+
+    <encoder>
+        <pattern>${LOG_PATTERN}</pattern>
+        <charset>UTF-8</charset>
+    </encoder>
+</appender>
+
+권장 기준은 다음과 같다.
+항목
+기준
+파일 크기
+100MB 단위 Rolling
+압축
+.gz 압축
+보관 개수
+로그별 정책 적용
+총 용량
+서버 디스크 기준 제한
+문자셋
+UTF-8
+권한
+운영자·보안 담당자 제한
+삭제
+수동 삭제 금지, 정책 기반 삭제
+
+34.22 비동기 로그 기준
+사용자 응답 지연을 줄이기 위해 일부 로그는 비동기로 처리할 수 있다.
+로그
+동기/비동기 기준
+거래 시작 로그
+동기 권장
+거래 종료 상태 갱신
+동기 권장
+감사로그
+중요 감사는 동기 또는 별도 보장 큐
+성능 메트릭
+비동기 가능
+APM 전송
+비동기 가능
+알림 전송
+비동기 가능
+파일 로그
+Logback Async Appender 가능
+후처리 요구사항에서도 로그, 감사, 이벤트 발행은 사용자 응답 지연을 최소화하도록 비동기 처리할 수 있으나, 거래 완료 후 MDC와 ThreadLocal 정보는 반드시 제거해야 한다고 정의되어 있다.
+
+34.23 운영 조회 기준
+OM에서는 다음 기준으로 로그를 조회할 수 있어야 한다.
+조회 기준
+설명
+GUID
+사용자 문의 1건 추적
+TraceId
+AP 내부·연계 전체 흐름 추적
+ServiceId
+특정 서비스 장애 분석
+TransactionCode
+거래코드별 현황
+BusinessCode
+업무별 거래량·오류율
+UserId
+사용자별 거래 이력
+BranchId
+지점별 거래 이력
+ChannelId
+채널별 오류율
+ErrorCode
+오류 유형별 분석
+TimeoutYn
+Timeout 거래 분석
+TxStatus
+PROCESSING / FAIL / UNKNOWN 조회
+ElapsedMs
+지연 거래 조회
+SQL ID
+DB 지연 원인 분석
+TargetServiceId
+연계 지연 분석
+거래로그 최종 권장안에서도 운영관리는 /om 거래로그 조회에서 GUID 기준 추적과 Timeout / UNKNOWN 거래 상태 확인을 수행하는 구조로 정리되어 있다.
+
+34.24 금지 규칙
+금지 항목
+사유
+System.out.println() 사용
+운영 로그 표준 미적용
+printStackTrace() 사용
+로그 포맷·보안 기준 위반
+고객정보 원문 로그
+개인정보 노출
+계좌번호 원문 로그
+금융정보 노출
+주민번호 원문 로그
+민감정보 노출
+JWT / 비밀번호 로그
+인증정보 유출
+요청 Body 전체 로그
+개인정보·대용량 위험
+응답 Body 전체 로그
+개인정보·대용량 위험
+SQL 전문 운영 로그
+보안·성능 위험
+파라미터 원문 로그
+개인정보 노출 위험
+DEBUG 운영 상시 활성화
+디스크·성능·보안 위험
+catch 후 로그만 남기고 예외 무시
+오류 은폐
+MDC 미정리
+Thread 재사용 시 로그 오염
+로그 메시지에 줄바꿈 입력값 직접 포함
+Log Injection 위험
+동일 오류 반복 로그 폭주
+장애 시 디스크 고갈
+
+34.25 개발 체크리스트
+점검 항목
+확인
+모든 로그에 GUID가 포함되는가
+□
+모든 로그에 TraceId가 포함되는가
+□
+ServiceId와 TransactionCode가 포함되는가
+□
+UserId, BranchId, ChannelId가 MDC에 포함되는가
+□
+요청 종료 후 MDC.clear()가 수행되는가
+□
+거래 시작 로그가 PROCESSING 상태로 저장되는가
+□
+거래 종료 로그가 SUCCESS / FAIL / TIMEOUT / UNKNOWN으로 갱신되는가
+□
+오류 로그에 ErrorCode가 포함되는가
+□
+DB 오류 로그에 SQL ID가 포함되는가
+□
+연계 로그에 targetServiceId가 포함되는가
+□
+성능 로그에 elapsedMs, dbElapsedMs, integrationMs가 포함되는가
+□
+감사 대상 거래가 감사로그에 기록되는가
+□
+개인정보가 마스킹되는가
+□
+요청/응답 Body 전체를 로그로 남기지 않는가
+□
+운영에서 SQL 전문을 출력하지 않는가
+□
+System.out.println() 또는 printStackTrace()가 없는가
+□
+로그 보관·Rolling 정책이 설정되어 있는가
+□
+OM에서 GUID 기준으로 조회 가능한가
+□
+
+34.26 마무리말
+로그 작성 기준의 핵심은 로그를 많이 남기는 것이 아니다.운영자가 장애 상황에서 빠르게 원인을 찾을 수 있도록 필요한 정보를 표준 형태로 남기는 것이다.
+NSIGHT에서는 다음 구조를 표준으로 삼는다.
+GUID / TraceId
+  ↓
+MDC
+  ↓
+Application Log
+  ↓
+Transaction Log
+  ↓
+Performance Log
+  ↓
+Audit Log
+  ↓
+OM 로그 조회
+  ↓
+장애 분석 / 감사 대응 / 재처리 판단
+
+업무 개발자는 임의 로그 포맷을 만들지 않는다.모든 로그는 GUID, TraceId, ServiceId, TransactionCode, ErrorCode, elapsedMs 기준으로 연결되어야 한다.
+
+34.27 시사점
+로그 표준이 없으면 장애가 발생했을 때 다음 문제가 생긴다.
+사용자 문의 발생
+  ↓
+어느 거래인지 모름
+  ↓
+어느 AP에서 처리했는지 모름
+  ↓
+어느 ServiceId가 실패했는지 모름
+  ↓
+어느 SQL 또는 연계가 지연됐는지 모름
+  ↓
+장애 분석 지연
+
+반대로 로그 표준이 지켜지면 다음 순서로 추적할 수 있다.
+사용자 문의
+  ↓
+GUID 확인
+  ↓
+OM 거래로그 조회
+  ↓
+ServiceId / TransactionCode 확인
+  ↓
+Application Log 확인
+  ↓
+SQL ID / 연계 ID 확인
+  ↓
+오류코드 / 성능구간 확인
+  ↓
+담당팀 조치
+
+따라서 NSIGHT 로그 작성 기준은 단순 개발 규칙이 아니라 운영 안정성, 장애 추적성, 보안 통제, 감사 대응, PMO 설명 가능성을 확보하는 핵심 개발 표준이다.
+

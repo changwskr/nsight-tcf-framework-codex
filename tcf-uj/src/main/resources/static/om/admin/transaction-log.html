@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 거래로그 조회</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260627c"></script>
+  <script>
+    const PAGE_SIZE = 3;
+    let currentPage = 1;
+    let selectedRow = null;
+
+    function readFilters() {
+      const v = id => document.getElementById(id).value.trim();
+      const f = {};
+      if (v('filterBusinessCode')) f.businessCode = v('filterBusinessCode');
+      if (v('filterGuid')) f.guid = v('filterGuid');
+      if (v('filterTraceId')) f.traceId = v('filterTraceId');
+      if (v('filterServiceId')) f.serviceId = v('filterServiceId');
+      if (v('filterTransactionCode')) f.transactionCode = v('filterTransactionCode');
+      if (v('filterUserId')) f.userId = v('filterUserId');
+      if (v('filterBranchId')) f.branchId = v('filterBranchId');
+      if (v('filterResultStatus')) f.resultStatus = v('filterResultStatus');
+      if (v('filterErrorCode')) f.errorCode = v('filterErrorCode');
+      if (v('filterFromDate')) f.fromDate = v('filterFromDate');
+      if (v('filterToDate')) f.toDate = v('filterToDate');
+      return f;
+    }
+
+    function renderSummary(summary) {
+      const s = summary || {};
+      const total = Number(s.totalCount ?? 0);
+      const success = Number(s.successCount ?? 0);
+      const error = Number(s.errorCount ?? 0);
+      const timeout = Number(s.timeoutCount ?? 0);
+      const avg = Math.round(Number(s.avgElapsedMs ?? 0));
+      const rate = total > 0 ? ((success / total) * 100).toFixed(1) : '0.0';
+
+      document.getElementById('summaryBar').innerHTML = `
+        <span class="om-stat-pill">총 ${total}건</span>
+        <span class="om-stat-pill">성공 ${success}건 (${rate}%)</span>
+        <span class="om-stat-pill">오류 ${error}건</span>
+        <span class="om-stat-pill">Timeout ${timeout}건</span>
+        <span class="om-stat-pill">평균 ${avg}ms</span>`;
+    }
+
+    function renderDetail(row) {
+      const panel = document.getElementById('detailPanel');
+      if (!row) {
+        panel.hidden = true;
+        panel.innerHTML = '';
+        return;
+      }
+      panel.hidden = false;
+      const fields = [
+        ['LogId', 'logId'], ['일시', 'txTime'], ['업무코드', 'businessCode'],
+        ['ServiceId', 'serviceId'], ['거래코드', 'transactionCode'],
+        ['GUID', 'guid'], ['TraceId', 'traceId'],
+        ['사용자', 'userId'], ['지점', 'branchId'],
+        ['결과', 'resultStatus'], ['결과코드', 'resultCode'],
+        ['오류코드', 'errorCode'], ['처리시간', 'elapsedTimeMs']
+      ];
+      panel.innerHTML = `
+        <div class="om-card-head">거래 상세 · ${OmAdmin.field(row, 'logId')}</div>
+        <div class="om-card-body">
+          <div class="om-kv-list">
+            ${fields.map(([label, key]) => {
+              let val = OmAdmin.field(row, key, '');
+              if (key === 'elapsedTimeMs' && val !== '' && val !== '-') val = `${val}ms`;
+              if (key === 'resultStatus') val = OmAdmin.chipForResult(val);
+              return `<div class="om-kv-row"><span class="om-kv-label">${label}</span><span class="om-mono">${val}</span></div>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }
+
+    function bindRowClick(rows) {
+      document.querySelectorAll('#txTableBody tr.om-row-selectable').forEach(tr => {
+        tr.addEventListener('click', () => {
+          const idx = Number(tr.dataset.idx);
+          document.querySelectorAll('#txTableBody tr.om-row-selected').forEach(r => r.classList.remove('om-row-selected'));
+          tr.classList.add('om-row-selected');
+          selectedRow = rows[idx];
+          renderDetail(selectedRow);
+        });
+      });
+    }
+
+    async function loadList(page, el) {
+      currentPage = page;
+      selectedRow = null;
+      renderDetail(null);
+
+      const tbody = document.getElementById('txTableBody');
+      const statusEl = document.getElementById('listStatus');
+      tbody.innerHTML = '<tr><td colspan="11" class="om-empty">조회 중...</td></tr>';
+      statusEl.textContent = '조회 중...';
+
+      const { body, relay } = await OmAdmin.inquiry('transactionLog', {
+        ...readFilters(),
+        pageNo: page,
+        pageSize: PAGE_SIZE
+      });
+
+      renderSummary(body.summary);
+      const rows = body.rows || [];
+      statusEl.textContent = `${relay.elapsedMs}ms · 페이지 ${body.pageNo || page} · 총 ${body.totalCount ?? 0}건`;
+
+      if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" class="om-empty">조건에 맞는 거래로그가 없습니다.</td></tr>';
+      } else {
+        tbody.innerHTML = rows.map((r, idx) => `
+          <tr class="om-row-selectable" data-idx="${idx}" title="클릭하여 상세 보기">
+            <td>${OmAdmin.field(r, 'txTime')}</td>
+            <td>${OmAdmin.field(r, 'businessCode')}</td>
+            <td class="om-mono">${OmAdmin.field(r, 'serviceId')}</td>
+            <td class="om-mono">${OmAdmin.field(r, 'transactionCode')}</td>
+            <td class="om-mono">${OmAdmin.field(r, 'guid')}</td>
+            <td class="om-mono">${OmAdmin.field(r, 'traceId')}</td>
+            <td>${OmAdmin.field(r, 'userId')}</td>
+            <td>${OmAdmin.field(r, 'branchId')}</td>
+            <td>${OmAdmin.chipForResult(OmAdmin.field(r, 'resultStatus'))}</td>
+            <td>${OmAdmin.field(r, 'elapsedTimeMs')}ms</td>
+            <td class="om-mono">${OmAdmin.field(r, 'errorCode')}</td>
+          </tr>`).join('');
+        bindRowClick(rows);
+      }
+
+      OmAdmin.renderPagination(
+        document.getElementById('pagination'),
+        body.pageNo || page,
+        body.pageSize || PAGE_SIZE,
+        body.totalCount || 0,
+        p => loadList(p, el).catch(e => OmAdmin.showErrorBanner(el, e.message)),
+        true
+      );
+    }
+
+    OmAdmin.initPage('transaction-log', '거래로그 조회', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">GUID · TraceId · ServiceId로 장애를 추적합니다. 행을 클릭하면 상세 정보를 확인할 수 있습니다.</div>
+        <section class="om-filter-bar">
+          <div class="field"><label for="filterBusinessCode">업무</label>
+            <select id="filterBusinessCode">
+              <option value="">전체</option>
+              <option value="BC">BC</option><option value="BD">BD</option>
+              <option value="CC">CC</option><option value="CM">CM</option>
+              <option value="MG">MG</option><option value="OM">OM</option>
+              <option value="SV">SV</option>
+            </select>
+          </div>
+          <div class="field"><label for="filterGuid">GUID</label><input id="filterGuid" type="text" placeholder="전체"></div>
+          <div class="field"><label for="filterTraceId">TraceId</label><input id="filterTraceId" type="text"></div>
+          <div class="field"><label for="filterServiceId">ServiceId</label><input id="filterServiceId" type="text"></div>
+          <div class="field"><label for="filterTransactionCode">거래코드</label><input id="filterTransactionCode" type="text"></div>
+          <div class="field"><label for="filterUserId">UserId</label><input id="filterUserId" type="text"></div>
+          <div class="field"><label for="filterBranchId">지점</label><input id="filterBranchId" type="text"></div>
+          <div class="field"><label for="filterResultStatus">결과</label>
+            <select id="filterResultStatus">
+              <option value="">전체</option>
+              <option value="SUCCESS">SUCCESS</option>
+              <option value="FAIL">FAIL</option>
+              <option value="ERROR">ERROR</option>
+            </select>
+          </div>
+          <div class="field"><label for="filterErrorCode">오류코드</label><input id="filterErrorCode" type="text"></div>
+          <div class="field"><label for="filterFromDate">시작일시</label><input id="filterFromDate" type="text" placeholder="2026-06-14T00:00:00+09:00"></div>
+          <div class="field"><label for="filterToDate">종료일시</label><input id="filterToDate" type="text"></div>
+          <div class="actions" style="display:flex;gap:8px;align-items:end">
+            <button class="btn-primary" id="searchBtn" type="button">조회</button>
+            <button class="btn-secondary" id="resetBtn" type="button">초기화</button>
+            <button class="btn-secondary" id="deleteAllBtn" type="button">전체 로그 삭제</button>
+          </div>
+        </section>
+
+        <section class="om-status-banner normal" id="summaryBar" style="margin-bottom:16px">
+          <span class="om-stat-pill">조회 후 집계가 표시됩니다</span>
+        </section>
+
+        <div style="margin-bottom:10px;color:var(--muted);font-size:0.85rem" id="listStatus">-</div>
+
+        <div class="om-grid-2 om-tx-grid">
+          <div class="om-card">
+            <div class="om-card-head">거래로그 목록</div>
+            <div class="om-card-body om-table-wrap">
+              <table class="om-table">
+                <thead><tr>
+                  <th>일시</th><th>업무</th><th>ServiceId</th><th>거래코드</th><th>GUID</th>
+                  <th>TraceId</th><th>사용자</th><th>지점</th><th>결과</th><th>처리시간</th><th>오류</th>
+                </tr></thead>
+                <tbody id="txTableBody"><tr><td colspan="11" class="om-empty">조회 버튼을 누르세요.</td></tr></tbody>
+              </table>
+              <div class="om-pagination" id="pagination" hidden></div>
+            </div>
+          </div>
+          <div class="om-card om-detail-panel" id="detailPanel" hidden>
+            <div class="om-card-body om-empty">목록에서 행을 선택하세요.</div>
+          </div>
+        </div>`;
+
+      document.getElementById('searchBtn').addEventListener('click', () =>
+        loadList(1, el).catch(e => OmAdmin.showErrorBanner(el, e.message)));
+      document.getElementById('resetBtn').addEventListener('click', () => {
+        el.querySelectorAll('.om-filter-bar input').forEach(i => { i.value = ''; });
+        document.getElementById('filterBusinessCode').value = '';
+        document.getElementById('filterResultStatus').value = '';
+      });
+      document.getElementById('deleteAllBtn').addEventListener('click', async () => {
+        if (!confirm('TCF_TX_LOG 테이블의 거래로그를 전부 삭제합니다.\n되돌릴 수 없습니다. 계속하시겠습니까?')) {
+          return;
+        }
+        const deleteReason = prompt('삭제 사유 (5자 이상, 감사로그에 기록됩니다):');
+        if (!deleteReason || deleteReason.trim().length < 5) {
+          alert('삭제 사유를 5자 이상 입력해야 합니다.');
+          return;
+        }
+        try {
+          const { body } = await OmAdmin.mutate('transactionLogDeleteAll', {
+            confirmCode: 'DELETE_ALL',
+            deleteReason: deleteReason.trim()
+          }, 'DELETE');
+          alert(`전체 로그 ${body.deletedCount ?? 0}건이 삭제되었습니다.`);
+          await loadList(1, el);
+        } catch (e) {
+          OmAdmin.showErrorBanner(el, e.message);
+        }
+      });
+
+      await loadList(1, el).catch(e => OmAdmin.showErrorBanner(el, e.message));
+    }).catch(err => alert(err.message));
+  </script>
+</body>
+</html>

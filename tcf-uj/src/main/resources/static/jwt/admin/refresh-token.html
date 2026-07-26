@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JWT Refresh Token 관리</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+  <link rel="stylesheet" href="/_shared/jwt-admin.css">
+</head>
+<body>
+  <script src="/_shared/jwt-admin.js?v=20260628d"></script>
+  <script>
+    const PAGE_SIZE = 20;
+    let pageNo = 1;
+    let sessionRefreshHash = null;
+
+    function readFilters() {
+      const v = id => document.getElementById(id).value.trim();
+      const f = {};
+      if (v('filterUserId')) f.userId = v('filterUserId');
+      if (document.getElementById('filterActive').checked) f.activeOnly = 'Y';
+      const revoked = v('filterRevoked');
+      if (revoked) f.revokedYn = revoked;
+      return f;
+    }
+
+    function statusChip(r) {
+      if (JwtAdmin.field(r, 'revokedYn') === 'Y') return JwtAdmin.chipForResult('REVOKED');
+      if (JwtAdmin.field(r, 'rotatedYn') === 'Y') return JwtAdmin.chipForResult('ROTATED');
+      return JwtAdmin.chipForResult('ACTIVE');
+    }
+
+    function renderSessionPanel() {
+      const panel = document.getElementById('sessionRefreshPanel');
+      if (!panel) return;
+      const session = JwtAdmin.getSession();
+      const refresh = session.refreshToken || '';
+      panel.innerHTML = `
+        <div class="jwt-token-grid">
+          <div><span class="label">사용자</span><strong>${session.userName || session.userId}</strong></div>
+          <div><span class="label">세션 Refresh (원문)</span><code class="om-mono" title="${refresh}">${JwtAdmin.maskToken(refresh)}</code></div>
+          <div><span class="label">세션 해시 (SHA-256)</span><code class="om-mono" title="${sessionRefreshHash || ''}">${sessionRefreshHash ? JwtAdmin.shortJti(sessionRefreshHash) : '-'}</code></div>
+        </div>
+        <p class="jwt-hint" style="margin-top:10px">발급·Refresh 응답 시에만 원문을 받을 수 있습니다. DB에는 보안상 <strong>해시만</strong> 저장되며, 목록의 「ID」는 DB 레코드 키입니다.</p>
+        <div class="jwt-actions" style="margin-top:8px">
+          <button type="button" class="btn-secondary" id="btnCopySessionRefresh">세션 Refresh 복사</button>
+        </div>`;
+      document.getElementById('btnCopySessionRefresh').addEventListener('click', () => {
+        if (refresh) navigator.clipboard.writeText(refresh).catch(() => {});
+      });
+    }
+
+    async function loadList(el) {
+      const tbody = document.getElementById('refreshBody');
+      tbody.innerHTML = '<tr><td colspan="10" class="om-empty">조회 중...</td></tr>';
+      const session = JwtAdmin.getSession();
+      sessionRefreshHash = session.refreshToken
+        ? await JwtAdmin.sha256Hex(session.refreshToken)
+        : null;
+      renderSessionPanel();
+
+      const { body, relay } = await JwtAdmin.inquiry('refreshTokenInquiry', {
+        ...readFilters(),
+        pageNo,
+        pageSize: PAGE_SIZE
+      });
+      document.getElementById('listStatus').textContent = `${relay.elapsedMs}ms · 총 ${body.totalCount ?? 0}건`;
+      const rows = body.rows || [];
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="10" class="om-empty">Refresh Token이 없습니다.</td></tr>';
+      } else {
+        tbody.innerHTML = rows.map(r => {
+          const hash = JwtAdmin.field(r, 'tokenHash', '');
+          const isMine = sessionRefreshHash && hash && String(hash).toLowerCase() === sessionRefreshHash;
+          const idCell = isMine
+            ? `${JwtAdmin.shortJti(JwtAdmin.field(r, 'refreshTokenId'))} <span class="jwt-chip ok">내 세션</span>`
+            : JwtAdmin.shortJti(JwtAdmin.field(r, 'refreshTokenId'));
+          return `
+          <tr class="${isMine ? 'jwt-row-mine' : ''}">
+            <td class="om-mono" title="${JwtAdmin.field(r, 'refreshTokenId')}">${idCell}</td>
+            <td class="om-mono" title="${hash}">${hash ? JwtAdmin.shortJti(hash) : '-'}</td>
+            <td>${JwtAdmin.field(r, 'userId')}</td>
+            <td>${JwtAdmin.field(r, 'userName')}</td>
+            <td class="om-mono" title="${JwtAdmin.field(r, 'tokenFamilyId')}">${JwtAdmin.shortJti(JwtAdmin.field(r, 'tokenFamilyId'))}</td>
+            <td>${JwtAdmin.formatTs(JwtAdmin.field(r, 'issuedAt'))}</td>
+            <td>${JwtAdmin.formatTs(JwtAdmin.field(r, 'expiresAt'))}</td>
+            <td>${JwtAdmin.formatTs(JwtAdmin.field(r, 'lastUsedAt'))}</td>
+            <td>${statusChip(r)}</td>
+            <td>${JwtAdmin.field(r, 'clientIp')}</td>
+          </tr>`;
+        }).join('');
+      }
+      JwtAdmin.renderPagination(
+        document.getElementById('pagination'),
+        body.pageNo || pageNo,
+        body.pageSize || PAGE_SIZE,
+        body.totalCount || 0,
+        p => { pageNo = p; loadList(el).catch(e => JwtAdmin.showError(el, e.message)); }
+      );
+    }
+
+    JwtAdmin.initPage('refresh-token', 'Refresh Token 관리', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">Refresh Token <strong>원문</strong>은 발급·갱신 응답에만 포함됩니다. 서버 DB에는 SHA-256 <strong>해시</strong>만 저장하므로 목록에는 메타데이터·해시가 표시됩니다.</div>
+        <div class="om-card">
+          <div class="om-card-head">내 세션 Refresh Token</div>
+          <div class="om-card-body" id="sessionRefreshPanel"><div class="om-empty">불러오는 중...</div></div>
+        </div>
+        <section class="om-filter-bar">
+          <div class="field"><label for="filterUserId">사용자 ID</label><input id="filterUserId" type="text"></div>
+          <div class="field"><label for="filterRevoked">폐기여부</label>
+            <select id="filterRevoked"><option value="">전체</option><option value="N">유효</option><option value="Y">폐기</option></select>
+          </div>
+          <div class="field om-filter-check"><label><input id="filterActive" type="checkbox"> 활성(미만료·미폐기·미Rotation)만</label></div>
+          <button class="btn-primary" id="searchBtn" type="button">조회</button>
+        </section>
+        <div style="margin-bottom:10px;color:var(--muted);font-size:0.85rem" id="listStatus">-</div>
+        <div class="om-card">
+          <div class="om-card-head">Refresh Token 목록 (DB 저장분)</div>
+          <div class="om-card-body om-table-wrap">
+            <table class="om-table">
+              <thead><tr>
+                <th>레코드 ID</th><th>토큰 해시</th><th>사용자</th><th>이름</th><th>Family</th>
+                <th>발급</th><th>만료</th><th>마지막 사용</th><th>상태</th><th>IP</th>
+              </tr></thead>
+              <tbody id="refreshBody"></tbody>
+            </table>
+            <div class="om-pagination" id="pagination" hidden></div>
+          </div>
+        </div>`;
+      document.getElementById('searchBtn').addEventListener('click', () => {
+        pageNo = 1;
+        loadList(el).catch(e => JwtAdmin.showError(el, e.message));
+      });
+      await loadList(el);
+    });
+  </script>
+</body>
+</html>

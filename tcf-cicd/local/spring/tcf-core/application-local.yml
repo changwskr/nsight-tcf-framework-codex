@@ -1,0 +1,4 @@
+# local — bootRun txlog 경로 (EPP 기본값과 동일)
+nsight:
+  txlog:
+    path: ${NSIGHT_TXLOG_PATH:./data/nsight-txlog}

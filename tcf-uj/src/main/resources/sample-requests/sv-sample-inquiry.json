@@ -1,0 +1,26 @@
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "SV",
+    "serviceId": "SV.Sample.inquiry",
+    "serviceName": "SV 샘플 조회",
+    "transactionCode": "SV-INQ-0001",
+    "processingType": "INQUIRY",
+    "guid": "",
+    "traceId": "",
+    "channelId": "WEBTOP",
+    "userId": "U123456",
+    "branchId": "001234",
+    "centerId": "DC1",
+    "requestTime": "2026-06-14T10:30:00+09:00",
+    "transactionIntime": "2026-06-14T10:30:00+09:00",
+    "transactionOuttime": "",
+    "systemDate": "20260614",
+    "bizDate": "20260614",
+    "clientIp": "10.10.10.10"
+  },
+  "body": {
+    "sampleKey": "SV-SAMPLE",
+    "baseDate": "20260614"
+  }
+}

@@ -1,0 +1,11 @@
+com.nh.nsight.tcf.web.config.TcfAutoConfiguration
+com.nh.nsight.tcf.web.config.TcfPrimaryDataSourceAutoConfiguration
+com.nh.nsight.tcf.web.config.TcfDataSourceLifecycleConfiguration
+com.nh.nsight.tcf.web.config.TcfPlatformTransactionManagerConfiguration
+com.nh.nsight.tcf.web.config.TcfMyBatisAutoConfiguration
+com.nh.nsight.tcf.web.config.TcfTransactionLogDataSourceConfiguration
+com.nh.nsight.tcf.web.config.TcfTransactionLogConfiguration
+com.nh.nsight.tcf.web.config.TcfTransactionControlDataSourceConfiguration
+com.nh.nsight.tcf.web.config.TcfTransactionControlConfiguration
+com.nh.nsight.tcf.web.config.TcfTimeoutPolicyConfiguration
+com.nh.nsight.tcf.web.config.TcfOnlineTimeoutConfiguration

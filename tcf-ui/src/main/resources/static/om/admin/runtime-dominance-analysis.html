@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 자원 독점 분석</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+  <style>
+    .om-row-warn td { background: rgba(251, 191, 36, 0.06); }
+    .om-row-critical td { background: rgba(239, 68, 68, 0.08); }
+    .om-screen-message {
+      white-space: pre-line;
+      line-height: 1.6;
+      padding: 12px 14px;
+      background: var(--panel-2);
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260711e"></script>
+  <script>
+    function formatPct(value) {
+      if (value == null || value === '') return '-';
+      return `${value}%`;
+    }
+
+    function formatNum(value) {
+      if (value == null || value === '') return '-';
+      return Number(value).toLocaleString('ko-KR');
+    }
+
+    function formatElapsed(ms) {
+      const value = Number(ms);
+      if (Number.isNaN(value) || value <= 0) return '-';
+      if (value >= 1000) return `${(value / 1000).toFixed(1)}초`;
+      return `${value}ms`;
+    }
+
+    function renderRows(rows, columns, emptyText) {
+      if (!rows.length) {
+        return `<tr><td colspan="${columns}" class="om-empty">${emptyText}</td></tr>`;
+      }
+      return rows.join('');
+    }
+
+    function dominanceRowClass(pct, threshold) {
+      return Number(pct) >= threshold ? 'om-row-warn' : '';
+    }
+
+    async function load(el) {
+      const { body, relay } = await OmAdmin.inquiry('runtimeDiagnostics', { includeDetails: 'Y' });
+      const dominance = body.dominanceAnalysis || {};
+      const businessDom = dominance.businessDominance || {};
+      const serviceDom = dominance.serviceDominance || {};
+
+      document.getElementById('rtmStatus').textContent =
+        `${relay.elapsedMs}ms · 점검 ${body.checkedAt || '-'} · 전체 Active ${formatNum(dominance.totalActiveTransactions)}건`;
+
+      const businessDetected = Boolean(businessDom.detected);
+      const serviceDetected = Boolean(serviceDom.detected);
+      const bannerClass = businessDetected ? 'warn' : (serviceDetected ? 'warn' : 'normal');
+      document.getElementById('domBanner').className = `om-status-banner ${bannerClass}`;
+      document.getElementById('domMain').className = `om-status-main ${bannerClass}`;
+
+      if (businessDetected) {
+        document.getElementById('domMain').textContent = '업무 독점: BUSINESS_RESOURCE_DOMINANCE';
+        document.getElementById('domMessage').textContent = businessDom.message || '-';
+      } else if (serviceDetected) {
+        document.getElementById('domMain').textContent = 'ServiceId 독점: SERVICE_DOMINANCE';
+        document.getElementById('domMessage').textContent = serviceDom.message || '-';
+      } else {
+        document.getElementById('domMain').textContent = '자원 독점: 정상 범위';
+        document.getElementById('domMessage').textContent = '업무·ServiceId 독점 기준을 초과하지 않았습니다.';
+      }
+
+      document.getElementById('domCriteria').textContent =
+        `11.2 ${businessDom.criteria || '-'} · Busy ${formatPct(dominance.aggregateBusyRatio)} · 11.3 ${serviceDom.criteria || '-'}`;
+      document.getElementById('scopeNote').textContent = dominance.scopeNote || '-';
+
+      document.getElementById('businessScreenMessage').textContent =
+        businessDetected ? (businessDom.screenMessage || '-') : '업무 독점 기준 미충족';
+      document.getElementById('serviceScreenMessage').textContent =
+        serviceDetected ? (serviceDom.screenMessage || '-') : 'ServiceId 독점 기준 미충족';
+
+      const businessRows = (dominance.businessMetrics || []).map(r => `
+        <tr class="${dominanceRowClass(r.ownershipPct, 60)}">
+          <td>${OmAdmin.field(r, 'businessCode')}</td>
+          <td>${formatNum(r.activeTransactions)}</td>
+          <td>${formatPct(r.ownershipPct)}</td>
+          <td>${formatNum(r.busyThreadOccupancy)}</td>
+          <td>${formatElapsed(r.avgElapsedMs)}</td>
+          <td>${formatElapsed(r.maxElapsedMs)}</td>
+          <td>${formatNum(r.dbActive)} / ${formatNum(r.dbPending)}</td>
+          <td>${formatNum(r.slowSqlCount)}</td>
+          <td>${formatNum(r.slowTransactionCount)}</td>
+          <td>${formatNum(r.externalWaitCount)}</td>
+          <td>${formatPct(r.threadCpuSharePct)}</td>
+        </tr>`);
+      document.getElementById('businessBody').innerHTML =
+        renderRows(businessRows, 11, '업무별 지표 없음');
+
+      const serviceRows = (dominance.serviceOwnership || []).map(r => `
+        <tr class="${dominanceRowClass(r.ownershipPct, 40)}">
+          <td>${OmAdmin.field(r, 'businessCode')}</td>
+          <td class="om-mono">${OmAdmin.field(r, 'serviceId')}</td>
+          <td>${formatNum(r.activeCount)}</td>
+          <td>${formatPct(r.ownershipPct)}</td>
+          <td>${formatElapsed(r.avgElapsedMs)}</td>
+          <td>${formatElapsed(r.maxElapsedMs)}</td>
+        </tr>`);
+      document.getElementById('serviceBody').innerHTML =
+        renderRows(serviceRows, 6, 'ServiceId 실행 중 거래 없음');
+    }
+
+    OmAdmin.initPage('runtime-dominance-analysis', '자원 독점 분석', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">
+          설계 11장 자원 독점 — WAR·ServiceId 단위 지표로 독점 추정 (Heap WAR별 분리 불가).
+          <a href="/om/admin/runtime-diagnostics.html" style="margin-left:8px">← 런타임 진단 통합</a>
+          <a href="/om/admin/runtime-thread-analysis.html" style="margin-left:8px">Thread 분석</a>
+          <a href="/om/admin/runtime-transaction-detail.html" style="margin-left:8px">거래·Thread 상세</a>
+        </div>
+        <section class="om-filter-bar">
+          <button class="btn-primary" id="refreshBtn" type="button">새로고침</button>
+          <span id="rtmStatus" style="color:var(--muted);font-size:0.85rem;align-self:center">조회 중...</span>
+        </section>
+
+        <section class="om-status-banner normal" id="domBanner" style="margin-bottom:16px">
+          <div>
+            <div class="om-status-main normal" id="domMain">자원 독점: -</div>
+            <div id="domMessage" style="margin-top:8px">-</div>
+            <div id="domCriteria" style="margin-top:4px;color:var(--muted);font-size:0.85rem">-</div>
+          </div>
+        </section>
+
+        <div class="om-grid-2" style="margin-bottom:16px">
+          <div class="om-card">
+            <div class="om-card-head">11.2 업무 독점 (BUSINESS_RESOURCE_DOMINANCE)</div>
+            <div class="om-card-body">
+              <div class="om-screen-message" id="businessScreenMessage">-</div>
+            </div>
+          </div>
+          <div class="om-card">
+            <div class="om-card-head">11.3 ServiceId 독점 (SERVICE_DOMINANCE)</div>
+            <div class="om-card-body">
+              <div class="om-screen-message" id="serviceScreenMessage">-</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="om-card" style="margin-bottom:16px">
+          <div class="om-card-head">11.1 업무별 판단 지표</div>
+          <div class="om-card-body om-table-wrap">
+            <table class="om-table">
+              <thead>
+                <tr>
+                  <th>업무</th><th>Active TX</th><th>점유율</th><th>Busy Thread</th>
+                  <th>평균 실행</th><th>최대 실행</th><th>DB Active/Pending</th>
+                  <th>Slow SQL</th><th>Slow TX</th><th>외부대기</th><th>Thread CPU</th>
+                </tr>
+              </thead>
+              <tbody id="businessBody"><tr><td colspan="11" class="om-empty">조회 중...</td></tr></tbody>
+            </table>
+            <div id="scopeNote" style="color:var(--muted);font-size:0.85rem;margin-top:8px">-</div>
+          </div>
+        </div>
+
+        <div class="om-card">
+          <div class="om-card-head">ServiceId별 실행 중 거래 · 점유율</div>
+          <div class="om-card-body om-table-wrap">
+            <table class="om-table">
+              <thead>
+                <tr>
+                  <th>업무</th><th>ServiceId</th><th>실행 중</th>
+                  <th>점유율</th><th>평균 실행</th><th>최대 실행</th>
+                </tr>
+              </thead>
+              <tbody id="serviceBody"><tr><td colspan="6" class="om-empty">조회 중...</td></tr></tbody>
+            </table>
+          </div>
+        </div>`;
+
+      document.getElementById('refreshBtn').addEventListener('click', () => {
+        load(el).catch(err => OmAdmin.showErrorBanner(el, err.message));
+      });
+      await load(el);
+      window.setInterval(() => {
+        load(el).catch(() => {});
+      }, 30000);
+    });
+  </script>
+</body>
+</html>

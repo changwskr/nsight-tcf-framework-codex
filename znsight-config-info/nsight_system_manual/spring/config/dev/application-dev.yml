@@ -1,0 +1,23 @@
+spring:
+  profiles:
+    active: dev
+
+logging:
+  level:
+    root: INFO
+    com.nh.nsight: DEBUG
+    org.mybatis: DEBUG
+    org.springframework.session: DEBUG
+
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false
+
+nsight:
+  security:
+    csrf:
+      enabled: false
+  datasource:
+    query-timeout-seconds: 10

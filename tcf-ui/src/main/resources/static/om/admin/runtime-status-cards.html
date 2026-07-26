@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 핵심 상태 카드</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+  <style>
+    .rtm-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .rtm-metric-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      min-height: 96px;
+    }
+    .rtm-metric-card.normal { border-left: 4px solid var(--ok, #22c55e); }
+    .rtm-metric-card.info { border-left: 4px solid #3b82f6; }
+    .rtm-metric-card.warn { border-left: 4px solid #f59e0b; }
+    .rtm-metric-card.critical { border-left: 4px solid #ef4444; }
+    .rtm-metric-card .label {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .rtm-metric-card .value {
+      font-size: 1.25rem;
+      font-weight: 600;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+    .rtm-metric-card.dominant .value { font-size: 1.1rem; }
+  </style>
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260711h"></script>
+  <script>
+    function statusLabel(status) {
+      if (status === 'CRITICAL') return '위험';
+      if (status === 'WARN') return '주의';
+      if (status === 'UNKNOWN') return '미확인';
+      return '정상';
+    }
+
+    function bannerClass(status) {
+      if (status === 'CRITICAL') return 'critical';
+      if (status === 'WARN' || status === 'UNKNOWN') return 'warn';
+      return 'normal';
+    }
+
+    function cardClass(level) {
+      if (level === 'critical') return 'critical';
+      if (level === 'warn') return 'warn';
+      if (level === 'info') return 'info';
+      return 'normal';
+    }
+
+    async function load(el) {
+      const { body, relay } = await OmAdmin.inquiry('runtimeDiagnostics', { includeDetails: 'N' });
+      const analysis = body.statusCardsAnalysis || {};
+      const cards = analysis.cards || [];
+      const status = analysis.overallStatus || body.overallStatus || 'NORMAL';
+      const cls = bannerClass(status);
+
+      document.getElementById('rtmStatus').textContent =
+        `${relay.elapsedMs}ms · 점검 ${body.checkedAt || '-'}`;
+
+      document.getElementById('cardsBanner').className = `om-status-banner ${cls}`;
+      document.getElementById('cardsMain').className = `om-status-main ${cls}`;
+      document.getElementById('cardsMain').textContent =
+        `통합 상태: ${statusLabel(status)} · ${analysis.primaryCauseCode || body.primaryCauseCode || 'NORMAL'}`;
+      document.getElementById('cardsMessage').textContent =
+        analysis.primaryMessage || body.primaryMessage || '-';
+      document.getElementById('scopeNote').textContent = analysis.scopeNote || '-';
+
+      const cardHtml = cards.map(c => {
+        const extra = c.id === 'dominantBusiness' ? ' dominant' : '';
+        return `
+        <div class="rtm-metric-card ${cardClass(c.level)}${extra}">
+          <div class="label">${c.label || '-'}</div>
+          <div class="value">${c.display || '-'}</div>
+        </div>`;
+      }).join('');
+      document.getElementById('cardGrid').innerHTML =
+        cardHtml || '<div class="om-empty">카드 데이터 없음</div>';
+    }
+
+    OmAdmin.initPage('runtime-status-cards', '핵심 상태 카드', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">
+          설계 15.2 핵심 상태 카드 — Tomcat·JVM·DB·Slow·업무 점유 한눈에 표시.
+          <a href="/om/admin/runtime-diagnostics.html" style="margin-left:8px">← 런타임 진단 통합</a>
+          <a href="/om/admin/runtime-cause-analysis.html" style="margin-left:8px">자동 원인판정</a>
+        </div>
+        <section class="om-filter-bar">
+          <button class="btn-primary" id="refreshBtn" type="button">새로고침</button>
+          <span id="rtmStatus" style="color:var(--muted);font-size:0.85rem;align-self:center">조회 중...</span>
+        </section>
+
+        <section class="om-status-banner normal" id="cardsBanner" style="margin-bottom:16px">
+          <div>
+            <div class="om-status-main normal" id="cardsMain">통합 상태: -</div>
+            <div id="cardsMessage" style="margin-top:8px">-</div>
+            <div id="scopeNote" style="margin-top:4px;color:var(--muted);font-size:0.85rem">-</div>
+          </div>
+        </section>
+
+        <div class="rtm-card-grid" id="cardGrid">
+          <div class="om-empty">조회 중...</div>
+        </div>`;
+
+      document.getElementById('refreshBtn').addEventListener('click', () => {
+        load(el).catch(err => OmAdmin.showErrorBanner(el, err.message));
+      });
+      await load(el);
+      window.setInterval(() => {
+        load(el).catch(() => {});
+      }, 30000);
+    });
+  </script>
+</body>
+</html>

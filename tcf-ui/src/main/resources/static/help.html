@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NSIGHT TCF UI · HELP</title>
+  <script src="/_shared/ui-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/help-viewer.css">
+  <style>
+    .help-section { margin-bottom: 2rem; }
+    .help-section h2 { margin: 0 0 0.5rem; font-size: 1.15rem; }
+    .help-section > p { margin: 0 0 0.85rem; color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+    .help-list { margin: 0; padding-left: 1.2rem; color: var(--text); font-size: 0.9rem; line-height: 1.7; }
+    .help-list li { margin-bottom: 0.35rem; }
+    .help-code {
+      display: inline-block;
+      padding: 0.15rem 0.45rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.84rem;
+      color: #bae6fd;
+    }
+    .help-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    .help-table th, .help-table td {
+      border: 1px solid var(--border);
+      padding: 0.55rem 0.65rem;
+      text-align: left;
+    }
+    .help-table th { background: rgba(255, 255, 255, 0.04); color: var(--muted); font-weight: 600; }
+    .help-error-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1rem;
+      margin-bottom: 0.85rem;
+    }
+    .help-error-card pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 0.82rem;
+      color: var(--text);
+      font-family: Consolas, "Courier New", monospace;
+    }
+    .help-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+    .help-actions button {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 0.45rem 0.75rem;
+      cursor: pointer;
+      font-size: 0.84rem;
+      font-weight: 600;
+    }
+    .help-actions button:hover { border-color: rgba(56, 189, 248, 0.45); }
+    #helpErrors { scroll-margin-top: 1rem; }
+    .help-hub-cta {
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.5rem 0.85rem;
+      border-radius: 10px;
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      background: rgba(56, 189, 248, 0.1);
+      color: var(--accent);
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .help-hub-cta:hover { text-decoration: none; }
+  </style>
+</head>
+<body class="tcf-home">
+  <div class="tcf-main">
+    <header class="tcf-topbar">
+      <div class="tcf-topbar__brand">
+        <h1>NSIGHT TCF UI · HELP</h1>
+        <p>온라인 거래 테스트 UI · Relay · OC 용량·환경설정</p>
+      </div>
+      <nav class="tcf-topbar__nav" aria-label="주요 섹션">
+        <a class="tcf-topbar__link" href="/index.html#moduleSection" data-help-ui-link>업무 모듈</a>
+        <a class="tcf-topbar__link" href="/oc/index.html" data-help-ui-link>OC 포털</a>
+        <a class="tcf-topbar__link" href="/help/library.html" data-help-ui-link>문서 라이브러리</a>
+        <a class="tcf-topbar__link" href="/help/health.html" data-help-ui-link>품질</a>
+        <a class="tcf-topbar__link" href="/help/view.html" data-help-ui-link>문서 뷰어</a>
+        <a class="tcf-topbar__link tcf-topbar__link--active" href="/help.html" data-help-ui-link>HELP</a>
+        <span class="badge">TCF</span>
+      </nav>
+    </header>
+
+    <section class="help-section tcf-section">
+      <h2>HELP 문서</h2>
+      <p>
+        <span class="help-code">tcf-help</span> 마크다운 문서를 브라우저에서 읽을 수 있습니다.
+        저장소 <strong>전체 600+</strong> 마크다운은
+        <a class="help-hub-cta" href="/help/library.html" data-help-ui-link>문서 라이브러리</a>에서 검색·열람합니다.
+      </p>
+      <p>
+        <a class="help-hub-cta" href="/help/view.html?doc=doc-map" data-help-ui-link style="margin-top:0">문서 지도</a>
+        <a class="help-hub-cta" href="/help/view.html" data-help-ui-link style="margin-top:0;margin-left:0.5rem">운영 가이드</a>
+      </p>
+      <div id="helpIndexRoot">
+        <p style="color:var(--muted);font-size:0.88rem;">문서 목록을 불러오는 중…</p>
+      </div>
+    </section>
+
+    <section id="helpErrors" class="help-section tcf-section">
+      <h2>오류 상세</h2>
+      <p>
+        API 호출 실패·업무 오류 시 화면 알림의 <strong>HELP</strong> 버튼을 누르면
+        아래에 최근 오류코드·메시지·예외 상세가 표시됩니다.
+      </p>
+      <div class="help-error-card">
+        <pre id="helpErrorDetail">표시할 오류 정보가 없습니다. 업무 화면에서 오류가 발생하면 HELP 버튼으로 이곳에 기록됩니다.</pre>
+      </div>
+      <div class="help-actions">
+        <button type="button" id="helpSampleBizBtn">업무 오류 샘플</button>
+        <button type="button" id="helpSampleSysBtn">시스템 오류 샘플</button>
+        <button type="button" id="helpPopupPreviewBtn">알림 미리보기</button>
+      </div>
+      <ul class="help-list" style="margin-top: 1rem;">
+        <li><a href="/help/view.html?doc=error-response" data-help-ui-link>오류 응답 구조</a></li>
+        <li><a href="/help/view.html?doc=relay-failure" data-help-ui-link>Relay 실패 대응</a></li>
+      </ul>
+    </section>
+  </div>
+  <script src="/_shared/help.js"></script>
+  <script src="/_shared/help-hub.js"></script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NSIGHT TCF UI</title>
+  <script src="/_shared/uj-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css">
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>NSIGHT TCF UI</h1>
+      <p>업무코드별 테스트 화면으로 이동합니다. 각 업무 폴더(<code>/{업무코드}/</code>)에 단일·다중 거래 화면이 있습니다.</p>
+      <div class="nav-links">
+        <a class="nav-link" href="/error-popup.html">오류 팝업 샘플</a>
+      </div>
+    </header>
+    <section class="hub-grid" id="moduleGrid">
+      <div class="empty">업무 목록을 불러오는 중...</div>
+    </section>
+  </div>
+  <script>
+    async function init() {
+      const response = await fetch('/api/business-modules');
+      const modules = await response.json();
+      const grid = document.getElementById('moduleGrid');
+      grid.innerHTML = modules.map(module => {
+        const code = module.code;
+        const lower = code.toLowerCase();
+        const omAdminLink = code === 'OM'
+          ? `<a href="/${lower}/admin/dashboard.html">운영관리 포털</a>`
+          : '';
+        const jwtAdminLink = code === 'JWT'
+          ? `<a href="/${lower}/admin/token.html">JWT 인증 포털</a>`
+          : '';
+        const updownloadLink = code === 'UD'
+          ? `<a href="/${lower}/updownload.html">파일 관리</a>`
+          : '';
+        const ebUserLink = code === 'EB'
+          ? `<a href="/${lower}/user-management.html">사용자 관리</a>`
+          : '';
+        const ebEventLink = code === 'EB'
+          ? `<a href="/${lower}/event-monitor.html">이벤트·배치 모니터</a>`
+          : '';
+        return `
+          <article class="hub-card">
+            <h2>${code} <span class="group-tag">${module.group}</span></h2>
+            <p>${module.name} · port ${module.localPort}</p>
+            <div class="links">
+              <a href="/${lower}/index.html">단일 서비스 테스트</a>
+              <a href="/${lower}/index-multi.html">다중 서비스 테스트</a>
+              ${omAdminLink}
+              ${jwtAdminLink}
+              ${updownloadLink}
+              ${ebUserLink}
+              ${ebEventLink}
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    init().catch(error => {
+      if (window.NsightErrorPopup) {
+        NsightErrorPopup.show(NsightErrorPopup.fromError(error, { systemNote: 'TCF UI 홈' }));
+      } else {
+        alert('화면 초기화 실패: ' + error.message);
+      }
+    });
+  </script>
+</body>
+</html>

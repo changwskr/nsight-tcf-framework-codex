@@ -1,0 +1,439 @@
+명명규칙 최상위 원칙
+1. 도입 전 안내말
+NSIGHT TCF Framework의 명명규칙은 단순한 이름 짓기 기준이 아니다.이름 하나로 업무 경계, 실행 경로, 배포 단위, 소스 위치, SQL 위치, 로그 추적, 오류코드, 운영관리 기준정보가 연결되어야 한다.
+따라서 명명규칙의 최상위 목적은 다음이다.
+이름만 보고
+어느 업무인지,
+어느 모듈인지,
+어느 Context인지,
+어느 ServiceId인지,
+어느 Handler / Mapper / SQL인지,
+운영에서 어떻게 추적할 수 있는지
+알 수 있어야 한다.
+
+
+2. 명명규칙 최상위 원칙 총괄
+No
+원칙
+기준
+1
+업무코드 우선 원칙
+모든 명칭은 SV, OM, MG, IC 같은 업무코드를 기준으로 시작한다
+2
+하나의 이름 체계 원칙
+업무코드, Context, WAR, Package, ServiceId, Mapper, 오류코드가 하나로 연결되어야 한다
+3
+실행 식별자 분리 원칙
+URL은 진입 경로이고, 실제 실행 기준은 serviceId이다
+4
+계층 책임 명확화 원칙
+Handler, Facade, Service, Rule, DAO, Mapper 이름에 역할이 드러나야 한다
+5
+공통과 업무 분리 원칙
+공통 모듈은 tcf-*, 업무 모듈은 {업무코드}-service로 분리한다
+6
+약어 남용 금지 원칙
+의미가 불명확한 약어, 축약어, 개인식 명칭을 사용하지 않는다
+7
+Java / DB / URL 표기 통일 원칙
+Java, DB, URL, 파일명은 각 표기 규칙을 일관되게 따른다
+8
+운영 추적 가능 원칙
+로그, 거래로그, 오류코드, SQL ID에서 ServiceId와 업무코드를 추적할 수 있어야 한다
+9
+중복 의미 금지 원칙
+동일한 의미를 여러 이름으로 부르지 않고, 하나의 표준명만 사용한다
+10
+확장 가능 원칙
+신규 업무, 신규 거래, 신규 모듈이 추가되어도 같은 규칙으로 확장 가능해야 한다
+
+3. 원칙 1. 업무코드 우선 원칙
+모든 명칭의 출발점은 업무코드이다.
+업무코드
+   ↓
+Context Path
+   ↓
+WAR
+   ↓
+Package
+   ↓
+ServiceId
+   ↓
+Handler / Facade / Service / Rule / DAO / Mapper
+   ↓
+SQL ID
+   ↓
+오류코드 / 거래로그 / 감사로그
+
+구분
+예시
+업무코드
+SV
+Context Path
+/sv
+WAR
+sv.war
+Gradle Module
+sv-service
+Package
+com.nh.nsight.marketing.sv
+ServiceId
+SV.Customer.selectSummary
+Handler
+SvCustomerSummaryHandler
+Mapper
+SvCustomerMapper
+SQL ID
+SV.Customer.selectSummary
+오류코드
+E-SV-BIZ-0001
+핵심 기준은 다음이다.
+업무코드가 다르면 모듈, Context, Package, ServiceId Prefix도 달라야 한다.
+
+4. 원칙 2. 하나의 이름 체계 원칙
+NSIGHT에서는 같은 업무를 여러 이름으로 부르면 안 된다.
+예를 들어 Single View 업무를 아래처럼 섞어 쓰면 안 된다.
+잘못된 예
+문제
+/singleview
+Context가 업무코드와 불일치
+single-view-service
+Module명이 업무코드 기준이 아님
+sv.war, singleview.war 혼용
+배포 단위 추적 어려움
+CustomerSummaryService, SvCustomerService 혼용
+업무 경계 불명확
+SV.Customer.selectSummary, SingleView.Customer.summary 혼용
+ServiceId 기준 혼란
+표준은 다음처럼 하나로 맞춘다.
+항목
+표준
+업무코드
+SV
+Module
+sv-service
+Context
+/sv
+WAR
+sv.war
+Package
+.sv
+ServiceId
+SV.Customer.selectSummary
+Java Class Prefix
+Sv
+오류코드 Prefix
+E-SV-
+
+5. 원칙 3. 실행 식별자 분리 원칙
+NSIGHT TCF Framework에서는 URL이 실제 업무 기능을 의미하지 않는다.
+URL은 업무 WAR로 진입하기 위한 경로이고, 실제 실행 대상은 JSON Header의 serviceId이다.
+POST /sv/online
+
+header.serviceId = SV.Customer.selectSummary
+
+구분
+역할
+예시
+URL Context
+어느 업무 WAR로 들어갈지 결정
+/sv
+Endpoint
+온라인 전문 진입점
+/sv/online
+businessCode
+업무코드 검증
+SV
+serviceId
+실제 Handler 실행 기준
+SV.Customer.selectSummary
+transactionCode
+거래코드 / 로그 / 감사 추적 기준
+SV-INQ-0001
+따라서 다음 기준을 지킨다.
+URL은 단순하게, ServiceId는 명확하게, 거래코드는 추적 가능하게 작성한다.
+
+6. 원칙 4. 계층 책임 명확화 원칙
+Java Class 이름에는 계층 역할이 반드시 드러나야 한다.
+계층
+접미어
+예시
+역할
+Handler
+Handler
+SvCustomerSummaryHandler
+ServiceId 진입점
+Facade
+Facade
+SvCustomerFacade
+유스케이스 조립, 트랜잭션 경계
+Service
+Service
+SvCustomerService
+업무 흐름 처리
+Rule
+Rule
+SvCustomerRule
+업무 규칙, 검증
+DAO
+Dao
+SvCustomerDao
+Mapper 호출 캡슐화
+Mapper
+Mapper
+SvCustomerMapper
+MyBatis SQL 매핑
+DTO
+Request, Response, Dto
+SvCustomerSummaryRequest
+데이터 전달
+Client
+Client
+SvIntegrationClient
+외부 / 타 업무 호출
+Config
+Config
+SvServiceConfig
+설정
+금지 기준은 다음이다.
+금지 명칭
+사유
+SvCustomerManager
+역할이 불명확함
+SvCustomerProcessor
+처리 계층 구분이 모호함
+SvCustomerUtil
+업무 로직이 Util로 숨을 가능성
+SvCustomerCommon
+공통인지 업무인지 불명확
+SvCustomerImpl
+인터페이스 구현 외에는 의미 부족
+
+7. 원칙 5. 공통과 업무 분리 원칙
+공통 모듈과 업무 모듈은 이름부터 분리한다.
+구분
+명명 기준
+예시
+TCF 공통
+tcf-*
+tcf-core, tcf-web, tcf-cache
+업무 서비스
+{업무코드소문자}-service
+sv-service, ic-service
+운영관리
+tcf-om
+tcf-om
+Gateway
+tcf-gateway
+tcf-gateway
+JWT
+tcf-jwt
+tcf-jwt
+Batch
+tcf-batch
+tcf-batch
+UI
+tcf-ui
+tcf-ui
+판단 기준은 다음이다.
+질문
+위치
+여러 업무에서 반복 사용하는 기술 공통인가?
+tcf-core, tcf-web, tcf-util
+특정 업무의 업무 로직인가?
+{업무코드}-service
+운영자가 관리하는 기준정보인가?
+tcf-om
+업무코드 기준 라우팅인가?
+tcf-gateway
+토큰 발급 / 검증인가?
+tcf-jwt
+주기 실행 / 상태 수집인가?
+tcf-batch
+
+8. 원칙 6. 약어 남용 금지 원칙
+의미가 명확한 업무코드와 표준 약어 외에는 임의 축약을 금지한다.
+구분
+허용 여부
+예시
+업무코드
+허용
+SV, OM, MG, IC
+표준 기술 약어
+허용
+DTO, DAO, JWT, SQL, API
+의미 불명확 축약
+금지
+Mgr, Proc, Svc, Biz, Com
+개인식 축약
+금지
+CustSumProc, MngInfo, TmpSvc
+임시 명칭
+금지
+TestService, NewService, Sample2Handler
+표준 예시는 다음과 같다.
+나쁜 예
+좋은 예
+SvCustSumSvc
+SvCustomerSummaryService
+SvCustProc
+SvCustomerRule
+SvMgr
+SvCustomerFacade
+SvComUtil
+SvCustomerMaskingSupport
+TmpCustomerHandler
+SvCustomerSummaryHandler
+
+9. 원칙 7. 표기 방식 통일 원칙
+명명 대상별 표기 방식을 통일한다.
+대상
+표기 방식
+예시
+업무코드
+Upper Case
+SV, OM, MG
+Module
+lower-kebab-case
+sv-service, tcf-core
+Context Path
+lowercase
+/sv, /om
+WAR
+lowercase
+sv.war, om.war
+Package
+lowercase
+com.nh.nsight.marketing.sv
+Java Class
+PascalCase
+SvCustomerSummaryHandler
+Java Method
+lowerCamelCase
+selectCustomerSummary
+Java Field
+lowerCamelCase
+customerNo
+Constant
+UPPER_SNAKE_CASE
+MAX_PAGE_SIZE
+DB Table
+UPPER_SNAKE_CASE
+TCF_TRANSACTION_LOG
+DB Column
+UPPER_SNAKE_CASE
+SERVICE_ID
+SQL ID
+업무.도메인.행위
+SV.Customer.selectSummary
+오류코드
+Upper + Hyphen
+E-SV-BIZ-0001
+
+10. 원칙 8. 운영 추적 가능 원칙
+운영자가 장애를 분석할 때 이름만으로 흐름을 추적할 수 있어야 한다.
+ServiceId = SV.Customer.selectSummary
+   ↓
+Handler = SvCustomerSummaryHandler
+   ↓
+Facade = SvCustomerFacade
+   ↓
+Service = SvCustomerService
+   ↓
+DAO = SvCustomerDao
+   ↓
+Mapper = SvCustomerMapper
+   ↓
+SQL ID = SV.Customer.selectSummary
+   ↓
+오류코드 = E-SV-BIZ-0001
+   ↓
+거래로그 = SERVICE_ID / TRANSACTION_CODE / GUID 기준 조회
+
+추적 기준
+반드시 포함할 값
+애플리케이션 로그
+GUID, TraceId, ServiceId, transactionCode
+거래로그
+serviceId, businessCode, transactionCode, userId
+오류로그
+errorCode, exceptionType, serviceId, GUID
+감사로그
+userId, branchId, menuId, serviceId, actionType
+SQL 로그
+SQL ID, Mapper ID, elapsedTime
+배포 이력
+moduleName, warName, version, deployTime
+
+11. 원칙 9. 중복 의미 금지 원칙
+같은 의미를 여러 이름으로 부르면 운영과 유지보수가 어려워진다.
+중복 표현
+표준화 기준
+User, Member, AccountUser 혼용
+사용자 기준은 User
+Auth, Authority, Permission 혼용
+권한 기준은 Auth 또는 세부적으로 MenuAuth, FunctionAuth
+Message, Msg, ErrorMessage 혼용
+메시지는 Message, 오류메시지는 ErrorMessage
+Transaction, Tx, Trade 혼용
+거래는 Transaction, 로그 테이블은 TX 허용
+Code, CommonCode, Cd 혼용
+공통코드는 CommonCode
+표준 이름은 OM 기준정보, Java Class, DB Table, 화면명에서 동일하게 사용한다.
+
+12. 원칙 10. 확장 가능 원칙
+명명규칙은 현재 업무만을 위한 것이 아니라 향후 17개 업무 WAR 전체와 신규 업무 추가를 고려해야 한다.
+신규 업무가 추가되어도 다음 형식만 바꾸면 동일하게 확장되어야 한다.
+업무코드 = XX
+
+xx-service
+/xx
+xx.war
+com.nh.nsight.marketing.xx
+XX.Domain.action
+XxDomainActionHandler
+XxDomainFacade
+XxDomainService
+XxDomainRule
+XxDomainDao
+XxDomainMapper
+mapper/xx/XxDomainMapper.xml
+E-XX-BIZ-0001
+
+
+13. 최상위 원칙 요약
+원칙
+한 줄 기준
+업무코드 우선
+모든 이름은 업무코드에서 시작한다
+체계 일관성
+Context, WAR, Package, ServiceId가 같은 기준으로 이어져야 한다
+실행 기준 분리
+URL은 경로, ServiceId는 실행 기준이다
+계층 명확화
+Class 이름에 Handler, Facade, Service, Rule, DAO, Mapper 역할을 드러낸다
+공통/업무 분리
+공통은 tcf-*, 업무는 {업무코드}-service로 분리한다
+약어 금지
+의미 없는 축약어를 쓰지 않는다
+표기 통일
+Java, DB, URL, 파일명 표기 방식을 일관되게 사용한다
+운영 추적
+로그, SQL, 오류코드, 거래코드까지 추적 가능해야 한다
+중복 금지
+같은 개념은 하나의 표준명만 사용한다
+확장 가능
+신규 업무가 추가되어도 동일 규칙으로 확장 가능해야 한다
+
+14. 마무리말
+NSIGHT 명명규칙의 최상위 원칙은 다음 한 문장으로 정리할 수 있다.
+이름은 개발 편의를 위한 것이 아니라, 운영 추적성과 아키텍처 경계를 보장하기 위한 기준이다.
+따라서 NSIGHT TCF Framework에서는 이름을 정할 때 항상 다음 순서로 판단한다.
+이 업무는 어느 업무코드인가?
+이 기능은 어느 모듈에 속하는가?
+이 거래의 ServiceId는 무엇인가?
+이 Class의 계층 책임은 무엇인가?
+이 SQL과 오류코드는 운영에서 어떻게 추적되는가?
+
+이 기준을 지키면 개발, 테스트, 배포, 장애 대응, PMO 보고, 감사 대응까지 같은 이름 체계로 설명할 수 있다.
+

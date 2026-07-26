@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nh.nsight.marketing.av.persistence.mapper.AvCustomerContactMapper">
+
+    <sql id="contactSearchWhere">
+        <where>
+            AND c.CUSTOMER_NO = #{customerNo}
+            AND c.USE_YN = 'Y'
+            <if test="contactType != null and contactType != ''">
+                AND c.CONTACT_TYPE = #{contactType}
+            </if>
+        </where>
+    </sql>
+
+    <select id="searchContacts"
+            parameterType="com.nh.nsight.marketing.av.application.dto.customercontact.CustomerContactSearchCriteria"
+            resultType="com.nh.nsight.marketing.av.persistence.dto.customercontact.CustomerContactRow">
+        /* SQL_ID: AV.CustomerContact.selectList */
+        SELECT c.CONTACT_ID AS contactId,
+               c.CUSTOMER_NO AS customerNo,
+               c.CONTACT_TYPE AS contactType,
+               c.CONTACT_VALUE AS contactValue,
+               c.USE_YN AS useYn,
+               c.REG_DTM AS regDtm,
+               c.UPD_DTM AS updDtm
+          FROM AV_CUSTOMER_CONTACT c
+        <include refid="contactSearchWhere"/>
+         ORDER BY c.UPD_DTM DESC, c.CONTACT_ID DESC
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+
+    <select id="countContacts"
+            parameterType="com.nh.nsight.marketing.av.application.dto.customercontact.CustomerContactSearchCriteria"
+            resultType="int">
+        /* SQL_ID: AV.CustomerContact.selectList(count) */
+        SELECT COUNT(1)
+          FROM AV_CUSTOMER_CONTACT c
+        <include refid="contactSearchWhere"/>
+    </select>
+
+    <select id="selectByContactId"
+            resultType="com.nh.nsight.marketing.av.persistence.dto.customercontact.CustomerContactRow">
+        /* SQL_ID: AV.CustomerContact.selectDetail */
+        SELECT c.CONTACT_ID AS contactId,
+               c.CUSTOMER_NO AS customerNo,
+               c.CONTACT_TYPE AS contactType,
+               c.CONTACT_VALUE AS contactValue,
+               c.USE_YN AS useYn,
+               c.REG_DTM AS regDtm,
+               c.UPD_DTM AS updDtm
+          FROM AV_CUSTOMER_CONTACT c
+         WHERE c.CONTACT_ID = #{contactId}
+    </select>
+
+</mapper>

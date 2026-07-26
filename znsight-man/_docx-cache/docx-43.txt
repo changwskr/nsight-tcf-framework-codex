@@ -1,0 +1,695 @@
+38. Idempotency / 중복요청 처리
+38.1 도입 전 안내말
+Idempotency, 즉 멱등성은 같은 요청이 여러 번 들어와도 업무 결과가 한 번만 반영되도록 보장하는 처리 기준이다.
+NSIGHT TCF에서는 사용자가 버튼을 여러 번 클릭하거나, 화면이 Timeout 후 재전송하거나, Gateway·서비스 간 연동 Client가 재시도할 때 동일 등록·변경·승인·파일처리 거래가 중복 실행되지 않도록 해야 한다.
+기존 TCF 처리 구조에서도 STF.preProcess() 단계에서 Header 검증, GUID/TraceId, 세션, 권한, 거래통제 이후 Idempotency 중복요청 확인을 수행하고, 그 다음 Timeout 정책 조회와 거래 시작 로그 저장으로 이어지는 구조로 정리되어 있다. 또한 거래 상태는 PROCESSING, SUCCESS, FAIL, TIMEOUT, UNKNOWN 등으로 관리해야 하므로, 중복요청 처리도 거래로그 상태와 함께 판단해야 한다.
+핵심 문장은 다음이다.
+UI 중복클릭 방지만으로는 부족하다.NSIGHT는 서버의 TCF 전처리에서 Idempotency Key 기준으로 중복요청을 차단해야 한다.
+
+38.2 Idempotency와 중복요청의 차이
+구분
+의미
+NSIGHT 기준
+중복클릭 방지
+사용자가 버튼을 여러 번 누르지 못하게 화면에서 막는 것
+보조 수단
+중복요청 처리
+같은 요청이 서버에 여러 번 도착했을 때 서버에서 차단하는 것
+필수
+Idempotency
+같은 업무 요청을 여러 번 보내도 결과가 한 번만 반영되도록 보장하는 것
+등록·변경·승인 거래 필수
+재시도
+Timeout, 네트워크 오류 후 같은 요청을 다시 보내는 것
+같은 Idempotency Key 사용
+재처리
+UNKNOWN, TIMEOUT 상태 거래를 운영자가 상태 확인 후 다시 처리하는 것
+OM 기준 통제
+
+38.3 적용 대상
+Idempotency는 모든 거래에 무조건 적용하는 것이 아니라, 중복 실행 시 업무 데이터가 변경되거나 외부 영향이 발생하는 거래에 우선 적용한다.
+거래 유형
+적용 여부
+기준
+단순 조회
+선택
+고객요약 조회처럼 DB 변경이 없으면 필수 아님
+목록 조회 / 페이징 조회
+선택
+대량조회 보호는 Timeout·페이징으로 관리
+등록
+필수
+같은 데이터가 2번 생성되면 안 됨
+변경
+필수
+같은 변경이 여러 번 수행되면 안 됨
+삭제
+필수
+논리삭제, 상태변경 거래는 필수
+승인 / 확정
+필수
+승인 중복 처리 방지
+외부 연계 호출
+필수
+상대 시스템에 중복 요청 전달 방지
+파일 업로드
+권장
+동일 파일 중복 등록 방지
+파일 다운로드
+감사 대상이면 권장
+다운로드 이력 중복 기록 통제
+배치 수동 실행
+필수
+같은 Job 중복 실행 방지
+
+38.4 기본 설계 원칙
+원칙
+기준
+서버 기준 통제
+화면에서 막더라도 서버에서 반드시 다시 확인한다
+Key 기준 통제
+idempotencyKey를 기준으로 동일 요청 여부를 판단한다
+업무 범위 포함
+동일 Key라도 serviceId, user, channelId가 다르면 별도 요청으로 본다
+요청 Hash 비교
+같은 Key로 다른 Body가 들어오면 오류 처리한다
+처리 중 요청 차단
+기존 요청이 PROCESSING이면 중복요청으로 차단한다
+성공 요청 재호출
+기존 요청이 SUCCESS이면 저장된 결과를 반환하거나 중복 성공으로 응답한다
+Timeout 요청 주의
+기존 요청이 TIMEOUT 또는 UNKNOWN이면 무조건 재실행하지 않고 상태 확인 대상으로 처리한다
+DB 기준 원장
+Cache만 믿지 않고 DB 테이블의 Unique Key로 최종 중복을 막는다
+거래로그 연계
+중복요청도 거래로그와 감사로그에 남긴다
+
+38.5 전체 처리 흐름
+[Client / WebTopSuite / tcf-ui]
+        |
+        | POST /sv/online
+        | header.idempotencyKey = "20260704-U123456-SV-000001"
+        v
+[OnlineTransactionController]
+        v
+[TCF.process()]
+        v
+[STF.preProcess()]
+   1. StandardRequest 수신
+   2. Header 필수값 검증
+   3. GUID / TraceId 생성
+   4. 세션 / 인증 / 권한 검증
+   5. 거래통제 확인
+   6. Idempotency Key 확인
+   7. TCF_IDEMPOTENCY INSERT 또는 조회
+   8. 중복 여부 판단
+   9. Timeout 정책 조회
+   10. 거래로그 PROCESSING 저장
+        v
+[TransactionDispatcher]
+        v
+[Handler → Facade → Service → Rule → DAO / Mapper]
+        v
+[ETF.postProcess()]
+   1. 표준 응답 조립
+   2. TCF_IDEMPOTENCY 상태 갱신
+   3. 거래로그 SUCCESS / FAIL / TIMEOUT / UNKNOWN 갱신
+   4. 감사로그 / 성능로그 기록
+        v
+[StandardResponse 반환]
+
+TCF 공통 파이프라인은 STF → TransactionDispatcher → ETF 흐름에서 Header 검증, 세션·권한, 거래통제, Timeout, 로깅, 응답 조립을 담당하므로, Idempotency도 업무 Handler가 아니라 STF 전처리에서 우선 처리하는 것이 맞다.
+
+38.6 표준 Header 항목
+요청 Header에는 idempotencyKey를 추가한다.
+{
+  "header": {
+    "serviceId": "SV.Customer.saveMemo",
+    "transactionCode": "SV-SAV-0001",
+    "businessCode": "SV",
+    "serviceName": "고객 메모 저장",
+    "user": "U123456",
+    "channelId": "WEBTOP",
+    "branch": "001234",
+    "guid": "20260704-SV-00000001",
+    "traceId": "TRC-20260704-00000001",
+    "transactionId": "TX-20260704-00000001",
+    "idempotencyKey": "IDEMP-20260704-U123456-SV-SAV-0001-000001",
+    "requestTime": "2026-07-04T10:30:00.000+09:00"
+  },
+  "body": {
+    "customerNo": "1234567890",
+    "memo": "상담 메모 등록"
+  }
+}
+
+항목
+필수 여부
+설명
+idempotencyKey
+등록·변경·삭제 필수
+동일 요청 식별자
+serviceId
+필수
+실행할 업무 서비스
+transactionCode
+필수
+거래코드
+businessCode
+필수
+업무코드
+user
+필수
+사용자 ID
+channelId
+필수
+채널 ID
+branch
+필수
+지점 코드
+guid
+권장
+요청 추적 ID
+traceId
+권장
+End-to-End 추적 ID
+
+38.7 Idempotency Key 생성 기준
+생성 주체
+기준
+화면 / Client
+등록·변경 버튼 클릭 시 1회 생성
+tcf-ui Relay
+화면에서 Key가 없고 필수 거래이면 생성 가능
+서비스 간 연동 Client
+외부 또는 내부 서비스 호출 전 생성
+Batch / Scheduler
+Job 실행 ID 기준으로 생성
+서버 STF
+Key 누락 시 조회 거래는 통과 가능, 변경 거래는 차단
+권장 형식은 다음이다.
+IDEMP-{YYYYMMDD}-{USER_ID}-{BUSINESS_CODE}-{TRANSACTION_CODE}-{SEQ}
+
+예시:
+IDEMP-20260704-U123456-SV-SAV-0001-000001
+
+단, 실제 운영에서는 예측 가능한 일련번호만 사용하지 말고 UUID 또는 난수값을 포함하는 것이 좋다.
+IDEMP-20260704-U123456-SV-SAV-0001-7f9c2e9a5e12
+
+
+38.8 중복 판단 기준
+중복 판단은 단순히 idempotencyKey만 보지 않는다. 최소한 다음 조합으로 판단한다.
+businessCode
++ serviceId
++ transactionCode
++ user
++ channelId
++ branch
++ idempotencyKey
+
+비교 항목
+판단 기준
+업무코드
+같은 업무인지 확인
+ServiceId
+같은 실행 서비스인지 확인
+거래코드
+같은 거래 유형인지 확인
+사용자
+같은 사용자의 요청인지 확인
+채널
+같은 채널 요청인지 확인
+지점
+같은 지점 요청인지 확인
+Idempotency Key
+같은 요청인지 확인
+Request Hash
+같은 Key로 다른 Body가 들어왔는지 확인
+
+38.9 상태별 처리 기준
+기존 상태
+의미
+신규 동일 요청 처리
+없음
+최초 요청
+PROCESSING 등록 후 업무 실행
+PROCESSING
+기존 요청 처리 중
+중복요청 오류 반환
+SUCCESS
+기존 요청 정상 완료
+저장된 응답 반환 또는 “이미 처리됨” 반환
+FAIL
+기존 요청 실패
+같은 요청 재시도 허용 여부는 정책 기준
+TIMEOUT
+제한시간 초과
+바로 재실행 금지, 상태확인 또는 운영확인 대상
+UNKNOWN
+실제 처리 결과 불명확
+재처리 금지, 상태조회 후 판단
+EXPIRED
+보관기간 만료
+신규 요청으로 처리 가능
+UNKNOWN 상태는 특히 중요하다. 등록·변경·외부연계 거래는 Timeout이 발생해도 실제 DB 반영이나 상대 시스템 처리가 완료되었을 수 있으므로, 무조건 실패로 단정하지 않고 운영자가 확인할 수 있게 남겨야 한다.
+
+38.10 테이블 설계
+TCF_IDEMPOTENCY
+컬럼
+타입
+필수
+설명
+IDEMPOTENCY_ID
+VARCHAR2(50)
+Y
+내부 식별자
+IDEMPOTENCY_KEY
+VARCHAR2(200)
+Y
+요청 중복 방지 Key
+BUSINESS_CODE
+VARCHAR2(20)
+Y
+업무코드
+SERVICE_ID
+VARCHAR2(100)
+Y
+ServiceId
+TRANSACTION_CODE
+VARCHAR2(50)
+Y
+거래코드
+USER_ID
+VARCHAR2(50)
+Y
+사용자 ID
+CHANNEL_ID
+VARCHAR2(30)
+Y
+채널 ID
+BRANCH_CODE
+VARCHAR2(30)
+Y
+지점 코드
+REQUEST_HASH
+VARCHAR2(128)
+Y
+요청 Body Hash
+GUID
+VARCHAR2(100)
+Y
+최초 요청 GUID
+TRACE_ID
+VARCHAR2(100)
+N
+Trace ID
+TX_ID
+VARCHAR2(100)
+N
+거래 ID
+TX_STATUS
+VARCHAR2(20)
+Y
+PROCESSING/SUCCESS/FAIL/TIMEOUT/UNKNOWN
+RESPONSE_CODE
+VARCHAR2(50)
+N
+결과코드
+ERROR_CODE
+VARCHAR2(50)
+N
+오류코드
+RESPONSE_BODY
+CLOB
+N
+성공 응답 저장, 선택
+RETRYABLE_YN
+CHAR(1)
+Y
+재시도 가능 여부
+EXPIRE_AT
+TIMESTAMP
+Y
+Key 만료시각
+CREATED_AT
+TIMESTAMP
+Y
+생성시각
+UPDATED_AT
+TIMESTAMP
+Y
+수정시각
+Unique Key는 다음을 권장한다.
+CREATE UNIQUE INDEX UX_TCF_IDEMPOTENCY_01
+ON TCF_IDEMPOTENCY (
+    BUSINESS_CODE,
+    SERVICE_ID,
+    TRANSACTION_CODE,
+    USER_ID,
+    CHANNEL_ID,
+    BRANCH_CODE,
+    IDEMPOTENCY_KEY
+);
+
+DB Unique Key를 두는 이유는, 다중 WAS 환경에서 동시에 같은 요청이 들어와도 마지막 중복 방어선은 DB가 되어야 하기 때문이다.
+
+38.11 STF 전처리 책임
+단계
+처리 내용
+오류 시
+1
+idempotencyKey 필수 여부 판단
+변경 거래인데 Key 없으면 차단
+2
+요청 Body Hash 생성
+Hash 생성 실패 시 시스템 오류
+3
+TCF_IDEMPOTENCY 최초 Insert 시도
+성공하면 최초 요청
+4
+Unique 충돌 시 기존 Row 조회
+기존 상태 기준 판단
+5
+같은 Key + 다른 Hash 확인
+Key 재사용 오류
+6
+PROCESSING 상태 확인
+중복 처리 중 오류
+7
+SUCCESS 상태 확인
+기존 응답 반환 또는 이미 처리 응답
+8
+TIMEOUT/UNKNOWN 확인
+상태확인 필요 응답
+9
+최초 요청이면 다음 단계 진행
+Timeout 정책 조회 후 Handler 실행
+
+38.12 ETF 후처리 책임
+처리 결과
+ETF 처리
+정상 완료
+TCF_IDEMPOTENCY.TX_STATUS = SUCCESS 갱신
+업무 오류
+FAIL 갱신, 오류코드 저장
+시스템 오류
+FAIL 또는 UNKNOWN 갱신
+Timeout
+TIMEOUT 또는 UNKNOWN 갱신
+응답 저장 필요
+RESPONSE_BODY에 표준 응답 요약 저장
+감사 대상
+OM_AUDIT_LOG 기록
+성능 지표
+처리시간, 중복요청 건수 Metrics 반영
+Timeout 발생 시에는 ETF에서 오류코드를 매핑하고 거래로그 상태를 TIMEOUT 또는 UNKNOWN으로 남겨야 한다. 기존 설계에서도 Timeout은 ETF 오류 처리 후 거래로그를 갱신하고 표준 응답을 반환하는 구조로 정리되어 있다.
+
+38.13 개발자 구현 기준
+업무 개발자는 Idempotency를 직접 구현하지 않는다.업무 개발자는 다음 기준만 지킨다.
+개발자 기준
+설명
+등록·변경·삭제 거래는 Idempotency 필수로 등록
+OM ServiceId 관리 또는 정책 설정
+Handler에서 중복요청 직접 체크 금지
+STF 공통 모듈에서 처리
+업무 DB에 중복 방지 Unique Key 별도 고려
+고객번호+일자+구분 등 업무 무결성도 필요
+외부 연계 호출 시 같은 Key 전달
+downstream 서비스 중복 실행 방지
+Timeout 후 무조건 재호출 금지
+상태조회 또는 재처리 정책 사용
+UNKNOWN 거래는 운영 확인 대상으로 처리
+신규 Key로 다시 등록 금지
+
+38.14 오류코드 기준
+오류코드
+오류명
+발생 위치
+사용자 메시지
+E-TCF-IDEMP-0001
+Idempotency Key 누락
+STF
+중복 방지 키가 없습니다. 다시 시도해 주십시오.
+E-TCF-IDEMP-0002
+중복 요청 처리 중
+STF
+동일한 요청이 처리 중입니다. 잠시 후 결과를 확인해 주십시오.
+E-TCF-IDEMP-0003
+같은 Key로 다른 요청
+STF
+잘못된 중복 요청입니다. 화면을 새로고침 후 다시 시도해 주십시오.
+E-TCF-IDEMP-0004
+이미 처리된 요청
+STF
+이미 처리된 요청입니다.
+E-TCF-IDEMP-0005
+결과 불명확 거래
+STF
+이전 요청의 처리 결과를 확인 중입니다. 운영자에게 문의하십시오.
+E-TCF-IDEMP-0006
+Idempotency 저장 실패
+STF
+거래 처리 준비 중 오류가 발생했습니다.
+E-TCF-IDEMP-0007
+Idempotency 상태 갱신 실패
+ETF
+거래 후처리 중 오류가 발생했습니다.
+사용자 메시지는 짧게 제공하고, 운영자 메시지에는 guid, traceId, serviceId, idempotencyKey, txStatus를 포함한다.
+
+38.15 Java 처리 예시
+38.15.1 Header 모델
+@Getter
+@Setter
+public class StandardHeader {
+
+    private String serviceId;
+    private String transactionCode;
+    private String businessCode;
+    private String serviceName;
+
+    private String user;
+    private String channelId;
+    private String branch;
+
+    private String guid;
+    private String traceId;
+    private String transactionId;
+
+    /**
+     * 등록/변경/삭제/승인/외부연계 거래의 중복요청 방지 Key
+     */
+    private String idempotencyKey;
+}
+
+38.15.2 STF 적용 예시
+@Component
+@RequiredArgsConstructor
+public class STF {
+
+    private final IdempotencyService idempotencyService;
+    private final TimeoutPolicyResolver timeoutPolicyResolver;
+    private final TransactionLogWriter transactionLogWriter;
+
+    public TransactionContext preProcess(StandardRequest<?> request) {
+
+        StandardHeader header = request.getHeader();
+
+        // 1. Header, 세션, 권한, 거래통제 검증은 앞 단계에서 수행했다고 가정
+
+        // 2. Idempotency 중복요청 확인
+        IdempotencyCheckResult idempotencyResult =
+                idempotencyService.checkAndReserve(request);
+
+        if (idempotencyResult.isDuplicated()) {
+            throw new BusinessException(
+                    "E-TCF-IDEMP-0002",
+                    "동일한 요청이 처리 중입니다."
+            );
+        }
+
+        // 3. Timeout 정책 조회
+        TimeoutContext timeoutContext =
+                timeoutPolicyResolver.resolve(header.getServiceId());
+
+        // 4. 거래 컨텍스트 생성
+        TransactionContext context = TransactionContext.builder()
+                .guid(header.getGuid())
+                .traceId(header.getTraceId())
+                .serviceId(header.getServiceId())
+                .transactionCode(header.getTransactionCode())
+                .businessCode(header.getBusinessCode())
+                .userId(header.getUser())
+                .channelId(header.getChannelId())
+                .branchCode(header.getBranch())
+                .idempotencyKey(header.getIdempotencyKey())
+                .timeoutContext(timeoutContext)
+                .build();
+
+        // 5. 거래 시작 로그 저장
+        transactionLogWriter.insertProcessing(context);
+
+        return context;
+    }
+}
+
+38.15.3 Idempotency Service 예시
+@Service
+@RequiredArgsConstructor
+public class IdempotencyService {
+
+    private final IdempotencyMapper idempotencyMapper;
+    private final RequestHashGenerator requestHashGenerator;
+
+    public IdempotencyCheckResult checkAndReserve(StandardRequest<?> request) {
+
+        StandardHeader header = request.getHeader();
+
+        boolean required = isIdempotencyRequired(header.getTransactionCode());
+
+        if (required && isBlank(header.getIdempotencyKey())) {
+            throw new BusinessException(
+                    "E-TCF-IDEMP-0001",
+                    "중복 방지 키가 없습니다."
+            );
+        }
+
+        if (!required && isBlank(header.getIdempotencyKey())) {
+            return IdempotencyCheckResult.notRequired();
+        }
+
+        String requestHash = requestHashGenerator.generate(request.getBody());
+
+        try {
+            idempotencyMapper.insertProcessing(
+                    header.getBusinessCode(),
+                    header.getServiceId(),
+                    header.getTransactionCode(),
+                    header.getUser(),
+                    header.getChannelId(),
+                    header.getBranch(),
+                    header.getIdempotencyKey(),
+                    requestHash,
+                    header.getGuid(),
+                    header.getTraceId()
+            );
+
+            return IdempotencyCheckResult.firstRequest();
+
+        } catch (DuplicateKeyException e) {
+
+            IdempotencyRecord existing =
+                    idempotencyMapper.selectByKey(
+                            header.getBusinessCode(),
+                            header.getServiceId(),
+                            header.getTransactionCode(),
+                            header.getUser(),
+                            header.getChannelId(),
+                            header.getBranch(),
+                            header.getIdempotencyKey()
+                    );
+
+            if (!existing.getRequestHash().equals(requestHash)) {
+                throw new BusinessException(
+                        "E-TCF-IDEMP-0003",
+                        "같은 중복 방지 키로 다른 요청이 들어왔습니다."
+                );
+            }
+
+            return switch (existing.getTxStatus()) {
+                case "PROCESSING" -> IdempotencyCheckResult.duplicatedProcessing(existing);
+                case "SUCCESS" -> IdempotencyCheckResult.alreadySuccess(existing);
+                case "TIMEOUT", "UNKNOWN" -> IdempotencyCheckResult.unknown(existing);
+                case "FAIL" -> IdempotencyCheckResult.previousFail(existing);
+                default -> IdempotencyCheckResult.invalidStatus(existing);
+            };
+        }
+    }
+
+    private boolean isIdempotencyRequired(String transactionCode) {
+        return transactionCode.contains("-SAV-")
+                || transactionCode.contains("-UPD-")
+                || transactionCode.contains("-DEL-")
+                || transactionCode.contains("-APR-")
+                || transactionCode.contains("-EXT-");
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+}
+
+
+38.16 테스트 케이스
+No
+테스트 케이스
+기대 결과
+1
+등록 거래에 idempotencyKey 없음
+E-TCF-IDEMP-0001
+2
+같은 Key로 최초 요청
+PROCESSING 등록 후 업무 실행
+3
+같은 Key로 처리 중 재요청
+E-TCF-IDEMP-0002
+4
+같은 Key로 Body가 다른 요청
+E-TCF-IDEMP-0003
+5
+같은 Key로 성공 후 재요청
+기존 결과 반환 또는 이미 처리됨 응답
+6
+Timeout 후 같은 Key 재요청
+UNKNOWN 또는 상태확인 안내
+7
+두 WAS에서 동시에 같은 Key 요청
+1건만 성공, 1건은 Unique Key 충돌 후 중복 처리
+8
+외부연계 거래 재시도
+동일 Key로 상대 시스템 중복 호출 방지
+9
+조회 거래에 Key 없음
+정상 처리
+10
+삭제 거래에 Key 없음
+차단
+
+38.17 개발자 체크리스트
+점검 항목
+확인
+등록·변경·삭제·승인 거래에 Idempotency 필수 정책을 적용했는가
+□
+화면 또는 연동 Client가 idempotencyKey를 생성하는가
+□
+같은 Key로 다른 Body가 들어오면 차단하는가
+□
+PROCESSING 상태 중복요청을 차단하는가
+□
+SUCCESS 상태 재요청 처리 기준이 정의되어 있는가
+□
+TIMEOUT, UNKNOWN 상태를 재처리와 분리했는가
+□
+DB Unique Key로 동시 요청을 방어하는가
+□
+거래로그와 Idempotency 테이블이 GUID/TraceId로 연결되는가
+□
+오류코드가 E-TCF-IDEMP-* 기준으로 정리되어 있는가
+□
+OM에서 중복요청, UNKNOWN 거래를 조회할 수 있는가
+□
+
+38.18 마무리말
+Idempotency / 중복요청 처리는 단순한 편의 기능이 아니다. NSIGHT TCF에서는 사용자의 중복 클릭, 네트워크 재시도, Timeout 후 재전송, 서비스 간 연동 재호출을 모두 통제하기 위한 거래 안정성 장치이다.
+개발자는 업무 프로그램 안에서 중복요청을 개별적으로 막으려 하지 말고, TCF의 STF.preProcess()에서 idempotencyKey 기준으로 공통 처리되도록 해야 한다.
+38.19 시사점
+NSIGHT에서 Idempotency는 다음 세 가지를 동시에 만족해야 한다.
+관점
+시사점
+개발 관점
+업무 개발자는 Key 생성·필수 여부만 지키고, 중복 판단은 TCF에 맡긴다
+운영 관점
+PROCESSING, SUCCESS, TIMEOUT, UNKNOWN 상태를 OM에서 추적할 수 있어야 한다
+아키텍처 관점
+화면 중복클릭 방지, DB Unique Key, TCF Idempotency, 거래로그가 함께 동작해야 안전하다
+
+

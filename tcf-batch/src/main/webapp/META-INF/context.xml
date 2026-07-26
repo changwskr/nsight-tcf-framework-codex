@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Deploy as zz-batch.war so Tomcat starts batch after ui (alphabetical last). Context path stays /batch. -->
+<Context path="/batch" />

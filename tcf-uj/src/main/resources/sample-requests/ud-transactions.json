@@ -1,0 +1,126 @@
+[
+  {
+    "label": "File List",
+    "sampleFile": "ud-sample-inquiry.json"
+  },
+  {
+    "label": "File Upload (JSON)",
+    "sampleRequest": {
+      "header": {
+        "systemId": "NSIGHT-MP",
+        "businessCode": "UD",
+        "serviceId": "UD.File.upload",
+        "transactionCode": "UD-UPL-0001",
+        "processingType": "CREATE",
+        "guid": "",
+        "traceId": "",
+        "channelId": "WEBTOP",
+        "userId": "U123456",
+        "branchId": "001234",
+        "centerId": "DC1",
+        "requestTime": "2026-06-14T10:30:00+09:00",
+        "transactionIntime": "2026-06-14T10:30:00+09:00",
+        "transactionOuttime": "",
+        "systemDate": "20260614",
+        "bizDate": "20260614",
+        "clientIp": "10.10.10.10"
+      },
+      "body": {
+        "fileName": "sample.txt",
+        "contentType": "text/plain",
+        "contentBase64": "SGVsbG8sIE5TSUdIVCE=",
+        "description": "데모 업로드 샘플"
+      }
+    }
+  },
+  {
+    "label": "File Download (JSON)",
+    "sampleRequest": {
+      "header": {
+        "systemId": "NSIGHT-MP",
+        "businessCode": "UD",
+        "serviceId": "UD.File.download",
+        "transactionCode": "UD-DWN-0001",
+        "processingType": "INQUIRY",
+        "guid": "",
+        "traceId": "",
+        "channelId": "WEBTOP",
+        "userId": "U123456",
+        "branchId": "001234",
+        "centerId": "DC1",
+        "requestTime": "2026-06-14T10:30:00+09:00",
+        "transactionIntime": "2026-06-14T10:30:00+09:00",
+        "transactionOuttime": "",
+        "systemDate": "20260614",
+        "bizDate": "20260614",
+        "clientIp": "10.10.10.10"
+      },
+      "body": {
+        "fileId": "REPLACE_WITH_FILE_ID"
+      }
+    }
+  },
+  {
+    "label": "File Detail",
+    "sampleRequest": {
+      "header": {
+        "systemId": "NSIGHT-MP",
+        "businessCode": "UD",
+        "serviceId": "UD.File.detail",
+        "transactionCode": "UD-DTL-0001",
+        "processingType": "INQUIRY",
+        "channelId": "WEBTOP",
+        "userId": "U123456",
+        "branchId": "001234",
+        "requestTime": "2026-06-14T10:30:00+09:00",
+        "transactionIntime": "2026-06-14T10:30:00+09:00",
+        "systemDate": "20260614",
+        "bizDate": "20260614",
+        "clientIp": "10.10.10.10"
+      },
+      "body": { "fileId": "REPLACE_WITH_FILE_ID" }
+    }
+  },
+  {
+    "label": "File Update",
+    "sampleRequest": {
+      "header": {
+        "systemId": "NSIGHT-MP",
+        "businessCode": "UD",
+        "serviceId": "UD.File.update",
+        "transactionCode": "UD-UPD-0001",
+        "processingType": "UPDATE",
+        "channelId": "WEBTOP",
+        "userId": "U123456",
+        "branchId": "001234",
+        "requestTime": "2026-06-14T10:30:00+09:00",
+        "transactionIntime": "2026-06-14T10:30:00+09:00",
+        "systemDate": "20260614",
+        "bizDate": "20260614",
+        "clientIp": "10.10.10.10"
+      },
+      "body": { "fileId": "REPLACE_WITH_FILE_ID", "description": "수정된 설명" }
+    }
+  },
+  {
+    "label": "File Delete",
+    "sampleRequest": {
+      "header": {
+        "systemId": "NSIGHT-MP",
+        "businessCode": "UD",
+        "serviceId": "UD.File.delete",
+        "transactionCode": "UD-DEL-0001",
+        "processingType": "DELETE",
+        "channelId": "WEBTOP",
+        "userId": "U123456",
+        "branchId": "001234",
+        "requestTime": "2026-06-14T10:30:00+09:00",
+        "transactionIntime": "2026-06-14T10:30:00+09:00",
+        "systemDate": "20260614",
+        "bizDate": "20260614",
+        "clientIp": "10.10.10.10"
+      },
+      "body": { "fileId": "REPLACE_WITH_FILE_ID" }
+    }
+  }
+]

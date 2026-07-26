@@ -1,0 +1,200 @@
+# 문서 카탈로그 수동 보강 (Phase 2)
+# scan-repo-docs.mjs 가 자동 추출한 값을 덮어씁니다.
+# key = 저장소 상대 경로 (슬래시)
+
+entries:
+  README.md:
+    title: NSIGHT TCF Framework
+    summary: 저장소 루트 — 모듈 구성·빌드 개요
+    tags: [root, framework]
+    featured: true
+    priority: 200
+
+  # ── zguide ──
+  zguide/README.md:
+    title: zguide 인덱스
+    summary: 모듈별 개발 가이드 목록·읽는 순서·로컬 포트 맵
+    tags: [zguide, index, developer]
+    featured: true
+    priority: 190
+  zguide/tcf-core-개발가이드.md:
+    title: tcf-core 개발 가이드
+    summary: STF→Handler→ETF TCF 처리 흐름, tcf-web과의 관계
+    tags: [tcf-core, handler, stf]
+    featured: true
+    priority: 185
+  zguide/tcf-ui-개발가이드.md:
+    title: tcf-ui 개발 가이드
+    summary: Relay API, bootRun 8099, WAR /ui 배포, OM Admin URL
+    tags: [tcf-ui, relay, 8099]
+    featured: true
+    priority: 180
+  zguide/sv-service-개발가이드.md:
+    title: sv-service 개발 가이드
+    summary: SV 업무 WAR bootRun 8086, 샘플 화면·Handler 시작
+    tags: [sv, service, war]
+    featured: true
+    priority: 170
+  zguide/tcf-om-개발가이드.md:
+    title: tcf-om 개발 가이드
+    summary: OM 운영관리 8097, Catalog·거래통제·Auth API
+    tags: [tcf-om, om, 8097]
+    featured: true
+    priority: 165
+  zguide/tcf-eai-개발가이드.md:
+    title: tcf-eai 개발 가이드
+    summary: WAR 간 서비스 연동, Java 직접 참조 금지
+    tags: [tcf-eai, integration]
+
+  # ── zman ──
+  zman/08-업무Handler개발.md:
+    title: 업무 Handler 개발
+    summary: Handler·serviceIds·Facade·Service 계층 — 업무 개발 시작점
+    tags: [handler, developer]
+    featured: true
+    priority: 175
+  zman/04-모듈구성.md:
+    title: 모듈 구성
+    summary: Gradle 모듈·의존 방향·WAR/JAR 구분
+    tags: [module, gradle]
+    featured: true
+    priority: 160
+  zman/00-설계서-코드베이스-대조표.md:
+    title: 설계서·코드베이스 대조표
+    summary: 설계 문서와 실제 구현 매핑
+    tags: [design, mapping]
+    featured: true
+    priority: 155
+
+  # ── zdoc ──
+  zdoc/환경구성.md:
+    title: 환경 구성
+    summary: 로컬·ztomcat 배포, 포트, Relay 흐름
+    tags: [env, local]
+    featured: true
+    priority: 150
+  zdoc/세션관리.md:
+    title: 세션 관리
+    summary: Spring Session, 로그인, OM Admin 세션
+    tags: [session, login]
+    featured: true
+    priority: 145
+  zdoc/sso-token-processing.md:
+    title: SSO·토큰 처리
+    summary: JWT SSO, tcf-jwt·Gateway 연계
+    tags: [sso, jwt]
+    featured: true
+    priority: 140
+
+  # ── znsight-man ──
+  znsight-man/12-애플리케이션-계층구조.md:
+    title: 애플리케이션 계층구조
+    summary: Controller·Handler·Facade·Service·DAO 표준 계층
+    tags: [layer, standard]
+    featured: true
+    priority: 175
+  znsight-man/23-TransactionHandler-개발.md:
+    title: TransactionHandler 개발
+    summary: Handler 작성·serviceId·표준전문 처리
+    tags: [handler, transaction]
+    featured: true
+    priority: 170
+  znsight-man/63-로컬-빌드-방법.md:
+    title: 로컬 빌드 방법
+    summary: bootRun, WAR, ztomcat, 포트·모듈별 기동
+    tags: [build, local]
+    featured: true
+    priority: 165
+  znsight-man/70-FAQ-Troubleshooting.md:
+    title: FAQ·트러블슈팅
+    summary: 자주 묻는 오류·해결·로컬 이슈
+    tags: [faq, troubleshooting]
+    featured: true
+    priority: 160
+  znsight-man/77-오류처리-샘플.md:
+    title: 오류 처리 샘플
+    summary: resultCode, errorCode, 예외 처리 패턴
+    tags: [error, sample]
+    featured: true
+    priority: 155
+  znsight-man/16-ServiceId-설계.md:
+    title: ServiceId 설계
+    summary: serviceId 명명·OM Catalog 등록
+    tags: [serviceId, catalog]
+
+  # ── 용량·환경 ──
+  ztcf-book-capacity-md/README.md:
+    title: 용량산정 가이드 README
+    summary: 57챕터+부록 목차, 통합 용량·환경설정 가이드
+    tags: [capacity, index]
+    featured: true
+    priority: 175
+  ztcf-book-capacity-md/zNSIGHT-용량산정-전체-흐름.md:
+    title: 용량산정 전체 흐름
+    summary: 13단계 용량산정 요약 — TPS·VM·Thread·Pool
+    tags: [capacity, tps, flow]
+    featured: true
+    priority: 180
+  ztcf-book-capacity-md/16-Timeout-계층-공통-설계.md:
+    title: Timeout 계층 설계
+    summary: DB→Hikari→Tx→Proxy→Client→L4 Timeout 순서
+    tags: [timeout, env]
+    featured: true
+    priority: 165
+
+  # ── 아키텍처 ──
+  docs/TCF_FRAMEWORK_GUIDE.md:
+    title: TCF Framework 가이드
+    summary: 프레임워크 전반 개요·개발 규칙
+    tags: [tcf, framework]
+    featured: true
+    priority: 170
+  zarchitecture/01-전체-시스템-아키텍처.md:
+    title: 전체 시스템 아키텍처
+    summary: 시스템 한눈에 — UI, Gateway, WAR, OM
+    tags: [architecture, overview]
+    featured: true
+    priority: 165
+
+  # ── 모듈 README ──
+  tcf-ui/README.md:
+    title: tcf-ui README
+    summary: 테스트 UI JAR/WAR, Relay, bootRun 8099
+    tags: [tcf-ui, readme]
+    featured: true
+    priority: 175
+  tcf-oc/README.md:
+    title: tcf-oc README
+    summary: OC 용량·ENV API, CAP/ENV 화면 연동
+    tags: [tcf-oc, capacity, env]
+    featured: true
+    priority: 170
+  tcf-oc/docs/cap-new-design.md:
+    title: cap-new 설계서
+    summary: NEW 용량산정 8단계 Wizard·API·Phase 로드맵
+    tags: [cap-new, tcf-oc, design]
+    priority: 168
+  sv-service/README.md:
+    title: sv-service README
+    summary: SV 업무 WAR, bootRun 8086, UI 테스트 URL
+    tags: [sv, readme]
+    featured: true
+    priority: 155
+  eb-service/README.md:
+    title: eb-service README
+    summary: EB 업무 WAR, bootRun, UI 테스트
+    tags: [eb, readme]
+
+  # ── HELP 네이티브 ──
+  tcf-help/docs/00-시작하기/01-tcf-ui-개요.md:
+    title: TCF UI 개요 (HELP)
+    summary: HELP 화면용 — Relay·포트·진입점 요약
+    tags: [help, tcf-ui]
+    featured: true
+    priority: 150
+  tcf-help/meta/00-문서-지도.md:
+    title: 문서 지도 (HELP)
+    summary: 저장소 650+ 문서 코퍼스·읽는 순서
+    tags: [help, library, map]
+    featured: true
+    priority: 200

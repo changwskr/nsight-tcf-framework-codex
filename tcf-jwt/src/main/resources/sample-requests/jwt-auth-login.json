@@ -1,0 +1,20 @@
+{
+  "header": {
+    "systemId": "NSIGHT-AUTH",
+    "businessCode": "JWT",
+    "serviceId": "JWT.Auth.login",
+    "transactionCode": "JWT-AUT-0001",
+    "processingType": "LOGIN",
+    "guid": "jwt-login-sample-001",
+    "traceId": "trc-jwt-login-001",
+    "channelId": "WEBTOP",
+    "userId": "admin01",
+    "branchId": "000001",
+    "requestTime": "2026-06-27T14:00:00+09:00",
+    "clientIp": "127.0.0.1"
+  },
+  "body": {
+    "userId": "admin01",
+    "password": "nsight01!"
+  }
+}

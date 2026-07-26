@@ -1,0 +1,14 @@
+// TCF 엔진: 표준전문, STF/ETF/TCF, Handler 디스패처
+// 빌드: gradle :tcf-core:build
+// 또는: tcf-core\scripts\build.bat
+
+dependencies {
+    api project(':tcf-util')
+    api 'com.fasterxml.jackson.core:jackson-annotations'
+    api 'org.springframework.boot:spring-boot-starter'
+    api 'org.springframework.boot:spring-boot-starter-validation'
+    api 'org.springframework:spring-web'
+    testImplementation 'org.springframework:spring-tx'
+    testImplementation 'org.springframework:spring-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-web'
+}

@@ -1,0 +1,25 @@
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "EB",
+    "serviceId": "EB.User.inquiry",
+    "transactionCode": "EB-USR-0002",
+    "processingType": "INQUIRY",
+    "guid": "",
+    "traceId": "",
+    "channelId": "WEBTOP",
+    "userId": "ADMIN",
+    "branchId": "001",
+    "requestTime": "2026-06-14T10:30:00+09:00",
+    "systemDate": "20260614",
+    "bizDate": "20260614",
+    "clientIp": "127.0.0.1"
+  },
+  "body": {
+    "pageNo": 1,
+    "pageSize": 20,
+    "userId": "",
+    "userName": "",
+    "branchId": ""
+  }
+}

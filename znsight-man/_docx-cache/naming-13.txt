@@ -1,0 +1,736 @@
+아래는 NSIGHT TCF 개발가이드 - 11차에 바로 붙여 넣을 수 있는 DB 객체 명명규칙 설계기준입니다.
+
+DB 객체 명명규칙 설계기준
+1. 도입 전 안내말
+DB 객체 명명규칙은 단순히 테이블명과 컬럼명을 보기 좋게 정하는 기준이 아니다.NSIGHT TCF에서는 DB 객체명이 다음 항목과 직접 연결된다.
+업무코드
+  ↓
+ServiceId
+  ↓
+Handler / Facade / Service / Rule
+  ↓
+DAO / Mapper
+  ↓
+Mapper XML
+  ↓
+SQL ID
+  ↓
+Table / Column / Index / Constraint
+  ↓
+거래로그 / 감사로그 / 운영관리
+
+NSIGHT TCF 구조에서는 업무 처리가 Handler → Facade → Service → Rule → DAO / Mapper → MyBatis XML → DB 흐름으로 이어지며, DAO/Mapper는 업무 로직이 아니라 SQL 실행 책임을 갖는다. 따라서 DB 객체명도 업무코드, 데이터 성격, 운영 목적을 명확히 드러내야 한다.
+또한 NSIGHT 테이블 구조는 TCF 실행/통제, OM 운영관리, Session, Gateway, JWT, Batch, File/Message 영역으로 구분되어 있으므로 DB 객체명은 어느 영역의 객체인지 식별 가능해야 한다.
+
+2. DB 객체 명명 최상위 원칙
+원칙
+설계 기준
+예시
+대문자 사용
+DB 객체명은 모두 대문자 사용
+OM_USER, TCF_TX_LOG
+언더스코어 사용
+단어 구분은 _ 사용
+SERVICE_ID, TRANSACTION_CODE
+업무코드 우선
+업무 테이블은 업무코드 또는 영역 Prefix로 시작
+SV_CUSTOMER_SUMMARY
+영역 식별
+공통/운영/로그/세션/게이트웨이 등 영역 Prefix 사용
+OM_, TCF_, GW_, JWT_
+의미 우선
+축약보다 의미가 분명한 이름 사용
+CUSTOMER_NO, BRANCH_ID
+물리명 일관성
+Table, Column, Index, Constraint가 동일한 용어 사용
+USER_ID, IDX_OM_USER_01
+약어 통제
+표준 약어만 사용
+TX, AUTH, CFG, HIST
+Java 매핑 고려
+MyBatis map-underscore-to-camel-case와 매핑 가능해야 함
+CUSTOMER_NO → customerNo
+운영 추적성
+로그, 감사, Timeout, 거래통제와 연결 가능해야 함
+SERVICE_ID, GUID, TRACE_ID
+임시명 금지
+테스트성, 개인명, 의미 없는 이름 금지
+TMP1, TEST_TABLE, KIM_TABLE 금지
+
+3. DB 객체 Prefix 표준
+Prefix
+영역
+설명
+예시
+TCF_
+TCF 실행/통제
+거래처리, 거래통제, Timeout, 거래로그
+TCF_TX_LOG, TCF_TRANSACTION_CONTROL
+OM_
+운영관리
+사용자, 권한, 메뉴, 공통코드, 오류코드, 환경설정
+OM_USER, OM_COMMON_CODE
+GW_ 또는 TCF_GATEWAY_
+Gateway
+라우팅, Gateway 거래로그
+TCF_GATEWAY_ROUTE
+JWT_ 또는 TCF_JWT_
+JWT 인증
+토큰, Refresh Token, DenyList
+TCF_JWT_TOKEN
+SSN_ 또는 SPRING_SESSION
+세션
+Spring Session JDBC, 사용자 세션
+SPRING_SESSION, TCF_USER_SESSION
+BAT_ 또는 OM_BATCH_
+배치
+배치 Job, 실행이력
+OM_BATCH_JOB
+UD_
+업다운로드
+파일 메타, 다운로드 이력
+UD_FILE_META
+SV_
+Single View 업무
+SV 업무 데이터
+SV_CUSTOMER_SUMMARY
+CM_
+Campaign 업무
+캠페인 업무 데이터
+CM_CAMPAIGN_MASTER
+MG_
+Message 업무
+메시지 업무 데이터
+MG_MESSAGE_SEND_LOG
+
+4. Table 명명규칙
+4.1 기본 형식
+{영역Prefix}_{업무대상}_{데이터성격}
+
+또는 업무 테이블은 다음 형식을 사용한다.
+{업무코드}_{업무대상}_{데이터성격}
+
+구분
+형식
+예시
+TCF 통제 테이블
+TCF_{대상}_{성격}
+TCF_TRANSACTION_CONTROL
+TCF 로그 테이블
+TCF_{대상}_LOG
+TCF_TX_LOG
+OM 기준정보
+OM_{대상}
+OM_USER, OM_MENU
+OM 이력
+OM_{대상}_HISTORY
+OM_DEPLOY_HISTORY
+업무 마스터
+{업무코드}_{대상}_MASTER
+CM_CAMPAIGN_MASTER
+업무 상세
+{업무코드}_{대상}_DETAIL
+CM_CAMPAIGN_DETAIL
+업무 이력
+{업무코드}_{대상}_HISTORY
+SV_CUSTOMER_INQUIRY_HISTORY
+업무 로그
+{업무코드}_{대상}_LOG
+MG_MESSAGE_SEND_LOG
+업무 매핑
+{업무코드}_{대상1}_{대상2}_MAP
+CM_CAMPAIGN_CHANNEL_MAP
+
+4.2 Table 명명 예시
+목적
+표준 테이블명
+설명
+거래로그
+TCF_TX_LOG
+온라인 거래 시작/종료 이력
+거래통제
+TCF_TRANSACTION_CONTROL
+Header 기반 거래 허용/차단
+Timeout 정책
+TCF_SERVICE_TIMEOUT_POLICY
+서비스별 Timeout 기준
+ServiceId 마스터
+OM_SERVICE_CATALOG
+ServiceId, Handler, 권한, 감사 기준
+사용자
+OM_USER
+운영 사용자 기준정보
+권한그룹
+OM_AUTH_GROUP
+권한그룹 마스터
+메뉴
+OM_MENU
+OM 메뉴 트리
+기능권한
+OM_FUNCTION_AUTH
+메뉴별 기능권한
+공통코드
+OM_COMMON_CODE
+코드그룹/코드 관리
+오류코드
+OM_ERROR_CODE
+표준 오류코드/메시지
+세션
+TCF_USER_SESSION
+사용자 세션 보조 관리
+Gateway 라우팅
+TCF_GATEWAY_ROUTE
+업무코드별 라우팅
+파일 메타
+UD_FILE_META
+업로드/다운로드 파일 메타
+배치 Job
+OM_BATCH_JOB
+배치 등록 기준
+배치 이력
+OM_BATCH_HISTORY
+배치 실행 이력
+
+5. Column 명명규칙
+5.1 기본 원칙
+원칙
+기준
+예시
+단어는 명사 중심
+컬럼은 상태나 값을 나타내는 명사 사용
+USER_ID, SERVICE_ID
+ID 컬럼은 _ID
+식별자는 _ID suffix 사용
+MENU_ID, AUTH_GROUP_ID
+코드 컬럼은 _CODE
+코드성 값은 _CODE 사용
+BUSINESS_CODE, CHANNEL_CODE
+명칭 컬럼은 _NAME
+화면 표시명은 _NAME 사용
+USER_NAME, MENU_NAME
+여부 컬럼은 _YN
+Y/N 값은 _YN 사용
+USE_YN, AUDIT_YN
+일시 컬럼은 _DTM
+날짜+시간은 _DTM 사용
+CREATED_DTM, UPDATED_DTM
+일자 컬럼은 _DATE
+날짜만 저장할 경우 _DATE 사용
+BASE_DATE
+시간 컬럼은 _TIME
+시각 또는 시간값은 _TIME 사용
+TX_TIME
+금액 컬럼은 _AMT
+금액은 _AMT 사용
+BALANCE_AMT
+건수 컬럼은 _CNT
+건수는 _CNT 사용
+TOTAL_CNT
+순번 컬럼은 _NO 또는 _SEQ
+외부 번호는 _NO, 내부 순번은 _SEQ
+CUSTOMER_NO, SORT_SEQ
+상태 컬럼은 _STATUS
+처리 상태는 _STATUS 사용
+RESULT_STATUS, SESSION_STATUS
+
+5.2 공통 컬럼 표준
+컬럼명
+의미
+적용 대상
+CREATED_BY
+최초 등록자
+전체 업무/운영 테이블
+CREATED_DTM
+최초 등록일시
+전체 업무/운영 테이블
+UPDATED_BY
+최종 수정자
+전체 업무/운영 테이블
+UPDATED_DTM
+최종 수정일시
+전체 업무/운영 테이블
+USE_YN
+사용 여부
+기준정보 테이블
+DEL_YN
+삭제 여부
+논리삭제 대상
+SORT_ORDER
+정렬 순서
+메뉴, 코드, 화면 표시 순서
+DESCRIPTION
+설명
+기준정보
+REMARK
+비고
+예외적으로 사용
+GUID
+거래 추적 ID
+거래로그, 감사로그
+TRACE_ID
+AP 내부 추적 ID
+거래로그, 오류로그
+SERVICE_ID
+서비스 식별자
+거래통제, 로그, Timeout
+TRANSACTION_CODE
+거래코드
+거래통제, 로그
+BUSINESS_CODE
+업무코드
+업무 구분, 라우팅
+
+6. Primary Key 명명규칙
+6.1 기본 형식
+PK_{테이블명}
+
+테이블명
+PK 명
+OM_USER
+PK_OM_USER
+OM_MENU
+PK_OM_MENU
+TCF_TX_LOG
+PK_TCF_TX_LOG
+TCF_TRANSACTION_CONTROL
+PK_TCF_TRANSACTION_CONTROL
+TCF_GATEWAY_ROUTE
+PK_TCF_GATEWAY_ROUTE
+6.2 PK 컬럼 기준
+유형
+PK 컬럼 기준
+예시
+단일 ID 테이블
+{대상}_ID
+USER_ID, MENU_ID
+로그 테이블
+{대상}_ID 또는 LOG_ID
+LOG_ID, AUDIT_ID
+코드 테이블
+복합키 허용
+CODE_GROUP + CODE
+거래통제 테이블
+업무상 복합키 허용
+SERVICE_ID + TRANSACTION_CODE + BUSINESS_CODE
+매핑 테이블
+복합키 허용
+AUTH_GROUP_ID + MENU_ID
+
+7. Foreign Key 명명규칙
+7.1 기본 형식
+FK_{자식테이블명}_{부모테이블약어}_{순번}
+
+자식 테이블
+부모 테이블
+FK 명
+OM_FUNCTION_AUTH
+OM_AUTH_GROUP
+FK_OM_FUNCTION_AUTH_AUTH_GROUP_01
+OM_FUNCTION_AUTH
+OM_MENU
+FK_OM_FUNCTION_AUTH_MENU_01
+OM_MENU
+OM_MENU
+FK_OM_MENU_PARENT_01
+OM_DEPLOY_HISTORY
+OM_DEPLOY_REQUEST
+FK_OM_DEPLOY_HISTORY_REQUEST_01
+운영 테이블에서는 데이터 정합성이 중요한 경우 FK를 사용한다. 다만 대량 로그 테이블, 이력 테이블, 성능 민감 테이블은 운영 성능과 적재 유연성을 고려하여 논리 FK로 관리할 수 있다.
+
+8. Unique Key 명명규칙
+8.1 기본 형식
+UK_{테이블명}_{순번}
+
+테이블명
+Unique 대상
+UK 명
+OM_SERVICE_CATALOG
+SERVICE_ID
+UK_OM_SERVICE_CATALOG_01
+OM_USER
+LOGIN_ID
+UK_OM_USER_01
+TCF_GATEWAY_ROUTE
+ENV_CODE + BUSINESS_CODE
+UK_TCF_GATEWAY_ROUTE_01
+OM_COMMON_CODE
+CODE_GROUP + CODE
+UK_OM_COMMON_CODE_01
+
+9. Index 명명규칙
+9.1 기본 형식
+IDX_{테이블명}_{순번}
+
+또는 목적이 명확한 경우 다음을 허용한다.
+IDX_{테이블명}_{주요컬럼약어}
+
+테이블명
+인덱스 대상
+인덱스명
+TCF_TX_LOG
+GUID
+IDX_TCF_TX_LOG_GUID
+TCF_TX_LOG
+SERVICE_ID, TX_TIME
+IDX_TCF_TX_LOG_SVC_TIME
+TCF_TX_LOG
+USER_ID, TX_TIME
+IDX_TCF_TX_LOG_USER_TIME
+OM_AUDIT_LOG
+USER_ID, AUDIT_TIME
+IDX_OM_AUDIT_LOG_USER_TIME
+OM_AUDIT_LOG
+CUSTOMER_NO, AUDIT_TIME
+IDX_OM_AUDIT_LOG_CUST_TIME
+TCF_GATEWAY_TX_LOG
+GUID
+IDX_TCF_GATEWAY_TX_LOG_GUID
+SPRING_SESSION
+SESSION_ID
+IDX_SPRING_SESSION_SESSION_ID
+9.2 Index 설계 주의사항
+기준
+설명
+무분별한 Index 금지
+Insert/Update 성능 저하 방지
+조회조건 기반 설계
+실제 WHERE 조건과 정렬 조건 기준
+로그 테이블은 시간 기준 포함
+TX_TIME, AUDIT_TIME, CREATED_DTM 등
+GUID 추적 인덱스 필수
+장애 추적을 위해 거래로그는 GUID 인덱스 필요
+ServiceId 인덱스 권장
+거래별 성능 분석을 위해 SERVICE_ID 인덱스 필요
+대량 테이블은 파티션 검토
+거래로그, 감사로그, 다운로드로그 등
+
+10. Check Constraint 명명규칙
+10.1 기본 형식
+CK_{테이블명}_{컬럼명}
+
+테이블명
+컬럼
+제약조건명
+예시 조건
+OM_USER
+USE_YN
+CK_OM_USER_USE_YN
+USE_YN IN ('Y','N')
+TCF_TX_LOG
+RESULT_STATUS
+CK_TCF_TX_LOG_RESULT_STATUS
+RESULT_STATUS IN ('PROCESSING','SUCCESS','FAIL','TIMEOUT','UNKNOWN')
+OM_FUNCTION_AUTH
+CAN_DOWNLOAD
+CK_OM_FUNCTION_AUTH_DOWNLOAD
+CAN_DOWNLOAD IN ('Y','N')
+TCF_SERVICE_TIMEOUT_POLICY
+USE_YN
+CK_TCF_SERVICE_TIMEOUT_POLICY_USE_YN
+USE_YN IN ('Y','N')
+
+11. Sequence 명명규칙
+11.1 기본 형식
+SEQ_{테이블명}
+
+테이블명
+Sequence 명
+사용 컬럼
+TCF_TX_LOG
+SEQ_TCF_TX_LOG
+LOG_ID
+OM_AUDIT_LOG
+SEQ_OM_AUDIT_LOG
+AUDIT_ID
+OM_DEPLOY_HISTORY
+SEQ_OM_DEPLOY_HISTORY
+DEPLOY_HISTORY_ID
+UD_FILE_META
+SEQ_UD_FILE_META
+FILE_ID
+ID를 업무적으로 의미 있게 채번해야 하는 경우에는 Sequence 단독 사용보다 업무코드, 일자, 일련번호를 조합한다.
+DPLY-20260705-0001
+FILE-20260705-0001
+TX-20260705-000001
+
+
+12. View 명명규칙
+12.1 기본 형식
+VW_{업무코드}_{조회대상}
+
+또는 운영 View는 다음 형식을 사용한다.
+VW_OM_{조회대상}
+VW_TCF_{조회대상}
+
+View 명
+설명
+VW_TCF_TX_LOG_SUMMARY
+거래로그 요약 조회
+VW_OM_USER_AUTH
+사용자 + 권한그룹 조회
+VW_OM_MENU_AUTH
+메뉴 + 기능권한 조회
+VW_SV_CUSTOMER_SUMMARY
+Single View 고객 요약 조회
+VW_CM_CAMPAIGN_STATUS
+캠페인 상태 조회
+View는 화면 조회 편의를 위해 사용할 수 있으나, 복잡한 업무 로직을 View에 숨기면 안 된다. 업무 판단은 Rule/Service에서 수행하고, View는 조회 편의와 보안 마스킹 목적에 한정한다.
+
+13. Synonym 명명규칙
+13.1 기본 형식
+SYN_{원천스키마}_{객체명}
+
+Synonym 명
+설명
+SYN_RDW_CUSTOMER_MASTER
+RDW 고객 마스터 접근
+SYN_ADW_CAMPAIGN_SUMMARY
+ADW 캠페인 집계 접근
+SYN_SESSION_SPRING_SESSION
+SESSIONDB 세션 테이블 접근
+Synonym은 스키마 경계를 숨기는 기능이므로 남용하지 않는다. RDW, ADW, SESSIONDB, LOGDB 접근 책임은 DataSource와 Mapper 기준으로 분리한다.
+
+14. Procedure / Function / Package 명명규칙
+NSIGHT 온라인 업무에서는 가능한 한 Java Service + MyBatis SQL 중심으로 처리하고, DB Procedure는 제한적으로 사용한다.
+객체
+명명 형식
+예시
+Procedure
+PRC_{업무코드}_{처리대상}_{행위}
+PRC_CM_CAMPAIGN_CLOSE
+Function
+FN_{업무코드}_{계산대상}
+FN_SV_MASK_CUSTOMER_NAME
+Package
+PKG_{업무코드}_{업무영역}
+PKG_CM_CAMPAIGN
+Trigger
+TRG_{테이블명}_{시점}_{행위}
+TRG_OM_USER_BI
+
+Trigger 약어
+의미
+BI
+Before Insert
+BU
+Before Update
+BD
+Before Delete
+AI
+After Insert
+AU
+After Update
+AD
+After Delete
+Trigger는 장애 원인 추적이 어렵기 때문에 감사, 이력 자동 생성 등 명확한 목적이 있을 때만 사용한다.
+
+15. Tablespace 명명규칙
+구분
+명명 형식
+예시
+업무 데이터
+TS_{업무코드}_DATA
+TS_SV_DATA
+업무 인덱스
+TS_{업무코드}_IDX
+TS_SV_IDX
+로그 데이터
+TS_LOG_DATA
+TS_LOG_DATA
+로그 인덱스
+TS_LOG_IDX
+TS_LOG_IDX
+운영관리 데이터
+TS_OM_DATA
+TS_OM_DATA
+운영관리 인덱스
+TS_OM_IDX
+TS_OM_IDX
+세션 데이터
+TS_SESSION_DATA
+TS_SESSION_DATA
+세션 인덱스
+TS_SESSION_IDX
+TS_SESSION_IDX
+
+16. 업무별 DB 객체 예시
+16.1 SV 업무 예시
+객체 유형
+표준명
+설명
+Table
+SV_CUSTOMER_SUMMARY
+고객 요약
+Table
+SV_CUSTOMER_ACCOUNT
+고객 계좌 요약
+Table
+SV_CUSTOMER_CAMPAIGN
+고객 캠페인 대상
+View
+VW_SV_CUSTOMER_SUMMARY
+고객 요약 조회 View
+Index
+IDX_SV_CUSTOMER_SUMMARY_CUST
+고객번호 조회 인덱스
+Sequence
+SEQ_SV_CUSTOMER_SUMMARY
+내부 ID 채번
+Mapper XML
+SvCustomerMapper.xml
+SV 고객 Mapper
+SQL ID
+SV.Customer.selectSummary
+고객 요약 조회
+16.2 OM 업무 예시
+객체 유형
+표준명
+설명
+Table
+OM_USER
+사용자
+Table
+OM_AUTH_GROUP
+권한그룹
+Table
+OM_MENU
+메뉴
+Table
+OM_FUNCTION_AUTH
+기능권한
+Table
+OM_COMMON_CODE
+공통코드
+Table
+OM_ERROR_CODE
+오류코드
+Index
+IDX_OM_USER_BRANCH
+지점별 사용자 조회
+View
+VW_OM_USER_AUTH
+사용자 권한 조회
+SQL ID
+OM.User.selectDetail
+사용자 상세 조회
+16.3 TCF 통제 예시
+객체 유형
+표준명
+설명
+Table
+TCF_TX_LOG
+거래로그
+Table
+TCF_TRANSACTION_CONTROL
+거래통제
+Table
+TCF_SERVICE_TIMEOUT_POLICY
+Timeout 정책
+Table
+TCF_USER_SESSION
+사용자 세션 보조
+Index
+IDX_TCF_TX_LOG_GUID
+GUID 추적
+Index
+IDX_TCF_TX_LOG_SERVICE_TIME
+ServiceId별 시간 조회
+SQL ID
+TCF.TxLog.insertProcessing
+거래 시작 로그 등록
+
+17. 금지 명명규칙
+금지 유형
+금지 예시
+사유
+의미 없는 이름
+TABLE1, TEMP1, DATA_TBL
+역할 식별 불가
+개인명 포함
+KIM_TEST, CHOI_TABLE
+운영 표준 위반
+한글 객체명
+고객테이블
+도구 호환성, 운영 표준 문제
+소문자 혼용
+Om_User, tcf_tx_log
+DB/도구별 대소문자 처리 혼선
+복수형 남용
+USERS, MENUS
+단수 명사 기준 불일치
+약어 남용
+SVC_MNG_TB
+의미 불명확
+테이블 접미어 남용
+OM_USER_TB
+모든 객체가 테이블이므로 불필요
+컬럼 타입명 포함
+USER_ID_VARCHAR
+물리 타입 변경 시 부적절
+SQL 예약어 사용
+DATE, USER, LEVEL
+SQL 충돌 가능
+임시 운영명
+NEW_TABLE, OLD_TABLE
+변경 후 정리 누락 위험
+
+18. MyBatis / Java 매핑 기준
+DB 컬럼은 UPPER_SNAKE_CASE, Java 필드는 lowerCamelCase로 매핑한다.
+DB Column
+Java Field
+SERVICE_ID
+serviceId
+TRANSACTION_CODE
+transactionCode
+BUSINESS_CODE
+businessCode
+USER_ID
+userId
+BRANCH_ID
+branchId
+CREATED_DTM
+createdDtm
+USE_YN
+useYn
+RESULT_STATUS
+resultStatus
+MyBatis 운영 기준에서는 Mapper XML 위치, SQL ID, Query Timeout, RDW/ADW 접근 경계, SQL 추적성을 통제해야 한다. 따라서 DB 객체명은 Mapper XML과 SQL ID에서도 동일한 업무 의미를 유지해야 한다.
+
+19. DB 객체 명명 검토 체크리스트
+점검 항목
+확인
+테이블명이 업무코드 또는 영역 Prefix로 시작하는가?
+□
+테이블명만 보고 업무 영역을 알 수 있는가?
+□
+컬럼명이 Java DTO 필드로 자연스럽게 매핑되는가?
+□
+PK, FK, UK, Index, Check Constraint 명이 표준 형식을 따르는가?
+□
+로그/감사/거래통제 테이블에 GUID, TRACE_ID, SERVICE_ID가 포함되어 있는가?
+□
+기준정보 테이블에 USE_YN, CREATED_DTM, UPDATED_DTM이 있는가?
+□
+이력 테이블은 _HISTORY, 로그 테이블은 _LOG suffix를 사용하는가?
+□
+임시명, 개인명, 모호한 약어가 없는가?
+□
+업무 데이터와 운영통제 데이터가 테이블명에서 구분되는가?
+□
+Mapper XML과 SQL ID가 DB 객체명과 업무 의미상 연결되는가?
+□
+인덱스명이 조회 목적과 주요 컬럼을 설명할 수 있는가?
+□
+DDL 변경 시 Rollback Script와 영향도 검토가 준비되어 있는가?
+□
+
+20. 마무리말
+DB 객체 명명규칙은 개발 편의 기준이 아니라 운영 가능성을 확보하기 위한 기준이다.NSIGHT TCF에서는 모든 온라인 거래가 ServiceId, 거래코드, 업무코드, GUID, TraceId를 중심으로 추적되므로 DB 객체명도 이 흐름을 방해하지 않아야 한다.
+핵심 기준은 다음과 같다.
+DB 객체명은
+업무코드와 영역을 드러내고,
+Java / MyBatis / SQL ID와 연결되며,
+운영자가 장애 상황에서 바로 추적할 수 있어야 한다.
+
+따라서 NSIGHT DB 객체는 UPPER_SNAKE_CASE, 업무/영역 Prefix, 표준 suffix, 제약조건/인덱스 표준명을 일관되게 적용한다. 이렇게 해야 개발, 운영, DBA, 아키텍트, PMO가 같은 이름을 보고 같은 의미로 이해할 수 있다.
+

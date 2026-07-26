@@ -1,0 +1,19 @@
+server:
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+spring:
+  profiles:
+    default: local
+    group:
+      prod:
+        - dev
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

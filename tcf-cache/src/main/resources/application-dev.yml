@@ -1,0 +1,12 @@
+# dev — ztomcat WAR
+spring:
+  cache:
+    type: jcache
+    jcache:
+      config: classpath:ehcache.xml
+
+nsight:
+  tcf:
+    cache:
+      enabled: true
+      config-location: classpath:ehcache.xml

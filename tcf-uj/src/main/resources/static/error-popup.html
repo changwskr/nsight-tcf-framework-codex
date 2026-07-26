@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NSIGHT 오류 상세</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/error-popup.css">
+  <style>
+    body { padding: 20px; }
+    .detail-wrap { max-width: 480px; margin: 0 auto; }
+    .detail-wrap h1 { margin: 0 0 8px; font-size: 1.2rem; }
+    .detail-wrap p.lead { margin: 0 0 16px; color: var(--muted); font-size: 0.9rem; }
+    .detail-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .detail-card pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 0.82rem;
+      color: var(--text);
+    }
+    .demo-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .demo-actions button {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+  </style>
+  <script src="/_shared/uj-context.js"></script>
+</head>
+<body>
+  <div class="detail-wrap">
+    <h1>NSIGHT 오류 상세</h1>
+    <p class="lead">표준 응답 result 영역의 오류코드·메시지·예외 상세를 확인합니다.</p>
+    <div id="detailContent" class="detail-card"><pre>표시할 오류 정보가 없습니다.</pre></div>
+    <div class="demo-actions" id="demoActions">
+      <button type="button" id="sampleBizBtn">업무 오류 샘플</button>
+      <button type="button" id="sampleSysBtn">시스템 오류 샘플</button>
+      <button type="button" id="popupBtn">팝업 미리보기</button>
+      <a class="nav-link" href="/index.html">← TCF UI 홈</a>
+    </div>
+  </div>
+  <script src="/_shared/error-popup.js"></script>
+  <script>
+    function renderDetail(info) {
+      const n = NsightErrorPopup.normalize(info);
+      document.getElementById('detailContent').innerHTML = '<pre>' + [
+        `결과코드: ${n.resultCode}`,
+        `오류코드: ${n.errorCode}`,
+        `오류메시지: ${n.errorMessage}`,
+        `시스템ID: ${n.errorSystemId}`,
+        n.errorDateTime ? `발생시각: ${n.errorDateTime}` : '',
+        n.httpStatus ? `HTTP: ${n.httpStatus}` : '',
+        n.serviceId ? `serviceId: ${n.serviceId}` : '',
+        n.traceId ? `traceId: ${n.traceId}` : '',
+        n.targetUrl ? `targetUrl: ${n.targetUrl}` : '',
+        n.errorDetail ? `\n[예외 상세]\n${n.errorDetail}` : '',
+        n.systemNote ? `\n[시스템]\n${n.systemNote}` : ''
+      ].filter(Boolean).join('\n') + '</pre>';
+    }
+
+    try {
+      const raw = sessionStorage.getItem('nsight.error.popup.last');
+      if (raw) renderDetail(JSON.parse(raw));
+    } catch (e) {
+      /* ignore */
+    }
+
+    document.getElementById('sampleBizBtn').addEventListener('click', () => {
+      const sample = {
+        resultCode: 'E0001',
+        errorCode: 'E-OM-VAL-0001',
+        errorMessage: '입력값을 확인해 주세요.',
+        errorDetail: 'changeReason 필드 5자 미만',
+        errorSystemId: 'NSIGHT-MP',
+        errorDateTime: new Date().toISOString(),
+        serviceId: 'OM.CommonCode.save',
+        httpStatus: 200
+      };
+      renderDetail(sample);
+      sessionStorage.setItem('nsight.error.popup.last', JSON.stringify(sample));
+    });
+
+    document.getElementById('sampleSysBtn').addEventListener('click', () => {
+      const sample = {
+        resultCode: 'E9999',
+        errorCode: 'E-SYS-0001',
+        errorMessage: '시스템 처리 중 예외가 발생했습니다.',
+        errorDetail: 'java.lang.NullPointerException: criteria is null\n\tat com.nh.nsight...',
+        errorSystemId: 'NSIGHT-MP',
+        systemNote: 'Tomcat /om WAR · JDBC Timeout',
+        httpStatus: 500
+      };
+      renderDetail(sample);
+      sessionStorage.setItem('nsight.error.popup.last', JSON.stringify(sample));
+    });
+
+    document.getElementById('popupBtn').addEventListener('click', () => {
+      try {
+        const raw = sessionStorage.getItem('nsight.error.popup.last');
+        NsightErrorPopup.show(raw ? JSON.parse(raw) : {
+          errorCode: 'E-DEMO-0001',
+          errorMessage: '데모용 오류 팝업입니다.',
+          errorDetail: 'error-popup.html 에서 미리보기',
+          errorSystemId: 'NSIGHT-MP'
+        });
+      } catch (e) {
+        NsightErrorPopup.show({ errorMessage: e.message });
+      }
+    });
+  </script>
+</body>
+</html>

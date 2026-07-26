@@ -1,0 +1,1544 @@
+아래 내용을 NSIGHT TCF 개발자 가이드 3차 - 26장으로 이어 붙이면 됩니다.
+
+26. Rule 개발 기준
+26.1 도입 전 안내말
+NSIGHT TCF Framework에서 Rule은 업무 규칙을 판단하고 검증하는 계층이다.
+Service가 업무 처리를 수행한다면, Rule은 그 업무를 수행해도 되는지 판단한다.
+Handler
+   ↓
+Facade
+   ↓
+Service
+   ↓
+Rule
+   ↓
+DAO / Mapper
+
+예를 들어 고객 요약 조회 서비스가 있다고 할 때, Service는 고객 정보를 조회하는 절차를 수행하고, Rule은 다음과 같은 업무 판단을 수행한다.
+고객번호가 존재하는가?
+해당 사용자가 고객정보를 조회할 수 있는가?
+조회기간이 허용 범위 안인가?
+고객정보 다운로드 대상인가?
+현재 거래가 허용된 상태인가?
+
+즉, Rule은 단순 Validation이 아니라 업무 정책과 업무 제약조건을 코드로 표현하는 계층이다.
+
+26.2 Rule 개발 결론
+NSIGHT Rule은 다음 기준으로 개발한다.
+구분
+기준
+역할
+업무 규칙 검증, 업무 가능 여부 판단
+위치
+업무 WAR 내부 application.rule 패키지
+호출 주체
+Service
+호출 대상
+DAO, CodeService, PolicyService, CacheService
+입력
+Request DTO, Command DTO, 업무 Key, TransactionContext
+출력
+일반적으로 void, 필요 시 판단 결과 객체
+오류 처리
+업무 오류는 BusinessException 발생
+DB 접근
+검증 목적의 DAO 호출 가능
+Mapper 직접 호출
+금지
+표준 전문 의존
+StandardRequest, StandardResponse 사용 금지
+Header 참조
+TransactionContext 사용
+트랜잭션
+원칙적으로 Service 트랜잭션에 포함
+핵심 원칙
+업무 판단은 Service가 아니라 Rule에 둔다
+핵심 문장은 다음과 같다.
+Service는 처리한다.
+Rule은 판단한다.
+DAO는 조회한다.
+Mapper는 SQL을 실행한다.
+
+
+26.3 Rule의 위치
+Rule은 업무 WAR의 application.rule 패키지에 둔다.
+sv-service
+ └─ src/main/java
+    └─ com.nh.nsight.marketing.sv
+       ├─ entry
+       │  ├─ handler
+       │  └─ dto
+       │
+       ├─ application
+       │  ├─ facade
+       │  ├─ service
+       │  ├─ rule
+       │  │  ├─ SvCustomerRule.java
+       │  │  ├─ SvProductRule.java
+       │  │  └─ SvDownloadRule.java
+       │  └─ dto
+       │
+       └─ persistence
+          ├─ dao
+          └─ mapper
+
+패키지
+역할
+application.service
+업무 처리 절차 수행
+application.rule
+업무 규칙 판단
+persistence.dao
+검증 또는 처리에 필요한 DB 조회
+persistence.mapper
+SQL 실행
+
+26.4 Rule 기본 작성 예시
+SV 고객 조회 Rule 예시는 다음과 같다.
+@Component
+@RequiredArgsConstructor
+public class SvCustomerRule {
+
+    private final SvCustomerDao svCustomerDao;
+
+    public void validateCustomerInquiry(
+            String customerNo,
+            TransactionContext context
+    ) {
+        validateCustomerExists(customerNo);
+        validateBranchAccess(customerNo, context.getBranchId());
+    }
+
+    public void validateCustomerExists(String customerNo) {
+        if (!svCustomerDao.existsCustomer(customerNo)) {
+            throw new BusinessException(
+                    "E-SV-VAL-0001",
+                    "고객정보가 존재하지 않습니다."
+            );
+        }
+    }
+
+    public void validateBranchAccess(String customerNo, String branchId) {
+        if (!svCustomerDao.canAccessCustomer(customerNo, branchId)) {
+            throw new BusinessException(
+                    "E-SV-AUTHZ-0001",
+                    "고객정보 접근 권한이 없습니다."
+            );
+        }
+    }
+}
+
+이 Rule은 다음 업무 판단을 수행한다.
+순서
+판단
+설명
+1
+고객 존재 여부
+존재하지 않는 고객번호 차단
+2
+지점 접근권한
+사용자 지점이 해당 고객을 조회할 수 있는지 확인
+3
+오류 발생
+조건 불만족 시 표준 업무 예외 발생
+
+26.5 Rule 명명 규칙
+Rule 이름은 다음 형식을 사용한다.
+{BusinessCode}{Domain}Rule
+
+예시는 다음과 같다.
+업무
+도메인
+Rule명
+SV
+Customer
+SvCustomerRule
+SV
+Product
+SvProductRule
+CM
+Campaign
+CmCampaignRule
+OM
+User
+OmUserRule
+OM
+Menu
+OmMenuRule
+MG
+Message
+MgMessageRule
+UD
+File
+UdFileRule
+EB
+Batch
+EbBatchRule
+금지 예시는 다음과 같다.
+금지 이름
+문제점
+권장 이름
+CommonRule
+책임 범위 불명확
+도메인별 Rule 분리
+CheckRule
+무엇을 검증하는지 불명확
+SvCustomerRule
+ValidationRule
+업무 도메인 불명확
+CmCampaignRule
+SvRule
+업무 범위 과다
+SvCustomerRule
+TempRule
+운영 반영 위험
+명확한 도메인명 사용
+
+26.6 Rule Method 명명 기준
+Rule Method는 validate 또는 check 계열로 명확하게 작성한다.
+목적
+Method 예시
+설명
+존재 여부 검증
+validateCustomerExists()
+고객 존재 여부 확인
+권한 검증
+validateBranchAccess()
+지점 접근 가능 여부 확인
+기간 검증
+validateSearchPeriod()
+조회기간 허용 범위 확인
+상태 검증
+validateCampaignStatus()
+캠페인 상태 전이 가능 여부 확인
+중복 검증
+validateDuplicatedUser()
+중복 등록 여부 확인
+코드 검증
+validateCommonCode()
+허용 코드값 여부 확인
+다운로드 검증
+validateDownloadPermission()
+다운로드 가능 여부 확인
+발송 검증
+validateSendTarget()
+메시지 발송 대상 검증
+권장 형식은 다음과 같다.
+validate + 업무대상 + 검증내용
+
+예시는 다음과 같다.
+validateCustomerExists(customerNo);
+validateSearchPeriod(fromDate, toDate);
+validateUpdateAuthority(command, context);
+validateCampaignStatus(campaignId);
+validateDuplicateMessageSend(idempotencyKey);
+
+금지 예시는 다음과 같다.
+금지 Method
+문제점
+권장 Method
+check()
+무엇을 확인하는지 불명확
+validateCustomerExists()
+rule()
+의미 없음
+validateSearchPeriod()
+process()
+처리와 판단 혼선
+validateUpdateAuthority()
+isOk()
+판단 기준 불명확
+validateCampaignStatus()
+doValidate()
+검증 대상 불명확
+validateDownloadPermission()
+
+26.7 Rule에서 해야 하는 일
+Rule에서 수행해야 하는 일은 다음과 같다.
+해야 하는 일
+설명
+업무 가능 여부 판단
+조회, 등록, 수정, 삭제, 다운로드 가능 여부
+업무 상태 검증
+승인 상태, 폐기 상태, 사용 여부
+업무 기간 검증
+조회기간, 캠페인 기간, 유효기간
+권한성 검증
+지점, 사용자, 데이터권한
+중복 검증
+동일 데이터, 동일 요청, 동일 발송
+코드값 검증
+공통코드, 상태코드, 채널코드
+금액·한도 검증
+금액 범위, 건수 제한
+참조관계 검증
+삭제 전 하위 데이터 존재 여부
+감사 대상 판단
+고객정보, 파일 다운로드, 권한 변경
+업무 오류 발생
+표준 오류코드로 BusinessException 발생
+예시는 다음과 같다.
+public void validateSearchPeriod(LocalDate fromDate, LocalDate toDate) {
+
+    if (fromDate == null || toDate == null) {
+        throw new BusinessException(
+                "E-COM-VAL-0001",
+                "조회기간은 필수입니다."
+        );
+    }
+
+    if (fromDate.isAfter(toDate)) {
+        throw new BusinessException(
+                "E-COM-VAL-0002",
+                "조회시작일자는 조회종료일자보다 클 수 없습니다."
+        );
+    }
+
+    if (ChronoUnit.MONTHS.between(fromDate, toDate) > 3) {
+        throw new BusinessException(
+                "E-COM-VAL-0003",
+                "조회기간은 3개월을 초과할 수 없습니다."
+        );
+    }
+}
+
+
+26.8 Rule에서 하지 말아야 하는 일
+Rule은 판단 계층이지 처리 계층이 아니다.
+금지 사항
+사유
+권장 위치
+DB 저장 처리
+Rule은 판단 책임
+Service / DAO
+Mapper 직접 호출
+DAO 계층 우회
+DAO
+SQL 작성
+Persistence 책임 침범
+Mapper XML
+StandardRequest 사용
+TCF 전문 구조와 결합
+Handler
+StandardResponse 생성
+응답 전문 조립 책임 침범
+ETF
+HTTP Request 사용
+기술 계층 의존
+Controller / STF
+화면 분기 처리
+화면과 업무 결합
+ServiceId / DTO 분리
+외부 HTTP 직접 호출
+연동 표준 우회
+Integration Service
+거래로그 직접 생성
+공통 로그 책임 중복
+STF / ETF
+예외를 무시
+장애 원인 추적 불가
+표준 예외 전파
+단순 DTO 필수값만 반복 검증
+DTO Validation과 중복
+Request DTO
+나쁜 예시는 다음과 같다.
+@Component
+@RequiredArgsConstructor
+public class BadSvCustomerRule {
+
+    private final SvCustomerMapper svCustomerMapper;
+
+    public void validateAndSave(Map<String, Object> request) {
+
+        // 금지: Rule에서 Mapper 직접 호출
+        Map<String, Object> customer = svCustomerMapper.selectCustomer(request);
+
+        // 금지: Rule에서 저장 처리
+        svCustomerMapper.insertLog(request);
+    }
+}
+
+권장 예시는 다음과 같다.
+@Component
+@RequiredArgsConstructor
+public class SvCustomerRule {
+
+    private final SvCustomerDao svCustomerDao;
+
+    public void validateCustomerExists(String customerNo) {
+        if (!svCustomerDao.existsCustomer(customerNo)) {
+            throw new BusinessException(
+                    "E-SV-VAL-0001",
+                    "고객정보가 존재하지 않습니다."
+            );
+        }
+    }
+}
+
+
+26.9 Service와 Rule 관계
+Service는 업무 처리 절차를 수행하고, Rule은 업무 판단을 수행한다.
+Service
+   ↓
+Rule
+   ↓
+DAO
+
+구분
+Service
+Rule
+역할
+처리 절차 수행
+업무 판단
+예시
+사용자 수정 처리
+수정 가능 상태 검증
+DB 저장
+가능, DAO 통해 수행
+금지
+DB 조회
+가능, DAO 통해 수행
+검증 목적 조회 가능
+예외 발생
+가능
+가능
+트랜잭션
+설정 가능
+Service 트랜잭션에 포함
+Service 예시는 다음과 같다.
+@Service
+@RequiredArgsConstructor
+public class OmUserService {
+
+    private final OmUserRule omUserRule;
+    private final OmUserDao omUserDao;
+
+    @Transactional
+    public OmUserDetailResponse updateUser(
+            OmUserUpdateCommand command,
+            TransactionContext context
+    ) {
+        omUserRule.validateUserExists(command.getTargetUserId());
+        omUserRule.validateUpdateAuthority(command, context);
+        omUserRule.validateUseYn(command.getUseYn());
+
+        omUserDao.updateUser(OmUserUpdateParam.from(command, context));
+
+        OmUserDetailResult result =
+                omUserDao.selectUserDetail(command.getTargetUserId());
+
+        return OmUserDetailResponse.from(result);
+    }
+}
+
+Rule 예시는 다음과 같다.
+@Component
+@RequiredArgsConstructor
+public class OmUserRule {
+
+    private final OmUserDao omUserDao;
+
+    public void validateUserExists(String userId) {
+        if (!omUserDao.existsUser(userId)) {
+            throw new BusinessException(
+                    "E-OM-VAL-0001",
+                    "사용자 정보가 존재하지 않습니다."
+            );
+        }
+    }
+
+    public void validateUpdateAuthority(
+            OmUserUpdateCommand command,
+            TransactionContext context
+    ) {
+        if (!"OM-PORTAL".equals(context.getChannelId())) {
+            throw new BusinessException(
+                    "E-OM-AUTHZ-0001",
+                    "사용자 정보를 수정할 수 있는 채널이 아닙니다."
+            );
+        }
+    }
+}
+
+
+26.10 Rule과 DAO 관계
+Rule은 검증에 필요한 조회를 위해 DAO를 호출할 수 있다.
+Rule
+   ↓
+DAO
+   ↓
+Mapper
+   ↓
+DB
+
+허용되는 예시는 다음과 같다.
+Rule 검증
+DAO 조회 예시
+고객 존재 여부
+existsCustomer(customerNo)
+사용자 중복 여부
+existsUser(userId)
+하위 메뉴 존재 여부
+existsChildMenu(menuId)
+캠페인 상태 확인
+selectCampaignStatus(campaignId)
+발송 중복 확인
+existsSendHistory(idempotencyKey)
+파일 권한 확인
+canDownload(fileId, userId)
+Rule은 Mapper를 직접 호출하지 않는다.
+@Component
+@RequiredArgsConstructor
+public class CmCampaignRule {
+
+    private final CmCampaignDao cmCampaignDao;
+
+    public void validateCampaignExists(String campaignId) {
+        if (!cmCampaignDao.existsCampaign(campaignId)) {
+            throw new BusinessException(
+                    "E-CM-VAL-0001",
+                    "캠페인 정보가 존재하지 않습니다."
+            );
+        }
+    }
+}
+
+금지 예시는 다음과 같다.
+@Component
+@RequiredArgsConstructor
+public class BadCmCampaignRule {
+
+    private final CmCampaignMapper cmCampaignMapper;
+
+    public void validateCampaignExists(String campaignId) {
+        // 금지: Rule에서 Mapper 직접 호출
+        cmCampaignMapper.selectCampaign(campaignId);
+    }
+}
+
+
+26.11 Rule과 DTO 기준
+Rule은 DTO를 받을 수 있지만, DTO 구조에 과도하게 의존하지 않는다.
+권장 방식은 다음 두 가지이다.
+26.11.1 단순 검증은 필요한 값만 전달
+svCustomerRule.validateCustomerExists(request.getCustomerNo());
+
+26.11.2 복합 검증은 Command 또는 Request DTO 전달
+cmCampaignRule.validateCreateCampaign(command, context);
+
+기준은 다음과 같다.
+방식
+사용 기준
+개별 값 전달
+고객번호, 사용자ID, 기간 등 단순 검증
+Request DTO 전달
+화면 요청값 전체가 필요한 조회 검증
+Command DTO 전달
+저장·수정 업무 검증
+TransactionContext 전달
+사용자, 지점, 채널, 권한 검증 필요 시
+StandardRequest 전달
+금지
+StandardHeader 전달
+금지
+나쁜 예시는 다음과 같다.
+public void validate(StandardRequest<?> request) {
+    // 금지: Rule이 표준 전문에 직접 의존
+}
+
+권장 예시는 다음과 같다.
+public void validateUpdateAuthority(
+        OmUserUpdateCommand command,
+        TransactionContext context
+) {
+    ...
+}
+
+
+26.12 Rule과 TransactionContext 기준
+Rule에서 사용자, 지점, 채널, 거래정보가 필요하면 TransactionContext를 사용한다.
+Context 항목
+Rule 사용 예
+userId
+수정 권한, 승인 권한 확인
+branchId
+지점별 데이터 접근권한 확인
+channelId
+채널별 허용 거래 확인
+serviceId
+서비스별 업무 규칙 분기
+transactionCode
+거래코드별 감사 또는 정책 판단
+clientIp
+보안 정책, 허용 IP 확인
+guid
+오류 로그 추적
+예시는 다음과 같다.
+public void validateBranchAccess(
+        String customerNo,
+        TransactionContext context
+) {
+    boolean accessible =
+            svCustomerDao.canAccessCustomer(
+                    customerNo,
+                    context.getBranchId()
+            );
+
+    if (!accessible) {
+        throw new BusinessException(
+                "E-SV-AUTHZ-0001",
+                "고객정보 접근 권한이 없습니다."
+        );
+    }
+}
+
+
+26.13 조회 Rule 개발 기준
+조회 Rule은 대량조회, 권한, 기간, 조건을 검증한다.
+@Component
+@RequiredArgsConstructor
+public class SvCustomerSearchRule {
+
+    private static final int MAX_PAGE_SIZE = 500;
+    private static final int MAX_SEARCH_MONTHS = 3;
+
+    public void validateSearchCondition(
+            SvCustomerSearchRequest request,
+            TransactionContext context
+    ) {
+        validatePageSize(request.getPageSize());
+        validateSearchPeriod(request.getFromDate(), request.getToDate());
+        validateBranchCondition(request.getBranchId(), context);
+    }
+
+    private void validatePageSize(int pageSize) {
+        if (pageSize > MAX_PAGE_SIZE) {
+            throw new BusinessException(
+                    "E-SV-VAL-0101",
+                    "조회 건수는 500건을 초과할 수 없습니다."
+            );
+        }
+    }
+
+    private void validateSearchPeriod(LocalDate fromDate, LocalDate toDate) {
+        if (fromDate != null && toDate != null &&
+                ChronoUnit.MONTHS.between(fromDate, toDate) > MAX_SEARCH_MONTHS) {
+            throw new BusinessException(
+                    "E-SV-VAL-0102",
+                    "조회기간은 3개월을 초과할 수 없습니다."
+            );
+        }
+    }
+
+    private void validateBranchCondition(
+            String requestedBranchId,
+            TransactionContext context
+    ) {
+        if (requestedBranchId != null &&
+                !requestedBranchId.equals(context.getBranchId())) {
+            throw new BusinessException(
+                    "E-SV-AUTHZ-0101",
+                    "타 지점 데이터는 조회할 수 없습니다."
+            );
+        }
+    }
+}
+
+조회 Rule 기준은 다음과 같다.
+검증 항목
+기준
+조회기간
+업무별 최대 기간 제한
+페이지 크기
+최대 pageSize 제한
+정렬 컬럼
+Whitelist 방식
+지점 조건
+사용자 권한 범위 내
+고객정보
+접근 가능한 고객만 조회
+대량 다운로드
+일반 조회와 분리
+민감정보 조회
+감사 대상 여부 확인
+
+26.14 등록 Rule 개발 기준
+등록 Rule은 중복 여부, 등록 가능 상태, 필수 업무 조건을 판단한다.
+@Component
+@RequiredArgsConstructor
+public class CmCampaignRule {
+
+    private final CmCampaignDao cmCampaignDao;
+
+    public void validateCreateCampaign(
+            CmCampaignCreateCommand command,
+            TransactionContext context
+    ) {
+        validateCampaignPeriod(command.getStartDate(), command.getEndDate());
+        validateDuplicateCampaignName(command.getCampaignName());
+        validateCreateAuthority(context);
+    }
+
+    private void validateCampaignPeriod(LocalDate startDate, LocalDate endDate) {
+        if (startDate.isAfter(endDate)) {
+            throw new BusinessException(
+                    "E-CM-VAL-0001",
+                    "캠페인 시작일자는 종료일자보다 클 수 없습니다."
+            );
+        }
+    }
+
+    private void validateDuplicateCampaignName(String campaignName) {
+        if (cmCampaignDao.existsCampaignName(campaignName)) {
+            throw new BusinessException(
+                    "E-CM-DUP-0001",
+                    "동일한 캠페인명이 이미 존재합니다."
+            );
+        }
+    }
+
+    private void validateCreateAuthority(TransactionContext context) {
+        if (!"OM-PORTAL".equals(context.getChannelId())
+                && !"WEBTOP".equals(context.getChannelId())) {
+            throw new BusinessException(
+                    "E-CM-AUTHZ-0001",
+                    "캠페인을 등록할 수 있는 채널이 아닙니다."
+            );
+        }
+    }
+}
+
+등록 Rule 기준은 다음과 같다.
+검증 항목
+기준
+중복 데이터
+동일 명칭, 동일 키 존재 여부
+기간
+시작일과 종료일 관계
+등록 권한
+사용자, 채널, 지점 권한
+필수 업무 상태
+등록 가능한 업무 상태
+기본값 정책
+상태값, 사용여부 기준
+감사 대상
+고객정보, 권한, 발송 관련 등록 여부
+
+26.15 수정 Rule 개발 기준
+수정 Rule은 대상 존재 여부, 수정 가능 상태, 권한을 검증한다.
+@Component
+@RequiredArgsConstructor
+public class OmUserRule {
+
+    private final OmUserDao omUserDao;
+
+    public void validateUpdateUser(
+            OmUserUpdateCommand command,
+            TransactionContext context
+    ) {
+        validateUserExists(command.getTargetUserId());
+        validateUseYn(command.getUseYn());
+        validateUpdateAuthority(command, context);
+    }
+
+    public void validateUserExists(String userId) {
+        if (!omUserDao.existsUser(userId)) {
+            throw new BusinessException(
+                    "E-OM-VAL-0001",
+                    "수정 대상 사용자가 존재하지 않습니다."
+            );
+        }
+    }
+
+    public void validateUseYn(String useYn) {
+        if (!"Y".equals(useYn) && !"N".equals(useYn)) {
+            throw new BusinessException(
+                    "E-OM-VAL-0002",
+                    "사용여부는 Y 또는 N만 가능합니다."
+            );
+        }
+    }
+
+    public void validateUpdateAuthority(
+            OmUserUpdateCommand command,
+            TransactionContext context
+    ) {
+        if (!"OM-PORTAL".equals(context.getChannelId())) {
+            throw new BusinessException(
+                    "E-OM-AUTHZ-0001",
+                    "사용자 정보를 수정할 권한이 없습니다."
+            );
+        }
+    }
+}
+
+수정 Rule 기준은 다음과 같다.
+검증 항목
+기준
+대상 존재 여부
+수정 대상 데이터 존재
+수정 가능 상태
+폐기, 승인완료, 잠금 상태 등
+수정 권한
+사용자·지점·채널 기준
+값 범위
+상태값, 코드값, 금액, 일자
+동시성
+필요 시 version, modifiedAt 확인
+변경 이력
+감사 대상 변경인지 판단
+
+26.16 삭제 Rule 개발 기준
+삭제 Rule은 참조 데이터와 삭제 가능 상태를 검증한다.
+@Component
+@RequiredArgsConstructor
+public class OmMenuRule {
+
+    private final OmMenuDao omMenuDao;
+
+    public void validateDeleteMenu(
+            String menuId,
+            TransactionContext context
+    ) {
+        validateMenuExists(menuId);
+        validateNoChildMenu(menuId);
+        validateNoAuthMapping(menuId);
+        validateDeleteAuthority(context);
+    }
+
+    private void validateMenuExists(String menuId) {
+        if (!omMenuDao.existsMenu(menuId)) {
+            throw new BusinessException(
+                    "E-OM-VAL-0101",
+                    "메뉴 정보가 존재하지 않습니다."
+            );
+        }
+    }
+
+    private void validateNoChildMenu(String menuId) {
+        if (omMenuDao.existsChildMenu(menuId)) {
+            throw new BusinessException(
+                    "E-OM-VAL-0102",
+                    "하위 메뉴가 존재하여 삭제할 수 없습니다."
+            );
+        }
+    }
+
+    private void validateNoAuthMapping(String menuId) {
+        if (omMenuDao.existsMenuAuthMapping(menuId)) {
+            throw new BusinessException(
+                    "E-OM-VAL-0103",
+                    "권한에 매핑된 메뉴는 삭제할 수 없습니다."
+            );
+        }
+    }
+
+    private void validateDeleteAuthority(TransactionContext context) {
+        if (!"OM-PORTAL".equals(context.getChannelId())) {
+            throw new BusinessException(
+                    "E-OM-AUTHZ-0101",
+                    "메뉴를 삭제할 권한이 없습니다."
+            );
+        }
+    }
+}
+
+삭제 Rule 기준은 다음과 같다.
+검증 항목
+기준
+대상 존재 여부
+삭제 대상 존재
+하위 데이터
+하위 메뉴, 상세 데이터 존재 여부
+참조 데이터
+권한, 코드, 이력 참조 여부
+삭제 가능 상태
+사용 중, 승인 중 상태 삭제 금지
+삭제 권한
+관리자 또는 담당자
+감사 대상
+권한, 사용자, 메뉴, 공통코드 삭제
+
+26.17 상태 전이 Rule 기준
+업무 상태값은 무분별하게 변경하면 안 된다.상태 전이는 Rule에서 명확히 검증한다.
+REQUESTED → APPROVED
+REQUESTED → REJECTED
+APPROVED  → CLOSED
+REJECTED  → REQUESTED
+
+예시는 다음과 같다.
+public void validateStatusTransition(
+        String currentStatus,
+        String nextStatus
+) {
+    if ("REQUESTED".equals(currentStatus)
+            && ("APPROVED".equals(nextStatus) || "REJECTED".equals(nextStatus))) {
+        return;
+    }
+
+    if ("APPROVED".equals(currentStatus)
+            && "CLOSED".equals(nextStatus)) {
+        return;
+    }
+
+    throw new BusinessException(
+            "E-CM-STS-0001",
+            "허용되지 않은 상태 변경입니다."
+    );
+}
+
+상태 전이 기준은 다음과 같다.
+기준
+설명
+허용 전이만 코드화
+불명확한 상태 변경 금지
+상태값 하드코딩 최소화
+Enum 또는 공통코드 사용
+상태별 권한 검증
+승인, 반려, 종료 권한 분리
+상태 변경 이력 저장
+Service에서 이력 저장
+잘못된 상태 변경 차단
+Rule에서 오류 발생
+
+26.18 공통코드 Rule 기준
+코드값 검증은 Rule에서 공통코드 서비스를 통해 수행한다.
+@Component
+@RequiredArgsConstructor
+public class CommonCodeRule {
+
+    private final CommonCodeService commonCodeService;
+
+    public void validateActiveCode(String groupCode, String codeValue) {
+        if (codeValue == null || codeValue.isBlank()) {
+            return;
+        }
+
+        if (!commonCodeService.existsActiveCode(groupCode, codeValue)) {
+            throw new BusinessException(
+                    "E-COM-CODE-0001",
+                    "허용되지 않은 코드값입니다."
+            );
+        }
+    }
+}
+
+사용 예시는 다음과 같다.
+public void validateCustomerGrade(String customerGradeCode) {
+    commonCodeRule.validateActiveCode("CUSTOMER_GRADE", customerGradeCode);
+}
+
+공통코드 Rule 기준은 다음과 같다.
+기준
+설명
+코드그룹 기준 검증
+CUSTOMER_GRADE, CHANNEL_ID
+사용여부 확인
+USE_YN = Y
+유효기간 확인
+시작일/종료일
+캐시 활용
+반복 DB 조회 방지
+미등록 코드 차단
+기본 차단
+코드명 변환은 Service에서 처리
+Rule은 검증 중심
+
+26.19 금액·건수 Rule 기준
+금액, 건수, 한도는 Rule에서 검증한다.
+public void validateDownloadCount(int downloadCount) {
+    if (downloadCount > 5000) {
+        throw new BusinessException(
+                "E-UD-VAL-0001",
+                "다운로드 건수는 5,000건을 초과할 수 없습니다."
+        );
+    }
+}
+
+public void validateAmount(BigDecimal amount) {
+    if (amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
+        throw new BusinessException(
+                "E-COM-VAL-0201",
+                "금액은 0보다 크거나 같아야 합니다."
+        );
+    }
+}
+
+기준은 다음과 같다.
+항목
+기준
+금액
+BigDecimal 사용
+건수
+최대 건수 제한
+조회 pageSize
+업무별 상한
+다운로드 건수
+일반 조회보다 엄격하게 제한
+배치 처리 건수
+Job 정책 기준
+한도
+업무 정책 또는 OM 정책 테이블 기준
+
+26.20 파일 Rule 기준
+파일 업다운로드는 보안과 감사가 중요하므로 Rule에서 강하게 검증한다.
+@Component
+@RequiredArgsConstructor
+public class UdFileRule {
+
+    private final UdFileDao udFileDao;
+
+    public void validatePrepareDownload(
+            UdFilePrepareDownloadRequest request,
+            TransactionContext context
+    ) {
+        validateFileExists(request.getFileId());
+        validateDownloadReason(request.getDownloadReason());
+        validateDownloadAuthority(request.getFileId(), context);
+    }
+
+    private void validateFileExists(String fileId) {
+        if (!udFileDao.existsFile(fileId)) {
+            throw new BusinessException(
+                    "E-UD-VAL-0001",
+                    "파일 정보가 존재하지 않습니다."
+            );
+        }
+    }
+
+    private void validateDownloadReason(String downloadReason) {
+        if (downloadReason == null || downloadReason.isBlank()) {
+            throw new BusinessException(
+                    "E-UD-VAL-0002",
+                    "다운로드 사유는 필수입니다."
+            );
+        }
+    }
+
+    private void validateDownloadAuthority(
+            String fileId,
+            TransactionContext context
+    ) {
+        if (!udFileDao.canDownload(fileId, context.getUserId())) {
+            throw new BusinessException(
+                    "E-UD-AUTHZ-0001",
+                    "파일 다운로드 권한이 없습니다."
+            );
+        }
+    }
+}
+
+파일 Rule 기준은 다음과 같다.
+검증 항목
+기준
+파일 존재 여부
+파일 메타정보 기준
+파일 소유/권한
+사용자, 지점, 업무 권한 기준
+다운로드 사유
+감사 대상이면 필수
+확장자
+허용 확장자만 가능
+파일 크기
+업무별 최대 크기
+다운로드 건수
+대량 다운로드 제한
+보관기간
+만료 파일 다운로드 차단
+감사 대상
+고객정보 포함 파일은 감사 필수
+
+26.21 중복요청 Rule 기준
+등록, 수정, 발송, 실행 거래는 중복요청을 검증해야 한다.
+@Component
+@RequiredArgsConstructor
+public class MgMessageRule {
+
+    private final MgMessageDao mgMessageDao;
+
+    public void validateDuplicateSend(String idempotencyKey) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new BusinessException(
+                    "E-MG-IDEMP-0001",
+                    "메시지 발송 요청 식별자가 없습니다."
+            );
+        }
+
+        if (mgMessageDao.existsSendRequest(idempotencyKey)) {
+            throw new BusinessException(
+                    "E-MG-IDEMP-0002",
+                    "이미 처리된 메시지 발송 요청입니다."
+            );
+        }
+    }
+}
+
+중복요청 기준은 다음과 같다.
+거래 유형
+중복 검증
+조회
+선택
+등록
+필수 권장
+수정
+권장
+삭제
+권장
+메시지 발송
+필수
+이벤트 발행
+필수
+배치 수동 실행
+필수
+파일 업로드
+권장
+
+26.22 권한 Rule 기준
+공통 인증·권한은 STF/Security에서 먼저 검증하지만, 업무 데이터 권한은 Rule에서 추가 검증할 수 있다.
+public void validateCustomerAccess(
+        String customerNo,
+        TransactionContext context
+) {
+    boolean allowed =
+            svCustomerDao.canAccessCustomer(
+                    customerNo,
+                    context.getUserId(),
+                    context.getBranchId()
+            );
+
+    if (!allowed) {
+        throw new BusinessException(
+                "E-SV-AUTHZ-0001",
+                "고객정보 접근 권한이 없습니다."
+        );
+    }
+}
+
+권한 Rule 기준은 다음과 같다.
+권한 유형
+검증 위치
+로그인 여부
+STF / Security
+메뉴 권한
+STF / Security
+기능 권한
+STF / Security
+지점 데이터 권한
+Rule
+고객 접근 권한
+Rule
+파일 다운로드 권한
+Rule
+승인/반려 권한
+Rule
+관리자 기능 권한
+STF + Rule 병행
+
+26.23 Rule 예외 처리 기준
+Rule은 검증 실패 시 반드시 표준 업무 예외를 발생시킨다.
+throw new BusinessException(
+        "E-SV-VAL-0001",
+        "고객정보가 존재하지 않습니다."
+);
+
+기준은 다음과 같다.
+오류 유형
+오류코드 예시
+설명
+입력값 업무 오류
+E-{업무코드}-VAL-0001
+업무 검증 실패
+데이터 없음
+E-{업무코드}-NF-0001
+대상 데이터 없음
+중복 데이터
+E-{업무코드}-DUP-0001
+중복 등록
+상태 오류
+E-{업무코드}-STS-0001
+상태 전이 불가
+권한 오류
+E-{업무코드}-AUTHZ-0001
+업무 데이터 권한 없음
+한도 초과
+E-{업무코드}-LMT-0001
+건수·금액·횟수 초과
+중복요청
+E-{업무코드}-IDEMP-0001
+이미 처리된 요청
+Rule에서는 다음을 금지한다.
+// 금지
+return false;
+
+// 금지
+throw new RuntimeException("오류");
+
+// 금지
+log.warn("검증 실패");
+return;
+
+권장 방식은 다음이다.
+// 권장
+throw new BusinessException(
+        "E-CM-VAL-0001",
+        "캠페인 시작일자는 종료일자보다 클 수 없습니다."
+);
+
+
+26.24 Rule 테스트 기준
+Rule은 단위 테스트가 가장 중요한 계층이다.업무 판단이 정확한지 Rule 단위로 검증해야 한다.
+테스트 항목
+설명
+정상 조건
+검증 통과
+필수 업무 조건 누락
+BusinessException 발생
+데이터 없음
+존재 여부 오류 발생
+중복 데이터
+중복 오류 발생
+권한 없음
+권한 오류 발생
+기간 오류
+시작일/종료일 오류 발생
+상태 전이 오류
+허용되지 않은 상태 변경 차단
+다운로드 권한 없음
+다운로드 오류 발생
+중복요청
+이미 처리된 요청 차단
+테스트 예시는 다음과 같다.
+@ExtendWith(MockitoExtension.class)
+class SvCustomerRuleTest {
+
+    @Mock
+    private SvCustomerDao svCustomerDao;
+
+    private SvCustomerRule svCustomerRule;
+
+    @BeforeEach
+    void setUp() {
+        svCustomerRule = new SvCustomerRule(svCustomerDao);
+    }
+
+    @Test
+    void 고객이_존재하지_않으면_업무오류가_발생한다() {
+        given(svCustomerDao.existsCustomer("CUST00000001"))
+                .willReturn(false);
+
+        assertThatThrownBy(() ->
+                svCustomerRule.validateCustomerExists("CUST00000001")
+        ).isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void 고객이_존재하면_검증을_통과한다() {
+        given(svCustomerDao.existsCustomer("CUST00000001"))
+                .willReturn(true);
+
+        assertThatCode(() ->
+                svCustomerRule.validateCustomerExists("CUST00000001")
+        ).doesNotThrowAnyException();
+    }
+}
+
+상태 전이 테스트 예시는 다음과 같다.
+@Test
+void 승인완료에서_반려로_변경할수_없다() {
+    assertThatThrownBy(() ->
+            campaignRule.validateStatusTransition("APPROVED", "REJECTED")
+    ).isInstanceOf(BusinessException.class);
+}
+
+
+26.25 Rule 개발 예시: SV 고객 요약 조회
+@Component
+@RequiredArgsConstructor
+public class SvCustomerRule {
+
+    private final SvCustomerDao svCustomerDao;
+
+    public void validateCustomerSummaryInquiry(
+            SvCustomerSummaryRequest request,
+            TransactionContext context
+    ) {
+        validateCustomerNo(request.getCustomerNo());
+        validateCustomerExists(request.getCustomerNo());
+        validateCustomerAccess(request.getCustomerNo(), context);
+    }
+
+    private void validateCustomerNo(String customerNo) {
+        if (customerNo == null || customerNo.isBlank()) {
+            throw new BusinessException(
+                    "E-SV-VAL-0001",
+                    "고객번호는 필수입니다."
+            );
+        }
+    }
+
+    private void validateCustomerExists(String customerNo) {
+        if (!svCustomerDao.existsCustomer(customerNo)) {
+            throw new BusinessException(
+                    "E-SV-NF-0001",
+                    "고객정보가 존재하지 않습니다."
+            );
+        }
+    }
+
+    private void validateCustomerAccess(
+            String customerNo,
+            TransactionContext context
+    ) {
+        if (!svCustomerDao.canAccessCustomer(
+                customerNo,
+                context.getUserId(),
+                context.getBranchId())) {
+            throw new BusinessException(
+                    "E-SV-AUTHZ-0001",
+                    "고객정보 접근 권한이 없습니다."
+            );
+        }
+    }
+}
+
+주의할 점은 고객번호 필수는 DTO Validation에서도 가능하다.Rule에서는 DTO 형식 검증을 보완하여 업무적 의미가 있는 검증을 수행하는 것이 좋다.
+
+26.26 Rule 개발 예시: CM 캠페인 등록
+@Component
+@RequiredArgsConstructor
+public class CmCampaignRule {
+
+    private final CmCampaignDao cmCampaignDao;
+
+    public void validateCreateCampaign(
+            CmCampaignCreateCommand command,
+            TransactionContext context
+    ) {
+        validateCampaignPeriod(command.getStartDate(), command.getEndDate());
+        validateDuplicateCampaignName(command.getCampaignName());
+        validateCreateAuthority(context);
+    }
+
+    private void validateCampaignPeriod(
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
+        if (startDate.isAfter(endDate)) {
+            throw new BusinessException(
+                    "E-CM-VAL-0001",
+                    "캠페인 시작일자는 종료일자보다 클 수 없습니다."
+            );
+        }
+    }
+
+    private void validateDuplicateCampaignName(String campaignName) {
+        if (cmCampaignDao.existsCampaignName(campaignName)) {
+            throw new BusinessException(
+                    "E-CM-DUP-0001",
+                    "동일한 캠페인명이 이미 존재합니다."
+            );
+        }
+    }
+
+    private void validateCreateAuthority(TransactionContext context) {
+        if (!List.of("WEBTOP", "OM-PORTAL").contains(context.getChannelId())) {
+            throw new BusinessException(
+                    "E-CM-AUTHZ-0001",
+                    "캠페인을 등록할 수 있는 채널이 아닙니다."
+            );
+        }
+    }
+}
+
+
+26.27 Rule 개발 예시: OM 사용자 수정
+@Component
+@RequiredArgsConstructor
+public class OmUserRule {
+
+    private final OmUserDao omUserDao;
+
+    public void validateUpdateUser(
+            OmUserUpdateCommand command,
+            TransactionContext context
+    ) {
+        validateUserExists(command.getTargetUserId());
+        validateUseYn(command.getUseYn());
+        validateAdminChannel(context);
+    }
+
+    private void validateUserExists(String targetUserId) {
+        if (!omUserDao.existsUser(targetUserId)) {
+            throw new BusinessException(
+                    "E-OM-NF-0001",
+                    "수정 대상 사용자가 존재하지 않습니다."
+            );
+        }
+    }
+
+    private void validateUseYn(String useYn) {
+        if (!"Y".equals(useYn) && !"N".equals(useYn)) {
+            throw new BusinessException(
+                    "E-OM-VAL-0001",
+                    "사용여부는 Y 또는 N만 가능합니다."
+            );
+        }
+    }
+
+    private void validateAdminChannel(TransactionContext context) {
+        if (!"OM-PORTAL".equals(context.getChannelId())) {
+            throw new BusinessException(
+                    "E-OM-AUTHZ-0001",
+                    "운영관리 채널에서만 사용자 정보를 수정할 수 있습니다."
+            );
+        }
+    }
+}
+
+
+26.28 Rule 오류코드 기준
+오류 상황
+오류코드
+설명
+업무 검증 실패
+E-{업무코드}-VAL-0001
+일반 업무 규칙 위반
+데이터 없음
+E-{업무코드}-NF-0001
+대상 데이터 없음
+중복 데이터
+E-{업무코드}-DUP-0001
+동일 데이터 존재
+상태 오류
+E-{업무코드}-STS-0001
+상태 전이 불가
+권한 오류
+E-{업무코드}-AUTHZ-0001
+업무 데이터 접근 불가
+한도 초과
+E-{업무코드}-LMT-0001
+건수, 금액, 횟수 초과
+코드 오류
+E-{업무코드}-CODE-0001
+허용되지 않은 코드
+중복요청
+E-{업무코드}-IDEMP-0001
+이미 처리된 요청
+파일 검증 오류
+E-UD-VAL-0001
+파일 관련 검증 실패
+
+26.29 Rule 작성 시 금지 사항
+금지 사항
+사유
+Rule에서 Mapper 직접 호출
+DAO 계층 우회
+Rule에서 DB Insert/Update/Delete 수행
+판단 계층 책임 위반
+Rule에서 StandardRequest 사용
+TCF 전문 구조와 결합
+Rule에서 StandardResponse 생성
+ETF 책임 침범
+Rule에서 HTTP Request 사용
+기술 계층 의존
+Rule에서 화면 ID 기준 분기 남용
+화면과 업무 결합
+Rule에서 외부 API 직접 호출
+연동 표준 우회
+Rule에서 return false로 오류 표현
+표준 오류코드 누락
+Rule에서 RuntimeException 직접 사용
+오류코드 체계 훼손
+Rule에서 로그만 남기고 통과
+장애·감사 기준 훼손
+Rule Method 이름을 check, process로 작성
+의미 불명확
+공통코드 값을 하드코딩
+운영 기준정보와 불일치
+기간, 건수, 금액 제한 없이 처리
+대량조회·장애 위험
+
+26.30 개발자 체크리스트
+점검 항목
+확인
+Rule이 application.rule 패키지에 위치하는가?
+□
+Rule 이름이 {업무코드}{도메인}Rule 형식인가?
+□
+Service가 Rule을 호출하는 구조인가?
+□
+Rule Method 이름이 검증 목적을 명확히 표현하는가?
+□
+업무 규칙이 Service가 아니라 Rule에 작성되어 있는가?
+□
+Rule에서 Mapper를 직접 호출하지 않는가?
+□
+Rule에서 DB 저장·수정·삭제를 수행하지 않는가?
+□
+Rule에서 DAO를 통해 검증 데이터를 조회하는가?
+□
+Rule에서 StandardRequest를 사용하지 않는가?
+□
+Rule에서 TransactionContext를 사용하는가?
+□
+검증 실패 시 BusinessException을 발생시키는가?
+□
+오류코드가 업무코드 기준으로 정의되어 있는가?
+□
+조회기간, pageSize, 다운로드 건수 제한이 있는가?
+□
+권한성 검증이 필요한 업무는 Rule에서 확인하는가?
+□
+상태 전이 검증이 필요한 경우 Rule에 정의되어 있는가?
+□
+중복 등록·중복 발송 검증이 있는가?
+□
+Rule 단위 테스트가 작성되어 있는가?
+□
+
+26.31 마무리말
+Rule은 NSIGHT 업무 품질을 지키는 핵심 계층이다.Service가 업무 처리를 수행하기 전에 Rule이 업무적으로 가능한 요청인지 판단해야 한다.
+Rule이 없거나 Service 안에 흩어져 있으면 다음 문제가 발생한다.
+문제
+영향
+업무 규칙 중복
+여러 Service에 같은 검증 반복
+검증 누락
+신규 Service 추가 시 업무 조건 누락
+테스트 어려움
+업무 판단만 따로 검증하기 어려움
+유지보수 어려움
+정책 변경 시 수정 위치가 흩어짐
+장애 증가
+잘못된 요청이 DB 처리까지 진행
+감사 대응 곤란
+권한·다운로드·고객정보 조회 기준 불명확
+따라서 Rule은 다음 원칙으로 개발한다.
+Rule은 업무 판단을 담당한다.
+Rule은 저장하지 않는다.
+Rule은 Mapper를 직접 호출하지 않는다.
+Rule은 실패 시 표준 BusinessException을 발생시킨다.
+Rule은 단위 테스트로 검증한다.
+
+
+26.32 시사점
+Rule 개발 기준을 지키면 다음 효과가 있다.
+효과
+설명
+업무 품질 향상
+잘못된 요청을 업무 처리 전에 차단
+유지보수성 향상
+업무 정책 변경 시 Rule 중심으로 수정
+테스트 용이성
+업무 판단 로직을 단위 테스트로 검증
+보안 강화
+데이터권한, 다운로드권한, 지점권한 검증 가능
+장애 예방
+대량조회, 중복요청, 상태오류 사전 차단
+감사 대응
+고객정보 조회, 파일 다운로드, 권한변경 기준 명확
+계층 구조 안정화
+Service, Rule, DAO 책임 분리
+최종 원칙은 다음이다.
+Rule은 업무 규칙을 판단하는 계층이다.Service는 Rule을 호출하고, Rule은 조건을 판단하며, 실패하면 표준 업무 예외를 발생시켜야 한다.
+

@@ -1,0 +1,18 @@
+// HTTP 레이어: /online Controller, Filter, ExceptionHandler
+// 빌드: gradle :tcf-web:build
+// 또는: tcf-web\scripts\build.bat
+
+dependencies {
+    api project(':tcf-core')
+    api project(':tcf-util')
+    api 'org.springframework.boot:spring-boot-starter-web'
+    api 'org.springframework.boot:spring-boot-starter-validation'
+    api 'org.springframework.boot:spring-boot-starter-actuator'
+    api 'org.springframework.boot:spring-boot-starter-aop'
+    api 'org.springframework.boot:spring-boot-starter-jdbc'
+    api 'org.springframework.security:spring-security-oauth2-jose'
+    api 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
+    compileOnly 'jakarta.servlet:jakarta.servlet-api'
+    compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
+    testRuntimeOnly 'com.h2database:h2'
+}

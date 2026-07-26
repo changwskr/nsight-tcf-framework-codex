@@ -1,0 +1,9 @@
+-- OM Service Catalog 등록 초안
+INSERT INTO OM_SERVICE_CATALOG (
+    SERVICE_ID, TRANSACTION_CODE, BUSINESS_CODE, SERVICE_NAME,
+    TIMEOUT_SECONDS, AUDIT_YN, USE_YN, SCREEN_ID, EVENT_ID
+) VALUES (
+    'SV.Customer.selectSummary', 'SV-INQ-0001', 'SV',
+    '고객 종합정보 조회', 3,
+    'Y', 'Y', 'SV-CUS-0001', 'SV-CUS-0001-E01'
+);

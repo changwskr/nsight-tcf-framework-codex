@@ -1,0 +1,27 @@
+# local - bootRun (port 8103) — 설계 예시, AA 승인 전 운영 반영 금지
+server:
+  port: 8103
+
+spring:
+  application:
+    name: nsight-ln-service
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+  datasource:
+    url: jdbc:h2:mem:nsight_ln;MODE=Oracle;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false
+    hikari:
+      pool-name: nsight-ln-hikari-local
+  h2:
+    console:
+      enabled: true
+
+nsight:
+  tcf:
+    transaction-log-schema-auto-init: true
+    transaction-log-datasource:
+      url: jdbc:h2:file:${nsight.txlog.path:./data/nsight-txlog}/nsight_om;MODE=Oracle;AUTO_SERVER=TRUE;DATABASE_TO_UPPER=false
+      username: sa
+      password:
+      driver-class-name: org.h2.Driver

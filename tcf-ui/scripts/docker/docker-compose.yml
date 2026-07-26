@@ -1,0 +1,37 @@
+# tcf-ui compose
+#
+# From this directory:
+#   docker compose up -d --build
+#   docker compose logs -f
+#   docker compose down
+#
+# Or use helper:
+#   docker-compose.bat up -d --build
+
+name: nsight-ui
+
+services:
+  tcf-ui:
+    container_name: nsight-ui
+    image: ${IMAGE_TAG:-nsight-ui:local}
+    build:
+      context: ../../..
+      dockerfile: tcf-ui/scripts/docker/Dockerfile
+    ports:
+      # Host -> container (localhost:8099 access)
+      - "0.0.0.0:${HOST_PORT:-8099}:8099"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+      SERVER_PORT: "8099"
+      NSIGHT_TCF_UI_BOOTRUN_HOST: ${BOOTRUN_HOST:-http://host.docker.internal}
+      NSIGHT_TCF_UI_TOMCAT_GATEWAY_URL: ${TOMCAT_GATEWAY_URL:-http://host.docker.internal:8080}
+      JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=75.0 -Dfile.encoding=UTF-8}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8099/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s

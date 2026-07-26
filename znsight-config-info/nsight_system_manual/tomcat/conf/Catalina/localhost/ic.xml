@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- IC - Integration Customer -->
+<Context path="/ic"
+         docBase="/app/nsight/war/ic.war"
+         reloadable="false"
+         sessionCookieName="JSESSIONID">
+</Context>

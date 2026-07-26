@@ -1,0 +1,26 @@
+# eb-service Service — ClusterIP on port 8089
+#
+# Apply:
+#   kubectl apply -f eb-service/scripts/k8s/service.yaml
+#
+# In-cluster URL:
+#   http://nsight-eb.nsight.svc.cluster.local:8089/eb/online
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: nsight-eb
+  namespace: nsight
+  labels:
+    app: nsight-eb
+    app.kubernetes.io/name: eb-service
+    app.kubernetes.io/part-of: nsight-tcf-framework
+spec:
+  type: ClusterIP
+  selector:
+    app: nsight-eb
+  ports:
+    - name: http
+      port: 8089
+      targetPort: http
+      protocol: TCP

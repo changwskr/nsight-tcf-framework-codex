@@ -1,0 +1,22 @@
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "OM",
+    "serviceId": "OM.Auth.ssoLogin",
+    "serviceName": "OM SSO 로그인",
+    "transactionCode": "OM-AUT-0005",
+    "processingType": "EXECUTE",
+    "channelId": "WEBTOP",
+    "guid": "00000000-0000-4000-8000-000000000002",
+    "traceId": "SSO-ASSERTION-20260629-000001",
+    "userId": "admin01",
+    "branchId": "000001",
+    "clientIp": "127.0.0.1"
+  },
+  "body": {
+    "ssoToken": "SSO-MOCK-TOKEN-20260629-000001",
+    "ssoSubject": "admin01",
+    "ssoAssertionId": "SSO-ASSERTION-20260629-000001",
+    "channelId": "WEBTOP"
+  }
+}

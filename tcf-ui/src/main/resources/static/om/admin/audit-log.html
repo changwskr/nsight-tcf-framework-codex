@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 감사로그 조회</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260627c"></script>
+  <script>
+    const PAGE_SIZE = 20;
+    let currentPage = 1;
+
+    function readFilters() {
+      const v = id => document.getElementById(id).value.trim();
+      const f = {};
+      if (v('filterUserId')) f.userId = v('filterUserId');
+      if (v('filterBranchId')) f.branchId = v('filterBranchId');
+      if (v('filterCustomerNo')) f.customerNo = v('filterCustomerNo');
+      if (v('filterFunctionId')) f.functionId = v('filterFunctionId');
+      if (v('filterResultStatus')) f.resultStatus = v('filterResultStatus');
+      if (v('filterFromDate')) f.fromDate = v('filterFromDate');
+      if (v('filterToDate')) f.toDate = v('filterToDate');
+      return f;
+    }
+
+    async function loadList(page, el) {
+      currentPage = page;
+      const tbody = document.getElementById('auditBody');
+      tbody.innerHTML = '<tr><td colspan="8" class="om-empty">조회 중...</td></tr>';
+
+      const { body, relay } = await OmAdmin.inquiry('auditLog', {
+        ...readFilters(),
+        pageNo: page,
+        pageSize: PAGE_SIZE
+      });
+
+      const rows = body.rows || [];
+      document.getElementById('listStatus').textContent = `${relay.elapsedMs}ms · 총 ${body.totalCount ?? 0}건`;
+
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="om-empty">조건에 맞는 감사로그가 없습니다.</td></tr>';
+      } else {
+        tbody.innerHTML = rows.map(r => `
+          <tr>
+            <td>${OmAdmin.field(r, 'auditTime')}</td>
+            <td>${OmAdmin.field(r, 'userId')}</td>
+            <td>${OmAdmin.field(r, 'branchId')}</td>
+            <td>${OmAdmin.field(r, 'customerNo')}</td>
+            <td>${OmAdmin.field(r, 'functionName')}</td>
+            <td>${OmAdmin.field(r, 'inquiryReason')}</td>
+            <td>${OmAdmin.chipForResult(OmAdmin.field(r, 'resultStatus'))}</td>
+            <td>${OmAdmin.field(r, 'clientIp')}</td>
+          </tr>`).join('');
+      }
+
+      OmAdmin.renderPagination(
+        document.getElementById('pagination'),
+        body.pageNo || page,
+        body.pageSize || PAGE_SIZE,
+        body.totalCount || 0,
+        p => loadList(p, el).catch(e => OmAdmin.showError(el, e.message))
+      );
+    }
+
+    OmAdmin.initPage('audit-log', '감사로그 조회', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">고객조회 · 다운로드 · 권한위반 · 관리자 기능 수행 이력을 조회합니다.</div>
+        <section class="om-filter-bar">
+          <div class="field"><label for="filterUserId">사용자ID</label><input id="filterUserId" type="text"></div>
+          <div class="field"><label for="filterBranchId">지점ID</label><input id="filterBranchId" type="text"></div>
+          <div class="field"><label for="filterCustomerNo">고객번호</label><input id="filterCustomerNo" type="text"></div>
+          <div class="field"><label for="filterFunctionId">기능ID</label><input id="filterFunctionId" type="text" placeholder="CUSTOMER_INQUIRY"></div>
+          <div class="field"><label for="filterResultStatus">결과</label>
+            <select id="filterResultStatus"><option value="">전체</option><option value="SUCCESS">SUCCESS</option><option value="FAIL">FAIL</option><option value="VIOLATION">VIOLATION</option></select>
+          </div>
+          <div class="field"><label for="filterFromDate">시작일시</label><input id="filterFromDate" type="text"></div>
+          <div class="field"><label for="filterToDate">종료일시</label><input id="filterToDate" type="text"></div>
+          <div class="actions" style="display:flex;gap:8px;align-items:end">
+            <button class="btn-primary" id="searchBtn" type="button">조회</button>
+            <button class="btn-secondary" id="resetBtn" type="button">조건 초기화</button>
+            <button class="btn-secondary" id="deleteAllBtn" type="button">로그 초기화</button>
+          </div>
+        </section>
+        <div style="margin-bottom:10px;color:var(--muted);font-size:0.85rem" id="listStatus">-</div>
+        <div class="om-card">
+          <div class="om-card-head">감사로그 목록</div>
+          <div class="om-card-body om-table-wrap">
+            <table class="om-table">
+              <thead><tr>
+                <th>일시</th><th>사용자</th><th>지점</th><th>고객번호</th>
+                <th>기능</th><th>조회사유</th><th>결과</th><th>IP</th>
+              </tr></thead>
+              <tbody id="auditBody"></tbody>
+            </table>
+            <div class="om-pagination" id="pagination" hidden></div>
+          </div>
+        </div>`;
+
+      document.getElementById('searchBtn').addEventListener('click', () =>
+        loadList(1, el).catch(e => OmAdmin.showError(el, e.message)));
+      document.getElementById('resetBtn').addEventListener('click', () => {
+        el.querySelectorAll('.om-filter-bar input').forEach(i => { i.value = ''; });
+        document.getElementById('filterResultStatus').value = '';
+      });
+      document.getElementById('deleteAllBtn').addEventListener('click', async () => {
+        if (!confirm('OM_AUDIT_LOG 테이블의 감사로그를 전부 삭제합니다.\n되돌릴 수 없습니다. 계속하시겠습니까?')) {
+          return;
+        }
+        const deleteReason = prompt('초기화 사유 (5자 이상, 감사로그에 기록됩니다):');
+        if (!deleteReason || deleteReason.trim().length < 5) {
+          alert('초기화 사유를 5자 이상 입력해야 합니다.');
+          return;
+        }
+        try {
+          const { body } = await OmAdmin.mutate('auditLogDeleteAll', {
+            confirmCode: 'DELETE_ALL',
+            deleteReason: deleteReason.trim()
+          }, 'DELETE');
+          alert(`${body.message || '초기화 완료'}\n삭제 건수: ${body.deletedCount ?? 0}건`);
+          await loadList(1, el);
+        } catch (e) {
+          OmAdmin.showErrorBanner(el, e.message);
+        }
+      });
+
+      await loadList(1, el);
+    }).catch(err => alert(err.message));
+  </script>
+</body>
+</html>

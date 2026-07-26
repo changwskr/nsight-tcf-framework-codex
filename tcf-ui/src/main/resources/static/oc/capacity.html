@@ -1,0 +1,601 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NSIGHT OC · 용량 산정</title>
+  <script src="/_shared/ui-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/oc-capacity.css">
+</head>
+<body class="tcf-home xcap-page xcap-wizard-mode" data-xcap-page="plan">
+  <div class="tcf-main">
+    <header class="tcf-topbar">
+      <div class="tcf-topbar__brand">
+        <h1>NSIGHT OC · 용량 산정</h1>
+        <p>3단계: 조건 입력 → 산정 실행 → 결과 확인 (CAP-010~050)</p>
+      </div>
+      <nav class="tcf-topbar__nav" aria-label="OC 화면">
+        <a class="tcf-topbar__link" href="/index.html#moduleSection">TCF UI</a>
+        <a class="tcf-topbar__link" href="/oc/index.html">OC 포털</a>
+        <a class="tcf-topbar__link tcf-topbar__link--active" href="/oc/capacity.html">용량 산정</a>
+        <a class="tcf-topbar__link" href="/oc/cap-new/index.html">NEW 용량산정</a>
+        <a class="tcf-topbar__link" href="/oc/env-001.html">ENV</a>
+        <a class="tcf-topbar__link" href="/help.html">HELP</a>
+        <span class="badge">XCAP</span>
+      </nav>
+    </header>
+    <section id="capacitySection" class="tcf-section xcap-region">
+      <div class="env-layout xcap-layout">
+<div id="statusBar" class="status-bar hidden" role="status"></div>
+
+    <div class="xcap-guide card" id="xcapGuide">
+        <h2 class="xcap-guide__title">용량 산정 진행</h2>
+        <ol class="xcap-wizard-track" id="xcapWizardTrack" aria-label="산정 단계">
+            <li class="xcap-wizard-track__item xcap-wizard-track__item--active" data-phase="1">
+                <span class="xcap-wizard-track__num">1</span>
+                <div>
+                    <strong>조건 입력</strong>
+                    <span>지점·사용자·시나리오·VM</span>
+                </div>
+            </li>
+            <li class="xcap-wizard-track__item" data-phase="2">
+                <span class="xcap-wizard-track__num">2</span>
+                <div>
+                    <strong>산정 실행</strong>
+                    <span>전체 CAP-020~050 계산</span>
+                </div>
+            </li>
+            <li class="xcap-wizard-track__item" data-phase="3">
+                <span class="xcap-wizard-track__num">3</span>
+                <div>
+                    <strong>결과 확인</strong>
+                    <span>요약 → 단계별 상세</span>
+                </div>
+            </li>
+        </ol>
+    </div>
+
+    <nav class="xcap-flow" aria-label="산정 흐름">
+        <ol class="xcap-flow__list">
+            <li class="xcap-flow__item xcap-flow__item--active" data-step="010"><span>①</span> 조건</li>
+            <li class="xcap-flow__item" data-step="020"><span>②</span> TPS</li>
+            <li class="xcap-flow__item" data-step="030"><span>③</span> AP·DR</li>
+            <li class="xcap-flow__item" data-step="040"><span>④</span> WAS</li>
+            <li class="xcap-flow__item" data-step="050"><span>⑤</span> DB Pool</li>
+        </ol>
+    </nav>
+
+    <section class="card env-screen" id="cap010Section">
+        <div class="card-title row-title">
+            <div>
+                <h2>① 조건 입력</h2>
+                <p>필수 항목만 입력하고 「전체 산정 실행」을 누르세요. VM·DB 등은 필요할 때 펼칩니다.</p>
+            </div>
+            <button type="button" class="secondary xcap-toggle-input" id="toggleInputBtn" hidden>조건 다시 편집</button>
+        </div>
+
+        <form id="capacityForm" class="env-capacity-form grid-form">
+            <details class="xcap-form-step" open>
+                <summary><span class="xcap-form-step__badge">필수</span> 프로젝트 · 사용자</summary>
+            <fieldset class="env-fieldset env-capacity-form__wide xcap-form-step__body">
+                <div class="env-fieldset-grid">
+                    <label>프로젝트명 <input type="text" id="projectName" maxlength="100" placeholder="6,000지점 표준"/></label>
+                    <label>지점 수 <input type="number" id="branchCount" min="1" value="6000"/></label>
+                    <label>지점당 사용자 <input type="number" id="userPerBranch" min="1" value="6"/></label>
+                    <label>전체 사용자
+                        <input type="number" id="totalUsers" readonly/>
+                        <span class="env-inline-hint" id="totalUsersHint">자동계산</span>
+                    </label>
+                    <label>설계 세션 수
+                        <input type="number" id="designedSessions" readonly/>
+                        <span class="env-inline-hint">전체×(1+여유율)</span>
+                    </label>
+                    <label>세션 여유율
+                        <select id="sessionMarginRate">
+                            <option value="0.20">20%</option>
+                            <option value="0.30" selected>30%</option>
+                        </select>
+                    </label>
+                    <label>세션 타임아웃
+                        <span class="env-chip-group env-chip-group--inline">
+                            <label class="env-chip"><input type="radio" name="sessionTimeout" value="60" checked/> 60분</label>
+                            <label class="env-chip"><input type="radio" name="sessionTimeout" value="90"/> 90분</label>
+                        </span>
+                    </label>
+                </div>
+            </fieldset>
+            </details>
+
+            <details class="xcap-form-step" open>
+                <summary><span class="xcap-form-step__badge">필수</span> 시나리오 · 목표 TPS</summary>
+            <fieldset class="env-fieldset env-capacity-form__wide xcap-form-step__body">
+                <legend class="sr-only">시나리오 · TPS</legend>
+                <span class="env-chip-group">
+                    <span class="env-chip-label">동시요청률</span>
+                    <label class="env-chip"><input type="checkbox" name="rate" value="3" checked/> 3%</label>
+                    <label class="env-chip"><input type="checkbox" name="rate" value="5" checked/> 5%</label>
+                    <label class="env-chip"><input type="checkbox" name="rate" value="10" checked/> 10%</label>
+                    <label class="env-chip"><input type="checkbox" name="rate" value="15" checked/> 15%</label>
+                </span>
+                <span class="env-chip-group">
+                    <span class="env-chip-label">목표 응답</span>
+                    <label class="env-chip"><input type="checkbox" name="timeout" value="3" checked/> 3초</label>
+                    <label class="env-chip"><input type="checkbox" name="timeout" value="4" checked/> 4초</label>
+                    <label class="env-chip"><input type="checkbox" name="timeout" value="5" checked/> 5초</label>
+                </span>
+                <div class="xcap-scenario-tps-preview" id="scenarioTpsPreview" role="region" aria-live="polite"
+                     aria-label="시나리오별 목표 TPS 미리보기">
+                    <p class="xcap-scenario-tps-preview__formula" role="note">
+                        <span class="env-vm-formula-banner__part">실요청자</span>
+                        <span class="env-vm-formula-banner__op">=</span>
+                        <span class="env-vm-formula-banner__part">⌈전체×요청률%⌉</span>
+                        <span class="env-vm-formula-banner__op">·</span>
+                        <span class="env-vm-formula-banner__eq">목표 TPS</span>
+                        <span class="env-vm-formula-banner__op">=</span>
+                        <span class="env-vm-formula-banner__part">⌈실요청자÷응답(초)⌉</span>
+                    </p>
+                    <p class="env-cap-summary__placeholder">지점·사용자 수와 시나리오를 선택하면 목표 TPS가 표시됩니다.</p>
+                </div>
+                <details class="xcap-form-step xcap-form-step--nested">
+                    <summary>업무 복잡도(TPMC) · Core TPS 설정</summary>
+                <div class="env-option-section xcap-tpmc-block xcap-form-step__body">
+                    <h4 class="env-option-section__title">1 TPS · TPMC 조건</h4>
+                    <div class="env-vm-formula-banner" role="note">
+                        <span class="env-vm-formula-banner__eq">필요 TPMC</span>
+                        <span class="env-vm-formula-banner__op">=</span>
+                        <span class="env-vm-formula-banner__part">목표 TPS</span>
+                        <span class="env-vm-formula-banner__op">×</span>
+                        <span class="env-vm-formula-banner__part">1 TPS당 TPMC</span>
+                    </div>
+                    <div class="xcap-tpmc-guide" role="region" aria-label="업무 유형별 TPMC 기준">
+                        <p class="xcap-tpmc-guide__hint">행을 클릭하면 <strong>1 TPS당 TPMC</strong>·<strong>Core당 TPS</strong>가 산정 조건에 반영됩니다.</p>
+                        <div class="table-wrap">
+                            <table class="dump-report__table dump-report__table--data xcap-tpmc-guide__table" id="tpmcWorkloadGuide">
+                                <thead>
+                                <tr>
+                                    <th>업무 1 TPS당 필요 TPMC</th>
+                                    <th>Core당 환산 TPS</th>
+                                    <th>업무 해석</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr class="xcap-tpmc-guide__row" data-tpmc="1500" data-tps-core="71" tabindex="0">
+                                    <td>1,500 TPMC</td>
+                                    <td>약 71 TPS/Core</td>
+                                    <td>캐시 중심 단순 조회, SQL 부하 낮음</td>
+                                </tr>
+                                <tr class="xcap-tpmc-guide__row" data-tpmc="2000" data-tps-core="53" tabindex="0">
+                                    <td>2,000 TPMC</td>
+                                    <td>약 53 TPS/Core</td>
+                                    <td>일반 조회, 권한·로그·단건 DB 조회</td>
+                                </tr>
+                                <tr class="xcap-tpmc-guide__row xcap-tpmc-guide__row--default" data-tpmc="3000" data-tps-core="36" tabindex="0">
+                                    <td>3,000 TPMC</td>
+                                    <td>약 36 TPS/Core</td>
+                                    <td>정보계 Single View, RDW 조회·마스킹·감사로그 포함</td>
+                                </tr>
+                                <tr class="xcap-tpmc-guide__row" data-tpmc="4000" data-tps-core="27" tabindex="0">
+                                    <td>4,000 TPMC</td>
+                                    <td>약 27 TPS/Core</td>
+                                    <td>복합 고객조회, 다중 SQL·조인 포함</td>
+                                </tr>
+                                <tr class="xcap-tpmc-guide__row" data-tpmc="5000" data-tps-core="21" tabindex="0">
+                                    <td>5,000 TPMC</td>
+                                    <td>약 21 TPS/Core</td>
+                                    <td>계정계 변경성 거래, 승인·원장·대외연계 포함</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p id="tpmcWorkloadSelected" class="xcap-tpmc-guide__selected">선택: 3,000 TPMC · 약 36 TPS/Core — 정보계 Single View</p>
+                    </div>
+                </div>
+                <div class="env-fieldset-grid env-fieldset-grid--compact">
+                    <label class="env-input-card">
+                        <span class="env-input-card__label">Core당 TPS</span>
+                        <span class="env-input-card__hint" id="tpsPerCoreHint">TPMC 연동 · 기준 35 @ 3K</span>
+                        <input type="number" class="env-input-card__control" id="tpsPerCore" min="1" value="36"/>
+                    </label>
+                    <label class="env-input-card env-input-card--primary">
+                        <span class="env-input-card__label">1 TPS당 TPMC</span>
+                        <span class="env-input-card__hint">업무 복잡도 · 설계 기본 3,000</span>
+                        <input type="number" class="env-input-card__control" id="tpmcPerTps" min="1" value="3000"/>
+                    </label>
+                    <label class="env-input-card env-input-card--derived">
+                        <span class="env-input-card__label">Core TPMC/초</span>
+                        <span class="env-input-card__hint">Core당 TPS × TPMC/TPS</span>
+                        <input type="text" class="env-input-card__control" id="coreTpmcPerSec" readonly value="105,000"/>
+                    </label>
+                </div>
+                </div>
+                </details>
+            </fieldset>
+            </details>
+
+            <details class="xcap-form-step">
+                <summary><span class="xcap-form-step__badge xcap-form-step__badge--opt">선택</span> VM · WAS Thread · DB Pool</summary>
+            <fieldset class="env-fieldset env-fieldset--vm env-capacity-form__wide xcap-form-step__body">
+                <legend class="sr-only">VM · WAS Thread</legend>
+                <p class="env-fieldset-desc">VM 사양 선택 시 VM TPS(기준)가 자동 갱신됩니다.</p>
+                <div class="env-vm-card-grid" role="radiogroup" aria-label="VM 프로파일">
+                    <label class="env-vm-card">
+                        <input type="radio" class="env-vm-card__input" name="vmSpec" value="2C16G"/>
+                        <span class="env-vm-card__body">
+                            <strong class="env-vm-card__title">2Core / 16GB</strong>
+                            <span class="env-vm-card__spec">소형·PoC · 단순 AP</span>
+                            <span class="env-vm-card__tps" data-vm-cores="2">VM TPS —</span>
+                        </span>
+                    </label>
+                    <label class="env-vm-card">
+                        <input type="radio" class="env-vm-card__input" name="vmSpec" value="4C32G"/>
+                        <span class="env-vm-card__body">
+                            <strong class="env-vm-card__title">4Core / 32GB</strong>
+                            <span class="env-vm-card__spec">소형 Scale-Out · 개발·검증</span>
+                            <span class="env-vm-card__tps" data-vm-cores="4">VM TPS —</span>
+                        </span>
+                    </label>
+                    <label class="env-vm-card">
+                        <input type="radio" class="env-vm-card__input" name="vmSpec" value="8C64G" checked/>
+                        <span class="env-vm-card__body">
+                            <strong class="env-vm-card__title">8Core / 64GB</strong>
+                            <span class="env-vm-card__spec">일반·SingleView Scale-Out</span>
+                            <span class="env-vm-card__tps" data-vm-cores="8">VM TPS —</span>
+                        </span>
+                    </label>
+                    <label class="env-vm-card">
+                        <input type="radio" class="env-vm-card__input" name="vmSpec" value="16C128G"/>
+                        <span class="env-vm-card__body">
+                            <strong class="env-vm-card__title">16Core / 128GB</strong>
+                            <span class="env-vm-card__spec">중형 채널·AP 증설</span>
+                            <span class="env-vm-card__tps" data-vm-cores="16">VM TPS —</span>
+                        </span>
+                    </label>
+                    <label class="env-vm-card">
+                        <input type="radio" class="env-vm-card__input" name="vmSpec" value="32C256G"/>
+                        <span class="env-vm-card__body">
+                            <strong class="env-vm-card__title">32Core / 256GB</strong>
+                            <span class="env-vm-card__spec">특수·BI·대형 AP</span>
+                            <span class="env-vm-card__tps" data-vm-cores="32">VM TPS —</span>
+                        </span>
+                    </label>
+                </div>
+                <div class="env-fieldset-grid env-fieldset-grid--compact">
+                    <label class="env-input-card">
+                        <span class="env-input-card__label">평균 Thread 점유(초)</span>
+                        <span class="env-input-card__hint">0.8~1.5 · 기본 1.2</span>
+                        <input type="number" step="0.1" class="env-input-card__control" id="avgThreadHoldSec" value="1.2"/>
+                    </label>
+                    <label class="env-input-card">
+                        <span class="env-input-card__label">Thread 여유율</span>
+                        <span class="env-input-card__hint">1.2 = 20% 여유</span>
+                        <input type="number" step="0.1" class="env-input-card__control" id="threadMarginRate" value="1.2"/>
+                    </label>
+                    <label class="env-input-card">
+                        <span class="env-input-card__label">maxThreads 배율</span>
+                        <span class="env-input-card__hint">1.2~1.4 · 기본 1.3</span>
+                        <input type="number" step="0.1" class="env-input-card__control" id="maxThreadMarginRate" value="1.3"/>
+                    </label>
+                    <label class="env-input-card">
+                        <span class="env-input-card__label">AP 유형</span>
+                        <select class="env-input-card__control" id="apType">
+                            <option value="GENERAL">일반 AP (DB hold 0.15s)</option>
+                            <option value="SINGLE_VIEW">SingleView AP (DB hold 0.20s)</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="env-option-section xcap-dbpool-block">
+                    <h4 class="env-option-section__title">DB Pool (CAP-050)</h4>
+                    <details class="xcap-form-step xcap-form-step--nested">
+                        <summary>DB Pool 산정 공식 보기</summary>
+                    <div class="xcap-dbpool-formula" id="dbPoolFormulaGuide" role="note" aria-label="DB Pool 산정 공식">
+                        <p class="xcap-dbpool-formula__title">VM당 Hikari <code>maximumPoolSize</code> — 4단계 산정</p>
+                        <ol class="xcap-dbpool-formula__steps">
+                            <li><strong>AP TPS</strong> = 목표 TPS ÷ <em>배포 AP</em> 대수
+                                <span class="xcap-dbpool-formula__note">A-A 시 센터당 필요 AP×2 · CAP-030</span></li>
+                            <li><strong>② 산출 Pool</strong> = ⌈AP TPS × DB 점유(초) × DB 비율 × Pool 안전계수⌉</li>
+                            <li><strong>③ 상한 Pool</strong> = ⌈VM당 WAS Thread × Thread→DB 비율⌉
+                                <span class="xcap-dbpool-formula__note">CAP-040</span></li>
+                            <li><strong>⑤ 용량 권장</strong> = min(②, ③)
+                                <span class="xcap-dbpool-formula__note">TPS·Thread가 허용하는 용량값 (운영 최소 미포함)</span></li>
+                            <li><strong>운영 최소 Pool/VM</strong> = 입력값 <strong id="minPoolFormulaInline">30</strong>
+                                <span class="xcap-dbpool-formula__note">Hikari 운영 하한</span></li>
+                            <li><strong>④ 배포 Pool/VM</strong> = max(<strong>운영 최소</strong>, ⑤)
+                                <span class="xcap-dbpool-formula__note">maximumPoolSize · 프로파일 cap 가능</span></li>
+                        </ol>
+                        <p class="xcap-dbpool-formula__live" id="dbPoolFormulaLive" aria-live="polite">현재 입력: 산출 = AP TPS × — · 상한 = Thread × — · 최소 —</p>
+                    </div>
+                    </details>
+                    <div class="env-fieldset-grid env-fieldset-grid--compact">
+                        <label class="env-input-card">
+                            <span class="env-input-card__label">DB Connection 점유(초)</span>
+                            <span class="env-input-card__hint">일반 0.15 · SV 0.20</span>
+                            <input type="number" step="0.01" class="env-input-card__control" id="avgDbConnectionHoldSec" value="0.15"/>
+                        </label>
+                        <label class="env-input-card">
+                            <span class="env-input-card__label">DB 사용 거래 비율</span>
+                            <input type="number" step="0.1" class="env-input-card__control" id="dbTransactionUsageRatio" value="1.0" min="0.1" max="1"/>
+                        </label>
+                        <label class="env-input-card">
+                            <span class="env-input-card__label">Pool 안전계수</span>
+                            <span class="env-input-card__hint">② 산출용 · WAS Thread 여유율과 별도</span>
+                            <input type="number" step="0.1" class="env-input-card__control" id="poolSafetyFactor" value="1.3"/>
+                        </label>
+                        <label class="env-input-card">
+                            <span class="env-input-card__label">Thread→DB 사용 비율</span>
+                            <span class="env-input-card__hint">상한 · 기본 30%</span>
+                            <input type="number" step="0.05" class="env-input-card__control" id="threadDbUsageRatio" value="0.30" min="0.1" max="1"/>
+                        </label>
+                        <label class="env-input-card env-input-card--primary">
+                            <span class="env-input-card__label">최소 Pool/VM (④ 바닥)</span>
+                            <span class="env-input-card__hint">설계 기본 30 · ④=max(운영최소, ⑤)</span>
+                            <input type="number" class="env-input-card__control" id="minPoolPerVm" value="30" min="1"/>
+                        </label>
+                    </div>
+                    <div class="xcap-minpool-formula" id="minPoolFormulaPanel" role="region" aria-label="최소 Pool 산식">
+                        <p class="xcap-minpool-formula__title">최소 Pool/VM 계산식</p>
+                        <p class="xcap-minpool-formula__eq">
+                            <code>⑤</code> = min(<span id="minPoolMidLabel">②, ③</span>) ·
+                            <code>④</code> = max(<span class="xcap-minpool-formula__min" id="minPoolFormulaValue">30</span>, ⑤)
+                        </p>
+                        <p class="xcap-minpool-formula__input">
+                            현재 <strong>최소 Pool/VM</strong> = <strong id="minPoolDisplayValue">30</strong>
+                            <span class="xcap-minpool-formula__hint">(위 입력란과 동기화)</span>
+                        </p>
+                        <div id="minPoolCalcDetail" class="xcap-minpool-formula__detail">
+                            <p class="env-cap-summary__placeholder">CAP-050 「산정 실행」 후 피크 시나리오 기준 ②·③·④ 숫자가 채워집니다.</p>
+                        </div>
+                    </div>
+                    <div class="env-fieldset-grid env-fieldset-grid--compact xcap-dbpool-derived-row">
+                        <div class="env-input-card env-input-card--derived xcap-final-pool-card">
+                            <span class="env-input-card__label">최종 Pool/VM (피크)</span>
+                            <span class="env-input-card__hint">산정 실행 후 · Hikari maximumPoolSize</span>
+                            <p class="xcap-final-pool-out" id="finalPoolPerVmOut" aria-live="polite">—</p>
+                        </div>
+                    </div>
+                    <div id="dbPoolCap050Out" class="xcap-dbpool-result env-cap-summary env-cap-summary--empty" role="region" aria-live="polite">
+                        <p class="env-cap-summary__placeholder">「산정 실행」 후 시나리오별 최종 Pool( maximumPoolSize ) 결과가 여기에 표시됩니다.</p>
+                    </div>
+                </div>
+            </fieldset>
+            </details>
+
+            <details class="xcap-form-step">
+                <summary><span class="xcap-form-step__badge xcap-form-step__badge--opt">선택</span> 인프라 · DR · 검증 옵션</summary>
+            <fieldset class="env-fieldset env-fieldset--options env-capacity-form__wide xcap-form-step__body">
+                <legend class="sr-only">인프라 · 검증 옵션</legend>
+                <div class="env-option-grid">
+                    <label class="env-option-card">
+                        <input type="checkbox" class="env-option-card__input" id="activeActive" checked/>
+                        <span class="env-option-card__check" aria-hidden="true"></span>
+                        <span class="env-option-card__body">
+                            <strong class="env-option-card__title">2센터 Active-Active</strong>
+                            <span class="env-option-card__hint">A-A 시 센터별 필요 AP×2로 총 배포 대수 산출(WAS·DB)</span>
+                        </span>
+                    </label>
+                    <label class="env-option-card">
+                        <input type="checkbox" class="env-option-card__input" id="drValidation" checked/>
+                        <span class="env-option-card__check" aria-hidden="true"></span>
+                        <span class="env-option-card__body">
+                            <strong class="env-option-card__title">DR · 잔여 TPS</strong>
+                            <span class="env-option-card__hint">1센터 장애 시 목표 TPS 감당</span>
+                        </span>
+                    </label>
+                    <label class="env-option-card">
+                        <input type="checkbox" class="env-option-card__input" id="validateDbPool" checked/>
+                        <span class="env-option-card__check" aria-hidden="true"></span>
+                        <span class="env-option-card__body">
+                            <strong class="env-option-card__title">DB Session 한도</strong>
+                            <span class="env-option-card__hint">AP×Pool ≤ 한도</span>
+                        </span>
+                    </label>
+                </div>
+                <label class="env-input-card env-input-card--inline">
+                    <span class="env-input-card__label">DB Session 한도</span>
+                    <input type="number" class="env-input-card__control" id="dbSessionLimit" min="1" value="500"/>
+                </label>
+            </fieldset>
+            </details>
+
+            <div class="xcap-primary-action" id="xcapPrimaryAction">
+                <button type="submit" class="primary xcap-primary-action__btn" id="runBtn">② 전체 산정 실행</button>
+                <p class="xcap-primary-action__hint">CAP-020 TPS → CAP-030 AP → CAP-040 WAS → CAP-050 DB Pool을 한 번에 계산합니다.</p>
+            </div>
+            <details class="xcap-form-step xcap-form-step--advanced">
+                <summary>고급: 단계별 산정 · 초기화</summary>
+                <div class="xcap-form-step__body">
+            <div class="xcap-step-actions" role="group" aria-label="단계별 산정 실행">
+                <span class="xcap-step-actions__label">단계별만 실행</span>
+                <button type="button" class="secondary xcap-step-run" data-step="020">CAP-020</button>
+                <button type="button" class="secondary xcap-step-run" data-step="030">CAP-030</button>
+                <button type="button" class="secondary xcap-step-run" data-step="040">CAP-040</button>
+                <button type="button" class="secondary xcap-step-run" data-step="050">CAP-050</button>
+            </div>
+            <div class="actions wide xcap-form-actions">
+                <button type="button" class="secondary" id="resetBtn">초기화</button>
+                <button type="button" class="secondary" id="defaultsBtn">기본값 불러오기</button>
+            </div>
+                </div>
+            </details>
+        </form>
+
+        <div id="inputPreview" class="env-cap-summary env-cap-summary--empty" role="region" aria-label="입력 미리보기">
+            <p class="env-cap-summary__placeholder">「전체 산정 실행」 후 아래 ③ 결과 영역에 요약·표가 채워집니다.</p>
+        </div>
+    </section>
+
+    <div id="resultsPanel" class="xcap-results xcap-results--empty" aria-live="polite">
+        <div class="xcap-results-intro card">
+            <h2 class="xcap-results-intro__title">③ 산정 결과</h2>
+            <p>먼저 <strong>요약</strong>을 확인한 뒤, 상단 ②~⑤ 탭으로 단계별 표를 펼칩니다. 표 행을 클릭하면 Tomcat·Pool 권장값이 하단에 표시됩니다.</p>
+        </div>
+        <section class="card env-screen xcap-results-summary">
+            <div class="card-title row-title">
+                <div>
+                    <h2>결과 요약</h2>
+                    <p id="summaryLabel">—</p>
+                </div>
+                <div class="xcap-risk-pills" id="riskPills"></div>
+            </div>
+            <div class="xcap-final-pool-banner hidden" id="finalPoolPeakBanner" aria-live="polite">
+                <span class="xcap-final-pool-banner__label">최종 Pool/VM (피크)</span>
+                <strong class="xcap-final-pool-banner__value" id="finalPoolPerVmResults">—</strong>
+                <span class="xcap-final-pool-banner__sub">Hikari maximumPoolSize</span>
+            </div>
+            <div class="xcap-kpi-grid" id="kpiGrid"></div>
+            <div id="summaryDetail" class="env-cap-summary"></div>
+        </section>
+
+        <section class="card env-screen" id="capResultsSections">
+            <div class="card-title">
+                <h2>단계별 상세</h2>
+                <p>상단 ②~⑤를 누르면 해당 단계만 펼쳐집니다.</p>
+            </div>
+            <nav class="xcap-cap-jump" aria-label="CAP 단계 바로가기">
+                <a href="#cap020Section" class="xcap-cap-jump__link" data-step="020">② TPS</a>
+                <a href="#cap030Section" class="xcap-cap-jump__link" data-step="030">③ AP</a>
+                <a href="#cap040Section" class="xcap-cap-jump__link" data-step="040">④ WAS</a>
+                <a href="#cap050Section" class="xcap-cap-jump__link" data-step="050">⑤ DB</a>
+            </nav>
+
+            <details class="xcap-cap-all-collapse">
+                <summary>전체 시나리오 요약 표 (12건)</summary>
+                <p class="xcap-hint xcap-hint--summary">가용 TPS = 필요 AP × VM TPS(기준) = AP 대수 × VM 코어 × Core TPS — 목표 TPS 대비 AP 처리 여력 확인</p>
+                <div class="table-wrap">
+                    <table class="dump-report__table dump-report__table--data" id="tableAll">
+                        <thead>
+                        <tr>
+                            <th>요청률</th><th>응답</th><th>전체 사용자</th><th>실요청</th><th>TPS</th><th>TPMC</th>
+                            <th>Core</th><th>필요 AP</th>
+                            <th title="필요 AP × VM TPS = AP×코어×Core TPS">가용 TPS</th>
+                            <th>총Thread</th><th>maxThr</th>
+                            <th title="④ max(운영최소, ⑤) · ⑤=min(②,③)">Pool/VM</th><th>판정</th>
+                        </tr>
+                        </thead>
+                        <tbody id="bodyAll"></tbody>
+                    </table>
+                </div>
+            </details>
+
+            <article id="cap020Section" class="xcap-cap-section xcap-cap-section--collapsed" data-cap="020">
+                <header class="xcap-cap-section__head" role="button" tabindex="0" aria-expanded="false">
+                    <span class="xcap-cap-section__badge">②</span>
+                    <h3 class="xcap-cap-section__title">TPS · TPMC</h3>
+                    <button type="button" class="secondary xcap-step-run xcap-step-run--inline" data-step="020">이 단계 산정</button>
+                </header>
+                <div class="xcap-cap-section__body">
+                    <p id="tpsTabTpmcCondition" class="xcap-tpmc-condition-text xcap-tpmc-condition-text--tab" role="note">
+                        CAP-020 TPS 산정: 필요 TPMC = 목표 TPS × 1 TPS당 TPMC (조건 입력값 기준)
+                    </p>
+                    <div class="table-wrap">
+                        <table class="dump-report__table dump-report__table--data">
+                            <thead>
+                            <tr><th>요청률</th><th>응답(초)</th><th>실요청자</th><th>목표 TPS</th><th>필요 TPMC</th><th>필요 Core</th><th>판정</th></tr>
+                            </thead>
+                            <tbody id="bodyTps"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </article>
+
+            <article id="cap030Section" class="xcap-cap-section xcap-cap-section--collapsed" data-cap="030">
+                <header class="xcap-cap-section__head" role="button" tabindex="0" aria-expanded="false">
+                    <span class="xcap-cap-section__badge">③</span>
+                    <h3 class="xcap-cap-section__title">AP · DR (권장 대수)</h3>
+                    <button type="button" class="secondary xcap-step-run xcap-step-run--inline" data-step="030">이 단계 산정</button>
+                </header>
+                <div class="xcap-cap-section__body">
+                    <div class="table-wrap">
+                        <table class="dump-report__table dump-report__table--data">
+                            <thead>
+                            <tr><th>요청률</th><th>TPS</th><th>VM TPS</th><th>필요 AP</th><th>VM 프로파일</th><th>판정</th></tr>
+                            </thead>
+                            <tbody id="bodyAp"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </article>
+
+            <article id="cap040Section" class="xcap-cap-section xcap-cap-section--collapsed" data-cap="040">
+                <header class="xcap-cap-section__head" role="button" tabindex="0" aria-expanded="false">
+                    <span class="xcap-cap-section__badge">④</span>
+                    <h3 class="xcap-cap-section__title">WAS 실행 쓰레드 (Tomcat)</h3>
+                    <button type="button" class="secondary xcap-step-run xcap-step-run--inline" data-step="040">이 단계 산정</button>
+                </header>
+                <div class="xcap-cap-section__body">
+                    <div class="xcap-was-cards" id="wasCards"></div>
+                    <div class="table-wrap">
+                        <table class="dump-report__table dump-report__table--data">
+                            <thead>
+                            <tr>
+                                <th>요청률</th><th>TPS</th><th>점유(초)</th><th>여유율</th>
+                                <th>총 Thread</th><th>VM당</th><th>maxThreads</th><th>minSpare</th><th>accept</th><th>상태</th>
+                            </tr>
+                            </thead>
+                            <tbody id="bodyWas"></tbody>
+                        </table>
+                    </div>
+                    <p class="xcap-hint">산식: 총 Thread = TPS × 점유시간 × 여유율 · maxThreads = VM당 Thread × 배율</p>
+                </div>
+            </article>
+
+            <article id="cap050Section" class="xcap-cap-section xcap-cap-section--collapsed" data-cap="050">
+                <header class="xcap-cap-section__head" role="button" tabindex="0" aria-expanded="false">
+                    <span class="xcap-cap-section__badge">⑤</span>
+                    <h3 class="xcap-cap-section__title">DB Pool · Session</h3>
+                    <button type="button" class="secondary xcap-step-run xcap-step-run--inline" data-step="050">이 단계 산정</button>
+                </header>
+                <div class="xcap-cap-section__body">
+                    <div class="xcap-dbpool-formula xcap-dbpool-formula--compact" role="note">
+                        <p class="xcap-dbpool-formula__title">CAP-050 요약</p>
+                        <p class="xcap-dbpool-formula__compact-line">
+                            <strong>⑤</strong> = min(<strong>② 산출</strong>, <strong>③ 상한</strong>)
+                            · <strong>④ 배포</strong> = max(<strong>운영 최소</strong>, ⑤)
+                            · ② = AP TPS×DB점유×비율×안전 · ③ = Thread×DB%
+                        </p>
+                    </div>
+                    <div id="dbPoolPeakCard" class="xcap-dbpool-peak"></div>
+                    <div class="table-wrap xcap-table-final-pool">
+                        <table class="dump-report__table dump-report__table--data">
+                            <thead>
+                            <tr>
+                                <th>요청률</th><th>응답</th><th>① AP TPS</th><th>② 산출</th><th>③ 상한</th>
+                                <th>⑤ 용량</th><th class="xcap-col-final-pool">④ 배포</th>
+                                <th>DB Session 합</th><th>Thread/Pool</th><th>상태</th>
+                            </tr>
+                            </thead>
+                            <tbody id="bodyDb"></tbody>
+                        </table>
+                    </div>
+                    <p class="xcap-hint">
+                        <strong>산출</strong>: DB Connection 수(TPS 기반) ·
+                        <strong>상한</strong>: WAS Thread×DB% ·
+                        <strong>최종</strong>: Hikari <code>maximumPoolSize</code>
+                    </p>
+                </div>
+            </article>
+        </section>
+
+        <section class="card env-screen xcap-detail-card" id="detailCard">
+            <div class="card-title">
+                <h2>선택 시나리오 상세</h2>
+                <p id="detailTitle">표에서 행을 선택하세요.</p>
+            </div>
+            <div class="xcap-detail-grid" id="detailGrid">
+                <p class="env-cap-summary__placeholder">CAP-040 Tomcat 권장값 · CAP-050 Pool · 판정 사유</p>
+            </div>
+            <pre class="result-box xcap-yml-snippet" id="tomcatSnippet">server.tomcat.threads.max=—
+server.tomcat.threads.min-spare=—
+server.tomcat.threads.max-queue-capacity=—</pre>
+        </section>
+    </div>
+      <p class="env-screen-footer-hint">
+        <a href="/index.html#moduleSection">TCF UI 업무 모듈</a> ·
+        <a href="/oc/env-002.html">ENV-002 통합환경 산정</a>
+      </p>
+      </div>
+    </section>
+  </div>
+  <script src="/_shared/oc-capacity.js?v=20260711e"></script>
+</body>
+</html>

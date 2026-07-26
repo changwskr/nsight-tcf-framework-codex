@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nh.nsight.marketing.sv.persistence.mapper.SvCustomerMapper">
+
+    <!-- SQL_ID: SV.Customer.selectSummary / 화면: SV-CUS-0001 / 이벤트: SV-CUS-0001-E01 -->
+    <select id="selectCustomerSummary"
+            parameterType="com.nh.nsight.marketing.sv.application.dto.customer.CustomerSummaryCriteria"
+            resultType="com.nh.nsight.marketing.sv.persistence.dto.customer.CustomerSummaryRow"
+            timeout="3">
+        /* SQL_ID: SV.Customer.selectSummary */
+        SELECT
+              CUSTOMER_NO                    AS customerNo
+            , CUSTOMER_NAME                  AS customerName
+            , CUSTOMER_GRADE                 AS customerGrade
+            , BRANCH_CODE                    AS branchCode
+            , TOTAL_BALANCE                  AS totalBalance
+          FROM SV_CUSTOMER
+             WHERE CUSTOMER_NO = #{customerNo}
+    </select>
+
+</mapper>

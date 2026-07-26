@@ -1,0 +1,31 @@
+// LN 업무 서비스 (시범: 고객 연락처 조회)
+// 빌드: gradle :ln-service:bootWar
+// 실행: gradle :ln-service:bootRun  (포트 8103)
+
+plugins {
+    id 'org.springframework.boot'
+    id 'war'
+}
+
+dependencies {
+    implementation project(':tcf-util')
+    implementation project(':tcf-core')
+    implementation project(':tcf-web')
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation 'org.springframework.session:spring-session-jdbc'
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
+    runtimeOnly 'com.h2database:h2'
+    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+}
+
+bootWar {
+    archiveFileName = 'ln.war'
+}
+
+war {
+    archiveFileName = 'ln.war'
+}

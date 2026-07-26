@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 런타임·장애진단 워크스페이스</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+  <link rel="stylesheet" href="/_shared/om-runtime-dashboard.css?v=20260712d">
+  <link rel="stylesheet" href="/_shared/om-runtime-instance.css?v=20260712d">
+  <link rel="stylesheet" href="/_shared/om-runtime-workspace.css?v=20260712d">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260712d"></script>
+  <script src="/_shared/om-runtime.js?v=20260712d"></script>
+  <script src="/_shared/om-runtime-workspace.js?v=20260712d"></script>
+  <script>
+    OmAdmin.initPage('runtime-workspace', '런타임·장애진단', async (el) => {
+      await OmRuntimeWorkspace.init(el);
+    });
+  </script>
+</body>
+</html>

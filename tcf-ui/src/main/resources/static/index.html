@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NSIGHT TCF UI</title>
+  <script src="/_shared/ui-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css">
+</head>
+<body class="tcf-home">
+  <div class="tcf-main">
+    <header class="tcf-topbar">
+      <div class="tcf-topbar__brand">
+        <h1>NSIGHT TCF UI</h1>
+        <p>업무코드별 테스트 화면 · OC 용량·환경설정 산정 허브 (설계서 v1.1)</p>
+      </div>
+      <nav class="tcf-topbar__nav" aria-label="주요 섹션">
+        <a class="tcf-topbar__link tcf-topbar__link--active" href="#moduleSection">업무 모듈</a>
+        <a class="tcf-topbar__link" href="/oc/index.html">OC 포털</a>
+        <a class="tcf-topbar__link" href="/oc/capacity.html">OC 용량 산정</a>
+        <a class="tcf-topbar__link" href="/oc/cap-new/index.html">NEW 용량산정</a>
+        <a class="tcf-topbar__link" href="/oc/env-001.html">OC ENV</a>
+        <a class="tcf-topbar__link" href="/help.html">HELP</a>
+        <span class="badge">TCF</span>
+      </nav>
+    </header>
+
+    <section id="moduleSection" class="tcf-section tcf-section--hub">
+      <div class="tcf-section__head">
+        <h2>업무 모듈</h2>
+        <p>업무코드별 단일·다중 거래 테스트 화면으로 이동합니다. OC 모듈은 용량 산정·통합환경 ENV 화면을 제공합니다.</p>
+      </div>
+      <div class="hub-grid" id="moduleGrid">
+        <div class="empty">업무 목록을 불러오는 중...</div>
+      </div>
+    </section>
+  </div>
+  <script>
+    const OC_LINKS = [
+      { href: '/oc/index.html', label: 'OC 포털 (용량·ENV 안내)' },
+      { href: '/oc/capacity.html', label: '용량 산정 (CAP-010~050)' },
+      { href: '/oc/cap-new/index.html', label: 'NEW 용량산정 (8단계 Wizard)' },
+      { href: '/oc/cap-new/compare.html', label: 'NEW 시나리오 비교' },
+      { href: '/oc/cap-new/approved.html', label: 'NEW 승인 기준안' },
+      { href: '/oc/env-001.html', label: 'ENV-001 대시보드' },
+      { href: '/oc/env-002.html', label: 'ENV-002 산정 조건' },
+      { href: '/oc/env-003.html', label: 'ENV-003 TPS·VM 결과' },
+      { href: '/oc/env-004.html', label: 'ENV-004 계층별 점검' },
+      { href: '/oc/check.html', label: '종합 보고서' },
+      { href: '/oc/rule-check.html', label: 'Rule 점검 (SC-002/004/007/008/009)' }
+    ];
+
+    function uiUrl(path) {
+      return typeof window.nsightUiUrl === 'function' ? window.nsightUiUrl(path) : path;
+    }
+
+    function renderOcCard(module) {
+      const links = OC_LINKS.map(item =>
+        `<a href="${uiUrl(item.href)}">${item.label}</a>`
+      ).join('');
+      return `
+        <article class="hub-card hub-card--featured hub-card--oc">
+          <h2>OC <span class="group-tag">${module.group}</span></h2>
+          <p>${module.name} · port ${module.localPort}</p>
+          <div class="links links--stack">${links}</div>
+        </article>
+      `;
+    }
+
+    function renderModuleCard(module) {
+      const code = module.code;
+      const lower = code.toLowerCase();
+      const omAdminLink = code === 'OM'
+        ? `<a href="${uiUrl(`/${lower}/admin/dashboard.html`)}">운영관리 포털</a>`
+        : '';
+      const jwtAdminLink = code === 'JWT'
+        ? `<a href="${uiUrl(`/${lower}/admin/token.html`)}">JWT 인증 포털</a>`
+        : '';
+      const updownloadLink = code === 'UD'
+        ? `<a href="${uiUrl(`/${lower}/updownload.html`)}">파일 관리</a>`
+        : '';
+      const ebUserLink = code === 'EB'
+        ? `<a href="${uiUrl(`/${lower}/user-management.html`)}">사용자 관리</a>`
+        : '';
+      const ebEventLink = code === 'EB'
+        ? `<a href="${uiUrl(`/${lower}/event-monitor.html`)}">이벤트·배치 모니터</a>`
+        : '';
+      const ebSystemTxLink = code === 'EB'
+        ? `<a href="${uiUrl(`/${lower}/system-tx-status.html`)}">시스템 거래 현황(19410)</a>`
+        : '';
+      const svSampleLink = code === 'SV'
+        ? `<a href="${uiUrl(`/${lower}/sample-list.html`)}">샘플 목록 (페이징)</a>`
+        : '';
+      const lnContactLink = code === 'LN'
+        ? `<a href="${uiUrl(`/${lower}/contact-list.html`)}">고객연락처 목록</a>`
+        : '';
+      return `
+        <article class="hub-card">
+          <h2>${code} <span class="group-tag">${module.group}</span></h2>
+          <p>${module.name} · port ${module.localPort}</p>
+          <div class="links">
+            <a href="${uiUrl(`/${lower}/index.html`)}">단일 서비스 테스트</a>
+            <a href="${uiUrl(`/${lower}/index-multi.html`)}">다중 서비스 테스트</a>
+            ${omAdminLink}
+            ${jwtAdminLink}
+            ${updownloadLink}
+            ${ebUserLink}
+            ${ebEventLink}
+            ${ebSystemTxLink}
+            ${svSampleLink}
+            ${lnContactLink}
+          </div>
+        </article>
+      `;
+    }
+
+    async function initModules() {
+      const response = await fetch(uiUrl('/api/business-modules'));
+      const modules = await response.json();
+      const grid = document.getElementById('moduleGrid');
+      grid.innerHTML = modules.map(module =>
+        module.code === 'OC' ? renderOcCard(module) : renderModuleCard(module)
+      ).join('');
+    }
+
+    initModules().catch(error => {
+      if (window.NsightErrorPopup) {
+        NsightErrorPopup.show(NsightErrorPopup.fromError(error, { systemNote: 'TCF UI 홈' }));
+      } else {
+        alert('업무 목록 로드 실패: ' + error.message);
+      }
+    });
+
+    if (!location.hash) {
+      const base = location.pathname.endsWith('index.html') ? location.pathname : '/index.html';
+      history.replaceState(null, '', base + '#moduleSection');
+    }
+
+    document.querySelectorAll('.tcf-topbar__link[href^="#"]').forEach(link => {
+      link.addEventListener('click', () => {
+        document.querySelectorAll('.tcf-topbar__link').forEach(el => el.classList.remove('tcf-topbar__link--active'));
+        link.classList.add('tcf-topbar__link--active');
+      });
+    });
+  </script>
+</body>
+</html>

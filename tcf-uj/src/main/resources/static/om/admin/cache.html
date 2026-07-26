@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM Cache 관리</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260627c"></script>
+  <script>
+    let cacheNames = [];
+    let codeGroups = [];
+
+    function isCommonCodeCache(name) {
+      return name === 'commonCode';
+    }
+
+    function syncCacheKeyFilter() {
+      const cacheName = document.getElementById('filterName').value.trim();
+      const keyField = document.getElementById('filterKeyField');
+      const keySelect = document.getElementById('filterKey');
+      const show = isCommonCodeCache(cacheName);
+      keyField.hidden = !show;
+      if (!show) {
+        keySelect.value = '';
+      }
+    }
+
+    function readFilters() {
+      const body = {};
+      const cacheName = document.getElementById('filterName').value.trim();
+      const cacheKey = document.getElementById('filterKey').value.trim();
+      if (cacheName) body.cacheName = cacheName;
+      if (cacheKey) body.cacheKey = cacheKey;
+      return body;
+    }
+
+    function formatCacheName(name) {
+      return OmAdmin.formatCodeLabel(cacheNames, name);
+    }
+
+    function formatCacheKey(row) {
+      const cacheName = OmAdmin.field(row, 'cacheName', '');
+      const cacheKey = OmAdmin.field(row, 'cacheKey', '');
+      if (cacheName === 'commonCode' && cacheKey !== '*') {
+        return OmAdmin.formatCodeLabel(codeGroups, cacheKey);
+      }
+      return cacheKey;
+    }
+
+    async function loadCommonCodePreview(codeGroup, el) {
+      const statusEl = document.getElementById('codePreviewStatus');
+      const tbody = document.getElementById('codePreviewBody');
+      if (!codeGroup) {
+        statusEl.textContent = '코드그룹을 선택하세요.';
+        tbody.innerHTML = '<tr><td colspan="5" class="om-empty">코드그룹을 선택 후 로딩하세요.</td></tr>';
+        return;
+      }
+      statusEl.textContent = 'EhCache 조회 중...';
+      tbody.innerHTML = '<tr><td colspan="5" class="om-empty">로딩 중...</td></tr>';
+      try {
+        const rows = await OmAdmin.loadCommonCodes(codeGroup, { useYn: 'Y' });
+        statusEl.textContent = `${codeGroup} · ${rows.length}건 · EhCache/브라우저 캐시 · commonCode/${codeGroup}`;
+        if (!rows.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="om-empty">해당 코드그룹에 공통코드가 없습니다.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = rows.map(r => `
+          <tr>
+            <td class="om-mono">${OmAdmin.field(r, 'code')}</td>
+            <td>${OmAdmin.field(r, 'codeName')}</td>
+            <td>${OmAdmin.field(r, 'sortOrder')}</td>
+            <td>${OmAdmin.field(r, 'useYn')}</td>
+            <td>${OmAdmin.field(r, 'description')}</td>
+          </tr>`).join('');
+      } catch (e) {
+        statusEl.textContent = '로딩 실패';
+        tbody.innerHTML = `<tr><td colspan="5" class="om-empty">${e.message}</td></tr>`;
+        OmAdmin.showErrorBanner(el, e.message);
+      }
+    }
+
+    async function loadCacheList(el) {
+      const statusEl = document.getElementById('listStatus');
+      const tbody = document.getElementById('cacheBody');
+      statusEl.textContent = '조회 중...';
+      tbody.innerHTML = '<tr><td colspan="7" class="om-empty">조회 중...</td></tr>';
+
+      const { body: data, relay } = await OmAdmin.inquiry('cache', readFilters());
+      const rows = data.rows || [];
+      const sourceLabel = data.fromEhCache ? 'EhCache' : 'DB(OM_CACHE_STATUS)';
+      statusEl.textContent = `${relay.elapsedMs}ms · ${rows.length}건 · ${sourceLabel}`;
+
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="om-empty">Cache 없음</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map(r => `
+        <tr class="om-row-selectable" data-name="${OmAdmin.field(r, 'cacheName')}" data-key="${OmAdmin.field(r, 'cacheKey')}">
+          <td class="om-mono">${formatCacheName(OmAdmin.field(r, 'cacheName'))}</td>
+          <td class="om-mono">${formatCacheKey(r)}</td>
+          <td>${OmAdmin.field(r, 'entryCount')}</td>
+          <td>${OmAdmin.field(r, 'ttlSec')}초</td>
+          <td class="om-mono">${OmAdmin.field(r, 'lastUpdated')}</td>
+          <td>
+            ${isCommonCodeCache(OmAdmin.field(r, 'cacheName')) && OmAdmin.field(r, 'cacheKey') !== '*'
+              ? '<button type="button" class="btn-secondary btn-preview">코드 로딩</button>'
+              : ''}
+          </td>
+          <td><button type="button" class="btn-secondary btn-del">삭제</button></td>
+        </tr>`).join('');
+
+      tbody.querySelectorAll('tr.om-row-selectable').forEach(tr => {
+        tr.addEventListener('click', () => {
+          tbody.querySelectorAll('tr.om-row-selected').forEach(r => r.classList.remove('om-row-selected'));
+          tr.classList.add('om-row-selected');
+        });
+        tr.querySelector('.btn-preview')?.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const codeGroup = tr.dataset.key;
+          document.getElementById('previewGroup').value = codeGroup;
+          await loadCommonCodePreview(codeGroup, el);
+        });
+        tr.querySelector('.btn-del')?.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const reason = prompt('삭제 사유 (5자 이상):');
+          if (!reason || reason.length < 5) return;
+          try {
+            await OmAdmin.mutate('cacheDelete', {
+              cacheName: tr.dataset.name,
+              cacheKey: tr.dataset.key,
+              deleteReason: reason
+            }, 'DELETE');
+            alert('삭제 완료');
+            await loadCacheList(el);
+          } catch (err) { alert(err.message); }
+        });
+      });
+    }
+
+    async function loadCombos(el) {
+      cacheNames = await OmAdmin.loadCommonCodes('CACHE_NAME', { useYn: 'Y' });
+      if (!cacheNames.length) {
+        cacheNames = [
+          { code: 'commonCode', codeName: '공통코드' },
+          { code: 'serviceCatalog', codeName: 'ServiceId 카탈로그' },
+          { code: 'sessionRegion', codeName: '세션 영역' }
+        ];
+      }
+      OmAdmin.fillCodeSelect(document.getElementById('filterName'), cacheNames, {
+        includeAll: true,
+        allLabel: '전체'
+      });
+      codeGroups = await OmAdmin.loadCodeGroups({ useYn: 'Y' });
+      OmAdmin.fillCodeSelect(document.getElementById('filterKey'), codeGroups, {
+        includeAll: true,
+        allLabel: '전체'
+      });
+      OmAdmin.fillCodeSelect(document.getElementById('previewGroup'), codeGroups, {
+        includeAll: true,
+        allLabel: '코드그룹 선택'
+      });
+      syncCacheKeyFilter();
+    }
+
+    OmAdmin.initPage('cache', 'Cache 관리', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">Cache 현황은 EhCache(JCache) 스냅샷을 표시합니다. commonCode Cache 키는 코드그룹(BUSINESS_CODE 등)이며, 「공통코드 로딩」 시 @Cacheable로 EhCache에서 조회합니다. 등록/수정/삭제 시 해당 그룹 Cache가 자동 evict 됩니다.</div>
+        <section class="om-filter-bar">
+          <div class="field"><label for="filterName">Cache명</label><select id="filterName"></select></div>
+          <div class="field" id="filterKeyField" hidden><label for="filterKey">코드그룹(Key)</label><select id="filterKey"></select></div>
+          <div class="actions" style="display:flex;gap:8px;align-items:end">
+            <button class="btn-primary" id="searchBtn" type="button">조회</button>
+            <button class="btn-secondary" id="resetBtn" type="button">초기화</button>
+          </div>
+        </section>
+
+        <div style="margin-bottom:10px;color:var(--muted);font-size:0.85rem" id="listStatus">-</div>
+        <div class="om-card"><div class="om-card-head">Cache 현황</div><div class="om-card-body om-table-wrap">
+          <table class="om-table"><thead><tr>
+            <th>Cache</th><th>Key</th><th>건수</th><th>TTL</th><th>갱신</th><th>공통코드</th><th></th>
+          </tr></thead>
+          <tbody id="cacheBody"><tr><td colspan="7" class="om-empty">조회 버튼을 누르세요.</td></tr></tbody></table>
+        </div></div>
+
+        <div class="om-card" style="margin-top:16px">
+          <div class="om-card-head">공통코드 EhCache 로딩</div>
+          <div class="om-card-body">
+            <section class="om-filter-bar" style="margin-bottom:12px">
+              <div class="field"><label for="previewGroup">코드그룹</label><select id="previewGroup"></select></div>
+              <div class="actions" style="display:flex;gap:8px;align-items:end">
+                <button class="btn-primary" id="loadCodeBtn" type="button">공통코드 로딩</button>
+              </div>
+            </section>
+            <div style="margin-bottom:10px;color:var(--muted);font-size:0.85rem" id="codePreviewStatus">코드그룹을 선택하세요.</div>
+            <div class="om-table-wrap">
+              <table class="om-table"><thead><tr>
+                <th>코드</th><th>명칭</th><th>정렬</th><th>사용</th><th>설명</th>
+              </tr></thead>
+              <tbody id="codePreviewBody"><tr><td colspan="5" class="om-empty">코드그룹을 선택 후 로딩하세요.</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>`;
+
+      await loadCombos(el);
+      document.getElementById('filterName').addEventListener('change', syncCacheKeyFilter);
+      document.getElementById('searchBtn').addEventListener('click', () =>
+        loadCacheList(el).catch(e => OmAdmin.showErrorBanner(el, e.message)));
+      document.getElementById('resetBtn').addEventListener('click', () => {
+        document.getElementById('filterName').value = '';
+        document.getElementById('filterKey').value = '';
+        syncCacheKeyFilter();
+      });
+      document.getElementById('loadCodeBtn').addEventListener('click', () => {
+        const codeGroup = document.getElementById('previewGroup').value.trim();
+        loadCommonCodePreview(codeGroup, el);
+      });
+
+      await loadCacheList(el).catch(e => OmAdmin.showErrorBanner(el, e.message));
+    });
+  </script>
+</body>
+</html>

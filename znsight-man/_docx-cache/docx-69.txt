@@ -1,0 +1,469 @@
+74. 외부 서비스 호출 샘플
+74.1 도입 전 안내말
+NSIGHT TCF에서 외부 서비스 호출은 업무 로직 중간에 임의로 WebClient, RestTemplate, HttpURLConnection을 직접 사용하는 방식으로 개발하면 안 된다.
+외부 서비스 호출은 다음 기준으로 표준화한다.
+Handler
+  ↓
+Facade
+  ↓
+Service
+  ↓
+Integration Adapter / External Client
+  ↓
+외부 서비스
+
+NSIGHT 전처리·후처리 기준에서도 업무 처리 계층에 Integration Adapter가 포함되어 있고, 전문, GUID, 인증, 권한, 오류, 로그, 감사, Timeout, 모니터링을 공통기능으로 요구한다. 또한 NSIGHT TCF 구조는 POST /{businessCode}/online, header.serviceId, STF → Dispatcher → ETF, Handler → Facade → Service → Rule → DAO/Mapper 흐름을 기준으로 한다.
+
+74.2 외부 서비스 호출 기준
+구분
+기준
+호출 위치
+Service 또는 Integration Adapter
+금지 위치
+Controller, Handler, DAO, Mapper
+호출 방식
+Spring WebClient 기준
+Timeout
+기본 3초, 서비스별 조정
+Header 전달
+GUID, TraceId, ServiceId, UserId, BranchId, ChannelId
+오류 처리
+외부 오류를 NSIGHT 표준 오류코드로 변환
+로그
+호출 URL, 대상 시스템, 처리시간, 결과코드 기록
+트랜잭션
+외부 서비스 호출을 DB 트랜잭션과 강하게 묶지 않음
+Retry
+조회성 거래만 제한적으로 허용
+저장/변경 연동
+Outbox, 이벤트, 보상처리 검토
+핵심 원칙은 다음이다.
+외부 서비스는 업무 Service에서 직접 호출하지 않고, 반드시 External Client 또는 Integration Adapter를 통해 호출한다.
+
+74.3 외부 서비스 호출 구조
+[SV.Customer.selectSummary Handler]
+        ↓
+[SvCustomerFacade]
+        ↓
+[SvCustomerService]
+        ↓
+[SvCustomerExternalAdapter]
+        ↓
+[ExternalCustomerClient]
+        ↓
+HTTP / JSON
+        ↓
+[외부 고객등급 서비스]
+
+예를 들어 SV 고객요약조회 중 외부 고객등급 서비스를 호출한다면 다음처럼 분리한다.
+계층
+클래스
+역할
+Handler
+SvCustomerSummaryHandler
+TCF 요청 수신 후 Facade 호출
+Facade
+SvCustomerFacade
+조회 유스케이스 조립
+Service
+SvCustomerService
+고객요약 처리 흐름
+Adapter
+SvCustomerExternalAdapter
+외부 호출 업무 단위 캡슐화
+Client
+ExternalCustomerGradeClient
+실제 HTTP 호출
+DTO
+CustomerGradeRequest, CustomerGradeResponse
+외부 전문 구조
+
+74.4 application.yml 예시
+nsight:
+  external:
+    default-connect-timeout-ms: 1000
+    default-read-timeout-ms: 3000
+    services:
+      customer-grade:
+        system-id: EXT-CUSTOMER
+        base-url: http://external-customer-api.internal:8080
+        path: /api/v1/customer/grade
+        connect-timeout-ms: 1000
+        read-timeout-ms: 3000
+        retry-count: 0
+      credit-score:
+        system-id: EXT-CREDIT
+        base-url: http://external-credit-api.internal:8080
+        path: /api/v1/credit/score
+        connect-timeout-ms: 1000
+        read-timeout-ms: 3000
+        retry-count: 1
+
+운영 기준은 다음과 같이 잡는다.
+항목
+권장값
+설명
+Connect Timeout
+1초
+외부 서비스 접속 지연 차단
+Read Timeout
+3초
+온라인 거래 지연 방지
+Retry Count
+0~1회
+조회성 거래만 제한 허용
+전체 온라인 Timeout
+5초 이내
+TCF 거래 Timeout과 정합성 유지
+오류코드 Prefix
+E-TCF-IF-*
+외부 연계 오류 표준화
+
+74.5 외부 서비스 설정 클래스
+@Getter
+@Setter
+@ConfigurationProperties(prefix = "nsight.external")
+public class ExternalServiceProperties {
+
+    private int defaultConnectTimeoutMs = 1000;
+    private int defaultReadTimeoutMs = 3000;
+
+    private Map<String, ExternalService> services = new HashMap<>();
+
+    @Getter
+    @Setter
+    public static class ExternalService {
+        private String systemId;
+        private String baseUrl;
+        private String path;
+        private int connectTimeoutMs;
+        private int readTimeoutMs;
+        private int retryCount;
+    }
+
+    public ExternalService getService(String serviceName) {
+        ExternalService service = services.get(serviceName);
+
+        if (service == null) {
+            throw new IllegalArgumentException("외부 서비스 설정이 없습니다. serviceName=" + serviceName);
+        }
+
+        return service;
+    }
+}
+
+
+74.6 외부 서비스 요청 DTO
+@Getter
+@Builder
+public class CustomerGradeRequest {
+
+    private String customerNo;
+    private String requestReason;
+    private String userId;
+    private String branchId;
+}
+
+
+74.7 외부 서비스 응답 DTO
+@Getter
+@Setter
+public class CustomerGradeResponse {
+
+    private String resultCode;
+    private String resultMessage;
+    private String customerNo;
+    private String customerGrade;
+    private String gradeDate;
+
+    public boolean isSuccess() {
+        return "SUCCESS".equals(resultCode) || "0000".equals(resultCode);
+    }
+}
+
+
+74.8 외부 서비스 Client 샘플
+@Component
+@RequiredArgsConstructor
+public class ExternalCustomerGradeClient {
+
+    private final WebClient.Builder webClientBuilder;
+    private final ExternalServiceProperties externalServiceProperties;
+
+    public CustomerGradeResponse inquiryCustomerGrade(CustomerGradeRequest request) {
+
+        ExternalServiceProperties.ExternalService service =
+                externalServiceProperties.getService("customer-grade");
+
+        WebClient webClient = webClientBuilder
+                .baseUrl(service.getBaseUrl())
+                .build();
+
+        try {
+            CustomerGradeResponse response = webClient.post()
+                    .uri(service.getPath())
+                    .header("Content-Type", "application/json")
+                    .header("X-GUID", TraceContext.getGuid())
+                    .header("X-Trace-Id", TraceContext.getTraceId())
+                    .header("X-Service-Id", TraceContext.getServiceId())
+                    .header("X-User-Id", TraceContext.getUserId())
+                    .header("X-Branch-Id", TraceContext.getBranchId())
+                    .bodyValue(request)
+                    .retrieve()
+                    .bodyToMono(CustomerGradeResponse.class)
+                    .timeout(Duration.ofMillis(service.getReadTimeoutMs()))
+                    .block();
+
+            if (response == null) {
+                throw new IntegrationException(
+                        "E-TCF-IF-0003",
+                        "외부 서비스 응답이 없습니다."
+                );
+            }
+
+            if (!response.isSuccess()) {
+                throw new IntegrationBusinessException(
+                        "E-TCF-IF-0004",
+                        "외부 서비스 업무 오류가 발생했습니다.",
+                        response.getResultCode(),
+                        response.getResultMessage()
+                );
+            }
+
+            return response;
+
+        } catch (TimeoutException e) {
+            throw new IntegrationTimeoutException(
+                    "E-TCF-IF-0001",
+                    "외부 서비스 응답이 지연되었습니다.",
+                    e
+            );
+
+        } catch (WebClientRequestException e) {
+            throw new IntegrationException(
+                    "E-TCF-IF-0002",
+                    "외부 서비스에 연결할 수 없습니다.",
+                    e
+            );
+
+        } catch (WebClientResponseException e) {
+            throw new IntegrationException(
+                    "E-TCF-IF-0005",
+                    "외부 서비스 HTTP 오류가 발생했습니다. status=" + e.getStatusCode(),
+                    e
+            );
+        }
+    }
+}
+
+
+74.9 Integration Adapter 샘플
+외부 Client를 업무 Service에서 바로 호출하지 않고, 업무 의미를 가진 Adapter로 한 번 감싼다.
+@Component
+@RequiredArgsConstructor
+public class SvCustomerExternalAdapter {
+
+    private final ExternalCustomerGradeClient externalCustomerGradeClient;
+
+    public String inquiryCustomerGrade(String customerNo) {
+
+        CustomerGradeRequest request = CustomerGradeRequest.builder()
+                .customerNo(customerNo)
+                .requestReason("SV 고객요약조회")
+                .userId(TraceContext.getUserId())
+                .branchId(TraceContext.getBranchId())
+                .build();
+
+        CustomerGradeResponse response =
+                externalCustomerGradeClient.inquiryCustomerGrade(request);
+
+        return response.getCustomerGrade();
+    }
+}
+
+
+74.10 업무 Service에서 외부 서비스 호출
+@Service
+@RequiredArgsConstructor
+public class SvCustomerService {
+
+    private final SvCustomerDao svCustomerDao;
+    private final SvCustomerExternalAdapter svCustomerExternalAdapter;
+
+    public SvCustomerSummaryResponse selectCustomerSummary(String customerNo) {
+
+        // 1. RDW 고객 기본정보 조회
+        SvCustomerInfo customerInfo =
+                svCustomerDao.selectCustomerInfo(customerNo);
+
+        // 2. 외부 고객등급 서비스 호출
+        String customerGrade =
+                svCustomerExternalAdapter.inquiryCustomerGrade(customerNo);
+
+        // 3. 응답 조립
+        return SvCustomerSummaryResponse.builder()
+                .customerNo(customerNo)
+                .customerName(customerInfo.getCustomerName())
+                .customerGrade(customerGrade)
+                .totalBalance(customerInfo.getTotalBalance())
+                .lastTransactionDate(customerInfo.getLastTransactionDate())
+                .build();
+    }
+}
+
+
+74.11 Handler 샘플
+@Component
+@RequiredArgsConstructor
+public class SvCustomerSummaryHandler implements TransactionHandler {
+
+    private final SvCustomerFacade svCustomerFacade;
+
+    @Override
+    public String serviceId() {
+        return "SV.Customer.selectSummary";
+    }
+
+    @Override
+    public Object handle(StandardRequest request) {
+
+        SvCustomerSummaryRequest body =
+                request.getBodyAs(SvCustomerSummaryRequest.class);
+
+        return svCustomerFacade.selectCustomerSummary(body.getCustomerNo());
+    }
+}
+
+Handler는 외부 서비스를 직접 호출하지 않는다.
+Handler 역할
+= StandardRequest Body 변환
++ Facade 호출
+
+Handler 금지
+= WebClient 직접 호출
++ DB 직접 접근
++ 외부 오류 직접 응답 조립
+
+
+74.12 오류 처리 기준
+오류 상황
+표준 오류코드
+처리 기준
+외부 서비스 Timeout
+E-TCF-IF-0001
+연계 Timeout 예외
+외부 서비스 Down
+E-TCF-IF-0002
+시스템 예외
+외부 응답 없음
+E-TCF-IF-0003
+응답 전문 오류
+외부 업무 실패
+E-TCF-IF-0004
+업무 예외 변환
+HTTP 4xx/5xx
+E-TCF-IF-0005
+시스템 예외
+응답 파싱 실패
+E-TCF-MSG-0001
+전문 변환 오류
+외부 오류는 사용자에게 기술 상세를 그대로 노출하지 않는다. 최종 응답은 ETF 후처리에서 표준 오류코드와 사용자 메시지로 변환한다. NSIGHT 전처리·후처리 기준도 예외 발생 시 표준 오류코드와 사용자 메시지로 변환하고, 사용자 메시지와 운영 상세 메시지를 분리하도록 요구한다.
+
+74.13 외부 호출 로그 예시
+2026-07-05 10:15:20.123 INFO
+[guid=GUID-20260705-000001]
+[traceId=TRC-20260705-000001]
+[userId=U12345]
+[serviceId=SV.Customer.selectSummary]
+[targetSystem=EXT-CUSTOMER]
+[targetApi=/api/v1/customer/grade]
+[elapsedMs=320]
+[resultCode=SUCCESS]
+message="external service call completed"
+
+기록해야 할 항목은 다음과 같다.
+항목
+설명
+guid
+End-to-End 거래 추적 ID
+traceId
+애플리케이션 내부 추적 ID
+callerServiceId
+외부 호출을 수행한 NSIGHT ServiceId
+targetSystemId
+외부 시스템 ID
+targetApi
+외부 API 경로
+elapsedMs
+외부 호출 소요시간
+resultCode
+외부 호출 결과
+errorCode
+오류 발생 시 표준 오류코드
+
+74.14 Retry 적용 기준
+거래 유형
+Retry 여부
+기준
+단순 조회
+제한 허용
+1회 이하
+고객정보 조회
+제한 허용
+멱등성이 보장될 때만
+등록/변경/삭제
+원칙 금지
+중복 처리 위험
+결재/승인/이벤트 발행
+금지
+처리상태 불명확 위험
+Timeout 후 재호출
+주의
+거래상태 확인 후 판단
+Retry를 적용하더라도 전체 TCF 온라인 Timeout을 넘지 않도록 해야 한다.
+나쁜 예:
+외부 readTimeout 3초 × retry 3회 = 최대 9초
+
+좋은 예:
+외부 readTimeout 2초 × retry 1회 = 최대 4초 이내
+
+
+74.15 최종 개발 기준
+구분
+개발 기준
+외부 호출 모듈
+client 또는 integration 패키지
+실제 HTTP 호출
+ExternalXXXClient
+업무 의미 캡슐화
+XXXExternalAdapter
+호출 위치
+Service 또는 Facade
+Header 전달
+GUID, TraceId, UserId, BranchId, ChannelId
+Timeout
+기본 3초
+Retry
+조회성 거래만 제한 허용
+오류 변환
+IntegrationException 계열로 변환
+응답 조립
+ETF 후처리에서 표준 응답 조립
+로그
+호출 시작/종료, 처리시간, 결과코드 기록
+보안
+개인정보, 토큰, 외부 상세 오류 로그 마스킹
+
+74.16 마무리말
+외부 서비스 호출은 단순한 HTTP 호출이 아니라 NSIGHT 온라인 거래의 일부이다. 따라서 외부 호출도 TCF의 GUID, TraceId, Timeout, 오류코드, 거래로그, 감사로그 기준 안에서 관리되어야 한다.
+정리하면 다음 기준을 지켜야 한다.
+외부 서비스 호출 표준
+= Service / Facade
+  → Integration Adapter
+  → External Client
+  → WebClient
+  → Timeout / Error Mapping / Log
+  → ETF 표준 응답
+
+외부 서비스 호출을 이 구조로 통일하면 장애 발생 시 “어떤 ServiceId가 어떤 외부 시스템을 호출했고, 몇 ms가 걸렸고, 어떤 오류가 발생했는지”를 GUID 기준으로 추적할 수 있다.
+

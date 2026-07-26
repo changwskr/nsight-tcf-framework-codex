@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM ServiceId 관리</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260627c"></script>
+  <script>
+    const PAGE_SIZE = 10;
+    let currentPage = 1;
+    let editMode = false;
+    let businessCodes = [];
+    let authCodes = [];
+
+    function defaultBusinessCode() {
+      if (!businessCodes.length) return '';
+      const om = businessCodes.find(r => OmAdmin.field(r, 'code') === 'OM');
+      return om ? 'OM' : OmAdmin.field(businessCodes[0], 'code', '');
+    }
+
+    function setSelectValue(selectEl, value, codes, options) {
+      const opts = options || {};
+      OmAdmin.fillCodeSelect(selectEl, codes, { ...opts, selected: value || '' });
+      if (opts.placeholder) {
+        selectEl.insertAdjacentHTML('afterbegin', `<option value="">${opts.placeholder}</option>`);
+        selectEl.value = value || '';
+      }
+      if (value && selectEl.value !== value) {
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = `${value} (미등록)`;
+        selectEl.appendChild(opt);
+        selectEl.value = value;
+      }
+    }
+
+    async function loadCodeCombos() {
+      businessCodes = await OmAdmin.loadCommonCodes('BUSINESS_CODE', { useYn: 'Y' });
+      if (!businessCodes.length) {
+        throw new Error('BUSINESS_CODE 공통코드가 없습니다. 공통코드 관리에서 등록하세요.');
+      }
+      authCodes = await OmAdmin.loadCommonCodes('AUTH_CODE', { useYn: 'Y' });
+      if (!authCodes.length) {
+        throw new Error('AUTH_CODE 공통코드가 없습니다. 공통코드 관리에서 등록하세요.');
+      }
+      OmAdmin.fillCodeSelect(document.getElementById('filterBusinessCode'), businessCodes, {
+        includeAll: true,
+        selected: ''
+      });
+      setSelectValue(document.getElementById('fBusinessCode'), defaultBusinessCode(), businessCodes);
+      setSelectValue(document.getElementById('fAuthCode'), '', authCodes, { placeholder: '권한 선택' });
+    }
+
+    function readFilters() {
+      const v = id => document.getElementById(id).value.trim();
+      const f = { pageNo: currentPage, pageSize: PAGE_SIZE };
+      if (v('filterBusinessCode')) f.businessCode = v('filterBusinessCode');
+      if (v('filterServiceId')) f.serviceId = v('filterServiceId');
+      if (v('filterUseYn')) f.useYn = v('filterUseYn');
+      return f;
+    }
+
+    function clearForm() {
+      editMode = false;
+      document.getElementById('fCatalogId').readOnly = false;
+      document.getElementById('fServiceId').readOnly = false;
+      ['fCatalogId', 'fServiceId', 'fTransactionCode', 'fHandlerClass', 'fDescription', 'fReason'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      setSelectValue(document.getElementById('fBusinessCode'), defaultBusinessCode(), businessCodes);
+      setSelectValue(document.getElementById('fAuthCode'), '', authCodes, { placeholder: '권한 선택' });
+      document.getElementById('fProcessingType').value = 'INQUIRY';
+      document.getElementById('fAuditYn').value = 'N';
+      document.getElementById('fUseYn').value = 'Y';
+      document.getElementById('fTimeoutSec').value = '5';
+      document.getElementById('formMode').textContent = '신규 등록';
+    }
+
+    function fillForm(row) {
+      editMode = true;
+      document.getElementById('fCatalogId').value = OmAdmin.field(row, 'catalogId', '');
+      setSelectValue(document.getElementById('fBusinessCode'), OmAdmin.field(row, 'businessCode', ''), businessCodes);
+      document.getElementById('fServiceId').value = OmAdmin.field(row, 'serviceId', '');
+      document.getElementById('fTransactionCode').value = OmAdmin.field(row, 'transactionCode', '');
+      document.getElementById('fProcessingType').value = OmAdmin.field(row, 'processingType', 'INQUIRY');
+      document.getElementById('fHandlerClass').value = OmAdmin.field(row, 'handlerClass', '');
+      setSelectValue(document.getElementById('fAuthCode'), OmAdmin.field(row, 'authCode', ''), authCodes, {
+        placeholder: '권한 선택'
+      });
+      document.getElementById('fAuditYn').value = OmAdmin.field(row, 'auditYn', 'N');
+      document.getElementById('fTimeoutSec').value = OmAdmin.field(row, 'timeoutSec', '5');
+      document.getElementById('fUseYn').value = OmAdmin.field(row, 'useYn', 'Y');
+      document.getElementById('fDescription').value = OmAdmin.field(row, 'description', '');
+      document.getElementById('fCatalogId').readOnly = true;
+      document.getElementById('fServiceId').readOnly = false;
+      document.getElementById('formMode').textContent = '수정 / 삭제';
+    }
+
+    function formPayload() {
+      return {
+        catalogId: document.getElementById('fCatalogId').value.trim(),
+        businessCode: document.getElementById('fBusinessCode').value.trim(),
+        serviceId: document.getElementById('fServiceId').value.trim(),
+        transactionCode: document.getElementById('fTransactionCode').value.trim(),
+        processingType: document.getElementById('fProcessingType').value,
+        handlerClass: document.getElementById('fHandlerClass').value.trim(),
+        authCode: document.getElementById('fAuthCode').value.trim(),
+        auditYn: document.getElementById('fAuditYn').value,
+        timeoutSec: Number(document.getElementById('fTimeoutSec').value || 5),
+        useYn: document.getElementById('fUseYn').value,
+        description: document.getElementById('fDescription').value.trim(),
+        changeReason: document.getElementById('fReason').value.trim()
+      };
+    }
+
+    async function loadList(page, el) {
+      currentPage = page;
+      const statusEl = document.getElementById('listStatus');
+      const tbody = document.getElementById('catalogBody');
+      tbody.innerHTML = '<tr><td colspan="11" class="om-empty">조회 중...</td></tr>';
+      statusEl.textContent = '조회 중...';
+
+      const { body, relay } = await OmAdmin.inquiry('serviceCatalog', readFilters());
+      const rows = body.rows || [];
+      const pageSize = body.pageSize || PAGE_SIZE;
+      const totalCount = body.totalCount ?? 0;
+      const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+      statusEl.textContent = `${relay.elapsedMs}ms · 페이지 ${body.pageNo || page} / ${totalPages} · 총 ${totalCount}건 · 페이지당 ${pageSize}건`;
+
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="11" class="om-empty">등록된 ServiceId가 없습니다.</td></tr>';
+      } else {
+        tbody.innerHTML = rows.map(r => `
+          <tr class="om-row-selectable" data-id="${OmAdmin.field(r, 'catalogId')}">
+            <td class="om-mono">${OmAdmin.field(r, 'catalogId')}</td>
+            <td>${OmAdmin.formatCodeLabel(businessCodes, OmAdmin.field(r, 'businessCode'))}</td>
+            <td class="om-mono">${OmAdmin.field(r, 'serviceId')}</td>
+            <td>${OmAdmin.field(r, 'transactionCode')}</td>
+            <td>${OmAdmin.field(r, 'processingType')}</td>
+            <td class="om-mono">${OmAdmin.field(r, 'handlerClass')}</td>
+            <td>${OmAdmin.formatCodeLabel(authCodes, OmAdmin.field(r, 'authCode'))}</td>
+            <td>${OmAdmin.field(r, 'auditYn') === 'Y' ? '<span class="om-chip warn">Y</span>' : 'N'}</td>
+            <td>${OmAdmin.field(r, 'timeoutSec')}초</td>
+            <td>${OmAdmin.field(r, 'useYn') === 'Y' ? '<span class="om-chip ok">Y</span>' : '<span class="om-chip muted">N</span>'}</td>
+            <td>${OmAdmin.field(r, 'description')}</td>
+          </tr>`).join('');
+        tbody.querySelectorAll('tr.om-row-selectable').forEach(tr => {
+          tr.addEventListener('click', async () => {
+            tbody.querySelectorAll('tr.om-row-selected').forEach(r => r.classList.remove('om-row-selected'));
+            tr.classList.add('om-row-selected');
+            try {
+              const { body: detail } = await OmAdmin.inquiry('serviceCatalogDetail', {
+                catalogId: tr.dataset.id
+              });
+              fillForm(detail.row || {});
+            } catch (e) {
+              OmAdmin.showErrorBanner(el, e.message);
+            }
+          });
+        });
+      }
+
+      OmAdmin.renderPagination(
+        document.getElementById('pagination'),
+        body.pageNo || page,
+        pageSize,
+        totalCount,
+        p => {
+          loadList(p, el).catch(e => OmAdmin.showErrorBanner(el, e.message));
+          document.getElementById('pagination')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        },
+        false
+      );
+    }
+
+    OmAdmin.initPage('service-catalog', 'ServiceId / 거래코드 관리', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">HTTP/JSON 전문의 ServiceId·거래코드·Handler 기준정보입니다. 행을 클릭하면 상세 조회 후 수정/삭제할 수 있습니다. CatalogId 미입력 시 자동 생성됩니다.</div>
+        <section class="om-filter-bar">
+          <div class="field"><label for="filterBusinessCode">업무코드</label><select id="filterBusinessCode"></select></div>
+          <div class="field"><label for="filterServiceId">ServiceId</label><input id="filterServiceId" type="text" placeholder="부분 검색"></div>
+          <div class="field"><label for="filterUseYn">사용여부</label>
+            <select id="filterUseYn"><option value="">전체</option><option value="Y" selected>Y</option><option value="N">N</option></select>
+          </div>
+          <div class="actions" style="display:flex;gap:8px;align-items:end">
+            <button class="btn-primary" id="searchBtn" type="button">조회</button>
+            <button class="btn-secondary" id="resetFilterBtn" type="button">초기화</button>
+          </div>
+        </section>
+
+        <div class="om-form-panel">
+          <h3 id="formMode">신규 등록</h3>
+          <div class="om-form-grid">
+            <div class="field"><label for="fCatalogId">CatalogId</label><input id="fCatalogId" type="text" placeholder="자동 생성"></div>
+            <div class="field"><label for="fBusinessCode">업무코드</label><select id="fBusinessCode"></select></div>
+            <div class="field"><label for="fServiceId">ServiceId</label><input id="fServiceId" type="text" placeholder="OM.Sample.inquiry"></div>
+            <div class="field"><label for="fTransactionCode">거래코드</label><input id="fTransactionCode" type="text" placeholder="OM-SVC-0001"></div>
+            <div class="field"><label for="fProcessingType">처리유형</label>
+              <select id="fProcessingType">
+                <option>INQUIRY</option><option>UPDATE</option><option>DELETE</option><option>EXECUTE</option>
+              </select>
+            </div>
+            <div class="field"><label for="fHandlerClass">Handler</label><input id="fHandlerClass" type="text" placeholder="OmSampleInquiryHandler"></div>
+            <div class="field"><label for="fAuthCode">권한코드</label><select id="fAuthCode"></select></div>
+            <div class="field"><label for="fAuditYn">감사</label><select id="fAuditYn"><option value="N">N</option><option value="Y">Y</option></select></div>
+            <div class="field"><label for="fTimeoutSec">Timeout(초)</label><input id="fTimeoutSec" type="number" value="5" min="1"></div>
+            <div class="field"><label for="fUseYn">사용</label><select id="fUseYn"><option value="Y">Y</option><option value="N">N</option></select></div>
+            <div class="field field-wide"><label for="fDescription">설명</label><input id="fDescription" type="text"></div>
+            <div class="field field-wide"><label for="fReason">변경 사유 (5자+)</label><input id="fReason" type="text" placeholder="승인 후 반영"></div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-secondary" id="newBtn" type="button">신규</button>
+            <button class="btn-primary" id="saveBtn" type="button">등록</button>
+            <button class="btn-primary" id="updateBtn" type="button">수정</button>
+            <button class="btn-secondary" id="deleteBtn" type="button">삭제(USE_YN=N)</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:10px;color:var(--muted);font-size:0.85rem" id="listStatus">-</div>
+        <div class="om-card">
+          <div class="om-card-head">ServiceId 카탈로그</div>
+          <div class="om-card-body om-table-wrap">
+            <table class="om-table">
+              <thead><tr>
+                <th>CatalogId</th><th>업무</th><th>ServiceId</th><th>거래코드</th><th>처리유형</th>
+                <th>Handler</th><th>권한</th><th>감사</th><th>Timeout</th><th>사용</th><th>설명</th>
+              </tr></thead>
+              <tbody id="catalogBody"><tr><td colspan="11" class="om-empty">조회 버튼을 누르세요.</td></tr></tbody>
+            </table>
+            <div class="om-pagination" id="pagination" hidden></div>
+          </div>
+        </div>`;
+
+      document.getElementById('searchBtn').addEventListener('click', () =>
+        loadList(1, el).catch(e => OmAdmin.showErrorBanner(el, e.message)));
+      document.getElementById('resetFilterBtn').addEventListener('click', () => {
+        document.getElementById('filterBusinessCode').value = '';
+        document.getElementById('filterServiceId').value = '';
+        document.getElementById('filterUseYn').value = 'Y';
+      });
+      document.getElementById('newBtn').addEventListener('click', clearForm);
+      document.getElementById('saveBtn').addEventListener('click', async () => {
+        try {
+          const { body } = await OmAdmin.mutate('serviceCatalogSave', formPayload(), 'UPDATE');
+          alert(`등록 완료: ${body.catalogId} / ${body.serviceId}`);
+          clearForm();
+          await loadList(currentPage, el);
+        } catch (e) { alert(e.message); }
+      });
+      document.getElementById('updateBtn').addEventListener('click', async () => {
+        if (!editMode) { alert('수정할 행을 선택하세요.'); return; }
+        try {
+          const { body } = await OmAdmin.mutate('serviceCatalogUpdate', formPayload(), 'UPDATE');
+          alert(`수정 완료: ${body.catalogId} / ${body.serviceId}`);
+          await loadList(currentPage, el);
+        } catch (e) { alert(e.message); }
+      });
+      document.getElementById('deleteBtn').addEventListener('click', async () => {
+        const payload = formPayload();
+        if (!payload.catalogId) { alert('삭제할 CatalogId를 선택하세요.'); return; }
+        if (!confirm(`${payload.catalogId} (${payload.serviceId}) 를 미사용(USE_YN=N) 처리하시겠습니까?`)) return;
+        try {
+          await OmAdmin.mutate('serviceCatalogDelete', payload, 'DELETE');
+          alert('삭제(미사용) 처리 완료');
+          clearForm();
+          await loadList(currentPage, el);
+        } catch (e) { alert(e.message); }
+      });
+
+      await loadCodeCombos();
+      await loadList(1, el).catch(e => OmAdmin.showErrorBanner(el, e.message));
+    }).catch(err => alert(err.message));
+  </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+// TCF 공통 캐시 (EhCache 3 + Spring Cache)
+// 빌드: gradle :tcf-cache:build
+
+dependencies {
+    api project(':tcf-core')
+    api 'org.springframework.boot:spring-boot-starter-cache'
+    api 'org.ehcache:ehcache::jakarta'
+    api 'javax.cache:cache-api'
+    compileOnly 'org.springframework.boot:spring-boot-autoconfigure'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}

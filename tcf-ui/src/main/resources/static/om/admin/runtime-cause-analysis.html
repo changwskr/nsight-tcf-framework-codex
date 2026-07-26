@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 장애 진단 및 보고서</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+  <link rel="stylesheet" href="/_shared/om-runtime-incident-report.css?v=20260712e">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260712e"></script>
+  <script src="/_shared/om-runtime.js?v=20260712e"></script>
+  <script src="/_shared/om-runtime-incident.js?v=20260712e"></script>
+  <script>
+    let draft = null;
+    let screenData = null;
+
+    function field(id) {
+      return document.getElementById(id);
+    }
+
+    function readForm() {
+      return {
+        incidentId: field('incidentId').value.trim(),
+        occurredAt: field('occurredAt').value.trim(),
+        targetDisplay: field('targetDisplay').value.trim(),
+        impactServiceId: field('impactServiceId').value.trim(),
+        severity: field('severity').value,
+        workflowStatus: field('workflowStatus').value,
+        confirmedCause: field('confirmedCause').value.trim(),
+        directCause: field('directCause').value.trim(),
+        spreadCause: field('spreadCause').value.trim(),
+        tempAction: field('tempAction').value.trim(),
+        permanentAction: field('permanentAction').value.trim(),
+        retestPlan: field('retestPlan').value.trim()
+      };
+    }
+
+    function writeForm(d) {
+      field('incidentId').value = d.incidentId || '';
+      field('occurredAt').value = d.occurredAt || '';
+      field('targetDisplay').value = d.targetDisplay || '';
+      field('impactServiceId').value = d.impactServiceId || '';
+      field('severity').value = d.severity || 'Major';
+      field('workflowStatus').value = d.workflowStatus || 'CANDIDATE';
+      const op = d.operator || {};
+      field('confirmedCause').value = op.confirmedCause || '';
+      field('directCause').value = op.directCause || '';
+      field('spreadCause').value = op.spreadCause || '';
+      field('tempAction').value = op.tempAction || '';
+      field('permanentAction').value = op.permanentAction || '';
+      field('retestPlan').value = op.retestPlan || '';
+    }
+
+    function syncDraftFromForm() {
+      const f = readForm();
+      draft.incidentId = f.incidentId;
+      draft.occurredAt = f.occurredAt;
+      draft.targetDisplay = f.targetDisplay;
+      draft.impactServiceId = f.impactServiceId;
+      draft.severity = f.severity;
+      draft.workflowStatus = f.workflowStatus;
+      draft.operator = {
+        confirmedCause: f.confirmedCause,
+        directCause: f.directCause,
+        spreadCause: f.spreadCause,
+        tempAction: f.tempAction,
+        permanentAction: f.permanentAction,
+        retestPlan: f.retestPlan
+      };
+      return draft;
+    }
+
+    function renderAuto(auto) {
+      field('autoPrimary').textContent = auto.primaryCauseCode || '-';
+      field('autoPrimaryConf').textContent = auto.primaryConfidence || '-';
+      field('autoSecondary').textContent = auto.secondaryCauseCode || '-';
+      field('autoSecondaryConf').textContent = auto.secondaryConfidence || '-';
+      field('autoEvidence').textContent = auto.evidenceSummary || '-';
+      field('autoMessage').textContent = auto.primaryMessage || '';
+    }
+
+    function renderAttachments() {
+      const att = draft.attachments || {};
+      field('attachSnapshot').classList.toggle('on', Boolean(att.snapshot));
+      field('attachSlowTx').classList.toggle('on', Boolean(att.slowTransactions));
+      field('attachSlowSql').classList.toggle('on', Boolean(att.slowSql));
+      const parts = [];
+      if (att.snapshot) parts.push(`Snapshot ${att.snapshot.checkedAt || ''}`);
+      if (att.slowTransactions) parts.push(`Slow 거래 ${att.slowTransactions.count}건`);
+      if (att.slowSql) parts.push(`Slow SQL ${att.slowSql.count}건`);
+      field('attachSummary').textContent = parts.length ? parts.join(' · ') : '첨부 없음';
+    }
+
+    function renderActionHistory() {
+      const rows = draft.actionHistory || [];
+      const body = field('actionHistoryBody');
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="6" class="om-empty">조치 이력 없음</td></tr>';
+        return;
+      }
+      body.innerHTML = rows.map(r => `
+        <tr>
+          <td>${r.seq}</td>
+          <td>${r.action || '-'}</td>
+          <td>${r.owner || '-'}</td>
+          <td>${r.startedAt || '-'}</td>
+          <td>${r.completedAt || '-'}</td>
+          <td>${r.result || '-'}</td>
+        </tr>`).join('');
+    }
+
+    function updatePermNote() {
+      const session = OmAdmin.getSession();
+      const canConfirm = OmRuntimeIncident.canConfirmCause(session);
+      const canNorm = OmRuntimeIncident.canNormalize(session);
+      field('permNote').textContent =
+        `원인 확정: ${canConfirm ? '가능' : '로그인 필요'} · 정상화 처리: ${canNorm ? '가능' : '운영관리·관리자 권한 필요'}`;
+      field('btnConfirmCause').disabled = !canConfirm;
+      field('btnNormalize').disabled = !canNorm;
+    }
+
+    function applyScreen(screen, body, relay) {
+      screenData = screen;
+      const header = screen.header || {};
+      const existing = OmRuntimeIncident.loadDraft();
+      if (existing && existing.incidentId) {
+        draft = OmRuntimeIncident.mergeDraftWithScreen(existing, screen);
+      } else {
+        draft = OmRuntimeIncident.createDraftFromScreen(screen, OmAdmin.getSession());
+        draft.occurredAt = header.occurredAt || draft.occurredAt;
+        draft.targetDisplay = header.targetDisplay || draft.targetDisplay;
+        draft.impactServiceId = header.impactServiceId || draft.impactServiceId;
+        draft.severity = header.severityDefault || draft.severity;
+      }
+      writeForm(draft);
+      renderAuto(draft.autoJudgment || screen.autoJudgment || {});
+      renderAttachments();
+      renderActionHistory();
+      updatePermNote();
+
+      const status = header.overallStatus || body.overallStatus || 'NORMAL';
+      const cls = OmRuntime.statusClass(status);
+      field('reportBanner').className = `om-status-banner ${cls}`;
+      field('reportMain').className = `om-status-main ${cls}`;
+      field('reportMain').textContent =
+        `자동판정 ${header.overallStatusLabel || OmRuntime.statusLabel(status)} · ${draft.autoJudgment?.primaryCauseCode || '-'}`;
+      field('rtmStatus').textContent =
+        `${relay.elapsedMs}ms · 점검 ${body.checkedAt || '-'} · ${screen.scopeNote || ''}`;
+    }
+
+    async function load(el) {
+      const { body, relay } = await OmRuntime.loadDiagnostics({ includeDetails: 'Y' });
+      applyScreen(body.incidentReportScreen || {}, body, relay);
+    }
+
+    OmAdmin.initPage('runtime-cause-analysis', '장애 진단 및 보고서', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">
+          RTM-070 장애 진단 및 보고서 — 자동판정 결과를 검토하고 확정 원인·조치·재발방지를 기록합니다.
+          <a href="/om/admin/runtime-workspace.html?tab=rtm010" style="margin-left:8px">통합 진단</a>
+          <a href="/om/admin/runtime-incident-history.html" style="margin-left:8px">장애 이력</a>
+          <a href="/om/admin/runtime-incident-flow.html" style="margin-left:8px">장애 흐름</a>
+        </div>
+        <section class="om-filter-bar">
+          <button class="btn-primary" id="refreshBtn" type="button">진단 갱신</button>
+          <button class="btn-secondary" id="newReportBtn" type="button">새 보고서</button>
+          <span id="rtmStatus" class="om-muted" style="font-size:0.85rem;align-self:center">조회 중...</span>
+        </section>
+
+        <section class="om-status-banner normal" id="reportBanner" style="margin-bottom:16px">
+          <div class="om-status-main normal" id="reportMain">장애 진단 및 보고서</div>
+        </section>
+
+        <div id="reportPrintArea">
+          <div class="rtm070-section">
+            <div class="rtm070-section-head">기본 정보</div>
+            <div class="rtm070-section-body">
+              <div class="rtm070-form-grid">
+                <label class="field"><span>장애 ID</span><input id="incidentId" type="text"></label>
+                <label class="field"><span>발생일시</span><input id="occurredAt" type="text"></label>
+                <label class="field"><span>대상</span><input id="targetDisplay" type="text"></label>
+                <label class="field"><span>영향 ServiceId</span><input id="impactServiceId" type="text" class="om-mono"></label>
+                <label class="field"><span>장애등급</span>
+                  <select id="severity"><option>Critical</option><option>Major</option><option>Minor</option></select>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="rtm070-section">
+            <div class="rtm070-section-head">자동판정</div>
+            <div class="rtm070-section-body">
+              <div class="rtm070-auto-grid">
+                <span class="label">1순위 원인</span><span class="code" id="autoPrimary">-</span><span id="autoPrimaryConf">-</span>
+                <span class="label">2순위 원인</span><span class="code" id="autoSecondary">-</span><span id="autoSecondaryConf">-</span>
+                <span class="label">주요 증적</span><span id="autoEvidence" style="grid-column:2/4">-</span>
+              </div>
+              <p class="om-muted" id="autoMessage" style="font-size:0.85rem;margin:0 0 10px"></p>
+              <label class="field" style="max-width:280px">상태
+                <select id="workflowStatus"></select>
+              </label>
+              <div class="rtm070-attach-bar">
+                <button type="button" class="btn-secondary" id="btnAttachSnapshot">현재 Snapshot 첨부</button>
+                <button type="button" class="btn-secondary" id="btnAttachSlowTx">Slow 거래 첨부</button>
+                <button type="button" class="btn-secondary" id="btnAttachSlowSql">Slow SQL 첨부</button>
+              </div>
+              <div style="margin-top:8px;font-size:0.85rem">
+                <span class="rtm070-attach-chip" id="attachSnapshot">Snapshot</span>
+                <span class="rtm070-attach-chip" id="attachSlowTx">Slow 거래</span>
+                <span class="rtm070-attach-chip" id="attachSlowSql">Slow SQL</span>
+                <span class="om-muted" id="attachSummary" style="margin-left:8px">첨부 없음</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rtm070-section">
+            <div class="rtm070-section-head">운영자 확인</div>
+            <div class="rtm070-section-body">
+              <div class="rtm070-form-grid">
+                <label class="field span-2"><span>확정 원인</span><input id="confirmedCause" type="text"></label>
+                <label class="field span-2"><span>직접 원인</span><input id="directCause" type="text"></label>
+                <label class="field span-2"><span>장애 확산 원인</span><input id="spreadCause" type="text"></label>
+                <label class="field span-2"><span>임시 조치</span><input id="tempAction" type="text"></label>
+                <label class="field span-2"><span>영구 조치</span><input id="permanentAction" type="text"></label>
+                <label class="field span-2"><span>재검증 시험</span><input id="retestPlan" type="text"></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="rtm070-section">
+            <div class="rtm070-section-head">조치 이력</div>
+            <div class="rtm070-section-body om-table-wrap">
+              <table class="om-table">
+                <thead><tr><th>순서</th><th>조치</th><th>담당</th><th>시작</th><th>완료</th><th>결과</th></tr></thead>
+                <tbody id="actionHistoryBody"></tbody>
+              </table>
+              <div class="om-filter-bar" style="margin-top:10px;padding:0">
+                <input id="newActionText" type="text" placeholder="조치 내용" style="flex:1;min-width:160px">
+                <input id="newActionOwner" type="text" placeholder="담당" style="width:100px">
+                <button type="button" class="btn-secondary" id="btnAddAction">이력 추가</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rtm070-actions-bar">
+          <button type="button" class="btn-secondary" id="btnSaveDraft">임시저장</button>
+          <button type="button" class="btn-primary" id="btnConfirmCause">원인 확정</button>
+          <button type="button" class="btn-primary" id="btnNormalize">정상화 처리</button>
+          <button type="button" class="btn-secondary" id="btnPrint">보고서 출력</button>
+        </div>
+        <p class="rtm070-perm-note" id="permNote"></p>`;
+
+      const wf = field('workflowStatus');
+      wf.innerHTML = OmRuntimeIncident.WORKFLOW.map(w =>
+        `<option value="${w.value}">${w.label}</option>`).join('');
+
+      field('refreshBtn').addEventListener('click', () => load(el).catch(err => OmAdmin.showErrorBanner(el, err.message)));
+      field('newReportBtn').addEventListener('click', () => {
+        if (!confirm('새 보고서를 시작할까요? 미저장 내용은 사라집니다.')) return;
+        OmRuntimeIncident.clearDraft();
+        load(el).catch(err => OmAdmin.showErrorBanner(el, err.message));
+      });
+      field('btnSaveDraft').addEventListener('click', () => {
+        OmRuntimeIncident.saveDraft(syncDraftFromForm());
+        alert('임시저장되었습니다.');
+      });
+      field('btnConfirmCause').addEventListener('click', () => {
+        if (!OmRuntimeIncident.canConfirmCause(OmAdmin.getSession())) {
+          alert('원인 확정 권한이 없습니다. OM 로그인이 필요합니다.');
+          return;
+        }
+        syncDraftFromForm();
+        draft.workflowStatus = 'CAUSE_CONFIRMED';
+        field('workflowStatus').value = draft.workflowStatus;
+        OmRuntimeIncident.addActionRow(draft, {
+          action: '원인 확정',
+          owner: OmRuntimeIncident.getOperator(OmAdmin.getSession()),
+          startedAt: OmRuntimeIncident.nowTimeShort(),
+          completedAt: OmRuntimeIncident.nowTimeShort(),
+          result: draft.operator.confirmedCause || draft.autoJudgment.primaryCauseCode
+        });
+        OmRuntimeIncident.saveDraft(draft);
+        renderActionHistory();
+        alert('원인이 확정되었습니다.');
+      });
+      field('btnNormalize').addEventListener('click', () => {
+        if (!OmRuntimeIncident.canNormalize(OmAdmin.getSession())) {
+          alert('정상화 처리 권한이 없습니다. 운영관리·관리자 권한이 필요합니다.');
+          return;
+        }
+        syncDraftFromForm();
+        draft.workflowStatus = 'RECOVERED';
+        field('workflowStatus').value = draft.workflowStatus;
+        OmRuntimeIncident.addActionRow(draft, {
+          action: '정상화 처리',
+          owner: OmRuntimeIncident.getOperator(OmAdmin.getSession()),
+          startedAt: OmRuntimeIncident.nowTimeShort(),
+          completedAt: OmRuntimeIncident.nowTimeShort(),
+          result: '정상화'
+        });
+        OmRuntimeIncident.saveDraft(draft);
+        OmRuntimeIncident.archiveReport(draft);
+        renderActionHistory();
+        alert('정상화 처리되었습니다. 보고서가 로컬 아카이브에 저장되었습니다.');
+      });
+      field('btnPrint').addEventListener('click', () => window.print());
+      field('btnAttachSnapshot').addEventListener('click', () => {
+        const cache = OmRuntime.readCache();
+        draft.attachments.snapshot = OmRuntimeIncident.attachSnapshot(cache);
+        syncDraftFromForm();
+        OmRuntimeIncident.saveDraft(draft);
+        renderAttachments();
+      });
+      field('btnAttachSlowTx').addEventListener('click', () => {
+        const cache = OmRuntime.readCache();
+        draft.attachments.slowTransactions = OmRuntimeIncident.attachSlowTransactions(cache);
+        syncDraftFromForm();
+        OmRuntimeIncident.saveDraft(draft);
+        renderAttachments();
+      });
+      field('btnAttachSlowSql').addEventListener('click', () => {
+        const cache = OmRuntime.readCache();
+        draft.attachments.slowSql = OmRuntimeIncident.attachSlowSql(cache);
+        syncDraftFromForm();
+        OmRuntimeIncident.saveDraft(draft);
+        renderAttachments();
+      });
+      field('btnAddAction').addEventListener('click', () => {
+        const action = field('newActionText').value.trim();
+        if (!action) return;
+        syncDraftFromForm();
+        OmRuntimeIncident.addActionRow(draft, {
+          action,
+          owner: field('newActionOwner').value.trim() || OmRuntimeIncident.getOperator(OmAdmin.getSession()),
+          startedAt: OmRuntimeIncident.nowTimeShort(),
+          completedAt: '',
+          result: ''
+        });
+        OmRuntimeIncident.saveDraft(draft);
+        field('newActionText').value = '';
+        renderActionHistory();
+      });
+
+      await load(el);
+    });
+  </script>
+</body>
+</html>

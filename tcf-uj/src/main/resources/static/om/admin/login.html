@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <script src="/_shared/uj-context.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 로그인</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+</head>
+<body class="om-login-page">
+  <div class="om-login-wrap">
+    <div class="om-login-card">
+      <div class="om-login-brand">
+        <h1>NSIGHT OM</h1>
+        <p>운영관리 포털 로그인</p>
+      </div>
+      <form id="loginForm" class="om-login-form">
+        <label for="userId">아이디</label>
+        <input id="userId" name="userId" type="text" autocomplete="username" placeholder="admin01" required>
+
+        <label for="password">비밀번호</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="비밀번호" required>
+
+        <div id="loginError" class="om-alert error" hidden></div>
+
+        <button type="submit" class="btn-primary om-login-btn">로그인</button>
+      </form>
+      <p class="om-login-hint">개발용 계정: admin01 / op01 / view01 · 초기 비밀번호 nsight01!</p>
+      <p class="om-login-footer"><a href="/index.html">← TCF UI 홈</a></p>
+    </div>
+  </div>
+  <script src="/_shared/om-admin.js?v=20260627c"></script>
+  <script>
+    (async function () {
+      await OmAdmin.loadConfig();
+      try {
+        const { body } = await OmAdmin.call('authSession', {}, 'INQUIRY');
+        if (body.loggedIn) {
+          OmAdmin.setSession({
+            userId: body.userId,
+            userName: body.userName,
+            branchId: body.branchId,
+            authGroupId: body.authGroupId,
+            authGroupName: body.authGroupName,
+            sessionId: body.sessionId
+          });
+          location.href = OmAdmin.uiPath('/om/admin/session.html');
+          return;
+        }
+      } catch (e) {
+        /* 세션 없음 */
+      }
+
+      const form = document.getElementById('loginForm');
+      const errorEl = document.getElementById('loginError');
+      const submitBtn = form.querySelector('button[type="submit"]');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorEl.hidden = true;
+        submitBtn.disabled = true;
+        submitBtn.textContent = '로그인 중...';
+        try {
+          const userId = document.getElementById('userId').value.trim();
+          const password = document.getElementById('password').value;
+          await OmAdmin.login(userId, password);
+          location.href = OmAdmin.uiPath('/om/admin/session.html');
+        } catch (err) {
+          errorEl.textContent = err.message || '로그인에 실패했습니다.';
+          errorEl.hidden = false;
+          OmAdmin.showErrorPopup({
+            errorMessage: err.message || '로그인에 실패했습니다.',
+            systemNote: 'OM 로그인'
+          });
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = '로그인';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

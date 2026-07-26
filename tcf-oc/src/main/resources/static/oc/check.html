@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>종합 보고서 · NSIGHT OC</title>
+  <script src="/_shared/ui-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css"/>
+  <link rel="stylesheet" href="/_shared/oc-capacity.css"/>
+  <link rel="stylesheet" href="/_shared/oc-env.css"/>
+</head>
+<body class="tcf-env-page" data-env-page="check" data-env-title="종합 보고서 · NSIGHT OC" data-env-subtitle="ENV-002~004 산정·계층 결론 종합 보고서">
+<div id="envPageShell"></div>
+<div id="statusBar" class="status-bar hidden" role="status"></div>
+
+<main class="env-layout">
+    <section class="card env-check-report-card" id="envCheckReportSection">
+        <div class="card-title row-title">
+            <div>
+                <h2>통합 환경설정 점검 · 종합 보고서</h2>
+                <p>
+                    ENV-002 조건 → ENV-003 TPS·VM 산정 → ENV-004 전체 스택 구성 결론을 한 화면에 정리합니다.
+                    Rule Engine·설정 대조·SC-007/008/009는 <a href="/oc/rule-check.html">Rule 점검</a> 탭에서 수행하세요.
+                </p>
+            </div>
+            <button type="button" class="secondary env-export-excel-btn" data-env-export="CHECK">종합 보고서 Excel</button>
+        </div>
+        <div id="envCheckReportPanel" class="env-check-report env-check-report--empty" role="region" aria-label="종합 보고서">
+            <p class="env-check-report__placeholder">
+                <a href="/oc/env-002.html">ENV-002</a>에서 「산정 실행」 후 이 화면을 새로고침하세요.
+            </p>
+            <p class="env-check-report__placeholder">
+                Rule Engine 점검은 <a href="/oc/rule-check.html">Rule 점검</a>에서 설정 업로드·「점검 실행」 후,
+                여기 종합 보고서에 결론이 요약됩니다.
+            </p>
+        </div>
+    </section>
+</main>
+
+  <script src="/_shared/oc-env-layout.js"></script>
+  <script src="/_shared/oc-env-planner.js"></script>
+  <script src="/_shared/oc-env.js"></script>
+  <script src="/_shared/oc-env-export.js"></script>
+</body>
+</html>

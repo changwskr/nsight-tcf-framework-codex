@@ -1,0 +1,793 @@
+71. SV 고객요약조회 샘플
+71.1 도입 전 안내말
+본 장은 NSIGHT TCF Framework에서 SV, Single View 고객요약조회 거래를 실제 개발자가 복제해서 사용할 수 있는 샘플 형태로 정리한다.
+SV 고객요약조회는 다음 기준의 표준 샘플 거래로 둔다.
+항목
+기준
+업무코드
+SV
+업무명
+Single View
+Context Path
+/sv
+Endpoint
+POST /sv/online
+ServiceId
+SV.Customer.selectSummary
+거래코드
+SV-INQ-0001
+거래명
+고객 요약 조회
+처리유형
+조회
+DB
+RDW
+Timeout
+3초
+감사로그
+Y
+배포 단위
+sv.war
+구현 모듈
+sv-service
+실행 구조
+Handler → Facade → Service → Rule → DAO → Mapper → RDW
+기존 업무 서비스 샘플 설계에서도 SV 고객요약조회는 SV.Customer.selectSummary, 거래코드는 SV-INQ-0001, Endpoint는 POST /sv/online, 실행 구조는 Handler → Facade → Service → Rule → DAO → Mapper → RDW로 정의되어 있다.
+
+71.2 샘플의 핵심 원칙
+Controller는 개발하지 않는다.
+Controller는 TCF 공통 진입점이 담당한다.
+
+업무 개발자는 ServiceId별 Handler를 만든다.
+Handler는 요청 Body를 DTO로 변환하고 Facade를 호출한다.
+
+트랜잭션은 Facade에서 잡는다.
+업무 검증과 판단은 Rule에서 처리한다.
+DB 접근은 DAO / Mapper에서만 수행한다.
+응답 전문 조립은 ETF 후처리에서 수행한다.
+
+
+71.3 전체 처리 흐름
+[WebTopSuite / tcf-ui / 외부 호출]
+        │
+        │ POST /sv/online
+        │ StandardRequest JSON
+        ▼
+[OnlineTransactionController]
+        │
+        ▼
+[TCF.process()]
+        │
+        ├─ STF.preProcess()
+        │   ├─ Header 검증
+        │   ├─ GUID / TraceId 생성
+        │   ├─ 세션 검증
+        │   ├─ 권한 검증
+        │   ├─ 거래통제 확인
+        │   ├─ Timeout 정책 조회
+        │   └─ 거래로그 PROCESSING 저장
+        │
+        ├─ TransactionDispatcher
+        │   └─ serviceId = SV.Customer.selectSummary
+        │      → SvCustomerSummaryHandler 선택
+        │
+        ▼
+[SvCustomerSummaryHandler]
+        │
+        ▼
+[SvCustomerFacade]
+        │
+        ▼
+[SvCustomerService]
+        │
+        ▼
+[SvCustomerRule]
+        │
+        ▼
+[SvCustomerDao]
+        │
+        ▼
+[SvCustomerMapper.xml]
+        │
+        ▼
+[RDW_CUSTOMER_SUMMARY]
+        │
+        ▼
+[ETF.postProcess()]
+        ├─ StandardResponse 조립
+        ├─ 오류코드 매핑
+        ├─ 데이터 마스킹
+        ├─ 거래로그 SUCCESS / FAIL / TIMEOUT 갱신
+        └─ 감사로그 기록
+
+NSIGHT 애플리케이션 계층구조 기준에서도 SV.Customer.selectSummary는 POST /sv/online → TCF.process → STF → Dispatcher → Handler → Facade → Service → Rule → DAO → Mapper → RDW → ETF 흐름으로 처리하는 예시로 정리되어 있다.
+
+71.4 요청 전문 샘플
+71.4.1 요청 URL
+POST /sv/online
+Content-Type: application/json; charset=UTF-8
+
+71.4.2 요청 JSON
+{
+  "header": {
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "serviceName": "고객 요약 조회",
+    "user": "U123456",
+    "channelId": "WEBTOP",
+    "branch": "012345",
+    "guid": "",
+    "traceId": "",
+    "transactionId": ""
+  },
+  "body": {
+    "customerNo": "CUST00000001",
+    "baseDate": "20260705"
+  }
+}
+
+항목
+필수
+설명
+header.serviceId
+Y
+실행할 서비스 ID
+header.transactionCode
+Y
+거래코드
+header.businessCode
+Y
+업무코드
+header.user
+Y
+사용자 ID
+header.channelId
+Y
+호출 채널
+header.branch
+Y
+지점코드
+body.customerNo
+Y
+조회 대상 고객번호
+body.baseDate
+N
+기준일자, 미입력 시 당일
+전문 Header는 serviceId, transactionCode, businessCode, serviceName, user, channelId, branch를 기준으로 거래 실행과 통제를 수행한다.
+
+71.5 응답 전문 샘플
+71.5.1 정상 응답
+{
+  "header": {
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "guid": "20260705-SV-000000001",
+    "traceId": "TRACE-20260705-000001",
+    "transactionId": "TX-20260705-000001",
+    "responseTime": "2026-07-05T10:30:21.123+09:00"
+  },
+  "result": {
+    "resultCode": "SUCCESS",
+    "messageCode": "S-SV-INQ-0001",
+    "message": "정상 처리되었습니다."
+  },
+  "body": {
+    "customerNo": "CUST00000001",
+    "customerName": "홍길동",
+    "customerGrade": "GOLD",
+    "branchCode": "012345",
+    "branchName": "농협중앙지점",
+    "totalBalance": 15000000,
+    "loanBalance": 3000000,
+    "productCount": 5,
+    "lastTransactionDate": "20260704"
+  }
+}
+
+71.5.2 오류 응답
+{
+  "header": {
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "guid": "20260705-SV-000000001",
+    "traceId": "TRACE-20260705-000001",
+    "transactionId": "TX-20260705-000001"
+  },
+  "result": {
+    "resultCode": "FAIL",
+    "messageCode": "E-SV-VAL-0001",
+    "message": "고객번호는 필수입니다."
+  },
+  "body": null
+}
+
+요청 전문은 header + body, 응답 전문은 header + result + body 구조를 사용하며, 실제 실행 식별자는 URL이 아니라 header.serviceId이다.
+
+71.6 패키지 구조
+sv-service
+└── src/main/java/com/nh/nsight/marketing/sv
+    ├── entry
+    │   ├── handler
+    │   │   └── SvCustomerSummaryHandler.java
+    │   └── facade
+    │       └── SvCustomerFacade.java
+    │
+    ├── application
+    │   ├── service
+    │   │   └── SvCustomerService.java
+    │   └── rule
+    │       └── SvCustomerRule.java
+    │
+    ├── persistence
+    │   ├── dao
+    │   │   └── SvCustomerDao.java
+    │   └── mapper
+    │       └── SvCustomerMapper.java
+    │
+    └── dto
+        ├── SvCustomerSummaryRequest.java
+        └── SvCustomerSummaryResponse.java
+
+src/main/resources
+└── mapper
+    └── sv
+        └── SvCustomerMapper.xml
+
+파일
+역할
+SvCustomerSummaryHandler
+ServiceId별 업무 진입점
+SvCustomerFacade
+트랜잭션 경계, 유스케이스 조립
+SvCustomerService
+업무 처리 흐름 제어
+SvCustomerRule
+입력값 검증, 업무 규칙 판단
+SvCustomerDao
+Mapper 호출 캡슐화
+SvCustomerMapper
+MyBatis Mapper Interface
+SvCustomerMapper.xml
+SQL 정의
+SvCustomerSummaryRequest
+요청 Body DTO
+SvCustomerSummaryResponse
+응답 Body DTO
+
+71.7 DTO 샘플
+71.7.1 요청 DTO
+package com.nh.nsight.marketing.sv.dto;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+public class SvCustomerSummaryRequest {
+
+    private String customerNo;
+    private String baseDate;
+}
+
+71.7.2 응답 DTO
+package com.nh.nsight.marketing.sv.dto;
+
+import java.math.BigDecimal;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+public class SvCustomerSummaryResponse {
+
+    private String customerNo;
+    private String customerName;
+    private String customerGrade;
+    private String branchCode;
+    private String branchName;
+    private BigDecimal totalBalance;
+    private BigDecimal loanBalance;
+    private Integer productCount;
+    private String lastTransactionDate;
+}
+
+
+71.8 Handler 샘플
+package com.nh.nsight.marketing.sv.entry.handler;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nh.nsight.marketing.sv.dto.SvCustomerSummaryRequest;
+import com.nh.nsight.marketing.sv.entry.facade.SvCustomerFacade;
+import com.nh.nsight.tcf.core.context.TransactionContext;
+import com.nh.nsight.tcf.core.handler.TransactionHandler;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+@Component("SV.Customer.selectSummary")
+@RequiredArgsConstructor
+public class SvCustomerSummaryHandler implements TransactionHandler {
+
+    private final SvCustomerFacade svCustomerFacade;
+    private final ObjectMapper objectMapper;
+
+    @Override
+    public String getServiceId() {
+        return "SV.Customer.selectSummary";
+    }
+
+    @Override
+    public Object handle(TransactionContext context, Object body) {
+        SvCustomerSummaryRequest request =
+                objectMapper.convertValue(body, SvCustomerSummaryRequest.class);
+
+        return svCustomerFacade.selectCustomerSummary(context, request);
+    }
+}
+
+Handler는 TCF Dispatcher가 serviceId 기준으로 찾는 업무 진입점이며, 요청 Body를 업무 DTO로 변환한 뒤 Facade를 호출한다. 기존 HTTP/JSON 처리 가이드에서도 SvCustomerSummaryHandler가 SV.Customer.selectSummary를 반환하고 Body를 SvCustomerSummaryRequest로 변환하여 Facade를 호출하는 예시가 제시되어 있다.
+
+71.9 Facade 샘플
+package com.nh.nsight.marketing.sv.entry.facade;
+
+import com.nh.nsight.marketing.sv.application.service.SvCustomerService;
+import com.nh.nsight.marketing.sv.dto.SvCustomerSummaryRequest;
+import com.nh.nsight.marketing.sv.dto.SvCustomerSummaryResponse;
+import com.nh.nsight.tcf.core.context.TransactionContext;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class SvCustomerFacade {
+
+    private final SvCustomerService svCustomerService;
+
+    @Transactional(readOnly = true, timeout = 3)
+    public SvCustomerSummaryResponse selectCustomerSummary(
+            TransactionContext context,
+            SvCustomerSummaryRequest request) {
+
+        return svCustomerService.selectCustomerSummary(context, request);
+    }
+}
+
+기준
+설명
+@Transactional(readOnly = true)
+조회 거래이므로 ReadOnly 적용
+timeout = 3
+고객요약조회 기본 Timeout 3초
+Facade 역할
+트랜잭션 경계와 유스케이스 조립
+금지사항
+SQL 직접 호출 금지
+
+71.10 Service 샘플
+package com.nh.nsight.marketing.sv.application.service;
+
+import com.nh.nsight.marketing.sv.application.rule.SvCustomerRule;
+import com.nh.nsight.marketing.sv.dto.SvCustomerSummaryRequest;
+import com.nh.nsight.marketing.sv.dto.SvCustomerSummaryResponse;
+import com.nh.nsight.marketing.sv.persistence.dao.SvCustomerDao;
+import com.nh.nsight.tcf.core.context.TransactionContext;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class SvCustomerService {
+
+    private final SvCustomerRule svCustomerRule;
+    private final SvCustomerDao svCustomerDao;
+
+    public SvCustomerSummaryResponse selectCustomerSummary(
+            TransactionContext context,
+            SvCustomerSummaryRequest request) {
+
+        svCustomerRule.validateCustomerSummaryRequest(request);
+
+        SvCustomerSummaryResponse response =
+                svCustomerDao.selectCustomerSummary(request);
+
+        svCustomerRule.validateCustomerExists(response);
+
+        return response;
+    }
+}
+
+Service는 Rule과 DAO를 조합하는 계층이다. 고객번호 검증은 Rule, DB 조회는 DAO, 결과 존재 여부 판단은 다시 Rule에서 수행한다.
+
+71.11 Rule 샘플
+package com.nh.nsight.marketing.sv.application.rule;
+
+import com.nh.nsight.marketing.sv.dto.SvCustomerSummaryRequest;
+import com.nh.nsight.marketing.sv.dto.SvCustomerSummaryResponse;
+import com.nh.nsight.tcf.core.exception.BusinessException;
+import org.springframework.stereotype.Component;
+
+@Component
+public class SvCustomerRule {
+
+    public void validateCustomerSummaryRequest(SvCustomerSummaryRequest request) {
+        if (request == null) {
+            throw new BusinessException("E-SV-VAL-0001", "고객번호는 필수입니다.");
+        }
+
+        if (request.getCustomerNo() == null || request.getCustomerNo().isBlank()) {
+            throw new BusinessException("E-SV-VAL-0001", "고객번호는 필수입니다.");
+        }
+
+        if (request.getCustomerNo().length() > 20) {
+            throw new BusinessException("E-SV-VAL-0002", "고객번호 형식이 올바르지 않습니다.");
+        }
+
+        if (request.getBaseDate() != null
+                && !request.getBaseDate().matches("\\d{8}")) {
+            throw new BusinessException("E-SV-VAL-0003", "기준일자 형식이 올바르지 않습니다.");
+        }
+    }
+
+    public void validateCustomerExists(SvCustomerSummaryResponse response) {
+        if (response == null) {
+            throw new BusinessException("E-SV-BIZ-0001", "조회된 고객정보가 없습니다.");
+        }
+    }
+}
+
+검증
+오류코드
+메시지
+고객번호 누락
+E-SV-VAL-0001
+고객번호는 필수입니다.
+고객번호 형식 오류
+E-SV-VAL-0002
+고객번호 형식이 올바르지 않습니다.
+기준일자 형식 오류
+E-SV-VAL-0003
+기준일자 형식이 올바르지 않습니다.
+고객정보 없음
+E-SV-BIZ-0001
+조회된 고객정보가 없습니다.
+
+71.12 DAO 샘플
+package com.nh.nsight.marketing.sv.persistence.dao;
+
+import com.nh.nsight.marketing.sv.dto.SvCustomerSummaryRequest;
+import com.nh.nsight.marketing.sv.dto.SvCustomerSummaryResponse;
+import com.nh.nsight.marketing.sv.persistence.mapper.SvCustomerMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
+@Repository
+@RequiredArgsConstructor
+public class SvCustomerDao {
+
+    private final SvCustomerMapper svCustomerMapper;
+
+    public SvCustomerSummaryResponse selectCustomerSummary(
+            SvCustomerSummaryRequest request) {
+
+        return svCustomerMapper.selectCustomerSummary(request);
+    }
+}
+
+DAO는 업무 판단을 하지 않는다. DAO는 Mapper 호출을 캡슐화하고, SQL 실행 책임은 Mapper XML로 넘긴다.
+
+71.13 Mapper Interface 샘플
+package com.nh.nsight.marketing.sv.persistence.mapper;
+
+import com.nh.nsight.marketing.sv.dto.SvCustomerSummaryRequest;
+import com.nh.nsight.marketing.sv.dto.SvCustomerSummaryResponse;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface SvCustomerMapper {
+
+    SvCustomerSummaryResponse selectCustomerSummary(
+            SvCustomerSummaryRequest request);
+}
+
+
+71.14 Mapper XML 샘플
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nh.nsight.marketing.sv.persistence.mapper.SvCustomerMapper">
+
+    <select id="selectCustomerSummary"
+            parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerSummaryRequest"
+            resultType="com.nh.nsight.marketing.sv.dto.SvCustomerSummaryResponse">
+
+        SELECT
+              CUSTOMER_NO           AS customerNo
+            , CUSTOMER_NAME         AS customerName
+            , CUSTOMER_GRADE        AS customerGrade
+            , BRANCH_CODE           AS branchCode
+            , BRANCH_NAME           AS branchName
+            , TOTAL_BALANCE         AS totalBalance
+            , LOAN_BALANCE          AS loanBalance
+            , PRODUCT_COUNT         AS productCount
+            , LAST_TRANSACTION_DATE AS lastTransactionDate
+        FROM RDW_CUSTOMER_SUMMARY
+        WHERE CUSTOMER_NO = #{customerNo}
+
+    </select>
+
+</mapper>
+
+Mapper XML의 namespace는 Mapper Interface의 FQCN과 동일하게 하고, SQL id는 Mapper Method명과 동일하게 한다. 기존 샘플 설계에서도 namespace는 Mapper 인터페이스 FQCN, id는 Mapper Method명과 동일하게 하며 SQL ID가 로그와 성능분석에서 추적 가능해야 한다고 정리되어 있다.
+
+71.15 ServiceId / 거래통제 / Timeout 등록
+71.15.1 ServiceId 카탈로그 등록
+항목
+값
+SERVICE_ID
+SV.Customer.selectSummary
+BUSINESS_CODE
+SV
+TRANSACTION_CODE
+SV-INQ-0001
+SERVICE_NAME
+고객 요약 조회
+HANDLER_BEAN_NAME
+SV.Customer.selectSummary
+HANDLER_CLASS
+SvCustomerSummaryHandler
+PROCESSING_TYPE
+INQUIRY
+USE_YN
+Y
+AUDIT_YN
+Y
+71.15.2 거래통제 등록
+항목
+값
+SERVICE_ID
+SV.Customer.selectSummary
+TRANSACTION_CODE
+SV-INQ-0001
+BUSINESS_CODE
+SV
+SERVICE_NAME
+고객 요약 조회
+USER
+* 또는 허용 사용자
+CHANNEL_ID
+WEBTOP
+BRANCH
+* 또는 허용 지점
+ALLOW_YN
+Y
+71.15.3 Timeout 정책 등록
+Timeout 구분
+기준값
+설명
+Online Transaction Timeout
+3초
+서비스 전체 처리 제한
+Spring Transaction Timeout
+3초
+Facade 트랜잭션 제한
+MyBatis Query Timeout
+3초
+RDW SQL 실행 제한
+Hikari Connection Timeout
+3초
+Connection 획득 대기 제한
+기존 샘플 설계에서도 SV.Customer.selectSummary의 ServiceId 카탈로그, 거래통제, Timeout 정책 등록값을 위와 같은 기준으로 정리하고 있다.
+
+71.16 오류코드 설계
+오류코드
+오류명
+발생 위치
+사용자 메시지
+E-SV-VAL-0001
+고객번호 누락
+Rule
+고객번호는 필수입니다.
+E-SV-VAL-0002
+고객번호 형식 오류
+Rule
+고객번호 형식이 올바르지 않습니다.
+E-SV-VAL-0003
+기준일자 형식 오류
+Rule
+기준일자 형식이 올바르지 않습니다.
+E-SV-BIZ-0001
+고객정보 없음
+Rule / Service
+조회된 고객정보가 없습니다.
+E-SV-DB-0001
+고객요약 조회 실패
+DAO / Mapper
+고객정보 조회 중 오류가 발생했습니다.
+E-SV-TMO-0001
+고객요약 조회 Timeout
+TCF / Facade
+고객정보 조회 시간이 초과되었습니다.
+E-TCF-CTL-0001
+거래통제 차단
+STF
+허용되지 않은 거래입니다.
+오류코드는 업무코드, 오류유형, 일련번호가 드러나도록 관리하고, 사용자 응답에는 StackTrace, SQL, 서버 IP, 개인정보가 노출되지 않도록 한다.
+
+71.17 거래로그 / 감사로그 설계
+SV.Customer.selectSummary는 고객정보 조회 거래이므로 감사 대상이다.
+로그 항목
+기록 값
+GUID
+요청 Header 또는 TCF 생성값
+TRACE_ID
+요청 Header 또는 TCF 생성값
+SERVICE_ID
+SV.Customer.selectSummary
+TRANSACTION_CODE
+SV-INQ-0001
+BUSINESS_CODE
+SV
+USER_ID
+U123456
+BRANCH_ID
+012345
+CHANNEL_ID
+WEBTOP
+CUSTOMER_NO
+조회 대상 고객번호
+TX_STATUS
+PROCESSING → SUCCESS / FAIL / TIMEOUT
+START_TIME
+거래 시작 시각
+END_TIME
+거래 종료 시각
+ELAPSED_MS
+처리시간
+SQL_ID
+SvCustomerMapper.selectCustomerSummary
+ERROR_CODE
+오류 발생 시 오류코드
+기존 업무 적용 설계에서도 SV.Customer.selectSummary는 고객정보 조회 거래이므로 감사 대상이며, 사용자 ID, 지점 코드, 고객번호, ServiceId, 거래코드, 조회 시각, 결과, GUID, 마스킹 여부를 감사 항목으로 관리하도록 정리되어 있다.
+
+71.18 curl 테스트 샘플
+curl -X POST http://localhost:8086/sv/online \
+  -H "Content-Type: application/json; charset=UTF-8" \
+  -d '{
+    "header": {
+      "serviceId": "SV.Customer.selectSummary",
+      "transactionCode": "SV-INQ-0001",
+      "businessCode": "SV",
+      "serviceName": "고객 요약 조회",
+      "user": "U123456",
+      "channelId": "WEBTOP",
+      "branch": "012345"
+    },
+    "body": {
+      "customerNo": "CUST00000001",
+      "baseDate": "20260705"
+    }
+  }'
+
+Tomcat WAR 배포 기준으로는 다음 URL을 사용한다.
+curl -X POST http://localhost:8080/sv/online \
+  -H "Content-Type: application/json; charset=UTF-8" \
+  -d @sv-customer-summary-request.json
+
+
+71.19 테스트 케이스
+No
+테스트명
+입력
+기대 결과
+1
+정상 조회
+정상 고객번호
+SUCCESS, 고객 요약정보 반환
+2
+고객번호 누락
+customerNo = null
+E-SV-VAL-0001
+3
+고객번호 형식 오류
+20자리 초과
+E-SV-VAL-0002
+4
+기준일자 형식 오류
+2026-07-05
+E-SV-VAL-0003
+5
+고객 없음
+미존재 고객번호
+E-SV-BIZ-0001
+6
+미등록 ServiceId
+SV.Customer.unknown
+Dispatcher 또는 거래통제 오류
+7
+권한 없음
+허용되지 않은 사용자
+권한 오류
+8
+거래통제 차단
+ALLOW_YN = N
+E-TCF-CTL-0001
+9
+SQL Timeout
+RDW SQL 3초 초과
+E-SV-TMO-0001, 거래로그 TIMEOUT
+10
+RDW 장애
+DB 접속 불가
+E-SV-DB-0001
+11
+감사로그 확인
+정상 고객조회
+감사로그 적재
+12
+거래로그 확인
+정상/오류 거래
+TCF_TX_LOG 상태 정상 갱신
+기존 업무 적용 설계에서도 정상 조회, 고객번호 누락, 고객 없음, 미등록 ServiceId, 권한 없음, Timeout, DB 오류, 감사로그, 거래로그 확인을 테스트 케이스로 제시하고 있다.
+
+71.20 개발자 체크리스트
+점검 항목
+확인
+ServiceId가 SV.Customer.selectSummary로 정의되었는가?
+
+거래코드가 SV-INQ-0001로 정의되었는가?
+
+Handler Bean 이름이 ServiceId와 일치하는가?
+
+Handler가 Facade만 호출하는가?
+
+Facade에 @Transactional(readOnly = true, timeout = 3)이 적용되었는가?
+
+Rule에서 고객번호 필수 검증을 수행하는가?
+
+DAO가 Mapper만 호출하는가?
+
+Mapper XML의 namespace가 Mapper Interface FQCN과 일치하는가?
+
+Mapper XML의 SQL id가 Mapper Method명과 일치하는가?
+
+ServiceId 카탈로그에 등록되었는가?
+
+거래통제 Allow-List에 등록되었는가?
+
+Timeout 정책이 등록되었는가?
+
+오류코드가 OM 오류코드에 등록되었는가?
+
+거래로그와 감사로그가 정상 기록되는가?
+
+고객번호, 고객명 등 개인정보 마스킹 기준을 확인했는가?
+
+curl 또는 tcf-ui로 Smoke Test를 수행했는가?
+
+
+71.21 마무리말
+SV 고객요약조회 샘플의 핵심은 업무 개발자가 새로운 구조를 만들지 않고, 정해진 TCF 표준 구조를 그대로 복제해서 개발하는 것이다.
+Controller는 공통 TCF 진입점
+실행 기준은 ServiceId
+업무 시작점은 Handler
+트랜잭션 경계는 Facade
+업무 판단은 Rule
+DB 접근은 DAO / Mapper
+SQL은 Mapper XML
+오류 응답은 ETF 후처리
+거래 추적은 GUID + TraceId + ServiceId + SQL ID
+
+
+71.22 시사점
+SV 고객요약조회 샘플은 단순 예제가 아니라, NSIGHT 업무 개발의 기준 패턴이다.
+신규 업무 거래는 SV.Customer.selectSummary 샘플에서 ServiceId, DTO, Rule, Mapper SQL만 업무에 맞게 바꾸면 동일한 구조로 개발할 수 있다.
+

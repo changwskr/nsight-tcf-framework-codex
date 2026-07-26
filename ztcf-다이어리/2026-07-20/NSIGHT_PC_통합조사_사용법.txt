@@ -1,0 +1,29 @@
+﻿NSIGHT PC 통합조사 PowerShell 사용법
+
+1. NSIGHT_PC_통합조사.ps1 파일을 조사 대상 Windows PC로 복사합니다.
+2. PowerShell을 관리자 권한으로 실행합니다.
+3. 파일이 있는 폴더로 이동합니다.
+4. 아래 명령을 실행합니다.
+
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\NSIGHT_PC_통합조사.ps1
+
+기본 성능 측정시간: 30초
+측정시간을 120초로 변경:
+
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\NSIGHT_PC_통합조사.ps1 -SampleSeconds 120
+
+출력 경로 변경:
+
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\NSIGHT_PC_통합조사.ps1 -OutputRoot C:\Temp\NSIGHT_PC_조사결과
+
+결과:
+- 바탕화면\NSIGHT_PC_조사결과\PC명_일시 폴더
+- 같은 이름의 ZIP 파일
+- 00_PC_통합보고서.html
+- 00_PC_통합요약.csv
+- 설치 소프트웨어, 핵심 솔루션, 서비스, 자동실행, 네트워크, 성능 CSV
+
+주의:
+- 사내 실행정책과 보안정책이 우선입니다.
+- 관리자 권한이 없으면 일부 TPM/BitLocker/전체 사용자 앱 정보가 제한될 수 있습니다.
+- Win32_Product는 사용하지 않아 MSI 프로그램 재구성을 유발하지 않습니다.

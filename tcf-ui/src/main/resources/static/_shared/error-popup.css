@@ -1,0 +1,152 @@
+.nsight-error-popup {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  z-index: 10050;
+  width: min(380px, calc(100vw - 36px));
+  background: linear-gradient(165deg, #1e293b 0%, #111827 100%);
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  color: #e2e8f0;
+  font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  animation: nsight-error-slide-in 0.22s ease-out;
+}
+
+.nsight-error-popup[hidden] {
+  display: none !important;
+}
+
+@keyframes nsight-error-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nsight-error-popup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.nsight-error-popup-head strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  color: #fecaca;
+}
+
+.nsight-error-popup-head strong::before {
+  content: "!";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.nsight-error-popup-close {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.nsight-error-popup-close:hover {
+  color: #e2e8f0;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.nsight-error-popup-body {
+  padding: 10px 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.nsight-error-row {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 6px;
+  align-items: start;
+}
+
+.nsight-error-row .label {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  padding-top: 1px;
+}
+
+.nsight-error-row .value {
+  word-break: break-word;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.78rem;
+}
+
+.nsight-error-row .value.message {
+  font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+  font-size: 0.82rem;
+  color: #f8fafc;
+}
+
+.nsight-error-detail {
+  margin-top: 2px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  max-height: 96px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.72rem;
+  color: #cbd5e1;
+}
+
+.nsight-error-popup-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 12px 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.nsight-error-popup-foot button {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(51, 65, 85, 0.55);
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.nsight-error-popup-foot button.primary {
+  background: rgba(248, 113, 113, 0.18);
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fecaca;
+}
+
+.nsight-error-popup-foot button:hover {
+  filter: brightness(1.08);
+}

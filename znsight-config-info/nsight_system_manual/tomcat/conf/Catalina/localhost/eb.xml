@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- EB - EBM -->
+<Context path="/eb"
+         docBase="/app/nsight/war/eb.war"
+         reloadable="false"
+         sessionCookieName="JSESSIONID">
+</Context>

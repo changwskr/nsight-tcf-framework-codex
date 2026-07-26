@@ -1,0 +1,29 @@
+# eb-service ConfigMap — non-sensitive runtime settings
+#
+# Apply:
+#   kubectl apply -f eb-service/scripts/k8s/configmap.yaml
+#
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nsight-eb-config
+  namespace: nsight
+  labels:
+    app: nsight-eb
+    app.kubernetes.io/name: eb-service
+    app.kubernetes.io/part-of: nsight-tcf-framework
+data:
+  SPRING_PROFILES_ACTIVE: "local"
+  SERVER_PORT: "8089"
+  NSIGHT_TXLOG_PATH: "/app/data/nsight-txlog"
+  # EP Outbox publish target (in-cluster Service DNS example)
+  NSIGHT_EB_EVENT_PUBLISH_EP_ONLINE_URL: "http://nsight-ep:8090/ep/online"
+  NSIGHT_EB_EVENT_PUBLISH_ENABLED: "true"
+  NSIGHT_EB_EVENT_PUBLISH_FIXED_DELAY_MS: "60000"
+  NSIGHT_EB_EVENT_PUBLISH_BATCH_SIZE: "50"
+  JAVA_OPTS: "-XX:MaxRAMPercentage=75.0 -Dfile.encoding=UTF-8"
+  # Optional JDBC overrides for non-local profiles (see secret.yaml for credentials)
+  # NSIGHT_EB_DB_URL: "jdbc:oracle:thin:@//oracle:1521/nsight_eb"
+  # NSIGHT_EB_DB_DRIVER: "oracle.jdbc.OracleDriver"
+  # NSIGHT_TXLOG_JDBC_URL: "jdbc:h2:file:/app/data/nsight-txlog/nsight_om;MODE=Oracle;DATABASE_TO_UPPER=false"
+  # NSIGHT_TXLOG_DB_DRIVER: "org.h2.Driver"

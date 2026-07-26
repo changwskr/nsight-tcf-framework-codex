@@ -1,0 +1,407 @@
+NSIGHT 17개 업무코드 기준
+1. 도입 전 안내말
+NSIGHT TCF Framework에서 업무코드는 모든 명명규칙의 출발점이다.업무코드가 정해지면 다음 항목이 자동으로 연결된다.
+업무코드
+  ↓
+Context Path
+  ↓
+WAR 파일명
+  ↓
+Gradle Module
+  ↓
+Java Package
+  ↓
+ServiceId
+  ↓
+거래코드
+  ↓
+Mapper / SQL ID
+  ↓
+오류코드 / 거래로그 / 감사로그
+
+기존 NSIGHT 기준에서도 17개 WAR 배포 구조를 전제로 하고 있으며, MG는 Message 의미로 사용하므로 운영관리 업무는 별도 OM(Operation Management)으로 분리하는 것이 적합하다.
+
+2. NSIGHT 17개 업무코드 최종 기준
+No
+구분
+업무코드
+영문명
+업무 설명
+Context
+WAR
+Gradle Module
+Package
+1
+공통
+CC
+Common
+공통 서비스, 공통 유틸, 공통 기준 기능
+/cc
+cc.war
+cc-service
+com.nh.nsight.marketing.cc
+2
+고객
+IC
+Integration Customer
+통합고객, 고객 기본정보 연계
+/ic
+ic.war
+ic-service
+com.nh.nsight.marketing.ic
+3
+고객
+PC
+Private Customer
+개인고객 정보, 개인고객 조회
+/pc
+pc.war
+pc-service
+com.nh.nsight.marketing.pc
+4
+고객
+BC
+Business Customer
+법인/사업자 고객 정보
+/bc
+bc.war
+bc-service
+com.nh.nsight.marketing.bc
+5
+고객
+MS
+Mini Single View
+축약형 고객 통합조회
+/ms
+ms.war
+ms-service
+com.nh.nsight.marketing.ms
+6
+마케팅
+SV
+Single View
+고객 Single View, 고객 요약/상세 통합조회
+/sv
+sv.war
+sv-service
+com.nh.nsight.marketing.sv
+7
+마케팅
+PD
+Product
+상품, 보유상품, 상품추천 정보
+/pd
+pd.war
+pd-service
+com.nh.nsight.marketing.pd
+8
+마케팅
+CM
+Campaign
+캠페인 관리, 캠페인 대상자, 캠페인 실행
+/cm
+cm.war
+cm-service
+com.nh.nsight.marketing.cm
+9
+마케팅
+EB
+EBM
+이벤트 기반 마케팅, 이벤트 배치
+/eb
+eb.war
+eb-service
+com.nh.nsight.marketing.eb
+10
+실시간
+EP
+Event Processing
+실시간 이벤트 처리
+/ep
+ep.war
+ep-service
+com.nh.nsight.marketing.ep
+11
+실시간
+BP
+Behavior Processing
+행동정보 처리, 고객행동 기반 처리
+/bp
+bp.war
+bp-service
+com.nh.nsight.marketing.bp
+12
+데이터
+BD
+Behavior Data
+행동 데이터, 분석용 데이터 조회
+/bd
+bd.war
+bd-service
+com.nh.nsight.marketing.bd
+13
+지원
+SS
+Sales Support
+영업지원, 직원 업무지원
+/ss
+ss.war
+ss-service
+com.nh.nsight.marketing.ss
+14
+지원
+CS
+Common Service
+업무 공통 서비스, 공통 업무 API
+/cs
+cs.war
+cs-service
+com.nh.nsight.marketing.cs
+15
+지원
+CT
+Contents
+콘텐츠, 배너, 안내문, 화면 콘텐츠 관리
+/ct
+ct.war
+ct-service
+com.nh.nsight.marketing.ct
+16
+지원
+MG
+Message
+메시지, 알림, 발송, 메시지 템플릿
+/mg
+mg.war
+mg-service
+com.nh.nsight.marketing.mg
+17
+운영
+OM
+Operation Management
+운영관리, 사용자, 권한, 메뉴, ServiceId, 거래통제, Timeout, 오류코드
+/om
+om.war
+tcf-om
+com.nh.nsight.marketing.om
+
+3. 업무코드별 ServiceId / 거래코드 / 오류코드 Prefix
+업무코드
+ServiceId Prefix
+거래코드 Prefix
+오류코드 Prefix
+예시 ServiceId
+CC
+CC.
+CC-
+E-CC-
+CC.Code.selectList
+IC
+IC.
+IC-
+E-IC-
+IC.Customer.selectBasic
+PC
+PC.
+PC-
+E-PC-
+PC.Customer.selectDetail
+BC
+BC.
+BC-
+E-BC-
+BC.Customer.selectBusiness
+MS
+MS.
+MS-
+E-MS-
+MS.Customer.selectMiniView
+SV
+SV.
+SV-
+E-SV-
+SV.Customer.selectSummary
+PD
+PD.
+PD-
+E-PD-
+PD.Product.selectHolding
+CM
+CM.
+CM-
+E-CM-
+CM.Campaign.selectTarget
+EB
+EB.
+EB-
+E-EB-
+EB.Event.processMarketing
+EP
+EP.
+EP-
+E-EP-
+EP.Event.processRealtime
+BP
+BP.
+BP-
+E-BP-
+BP.Behavior.collectEvent
+BD
+BD.
+BD-
+E-BD-
+BD.Behavior.selectData
+SS
+SS.
+SS-
+E-SS-
+SS.Sales.selectSupport
+CS
+CS.
+CS-
+E-CS-
+CS.Common.executeService
+CT
+CT.
+CT-
+E-CT-
+CT.Content.selectBanner
+MG
+MG.
+MG-
+E-MG-
+MG.Message.sendMessage
+OM
+OM.
+OM-
+E-OM-
+OM.User.selectList
+
+4. 업무코드 설계 원칙
+원칙
+기준
+2자리 대문자 사용
+SV, CM, OM처럼 영문 대문자 2자리 사용
+중복 금지
+하나의 업무코드는 하나의 업무 의미만 가져야 함
+Context와 일치
+SV는 /sv, CM은 /cm으로 고정
+WAR와 일치
+SV는 sv.war, CM은 cm.war로 고정
+Package와 일치
+SV는 com.nh.nsight.marketing.sv로 고정
+ServiceId Prefix와 일치
+SV 업무 ServiceId는 반드시 SV.로 시작
+거래코드 Prefix와 일치
+SV 업무 거래코드는 반드시 SV-로 시작
+오류코드 Prefix와 일치
+SV 업무 오류코드는 반드시 E-SV-로 시작
+운영 반영 후 변경 금지
+업무코드는 배포, 로그, 오류코드, DB 기준정보와 연결되므로 변경 금지
+OM 분리
+운영관리는 MG가 아니라 OM으로 분리
+
+5. 17개 업무코드 기준 사용 위치
+사용 위치
+사용 방식
+예시
+Apache Routing
+URL Prefix 기준 라우팅
+/sv/* → sv.war
+Gateway Routing
+businessCode 기준 대상 업무 결정
+SV → /sv/online
+Tomcat 배포
+WAR 파일명 기준 Context 생성
+sv.war → /sv
+Spring 설정
+server.servlet.context-path
+/sv
+Java Package
+업무별 Component Scan 기준
+com.nh.nsight.marketing.sv
+ServiceId
+Dispatcher 실행 기준
+SV.Customer.selectSummary
+거래코드
+거래로그 / 감사로그 추적 기준
+SV-INQ-0001
+Mapper XML
+업무별 SQL 위치
+mapper/sv/SvCustomerMapper.xml
+SQL ID
+SQL 추적 기준
+SV.Customer.selectSummary
+오류코드
+오류 응답 / OM 오류관리 기준
+E-SV-BIZ-0001
+권한관리
+메뉴/기능/ServiceId 권한 기준
+businessCode = SV
+거래통제
+허용 거래 등록 기준
+businessCode = SV
+Timeout 정책
+서비스별 제한시간 기준
+serviceId = SV.Customer.selectSummary
+
+6. 업무코드별 대표 개발 구조 예시
+SV 업무를 예로 들면 다음처럼 연결된다.
+업무코드        : SV
+업무명          : Single View
+Context         : /sv
+WAR             : sv.war
+Gradle Module   : sv-service
+Package Root    : com.nh.nsight.marketing.sv
+
+ServiceId       : SV.Customer.selectSummary
+거래코드        : SV-INQ-0001
+오류코드        : E-SV-BIZ-0001
+
+Handler         : SvCustomerSummaryHandler
+Facade          : SvCustomerFacade
+Service         : SvCustomerService
+Rule            : SvCustomerRule
+DAO             : SvCustomerDao
+Mapper          : SvCustomerMapper
+Mapper XML      : mapper/sv/SvCustomerMapper.xml
+SQL ID          : SV.Customer.selectSummary
+
+
+7. OM 업무코드 특별 기준
+OM은 17번째 업무코드이지만 일반 업무 모듈과 성격이 다르다.
+항목
+OM 기준
+업무코드
+OM
+업무명
+Operation Management
+Context
+/om
+WAR
+om.war
+Module
+tcf-om
+Package
+com.nh.nsight.marketing.om
+역할
+운영 기준정보 관리
+관리 대상
+사용자, 권한, 메뉴, ServiceId, 거래통제, Timeout, 오류코드, 공통코드, 세션, 거래로그, 감사로그
+분리 이유
+일반 업무 로직과 운영 기준정보 관리를 분리하기 위함
+MG와 구분
+MG는 Message 업무, OM은 Operation Management 업무
+
+8. 마무리말
+NSIGHT 17개 업무코드는 개발 표준의 최상위 기준이다.
+업무코드가 흔들리면
+Context가 흔들리고,
+WAR가 흔들리고,
+Package가 흔들리고,
+ServiceId가 흔들리고,
+거래로그와 오류코드 추적도 흔들린다.
+
+따라서 NSIGHT에서는 다음 기준을 고정한다.
+17개 업무코드는 업무 경계, 배포 경계, URL 경계, Package 경계, 운영관리 기준정보의 최상위 식별자로 사용한다.
+

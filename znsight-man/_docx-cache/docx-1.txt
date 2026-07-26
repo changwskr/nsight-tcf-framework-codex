@@ -1,0 +1,1380 @@
+NSIGHT TCF 개발가이드 - 7차
+54. 명명규칙 총정리
+54.1 도입 전 안내말
+NSIGHT TCF Framework의 명명규칙은 단순히 이름을 통일하는 기준이 아니다.이름 하나가 업무코드, URL, WAR, Package, ServiceId, Handler, Mapper, SQL ID, 거래로그, 오류코드까지 이어져야 한다.
+기존 네이밍 원칙에서도 핵심은 업무코드 → Context → WAR → Package → ServiceId → Handler → Facade → Service → Rule → DAO/Mapper → MyBatis XML → SQL ID → 거래로그/오류코드가 하나의 선으로 연결되게 만드는 것으로 정리되어 있다.
+업무코드
+   ↓
+Context Path
+   ↓
+WAR / Gradle Module
+   ↓
+Java Package
+   ↓
+ServiceId
+   ↓
+Handler
+   ↓
+Facade / Service / Rule / DAO / Mapper
+   ↓
+Mapper XML / SQL ID
+   ↓
+거래로그 / 오류코드 / 감사로그
+
+
+54.2 명명규칙 최상위 원칙
+원칙
+기준
+예시
+업무코드 우선
+모든 이름은 업무코드를 기준으로 시작한다
+SV, OM, MG
+Context/WAR/Package 일치
+하나의 업무코드는 하나의 URL Context, WAR, Package로 연결한다
+/sv, sv.war, .sv
+실행 기준은 ServiceId
+URL이 아니라 header.serviceId로 Handler를 찾는다
+SV.Customer.selectSummary
+Java Class는 PascalCase
+클래스명은 대문자로 시작하고 의미를 명확히 한다
+SvCustomerInquiryHandler
+Method/Field는 lowerCamelCase
+메서드와 변수는 소문자로 시작한다
+selectCustomerSummary()
+Package는 lowercase
+패키지는 모두 소문자로 작성한다
+com.nh.nsight.marketing.sv
+DB 객체는 UPPER_SNAKE_CASE
+테이블, 컬럼, 인덱스, 시퀀스는 대문자와 _ 사용
+TCF_TRANSACTION_LOG
+오류코드는 추적 가능하게
+오류 발생 영역과 분류를 코드에 포함한다
+E-SV-BIZ-0001
+약어 남용 금지
+의미가 불명확한 축약어를 사용하지 않는다
+Svc, Mgr, Proc 지양
+운영 추적성 우선
+로그만 보고 업무, 거래, 오류 위치를 알 수 있어야 한다
+SV-INQ-0001, SV.Customer.selectSummary
+
+54.3 업무코드 / Context / WAR / Package 명명규칙
+54.3.1 기본 규칙
+항목
+규칙
+예시
+업무코드
+영문 대문자 2자리
+SV, OM, CM
+Java Prefix
+업무코드 PascalCase
+Sv, Om, Cm
+Package
+업무코드 소문자
+sv, om, cm
+Context Path
+/ + 업무코드 소문자
+/sv, /om, /cm
+WAR 파일명
+업무코드 소문자 + .war
+sv.war, om.war
+Gradle Module
+업무코드 소문자 + -service
+sv-service, cm-service
+운영관리 예외
+OM은 tcf-om 모듈 사용 가능
+tcf-om → om.war
+
+54.3.2 NSIGHT 17개 업무코드 기준
+No
+업무코드
+권장 업무명
+Context
+WAR
+Gradle Module
+Java Prefix
+Package
+1
+CC
+Common
+/cc
+cc.war
+cc-service
+Cc
+cc
+2
+IC
+Integration Customer
+/ic
+ic.war
+ic-service
+Ic
+ic
+3
+PC
+Private Customer
+/pc
+pc.war
+pc-service
+Pc
+pc
+4
+BC
+Business Customer
+/bc
+bc.war
+bc-service
+Bc
+bc
+5
+MS
+Mini Single View
+/ms
+ms.war
+ms-service
+Ms
+ms
+6
+SV
+Single View
+/sv
+sv.war
+sv-service
+Sv
+sv
+7
+PD
+Product
+/pd
+pd.war
+pd-service
+Pd
+pd
+8
+CM
+Campaign
+/cm
+cm.war
+cm-service
+Cm
+cm
+9
+EB
+EBM
+/eb
+eb.war
+eb-service
+Eb
+eb
+10
+EP
+Event Processing
+/ep
+ep.war
+ep-service
+Ep
+ep
+11
+BP
+Business Platform
+/bp
+bp.war
+bp-service
+Bp
+bp
+12
+BD
+Business Data
+/bd
+bd.war
+bd-service
+Bd
+bd
+13
+SS
+Sales Support
+/ss
+ss.war
+ss-service
+Ss
+ss
+14
+CS
+Customer Support
+/cs
+cs.war
+cs-service
+Cs
+cs
+15
+CT
+Customer Targeting
+/ct
+ct.war
+ct-service
+Ct
+ct
+16
+MG
+Message
+/mg
+mg.war
+mg-service
+Mg
+mg
+17
+OM
+Operation Management
+/om
+om.war
+tcf-om 또는 om-service
+Om
+om
+MG는 Message로 사용하고, 운영관리는 OM으로 분리한다.따라서 Management 의미로 MG를 다시 사용하지 않는다.
+
+54.4 모듈 명명규칙
+유형
+규칙
+예시
+공통 유틸
+tcf-util
+tcf-util
+TCF Core
+tcf-core
+tcf-core
+TCF Web
+tcf-web
+tcf-web
+Cache
+tcf-cache
+tcf-cache
+운영관리
+tcf-om
+tcf-om
+Batch
+tcf-batch
+tcf-batch
+UI Relay
+tcf-ui
+tcf-ui
+Gateway
+tcf-gateway
+tcf-gateway
+JWT
+tcf-jwt
+tcf-jwt
+CI/CD 설정
+tcf-cicd
+tcf-cicd
+업무 서비스
+{code}-service
+sv-service, cm-service
+스크립트
+tcf-scripts
+tcf-scripts
+
+54.5 Package 명명규칙
+54.5.1 업무 모듈 Package
+com.nh.nsight.marketing.{businessCode}
+
+예시:
+com.nh.nsight.marketing.sv
+com.nh.nsight.marketing.cm
+com.nh.nsight.marketing.om
+
+54.5.2 계층별 Package 구조
+com.nh.nsight.marketing.sv
+ ├─ entry
+ │   ├─ handler
+ │   ├─ facade
+ │   └─ web
+ ├─ application
+ │   ├─ service
+ │   ├─ rule
+ │   └─ scheduler
+ ├─ persistence
+ │   ├─ dao
+ │   └─ mapper
+ ├─ client
+ ├─ config
+ └─ support
+
+업무 계층은 Handler → Facade → Service → Rule → DAO/Mapper 구조를 기준으로 한다. TCF 설계 기준에서도 업무 처리는 이 계층 구조로 정리되어 있다.
+Package
+역할
+클래스 예시
+entry.handler
+TCF TransactionHandler 구현
+SvCustomerSummaryInquiryHandler
+entry.facade
+유스케이스 조립, 트랜잭션 경계
+SvCustomerFacade
+entry.web
+별도 REST Controller 필요 시
+SvFileController
+application.service
+업무 처리 절차
+SvCustomerService
+application.rule
+업무 규칙, 판단 로직
+SvCustomerGradeRule
+application.scheduler
+업무 스케줄러
+EbEventCollectScheduler
+persistence.dao
+DB 접근 조립, Mapper 호출
+SvCustomerDao
+persistence.mapper
+MyBatis Mapper Interface
+SvCustomerMapper
+client
+외부 API 또는 타 업무 호출
+SvCustomerProfileClient
+config
+Spring 설정
+SvDataSourceConfig
+support
+상수, 유틸, 도메인 보조
+SvConstants
+
+54.6 ServiceId 명명규칙
+ServiceId는 온라인 거래를 실행·통제·추적하는 핵심 식별자다. ServiceId는 Dispatcher가 어떤 Handler를 실행할지 결정하는 Key이며, Header 검증, 권한, 거래로그, 감사로그, Timeout, 중복요청 통제의 기준이 된다.
+54.6.1 표준 형식
+{BusinessCode}.{Domain}.{action}
+
+구성요소
+규칙
+예시
+BusinessCode
+대문자 업무코드
+SV, OM, CM
+Domain
+업무대상 PascalCase
+Customer, Campaign, User
+action
+처리행위 lowerCamelCase
+selectSummary, inquiry, save
+54.6.2 ServiceId 예시
+업무
+ServiceId
+의미
+SV
+SV.Customer.selectSummary
+고객 요약 조회
+SV
+SV.Customer.selectDetail
+고객 상세 조회
+SV
+SV.Sample.inquiry
+SV 샘플 조회
+CM
+CM.Campaign.inquiry
+캠페인 목록 조회
+CM
+CM.Campaign.save
+캠페인 등록
+MG
+MG.Message.send
+메시지 발송
+OM
+OM.User.inquiry
+사용자 목록 조회
+OM
+OM.Menu.save
+메뉴 등록
+OM
+OM.ServiceCatalog.save
+ServiceId 등록
+OM
+OM.TransactionControl.delete
+거래통제 삭제
+OM
+OM.TimeoutPolicy.update
+Timeout 정책 수정
+UD
+UD.File.upload
+파일 업로드
+UD
+UD.File.download
+파일 다운로드
+JWT
+JWT.Auth.ssoIssue
+SSO 완료 사용자 JWT 발급
+
+54.6.3 action 표준
+action
+용도
+예시
+inquiry
+목록/조건 조회
+OM.User.inquiry
+detail
+상세 조회
+OM.User.detail
+select
+단건 조회
+SV.Customer.selectSummary
+save
+신규 등록
+OM.CommonCode.save
+update
+수정
+OM.User.update
+delete
+삭제
+OM.Menu.delete
+execute
+실행
+OM.Batch.execute
+login
+로그인
+OM.Auth.login
+logout
+로그아웃
+OM.Auth.logout
+ssoLogin
+SSO 로그인
+OM.Auth.ssoLogin
+ssoIssue
+SSO 기반 토큰 발급
+JWT.Auth.ssoIssue
+refresh
+토큰/상태 갱신
+JWT.Token.refresh
+upload
+업로드
+UD.File.upload
+download
+다운로드
+UD.File.download
+refreshCache
+캐시 갱신
+OM.CommonCode.refreshCache
+
+54.7 거래코드 Transaction Code 명명규칙
+54.7.1 표준 형식
+{업무코드}-{처리유형}-{일련번호4자리}
+
+예시:
+SV-INQ-0001
+CM-REG-0001
+OM-CTL-0001
+UD-DWN-0001
+
+54.7.2 처리유형 코드
+처리유형
+의미
+예시
+INQ
+목록/조건 조회
+SV-INQ-0001
+DTL
+상세조회
+SV-DTL-0001
+SEL
+단건조회
+SV-SEL-0001
+REG
+등록
+CM-REG-0001
+UPD
+수정
+OM-UPD-0001
+DEL
+삭제
+OM-DEL-0001
+EXE
+실행
+BT-EXE-0001
+LOG
+로그인/로그아웃
+OM-LOG-0001
+AUTH
+인증/권한
+OM-AUTH-0001
+UPL
+업로드
+UD-UPL-0001
+DWN
+다운로드
+UD-DWN-0001
+CFG
+환경설정
+OM-CFG-0001
+CTL
+거래통제
+OM-CTL-0001
+TMO
+Timeout 정책
+OM-TMO-0001
+BAT
+배치
+BT-BAT-0001
+HCK
+Health Check
+OM-HCK-0001
+
+54.8 Java Class 명명규칙
+54.8.1 기본 형식
+{BusinessCode}{Domain}{Action}{Layer}
+
+계층
+규칙
+예시
+Handler
+{Code}{Domain}{Action}Handler
+SvCustomerInquiryHandler
+Facade
+{Code}{Domain}Facade
+SvCustomerFacade
+Service
+{Code}{Domain}Service
+SvCustomerService
+Rule
+{Code}{Domain}{RuleName}Rule
+SvCustomerEligibilityRule
+DAO
+{Code}{Domain}Dao
+SvCustomerDao
+Mapper
+{Code}{Domain}Mapper
+SvCustomerMapper
+Controller
+{Code}{Domain}Controller
+SvCustomerController
+Validator
+{Code}{Domain}Validator
+SvCustomerValidator
+Client
+{Code}{Target}Client
+SvProfileClient
+Config
+{Code}{Target}Config
+SvMyBatisConfig
+Properties
+{Code}{Target}Properties
+SvTimeoutProperties
+Scheduler
+{Code}{JobName}Scheduler
+EbEventCollectScheduler
+Job
+{Code}{JobName}Job
+BatchApStatusCollectJob
+54.8.2 ServiceId와 Handler 매핑
+ServiceId
+Handler
+SV.Customer.selectSummary
+SvCustomerSummaryInquiryHandler
+SV.Customer.selectDetail
+SvCustomerDetailInquiryHandler
+CM.Campaign.create
+CmCampaignCreateHandler
+OM.User.inquiry
+OmUserInquiryHandler
+OM.ServiceCatalog.save
+OmServiceCatalogSaveHandler
+JWT.Auth.ssoIssue
+JwtAuthSsoIssueHandler
+UD.File.download
+UdFileDownloadHandler
+
+54.9 Method / Field 명명규칙
+54.9.1 Method 기본 규칙
+유형
+규칙
+예시
+조회
+select, find, inquiry, get
+selectCustomerSummary()
+목록조회
+findList, inquiry, search
+findCustomerList()
+건수조회
+count
+countCustomerList()
+등록
+create, insert, save
+createCampaign()
+수정
+update, modify
+updateUserAuth()
+삭제
+delete, remove
+deleteMenu()
+검증
+validate, check
+validateHeader()
+변환
+to, from, convert
+toResponse()
+실행
+execute, run
+executeBatch()
+호출
+call, request
+callSvService()
+54.9.2 Field 기본 규칙
+항목
+규칙
+예시
+사용자 ID
+userId
+userId
+지점 코드
+branchId 또는 branchCode
+branchId
+채널 ID
+channelId
+channelId
+서비스 ID
+serviceId
+serviceId
+거래코드
+transactionCode
+transactionCode
+업무코드
+businessCode
+businessCode
+GUID
+guid
+guid
+Trace ID
+traceId
+traceId
+세션 ID
+sessionId
+sessionId
+오류코드
+errorCode
+errorCode
+결과코드
+resultCode
+resultCode
+결과상태
+resultStatus
+resultStatus
+
+54.10 DTO 명명규칙
+DTO 유형
+규칙
+예시
+Request DTO
+{Domain}{Action}Request
+CustomerSummaryInquiryRequest
+Response DTO
+{Domain}{Action}Response
+CustomerSummaryInquiryResponse
+Result DTO
+{Domain}{ResultName}Result
+CustomerSummaryResult
+Command DTO
+{Domain}{Action}Command
+CampaignCreateCommand
+Criteria DTO
+{Domain}SearchCriteria
+CustomerSearchCriteria
+Condition DTO
+{Domain}SearchCondition
+CampaignSearchCondition
+Page DTO
+{Domain}PageRequest, {Domain}PageResponse
+CustomerPageRequest
+Detail DTO
+{Domain}Detail
+UserDetail
+Summary DTO
+{Domain}Summary
+CustomerSummary
+권장 예시:
+CustomerSummaryInquiryRequest
+CustomerSummaryInquiryResponse
+CustomerSummaryResult
+CustomerSearchCriteria
+CampaignCreateCommand
+UserAuthUpdateRequest
+CommonCodeSearchCondition
+
+
+54.11 MyBatis Mapper / XML / SQL ID 명명규칙
+MyBatis는 DAO/Mapper 계층에 위치하고, SQL은 Mapper XML에 두며, 업무별 Mapper 분리와 RDW/ADW Mapper 구분, SQL ID 표준화를 원칙으로 한다.
+54.11.1 Mapper Interface
+항목
+규칙
+예시
+Mapper Interface
+{Code}{Domain}Mapper
+SvCustomerMapper
+DAO
+{Code}{Domain}Dao
+SvCustomerDao
+XML 파일
+{Code}{Domain}Mapper.xml
+SvCustomerMapper.xml
+XML 위치
+resources/mapper/{businessCode}
+mapper/sv/SvCustomerMapper.xml
+54.11.2 Mapper XML namespace
+<mapper namespace="com.nh.nsight.marketing.sv.persistence.mapper.SvCustomerMapper">
+
+54.11.3 SQL ID 규칙
+{action}{Domain}{Target}
+
+SQL 유형
+SQL ID
+예시
+목록조회
+select{Domain}List
+selectCustomerList
+단건조회
+select{Domain}
+selectCustomer
+상세조회
+select{Domain}Detail
+selectCustomerDetail
+요약조회
+select{Domain}Summary
+selectCustomerSummary
+건수조회
+count{Domain}List
+countCustomerList
+등록
+insert{Domain}
+insertCampaign
+수정
+update{Domain}
+updateCampaign
+삭제
+delete{Domain}
+deleteCampaign
+존재확인
+exists{Domain}
+existsUser
+54.11.4 SQL ID와 ServiceId 연결 예시
+ServiceId
+Mapper
+SQL ID
+SV.Customer.selectSummary
+SvCustomerMapper
+selectCustomerSummary
+SV.Customer.selectDetail
+SvCustomerMapper
+selectCustomerDetail
+CM.Campaign.inquiry
+CmCampaignMapper
+selectCampaignList
+OM.User.inquiry
+OmUserMapper
+selectUserList
+OM.CommonCode.save
+OmCommonCodeMapper
+insertCommonCode
+UD.File.download
+UdFileMapper
+selectFileMeta
+
+54.12 DB 객체 명명규칙
+54.12.1 기본 규칙
+객체
+규칙
+예시
+테이블
+{영역}_{업무대상}
+OM_USER, TCF_TX_LOG
+컬럼
+UPPER_SNAKE_CASE
+SERVICE_ID, USER_ID
+PK
+PK_{TABLE}
+PK_OM_USER
+FK
+FK_{TABLE}_{REF_TABLE}
+FK_OM_USER_AUTH_GROUP
+Index
+IX_{TABLE}_{순번}
+IX_TCF_TX_LOG_01
+Unique Index
+UX_{TABLE}_{순번}
+UX_OM_SERVICE_CATALOG_01
+Sequence
+SEQ_{TABLE}
+SEQ_TCF_TX_LOG
+View
+VW_{업무대상}
+VW_OM_USER_AUTH
+Synonym
+SYN_{대상}
+SYN_RDW_CUSTOMER
+54.12.2 주요 테이블 Prefix
+Prefix
+의미
+예시
+TCF_
+TCF 실행/통제
+TCF_TX_LOG, TCF_TRANSACTION_CONTROL
+OM_
+운영관리
+OM_USER, OM_MENU, OM_COMMON_CODE
+GW_ 또는 TCF_GATEWAY_
+Gateway
+TCF_GATEWAY_ROUTE
+JWT_ 또는 TCF_JWT_
+JWT 인증
+TCF_JWT_TOKEN
+UD_ 또는 OM_FILE_
+파일관리
+OM_FILE_META
+BAT_ 또는 OM_BATCH_
+배치관리
+OM_BATCH_JOB
+LOG_
+로그성 데이터
+LOG_AUDIT
+RDW_
+RDW 업무 테이블
+RDW_CUSTOMER_SUMMARY
+ADW_
+ADW 분석 테이블
+ADW_CAMPAIGN_RESULT
+54.12.3 공통 컬럼명
+컬럼
+의미
+CREATED_AT
+생성일시
+CREATED_BY
+생성자
+UPDATED_AT
+수정일시
+UPDATED_BY
+수정자
+USE_YN
+사용여부
+DEL_YN
+삭제여부
+SORT_ORDER
+정렬순서
+DESCRIPTION
+설명
+REMARK
+비고
+VERSION_NO
+버전번호
+LAST_LOGIN_AT
+최종 로그인일시
+EXPIRED_AT
+만료일시
+
+54.13 오류코드 명명규칙
+오류코드는 TCF 공통 후처리에서 표준 오류코드로 변환하고, StandardResponse로 조립하며, 거래로그·감사로그·모니터링 지표에 남기는 구조가 기준이다. 오류코드 형식은 E-{DOMAIN}-{CATEGORY}-{NNNN}으로 정리한다.
+54.13.1 표준 형식
+E-{DOMAIN}-{CATEGORY}-{NNNN}
+
+구성
+의미
+예시
+E
+Error
+E
+DOMAIN
+오류 발생 영역
+TCF, COM, SV, OM, GW, JWT, UD
+CATEGORY
+오류 분류
+HDR, VAL, AUTHN, AUTHZ, CTL, TIME, DB, IF, SYS
+NNNN
+일련번호
+0001
+54.13.2 DOMAIN 표준
+DOMAIN
+의미
+예시
+TCF
+TCF Framework
+E-TCF-HDR-0001
+COM
+공통
+E-COM-SYS-0001
+SV
+Single View
+E-SV-BIZ-0001
+CM
+Campaign
+E-CM-BIZ-0001
+OM
+Operation Management
+E-OM-CODE-0001
+GW
+Gateway
+E-GW-ROUTE-0001
+JWT
+JWT 인증
+E-JWT-AUTHN-0001
+UD
+Upload/Download
+E-UD-FILE-0001
+BAT
+Batch
+E-BAT-JOB-0001
+54.13.3 CATEGORY 표준
+CATEGORY
+의미
+예시
+HDR
+Header 오류
+E-TCF-HDR-0001
+VAL
+Validation 오류
+E-SV-VAL-0001
+AUTHN
+인증 오류
+E-COM-AUTHN-0001
+AUTHZ
+권한 오류
+E-COM-AUTHZ-0001
+CTL
+거래통제 오류
+E-TCF-CTL-0001
+TIME
+Timeout 오류
+E-TCF-TIME-0001
+DB
+DB 오류
+E-SV-DB-0001
+IF
+외부연계 오류
+E-COM-IF-0001
+SYS
+시스템 오류
+E-COM-SYS-0001
+BIZ
+업무 오류
+E-SV-BIZ-0001
+FILE
+파일 오류
+E-UD-FILE-0001
+ROUTE
+Gateway 라우팅 오류
+E-GW-ROUTE-0001
+
+54.14 로그 / 감사로그 명명규칙
+구분
+규칙
+예시
+거래로그 테이블
+TCF_TX_LOG
+TCF_TX_LOG
+감사로그 테이블
+OM_AUDIT_LOG
+OM_AUDIT_LOG
+로그 파일
+{app}-{type}.log
+sv-application.log
+거래로그 파일
+{app}-transaction.log
+sv-transaction.log
+감사로그 파일
+{app}-audit.log
+om-audit.log
+오류로그 파일
+{app}-error.log
+sv-error.log
+성능로그 파일
+{app}-performance.log
+sv-performance.log
+GUID 필드
+guid
+guid
+Trace ID 필드
+traceId
+traceId
+Transaction ID 필드
+transactionId
+transactionId
+거래로그 상태값은 다음을 사용한다.
+상태
+의미
+PROCESSING
+거래 처리 중
+SUCCESS
+정상 완료
+FAIL
+업무/시스템 오류로 실패
+TIMEOUT
+Timeout 발생
+UNKNOWN
+처리 결과 불명확
+
+54.15 Gateway 라우팅 명명규칙
+항목
+규칙
+예시
+Gateway Module
+tcf-gateway
+tcf-gateway
+Gateway Context
+/gw
+/gw
+Gateway Endpoint
+/gw/{businessCode}/online
+/gw/sv/online
+라우팅 테이블
+TCF_GATEWAY_ROUTE
+TCF_GATEWAY_ROUTE
+라우팅 대상 테이블
+TCF_GATEWAY_ROUTE_TARGET
+TCF_GATEWAY_ROUTE_TARGET
+Route ID
+GW-{업무코드}-{환경}
+GW-SV-PRD
+환경코드
+LOCAL, DEV, STG, PRD
+PRD
+Gateway 라우팅은 URL Path의 업무코드와 JSON Header의 businessCode가 일치해야 한다.
+POST /gw/sv/online
+
+header.businessCode = SV
+header.serviceId    = SV.Customer.selectSummary
+
+
+54.16 환경설정 파일 명명규칙
+파일
+용도
+application.yml
+공통 기본 설정
+application-local.yml
+로컬 개발 설정
+application-dev.yml
+개발 환경 설정
+application-stg.yml
+검증/스테이징 설정
+application-prd.yml
+운영 설정
+application-datasource.yml
+DB 연결 설정
+application-session.yml
+Spring Session JDBC 설정
+application-tcf.yml
+TCF 실행 정책
+application-gateway.yml
+Gateway 라우팅 설정
+application-jwt.yml
+JWT 인증 설정
+application-cache.yml
+Cache 설정
+application-batch.yml
+Batch/Scheduler 설정
+logback-spring.xml
+로그 설정
+환경명은 다음으로 통일한다.
+환경
+표준 코드
+Profile
+로컬
+LOCAL
+local
+개발
+DEV
+dev
+검증
+STG
+stg
+운영
+PRD
+prd
+
+54.17 Batch / Scheduler 명명규칙
+항목
+규칙
+예시
+Batch Module
+tcf-batch
+tcf-batch
+Job ID
+BAT-{업무}-{일련번호}
+BAT-BATCH-001
+Job Class
+{JobName}Job
+ApStatusCollectJob
+Scheduler Class
+{JobName}Scheduler
+ApStatusCollectScheduler
+Step Class
+{JobName}Step
+ApStatusCollectStep
+실행이력 테이블
+OM_BATCH_EXECUTION_LOG
+OM_BATCH_EXECUTION_LOG
+Job ID 예시:
+Job ID
+의미
+BAT-BATCH-001
+AP 상태 수집
+BAT-BATCH-002
+DB 상태 수집
+BAT-BATCH-003
+세션 현황 수집
+BAT-BATCH-004
+배포 현황 수집
+BAT-LOG-001
+거래로그 정리
+BAT-FILE-001
+파일 보관기간 정리
+
+54.18 Cache 명명규칙
+항목
+규칙
+예시
+Cache Module
+tcf-cache
+tcf-cache
+Cache Name
+{domain}{Target}Cache
+commonCodeCache
+Cache Manager
+{Domain}CacheManager
+TcfCacheManager
+Cache Service
+{Domain}CacheService
+CommonCodeCacheService
+Cache Key
+{domain}:{id}
+commonCode:CHANNEL_ID
+Cache 설정 파일
+ehcache.xml 또는 ehcache-{env}.xml
+ehcache-prd.xml
+Cache Name 예시:
+Cache Name
+대상
+commonCodeCache
+공통코드
+serviceCatalogCache
+ServiceId 카탈로그
+transactionControlCache
+거래통제 정책
+timeoutPolicyCache
+Timeout 정책
+menuAuthCache
+메뉴권한
+functionAuthCache
+기능권한
+
+54.19 파일 업다운로드 UD 명명규칙
+항목
+규칙
+예시
+업무코드
+UD
+UD
+Context
+/ud 또는 /om/ud
+/ud/files
+ServiceId
+UD.File.{action}
+UD.File.download
+파일 메타 테이블
+OM_FILE_META
+OM_FILE_META
+다운로드 로그
+OM_FILE_DOWNLOAD_LOG
+OM_FILE_DOWNLOAD_LOG
+업로드 로그
+OM_FILE_UPLOAD_LOG
+OM_FILE_UPLOAD_LOG
+파일 ID
+FILE_ID
+FILE_ID
+저장 파일명
+{fileId}_{timestamp}
+FILE202607050001_20260705123000
+파일 원본은 DB와 Session에 저장하지 않고, DB에는 메타정보만 저장한다.
+
+54.20 화면 / 메뉴 / 기능권한 명명규칙
+항목
+규칙
+예시
+메뉴 ID
+MENU-{업무코드}-{일련번호}
+MENU-OM-0001
+화면 ID
+{업무코드}-{화면유형}-{일련번호}
+OM-MAIN-0001
+기능 ID
+{업무코드}-{기능}-{일련번호}
+OM-INQ-0001
+버튼 ID
+lowerCamelCase
+btnSearch, btnSave
+화면 파일
+{업무}-{화면명}.html
+om-user.html
+UI 경로
+/ui/{업무}/admin/{화면}.html
+/ui/om/admin/user.html
+화면유형 예시:
+화면유형
+의미
+MAIN
+메인 화면
+SUB
+서브 화면
+POP
+팝업 화면
+TAB
+탭 화면
+WIZ
+위저드 화면
+ADM
+관리자 화면
+DASH
+대시보드
+
+54.21 금지 명명규칙
+금지 항목
+나쁜 예
+권장 예
+의미 없는 축약어
+Svc, Mgr, Proc
+Service, Manager, Processor
+업무코드 누락
+CustomerService
+SvCustomerService
+계층명 누락
+SvCustomer
+SvCustomerService, SvCustomerDao
+대소문자 혼용 Package
+com.nh.Nsight.SV
+com.nh.nsight.marketing.sv
+REST식 URL과 ServiceId 혼재
+/customers/selectSummary
+/sv/online + SV.Customer.selectSummary
+SQL ID 중복
+selectList
+selectCustomerList
+테이블명 소문자
+tcf_tx_log
+TCF_TX_LOG
+오류코드 의미 불명확
+ERR001
+E-SV-BIZ-0001
+임시 명칭 운영 반영
+TestService, SampleDao
+실제 업무명으로 변경
+사용자 응답에 기술명 노출
+SQL-ORA-00001
+표준 사용자 메시지 사용
+
+54.22 명명규칙 전체 예시
+54.22.1 SV 고객 요약 조회
+구분
+값
+업무코드
+SV
+Context
+/sv
+WAR
+sv.war
+Gradle Module
+sv-service
+Package Root
+com.nh.nsight.marketing.sv
+Endpoint
+POST /sv/online
+ServiceId
+SV.Customer.selectSummary
+거래코드
+SV-INQ-0001
+Handler
+SvCustomerSummaryInquiryHandler
+Facade
+SvCustomerFacade
+Service
+SvCustomerService
+Rule
+SvCustomerSummaryRule
+DAO
+SvCustomerDao
+Mapper
+SvCustomerMapper
+Mapper XML
+mapper/sv/SvCustomerMapper.xml
+SQL ID
+selectCustomerSummary
+오류코드
+E-SV-BIZ-0001
+거래로그
+TCF_TX_LOG
+54.22.2 OM 사용자 조회
+구분
+값
+업무코드
+OM
+Context
+/om
+WAR
+om.war
+Module
+tcf-om
+Package Root
+com.nh.nsight.marketing.om
+Endpoint
+POST /om/online
+ServiceId
+OM.User.inquiry
+거래코드
+OM-INQ-0001
+Handler
+OmUserInquiryHandler
+Facade
+OmUserFacade
+Service
+OmUserService
+Rule
+OmUserAuthRule
+DAO
+OmUserDao
+Mapper
+OmUserMapper
+Mapper XML
+mapper/om/OmUserMapper.xml
+SQL ID
+selectUserList
+오류코드
+E-OM-BIZ-0001
+
+54.23 개발자 점검 체크리스트
+점검 항목
+확인
+업무코드가 표준 2자리 대문자인가?
+
+Context, WAR, Package가 같은 업무코드를 사용하는가?
+
+ServiceId가 {BusinessCode}.{Domain}.{action} 형식인가?
+
+거래코드가 {업무코드}-{처리유형}-{일련번호} 형식인가?
+
+Handler 이름이 ServiceId와 연결되는가?
+
+Handler에서 DB를 직접 호출하지 않는가?
+
+Facade, Service, Rule, DAO, Mapper 계층명이 명확한가?
+
+Mapper XML namespace가 Mapper Interface와 일치하는가?
+
+SQL ID가 selectList, insertData처럼 모호하지 않은가?
+
+오류코드가 E-{DOMAIN}-{CATEGORY}-{NNNN} 형식인가?
+
+로그에 guid, traceId, serviceId, transactionCode가 남는가?
+
+약어와 임시 명칭이 운영 코드에 남아 있지 않은가?
+
+
+54.24 마무리말
+NSIGHT TCF의 명명규칙은 개발 편의를 위한 단순 규칙이 아니라 운영 추적성, 장애 분석, 거래통제, Timeout 정책, 오류코드, 감사로그까지 연결하는 기준이다.
+따라서 개발자는 이름을 지을 때 다음 한 문장을 기준으로 삼아야 한다.
+이 이름만 보고 어느 업무의 어떤 거래가 어떤 Handler, 어떤 SQL, 어떤 오류코드와 연결되는지 알 수 있어야 한다.
+54.25 시사점
+명명규칙이 흔들리면 TCF의 가장 중요한 장점인 ServiceId 기반 실행 통제와 운영 추적성이 약해진다.반대로 명명규칙이 일관되면 신규 업무 추가, 장애 추적, 로그 분석, Mapper 관리, OM 운영관리, CI/CD 배포까지 하나의 기준으로 연결된다.
+
+
+모듈
+
+

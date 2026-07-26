@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM Health Check</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260627c"></script>
+  <script>
+    function statusLabel(overallStatus) {
+      if (overallStatus === 'CRITICAL') return '장애';
+      if (overallStatus === 'WARN') return '주의';
+      return '정상';
+    }
+
+    function renderRows(rows, columns, emptyText) {
+      if (!rows.length) {
+        return `<tr><td colspan="${columns}" class="om-empty">${emptyText}</td></tr>`;
+      }
+      return rows.join('');
+    }
+
+    async function load(el) {
+      const { body, relay } = await OmAdmin.inquiry('healthCheck', {});
+      const statusClass = (body.overallStatus || 'NORMAL').toLowerCase();
+      const statusText = statusLabel(body.overallStatus);
+
+      const apRows = (body.apStatus || []).map(r => `
+        <tr>
+          <td>${OmAdmin.field(r, 'apName')}</td>
+          <td>${OmAdmin.chipForHealth(OmAdmin.field(r, 'healthStatus'))}</td>
+          <td>${OmAdmin.field(r, 'cpuUsagePct')}%</td>
+          <td>${OmAdmin.field(r, 'heapUsagePct')}%</td>
+          <td>${OmAdmin.field(r, 'threadCount')}</td>
+          <td>${OmAdmin.field(r, 'checkedAt')}</td>
+        </tr>`);
+
+      const dbRows = (body.dbStatus || []).map(r => `
+        <tr>
+          <td>${OmAdmin.field(r, 'dbName')}</td>
+          <td>${OmAdmin.chipForHealth(OmAdmin.field(r, 'healthStatus'))}</td>
+          <td>${OmAdmin.field(r, 'poolUsagePct')}%</td>
+          <td>${OmAdmin.field(r, 'checkedAt')}</td>
+        </tr>`);
+
+      const depRows = (body.deployStatus || []).map(r => `
+        <tr>
+          <td>${OmAdmin.field(r, 'businessCode')}</td>
+          <td class="om-mono">${OmAdmin.field(r, 'warName')}</td>
+          <td>${OmAdmin.field(r, 'warVersion')}</td>
+          <td>${OmAdmin.chipForHealth(OmAdmin.field(r, 'healthStatus'))}</td>
+          <td>${OmAdmin.field(r, 'deployedAt')}</td>
+        </tr>`);
+
+      document.getElementById('hltStatus').textContent =
+        `${relay.elapsedMs}ms · 점검 ${body.checkedAt || '-'}`;
+      document.getElementById('overallBanner').className = `om-status-banner ${statusClass}`;
+      document.getElementById('overallMain').className = `om-status-main ${statusClass}`;
+      document.getElementById('overallMain').textContent = `전체: ${statusText}`;
+      document.getElementById('activeSessionPill').textContent =
+        `활성 세션 ${body.activeSessionCount ?? 0}`;
+      document.getElementById('totalSessionPill').textContent =
+        `전체 세션 ${body.totalSessionCount ?? 0}`;
+
+      document.getElementById('apBody').innerHTML =
+        renderRows(apRows, 6, 'AP Health 데이터 없음');
+      document.getElementById('dbBody').innerHTML =
+        renderRows(dbRows, 4, 'DB Health 데이터 없음');
+      document.getElementById('depBody').innerHTML =
+        renderRows(depRows, 5, '배포 현황 데이터 없음');
+    }
+
+    OmAdmin.initPage('health-check', 'Health Check / 배포 조회', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">tcf-om JVM·Hikari 풀·배포 WAR 상태를 실시간 점검합니다. <code>om-local</code> / <code>OM-DS</code> 행이 현재 인스턴스입니다.</div>
+        <section class="om-filter-bar">
+          <button class="btn-primary" id="refreshBtn" type="button">새로고침</button>
+          <span id="hltStatus" style="color:var(--muted);font-size:0.85rem;align-self:center">조회 중...</span>
+        </section>
+        <section class="om-status-banner normal" id="overallBanner">
+          <div class="om-status-main normal" id="overallMain">전체: -</div>
+          <span class="om-stat-pill" id="activeSessionPill">활성 세션 -</span>
+          <span class="om-stat-pill" id="totalSessionPill">전체 세션 -</span>
+        </section>
+        <div class="om-card" style="margin-bottom:16px">
+          <div class="om-card-head">AP Health</div>
+          <div class="om-card-body om-table-wrap">
+            <table class="om-table">
+              <thead><tr><th>서버</th><th>상태</th><th>CPU</th><th>Heap</th><th>Thread</th><th>점검시각</th></tr></thead>
+              <tbody id="apBody"><tr><td colspan="6" class="om-empty">조회 중...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="om-grid-2">
+          <div class="om-card">
+            <div class="om-card-head">DB Health</div>
+            <div class="om-card-body om-table-wrap">
+              <table class="om-table">
+                <thead><tr><th>DB</th><th>상태</th><th>Pool</th><th>점검시각</th></tr></thead>
+                <tbody id="dbBody"><tr><td colspan="4" class="om-empty">조회 중...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="om-card">
+            <div class="om-card-head">WAR 배포 현황</div>
+            <div class="om-card-body om-table-wrap">
+              <table class="om-table">
+                <thead><tr><th>업무</th><th>WAR</th><th>버전</th><th>상태</th><th>배포일시</th></tr></thead>
+                <tbody id="depBody"><tr><td colspan="5" class="om-empty">조회 중...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>`;
+
+      document.getElementById('refreshBtn').addEventListener('click', () => {
+        load(el).catch(err => OmAdmin.showErrorBanner(el, err.message));
+      });
+      await load(el);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 장애 이력</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260712a"></script>
+  <script src="/_shared/om-runtime.js?v=20260712a"></script>
+  <script>
+    function chipForStatus(status) {
+      const s = String(status || '').toUpperCase();
+      if (s === 'CRITICAL') return '<span class="om-chip fail">위험</span>';
+      if (s === 'WARN') return '<span class="om-chip warn">주의</span>';
+      if (s === 'UNKNOWN') return '<span class="om-chip muted">미확인</span>';
+      return '<span class="om-chip ok">정상</span>';
+    }
+
+    function renderTable(rows) {
+      if (!rows.length) {
+        return '<tr><td colspan="6" class="om-empty">저장된 장애 이력이 없습니다. 종합 진단 화면에서 조회하면 이력이 쌓입니다.</td></tr>';
+      }
+      return rows.map((r, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${r.checkedAt || '-'}</td>
+          <td>${chipForStatus(r.overallStatus)}</td>
+          <td class="om-mono">${r.primaryCauseCode || '-'}</td>
+          <td>${r.primaryMessage || '-'}</td>
+          <td>${r.dominantBusinessCode || '-'}</td>
+          <td>${r.elapsedMs != null ? r.elapsedMs + 'ms' : '-'}</td>
+        </tr>`).join('');
+    }
+
+    OmAdmin.initPage('runtime-incident-history', '장애 이력 (RTM-080)', async (el) => {
+      el.innerHTML = `
+        <div class="om-toolbar">
+          <button type="button" class="btn-primary" id="refreshDiagBtn">진단 재조회</button>
+          <button type="button" class="btn-secondary" id="clearHistBtn">이력 초기화</button>
+          <span class="om-muted" id="histMeta"></span>
+        </div>
+        <div class="om-card">
+          <div class="om-card-head">로컬 장애 Snapshot 이력</div>
+          <div class="om-card-body">
+            <p class="om-muted" style="margin:0 0 12px;font-size:0.88rem">
+              브라우저 <code>localStorage</code>에 최근 ${OmRuntime.HISTORY_MAX || 30}건의 진단 결과를 보관합니다.
+              서버 측 Snapshot DB 연동은 후속 Phase입니다.
+            </p>
+            <div class="om-table-wrap">
+              <table class="om-table">
+                <thead>
+                  <tr>
+                    <th>#</th><th>점검시각</th><th>상태</th><th>원인코드</th>
+                    <th>메시지</th><th>영향업무</th><th>API ms</th>
+                  </tr>
+                </thead>
+                <tbody id="histBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="om-card" style="margin-top:16px">
+          <div class="om-card-head">관련 화면</div>
+          <div class="om-card-body om-link-grid">
+            <a href="/om/admin/runtime-diagnostics.html">종합 진단</a>
+            <a href="/om/admin/runtime-cause-analysis.html">자동 원인판정</a>
+            <a href="/om/admin/runtime-incident-flow.html">장애 흐름</a>
+            <a href="/om/admin/audit-log.html">감사로그 조회</a>
+          </div>
+        </div>`;
+
+      function paint() {
+        const rows = OmRuntime.readHistory();
+        document.getElementById('histBody').innerHTML = renderTable(rows);
+        document.getElementById('histMeta').textContent = `총 ${rows.length}건 · 최대 30건 보관`;
+      }
+
+      document.getElementById('clearHistBtn').addEventListener('click', () => {
+        if (confirm('장애 이력을 모두 삭제할까요?')) {
+          OmRuntime.clearHistory();
+          paint();
+        }
+      });
+      document.getElementById('refreshDiagBtn').addEventListener('click', async () => {
+        await OmRuntime.loadDiagnostics({ includeDetails: 'N' });
+        paint();
+      });
+      paint();
+    });
+  </script>
+</body>
+</html>

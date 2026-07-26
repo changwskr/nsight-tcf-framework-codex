@@ -1,0 +1,32 @@
+# dev - ztomcat WAR (/oc)
+spring:
+  application:
+    name: nsight-oc-service
+  datasource:
+    url: jdbc:h2:tcp://127.0.0.1:9092/./nsight_om;MODE=Oracle;DATABASE_TO_UPPER=false
+    hikari:
+      pool-name: nsight-oc-hikari-dev
+  h2:
+    console:
+      enabled: true
+  sql:
+    init:
+      mode: always
+      continue-on-error: true
+      encoding: UTF-8
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+
+nsight:
+  tcf:
+    transaction-log-schema-auto-init: true
+    transaction-log-datasource:
+      separate: false
+      url: jdbc:h2:tcp://127.0.0.1:9092/./nsight_om;MODE=Oracle;DATABASE_TO_UPPER=false
+      username: sa
+      password:
+      driver-class-name: org.h2.Driver
+    runtime-monitor-enabled: true
+    runtime-slow-sql-threshold-ms: 1000
+    runtime:
+      business-code: OC

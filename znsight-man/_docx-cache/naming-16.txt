@@ -1,0 +1,1097 @@
+로그 / 감사로그 명명규칙 설계기준
+1. 도입 전 안내말
+로그와 감사로그 명명규칙은 단순히 로그 파일명을 정하는 기준이 아니다.NSIGHT TCF에서는 로그명이 업무코드, ServiceId, 거래코드, GUID, TraceId, 사용자, 화면번호, 오류코드, 감사 이벤트와 연결되어야 한다.
+NSIGHT 거래로그는 TCF 전처리·후처리 공통 모듈에서 자동 기록하는 구조가 적합하며, 거래 시작 시 PROCESSING 상태를 만들고, 종료 시 SUCCESS / FAIL / TIMEOUT / UNKNOWN 상태로 갱신하는 흐름을 가진다. 또한 운영 조회는 GUID / TraceId / ServiceId / 거래코드 기준으로 추적해야 한다.
+따라서 로그 명명규칙은 다음 흐름을 기준으로 잡는다.
+업무코드
+  ↓
+ServiceId
+  ↓
+TransactionCode
+  ↓
+GUID / TraceId
+  ↓
+LogType
+  ↓
+Log File / Log Table / Audit Event
+  ↓
+운영 조회 / 장애 분석 / 감사 대응
+
+
+2. 로그 명명 최상위 원칙
+원칙
+설계 기준
+업무코드 우선
+업무 로그는 반드시 SV, CM, OM, MG 등 업무코드를 포함한다
+로그유형 분리
+애플리케이션, 거래, 감사, 오류, 성능, SQL, 연계, 파일, 배치 로그를 분리한다
+추적ID 포함
+로그 내용에는 GUID, TraceId, TransactionId를 반드시 포함한다
+ServiceId 중심
+온라인 거래 로그는 serviceId와 transactionCode를 포함한다
+사용자 추적
+감사성 로그는 userId, branchId, channelId, clientIp를 포함한다
+개인정보 보호
+로그 파일명과 로그 본문에 개인정보 원문을 남기지 않는다
+DB 로그와 파일 로그 병행
+운영 조회·감사용 DB 로그와 장애 분석용 파일 로그를 병행한다
+명칭 일관성
+파일명, 테이블명, 컬럼명, Logger명, Appender명을 같은 용어로 맞춘다
+운영 검색성
+파일명만 보고 업무, 로그유형, 일자를 알 수 있어야 한다
+폐기·보관 기준 연계
+로그명은 보관주기, 압축, 삭제 정책과 연결되어야 한다
+
+3. 로그유형 코드 표준
+로그유형 코드
+로그명
+설명
+저장 위치
+APP
+Application Log
+애플리케이션 일반 로그
+File
+TX
+Transaction Log
+온라인 거래 시작/종료/상태 로그
+DB + File
+AUDIT
+Audit Log
+고객조회, 다운로드, 권한위반 등 감사 로그
+DB + File
+ERROR
+Error Log
+예외, 시스템 오류, 미처리 오류
+File + 필요 시 DB
+PERF
+Performance Log
+처리시간, AP/DB/외부연계 소요시간
+DB + File
+SQL
+SQL Log
+MyBatis SQL ID, SQL 수행시간, 건수
+File + APM
+IF
+Interface Log
+외부 서비스 호출, Gateway Relay, 연계 응답
+DB + File
+FILE
+File Log
+업로드, 다운로드, 파일검증, 보관/삭제
+DB + File
+BATCH
+Batch Log
+배치 실행, 실패, 재처리
+DB + File
+SEC
+Security Log
+인증, 권한, JWT, SSO, 접근차단
+DB + File
+ACCESS
+Access Log
+HTTP 접근 로그
+Apache/Tomcat File
+HEALTH
+Health Log
+Health Check, Readiness, Deep Check
+DB + File
+
+4. 로그 파일 명명규칙
+4.1 기본 형식
+로그 파일명은 다음 형식을 사용한다.
+{systemId}-{envCode}-{businessCode}-{logType}.log
+
+일자별 Rolling 파일은 다음 형식을 사용한다.
+{systemId}-{envCode}-{businessCode}-{logType}.{yyyyMMdd}.log
+
+구성요소
+설명
+예시
+systemId
+시스템 ID
+nsight
+envCode
+실행환경
+local, dev, stg, prd
+businessCode
+업무코드
+sv, cm, om, gw
+logType
+로그유형
+app, tx, audit, error
+yyyyMMdd
+로그 일자
+20260705
+
+4.2 로그 파일명 예시
+업무
+로그유형
+표준 파일명
+Rolling 예시
+SV
+애플리케이션
+nsight-prd-sv-app.log
+nsight-prd-sv-app.20260705.log
+SV
+거래
+nsight-prd-sv-tx.log
+nsight-prd-sv-tx.20260705.log
+SV
+오류
+nsight-prd-sv-error.log
+nsight-prd-sv-error.20260705.log
+SV
+SQL
+nsight-prd-sv-sql.log
+nsight-prd-sv-sql.20260705.log
+OM
+감사
+nsight-prd-om-audit.log
+nsight-prd-om-audit.20260705.log
+OM
+운영관리
+nsight-prd-om-app.log
+nsight-prd-om-app.20260705.log
+GW
+연계/Relay
+nsight-prd-gw-if.log
+nsight-prd-gw-if.20260705.log
+UD
+파일
+nsight-prd-ud-file.log
+nsight-prd-ud-file.20260705.log
+BT
+배치
+nsight-prd-bt-batch.log
+nsight-prd-bt-batch.20260705.log
+
+4.3 로그 디렉터리 명명규칙
+/logs/nsight/{envCode}/{businessCode}/{logType}/
+
+예시:
+/logs/nsight/prd/sv/app/
+/logs/nsight/prd/sv/tx/
+/logs/nsight/prd/sv/error/
+/logs/nsight/prd/om/audit/
+/logs/nsight/prd/gw/if/
+/logs/nsight/prd/ud/file/
+/logs/nsight/prd/bt/batch/
+
+환경변수는 다음 기준을 사용한다.
+환경변수
+설명
+예시
+NSIGHT_LOG_PATH
+로그 Root 경로
+/logs/nsight
+NSIGHT_ENV_CODE
+실행환경 코드
+prd
+NSIGHT_APP_NAME
+애플리케이션명
+nsight-sv-service
+NSIGHT_BUSINESS_CODE
+업무코드
+SV
+NSIGHT Spring 환경설정 기준에서도 NSIGHT_LOG_PATH는 로그 경로를 정의하는 공통 환경변수로 관리한다.
+
+5. Logback Appender 명명규칙
+Appender명은 대문자와 언더스코어를 사용한다.
+{BUSINESS_CODE}_{LOG_TYPE}_APPENDER
+
+Appender명
+설명
+SV_APP_APPENDER
+SV 애플리케이션 로그
+SV_TX_APPENDER
+SV 거래 로그
+SV_ERROR_APPENDER
+SV 오류 로그
+SV_SQL_APPENDER
+SV SQL 로그
+OM_AUDIT_APPENDER
+OM 감사 로그
+GW_IF_APPENDER
+Gateway 연계 로그
+UD_FILE_APPENDER
+파일 업다운로드 로그
+BT_BATCH_APPENDER
+배치 로그
+공통 Appender는 다음처럼 사용한다.
+Appender명
+설명
+CONSOLE_APPENDER
+개발/로컬 콘솔 출력
+ASYNC_TX_APPENDER
+비동기 거래 로그
+ASYNC_AUDIT_APPENDER
+비동기 감사 로그
+ASYNC_ERROR_APPENDER
+비동기 오류 로그
+운영에서는 System.out.println을 사용하지 않고 SLF4J Logger와 MDC 기반 로그로 전환해야 한다. 기존 분석 기준에서도 System.out.println 제거, GUID/MDC, 거래로그, 감사로그, 오류코드, 마스킹 적용이 운영 보완 과제로 정리되어 있다.
+
+6. Logger 명명규칙
+6.1 Java Logger 이름
+Logger는 클래스 기준으로 선언한다.
+private static final Logger log =
+        LoggerFactory.getLogger(SvCustomerService.class);
+
+계층
+Logger 기준
+예시
+Handler
+Class Logger
+SvCustomerSummaryHandler
+Facade
+Class Logger
+SvCustomerFacade
+Service
+Class Logger
+SvCustomerService
+Rule
+Class Logger
+SvCustomerRule
+DAO
+Class Logger
+SvCustomerDao
+Mapper SQL
+MyBatis Logger
+com.nh.nsight.sv.persistence.mapper
+TCF 공통
+공통 Logger
+com.nh.nsight.tcf
+Gateway
+Gateway Logger
+com.nh.nsight.gateway
+6.2 업무별 Logger Package
+com.nh.nsight.{businessCode소문자}.{layer}
+
+예시:
+com.nh.nsight.sv.entry.handler
+com.nh.nsight.sv.entry.facade
+com.nh.nsight.sv.application.service
+com.nh.nsight.sv.application.rule
+com.nh.nsight.sv.persistence.dao
+com.nh.nsight.om.audit
+com.nh.nsight.tcf.core
+com.nh.nsight.gateway.route
+
+
+7. MDC Key 명명규칙
+MDC Key는 lowerCamelCase를 사용한다.
+MDC Key
+의미
+예시
+guid
+거래 고유 ID
+7f9c9d10...
+traceId
+AP 내부 추적 ID
+TRC202607050001
+transactionId
+거래 ID
+TX202607050001
+serviceId
+ServiceId
+SV.Customer.selectSummary
+transactionCode
+거래코드
+SV-INQ-0001
+businessCode
+업무코드
+SV
+userId
+사용자 ID
+U123456
+branchId
+지점 ID
+001234
+channelId
+채널 ID
+WEBTOP
+menuId
+메뉴 ID
+SVMENU0001
+screenId
+화면번호
+SVLIST0001
+clientIp
+사용자 IP
+10.10.10.10
+apId
+AP 서버 ID
+AP01
+jvmRoute
+Tomcat Route
+ap01
+resultCode
+결과코드
+S0000
+errorCode
+오류코드
+E-SV-BIZ-0001
+거래로그 설계 기준에서도 운영 로그에는 GUID, TraceId, UserId, ServiceId가 MDC에 포함되어야 하고, 요청 종료 후 MDC/ThreadLocal 정리가 필요하다고 정리되어 있다.
+
+8. 로그 메시지 명명규칙
+로그 메시지는 다음 형식을 사용한다.
+[{EVENT_CODE}] {eventName} - {key=value, key=value}
+
+예시:
+[TX-START] transaction started - serviceId=SV.Customer.selectSummary, transactionCode=SV-INQ-0001
+[TX-END] transaction completed - status=SUCCESS, elapsedMs=312
+[TX-ERROR] transaction failed - errorCode=E-SV-BIZ-0001, exceptionType=BusinessException
+[AUDIT-DOWNLOAD] file downloaded - fileId=F202607050001, screenId=OMLIST0001
+[SEC-AUTHZ-DENY] authorization denied - userId=U123456, serviceId=OM.User.delete
+
+
+9. 로그 이벤트 코드 명명규칙
+{LOG_TYPE}-{EVENT_ACTION}
+
+이벤트 코드
+의미
+TX-START
+거래 시작
+TX-END
+거래 정상 종료
+TX-FAIL
+거래 실패
+TX-TIMEOUT
+거래 Timeout
+TX-UNKNOWN
+거래 상태 불명확
+AUDIT-INQUIRY
+감사 대상 조회
+AUDIT-DOWNLOAD
+파일 다운로드
+AUDIT-EXPORT
+대량 반출
+AUDIT-UPDATE
+중요 정보 변경
+AUDIT-DELETE
+중요 정보 삭제
+SEC-AUTHN-FAIL
+인증 실패
+SEC-AUTHZ-DENY
+권한 거부
+IF-REQUEST
+외부연계 요청
+IF-RESPONSE
+외부연계 응답
+FILE-UPLOAD
+파일 업로드
+FILE-DOWNLOAD
+파일 다운로드
+BATCH-START
+배치 시작
+BATCH-END
+배치 종료
+BATCH-FAIL
+배치 실패
+
+10. DB 로그 테이블 명명규칙
+DB 로그 테이블은 TCF_, OM_, UD_, BT_ Prefix를 사용한다.
+로그 테이블
+설명
+TCF_TRANSACTION_LOG
+거래 요약 로그
+TCF_TRANSACTION_DETAIL_LOG
+거래 상세 로그
+TCF_PERFORMANCE_LOG
+성능 로그
+TCF_ERROR_LOG
+오류 로그
+TCF_AUDIT_LOG
+공통 감사 로그
+TCF_SQL_LOG
+SQL 수행 로그
+TCF_INTERFACE_LOG
+외부연계 로그
+UD_FILE_LOG
+파일 처리 로그
+UD_DOWNLOAD_AUDIT_LOG
+파일 다운로드 감사 로그
+OM_AUDIT_LOG
+OM 운영관리 감사 로그
+BT_BATCH_EXECUTION_LOG
+배치 실행 로그
+GW_RELAY_LOG
+Gateway Relay 로그
+SEC_ACCESS_LOG
+보안 접근 로그
+거래로그 설계에서는 거래 요약 로그, 거래 상세 로그, 성능 로그, 감사 로그, 파일 로그, 오류 로그를 분리하고, DB 거래로그와 파일 거래로그를 병행하는 방식을 권장한다.
+
+11. 로그 테이블 컬럼 명명규칙
+DB 컬럼은 UPPER_SNAKE_CASE를 사용한다.
+컬럼명
+설명
+LOG_ID
+로그 ID
+AUDIT_ID
+감사로그 ID
+GUID
+거래 고유 ID
+TRACE_ID
+Trace ID
+TRANSACTION_ID
+거래 ID
+BUSINESS_CODE
+업무코드
+SERVICE_ID
+ServiceId
+TRANSACTION_CODE
+거래코드
+SERVICE_NAME
+서비스명
+USER_ID
+사용자 ID
+BRANCH_ID
+지점 ID
+CHANNEL_ID
+채널 ID
+MENU_ID
+메뉴 ID
+SCREEN_ID
+화면번호
+FUNCTION_CODE
+기능코드
+CLIENT_IP
+사용자 IP
+AP_ID
+AP 서버 ID
+JVM_ROUTE
+Tomcat Route
+EVENT_CODE
+이벤트 코드
+EVENT_NAME
+이벤트명
+TX_STATUS
+거래상태
+RESULT_CODE
+결과코드
+ERROR_CODE
+오류코드
+ERROR_MESSAGE
+오류 메시지
+EXCEPTION_TYPE
+예외 유형
+START_DTM
+시작일시
+END_DTM
+종료일시
+ELAPSED_MS
+전체 처리시간
+AP_ELAPSED_MS
+AP 처리시간
+DB_ELAPSED_MS
+DB 처리시간
+EXT_ELAPSED_MS
+외부연계 처리시간
+AUDIT_REQUIRED_YN
+감사 대상 여부
+MASKING_YN
+마스킹 적용 여부
+CREATED_DTM
+생성일시
+
+12. 거래로그 명명규칙
+12.1 거래로그 ID
+TXLOG-{yyyyMMdd}-{NNNNNN}
+
+예시:
+TXLOG-20260705-000001
+
+12.2 거래상태 코드
+상태
+의미
+PROCESSING
+거래 접수 후 처리 중
+SUCCESS
+정상 완료
+FAIL
+업무/입력/권한/시스템 오류
+TIMEOUT
+온라인, DB, 외부연계 Timeout
+UNKNOWN
+처리상태 불명확
+TCF 처리 흐름에서도 STF.preProcess()에서 거래로그를 PROCESSING으로 INSERT하고, ETF에서 감사 로그, 성능 메트릭, 거래로그 UPDATE를 수행하는 구조가 기준이다.
+12.3 거래로그 이벤트명
+이벤트 코드
+이벤트명
+설명
+TX-START
+TransactionStarted
+거래 시작
+TX-END
+TransactionCompleted
+거래 종료
+TX-FAIL
+TransactionFailed
+거래 실패
+TX-TIMEOUT
+TransactionTimeout
+거래 Timeout
+TX-UNKNOWN
+TransactionUnknown
+거래 상태 불명확
+TX-RETRY
+TransactionRetry
+재처리
+TX-CANCEL
+TransactionCanceled
+거래 취소
+
+13. 감사로그 명명규칙
+감사로그는 일반 거래로그보다 더 엄격하게 관리한다.감사로그는 누가, 언제, 어디서, 무엇을, 왜, 어떤 결과로 수행했는지를 남기는 증적이다.
+13.1 감사 이벤트 코드 형식
+AUDIT-{DOMAIN}-{ACTION}
+
+구성요소
+설명
+예시
+AUDIT
+감사 이벤트 고정 Prefix
+AUDIT
+DOMAIN
+감사 대상 영역
+CUSTOMER, FILE, AUTH, MENU
+ACTION
+수행 행위
+INQUIRY, DOWNLOAD, UPDATE
+예시:
+AUDIT-CUSTOMER-INQUIRY
+AUDIT-CUSTOMER-DETAIL
+AUDIT-FILE-DOWNLOAD
+AUDIT-FILE-EXPORT
+AUDIT-AUTH-UPDATE
+AUDIT-MENU-UPDATE
+AUDIT-SERVICE-CONTROL
+AUDIT-ERROR-CODE-UPDATE
+
+13.2 감사 대상 DOMAIN
+DOMAIN
+의미
+예시
+CUSTOMER
+고객정보 조회·변경
+고객요약조회, 고객상세조회
+ACCOUNT
+계좌정보 조회
+계좌목록, 계좌상세
+CAMPAIGN
+캠페인 대상·결과
+캠페인 대상 추출
+MESSAGE
+메시지 발송
+문자/알림 발송
+FILE
+파일 업다운로드
+파일 다운로드, 대량 반출
+AUTH
+권한
+사용자 권한 변경
+MENU
+메뉴
+메뉴 권한 변경
+USER
+사용자
+사용자 생성, 잠금, 삭제
+SERVICE
+ServiceId
+서비스 등록, 중지
+CONTROL
+거래통제
+거래 허용/차단 변경
+TIMEOUT
+Timeout 정책
+Timeout 정책 변경
+ERRORCODE
+오류코드
+오류 메시지 변경
+CONFIG
+환경설정
+운영 설정 조회·변경
+DEPLOY
+배포
+배포 승인, 롤백
+SESSION
+세션
+강제 로그아웃, 중복 로그인 차단
+13.3 감사 ACTION 표준
+ACTION
+의미
+INQUIRY
+조회
+DETAIL
+상세조회
+DOWNLOAD
+다운로드
+EXPORT
+대량 반출
+UPLOAD
+업로드
+CREATE
+등록
+UPDATE
+수정
+DELETE
+삭제
+APPROVE
+승인
+REJECT
+반려
+LOGIN
+로그인
+LOGOUT
+로그아웃
+FORCE-LOGOUT
+강제 로그아웃
+BLOCK
+차단
+UNBLOCK
+차단 해제
+DEPLOY
+배포
+ROLLBACK
+롤백
+
+14. 감사로그 ID 명명규칙
+AUD-{yyyyMMdd}-{NNNNNN}
+
+예시:
+AUD-20260705-000001
+AUD-20260705-000002
+
+운영관리 감사로그는 다음처럼 구분할 수 있다.
+OMAUD-{yyyyMMdd}-{NNNNNN}
+
+파일 다운로드 감사로그는 다음처럼 구분할 수 있다.
+FDAUD-{yyyyMMdd}-{NNNNNN}
+
+감사로그 ID
+의미
+AUD-20260705-000001
+공통 감사로그
+OMAUD-20260705-000001
+OM 운영관리 감사로그
+FDAUD-20260705-000001
+파일 다운로드 감사로그
+SECAUD-20260705-000001
+보안 감사로그
+
+15. 감사로그 테이블 명명규칙
+테이블명
+설명
+TCF_AUDIT_LOG
+전체 공통 감사로그
+OM_AUDIT_LOG
+운영관리 감사로그
+UD_DOWNLOAD_AUDIT_LOG
+다운로드 감사로그
+SEC_AUTH_AUDIT_LOG
+인증/권한 감사로그
+OM_AUTH_CHANGE_AUDIT_LOG
+권한 변경 감사로그
+OM_SERVICE_CHANGE_AUDIT_LOG
+ServiceId 변경 감사로그
+OM_CONFIG_AUDIT_LOG
+환경설정 조회/변경 감사로그
+
+16. 감사로그 필수 컬럼
+컬럼명
+설명
+예시
+AUDIT_ID
+감사로그 ID
+AUD-20260705-000001
+AUDIT_EVENT_CODE
+감사 이벤트 코드
+AUDIT-FILE-DOWNLOAD
+AUDIT_EVENT_NAME
+감사 이벤트명
+파일 다운로드
+AUDIT_DOMAIN
+감사 영역
+FILE
+AUDIT_ACTION
+감사 행위
+DOWNLOAD
+GUID
+거래 GUID
+7f9c...
+TRACE_ID
+Trace ID
+TRC202607050001
+BUSINESS_CODE
+업무코드
+SV
+SERVICE_ID
+ServiceId
+SV.Customer.selectSummary
+TRANSACTION_CODE
+거래코드
+SV-INQ-0001
+USER_ID
+수행 사용자
+U123456
+BRANCH_ID
+지점
+001234
+CHANNEL_ID
+채널
+WEBTOP
+MENU_ID
+메뉴
+SVMENU0001
+SCREEN_ID
+화면번호
+SVLIST0001
+CLIENT_IP
+사용자 IP
+10.10.10.10
+TARGET_TYPE
+대상 유형
+CUSTOMER, FILE, AUTH
+TARGET_ID
+대상 ID
+마스킹 또는 해시 처리
+BEFORE_VALUE
+변경 전 값
+마스킹 JSON
+AFTER_VALUE
+변경 후 값
+마스킹 JSON
+REASON
+처리 사유
+다운로드 사유
+RESULT_CODE
+결과코드
+S0000
+ERROR_CODE
+오류코드
+NULL
+AUDIT_DTM
+감사 발생일시
+2026-07-05 11:30:00
+RETENTION_YEARS
+보관연수
+5
+
+17. 감사 대상 행위 기준
+행위
+감사로그 필수 여부
+비고
+고객정보 상세조회
+필수
+고객번호는 마스킹 또는 해시
+고객정보 대량조회
+필수
+건수 포함
+파일 다운로드
+필수
+파일ID, 다운로드 사유 포함
+엑셀 Export
+필수
+조회조건, 건수 포함
+권한 변경
+필수
+변경 전/후 권한 포함
+사용자 생성/삭제
+필수
+관리자 ID 포함
+메뉴/기능권한 변경
+필수
+변경 전/후 포함
+ServiceId 등록/중지
+필수
+운영 영향도 있음
+거래통제 변경
+필수
+허용/차단 정책 변경
+Timeout 정책 변경
+필수
+장애 영향 가능
+오류코드 메시지 변경
+권장
+사용자 메시지 변경 추적
+로그인 실패 반복
+필수
+보안 이벤트
+강제 로그아웃
+필수
+운영자 행위
+기능권한 설계에서도 감사 담당자는 감사로그 메뉴에서 조회·다운로드 권한을 갖는 식으로 기능권한을 분리해야 한다.
+
+18. SQL 로그 명명규칙
+SQL 로그는 SQL 전문보다 SQL ID 중심으로 남긴다.
+SQL-{BUSINESS_CODE}-{ACTION}
+
+이벤트 코드
+설명
+SQL-START
+SQL 실행 시작
+SQL-END
+SQL 실행 종료
+SQL-SLOW
+지연 SQL
+SQL-ERROR
+SQL 오류
+SQL-TIMEOUT
+Query Timeout
+SQL 로그 필드는 다음을 포함한다.
+필드
+설명
+guid
+거래 GUID
+serviceId
+ServiceId
+sqlId
+MyBatis SQL ID
+mapperId
+Mapper ID
+elapsedMs
+SQL 수행시간
+rowCount
+결과 건수
+dbType
+RDW, ADW, LOGDB, OMDB
+errorCode
+오류코드
+SQL 로그에는 개인정보가 포함된 바인딩 값을 원문으로 남기지 않는다.
+
+19. 파일 로그 / 다운로드 감사로그 명명규칙
+19.1 파일 로그 이벤트
+이벤트 코드
+설명
+FILE-UPLOAD-START
+업로드 시작
+FILE-UPLOAD-END
+업로드 완료
+FILE-UPLOAD-FAIL
+업로드 실패
+FILE-DOWNLOAD
+다운로드
+FILE-VALIDATION-FAIL
+파일 검증 실패
+FILE-VIRUS-FAIL
+악성코드 검사 실패
+FILE-ARCHIVE
+파일 보관
+FILE-DELETE
+파일 삭제
+19.2 다운로드 감사 이벤트
+AUDIT-FILE-DOWNLOAD
+AUDIT-FILE-EXPORT
+
+이벤트 코드
+설명
+AUDIT-FILE-DOWNLOAD
+단건 파일 다운로드
+AUDIT-FILE-EXPORT
+대량 데이터 반출
+AUDIT-FILE-RETRY-DOWNLOAD
+재다운로드
+AUDIT-FILE-DELETE
+파일 삭제
+
+20. 배치 로그 명명규칙
+20.1 배치 로그 파일명
+nsight-{envCode}-bt-{jobId}.log
+
+예시:
+nsight-prd-bt-BAT-BATCH-001.log
+nsight-prd-bt-BAT-BATCH-002.log
+
+20.2 배치 이벤트 코드
+이벤트 코드
+설명
+BATCH-START
+배치 시작
+BATCH-END
+배치 종료
+BATCH-FAIL
+배치 실패
+BATCH-SKIP
+배치 Skip
+BATCH-RETRY
+배치 재시도
+BATCH-LOCK-FAIL
+중복 실행 방지 Lock 실패
+
+21. Gateway / Interface 로그 명명규칙
+이벤트 코드
+설명
+GW-ROUTE-START
+Gateway 라우팅 시작
+GW-ROUTE-END
+Gateway 라우팅 종료
+GW-ROUTE-FAIL
+Gateway 라우팅 실패
+GW-TARGET-DOWN
+대상 WAS Down
+IF-REQUEST
+외부연계 요청
+IF-RESPONSE
+외부연계 응답
+IF-ERROR
+외부연계 오류
+IF-TIMEOUT
+외부연계 Timeout
+Gateway 로그는 다음 필드를 포함한다.
+필드
+설명
+guid
+거래 GUID
+businessCode
+업무코드
+targetService
+대상 업무 서비스
+targetUrl
+대상 URL, 운영 로그에서는 필요 시 마스킹
+routeId
+라우팅 ID
+elapsedMs
+Relay 소요시간
+httpStatus
+HTTP Status
+errorCode
+오류코드
+
+22. 로그 레벨 명명 기준
+Level
+사용 기준
+예시
+TRACE
+운영 비활성, 로컬 상세 추적
+상세 변수 흐름
+DEBUG
+개발·검증 환경 분석
+DTO 변환, 조건 분기
+INFO
+정상 운영 이벤트
+거래 시작/종료, 배치 시작/종료
+WARN
+업무적으로 주의 필요
+권한 거부, 조회결과 없음, 지연 SQL
+ERROR
+실패·장애
+예외, DB 오류, 연계 실패
+FATAL
+사용하지 않음
+Logback 표준에서는 일반적으로 사용하지 않음
+운영 기준은 다음과 같다.
+환경
+기본 Level
+local
+DEBUG
+dev
+DEBUG 또는 INFO
+stg
+INFO
+prd
+INFO
+prd 장애분석
+제한적으로 특정 package만 DEBUG
+
+23. 로그 마스킹 명명 기준
+마스킹 대상 필드는 이름만 봐도 마스킹 대상임을 알 수 있어야 한다.
+대상
+로그 출력 기준
+고객번호
+일부 마스킹 또는 해시
+주민번호
+원문 출력 금지
+계좌번호
+뒤 4자리 제외 마스킹
+전화번호
+중간자리 마스킹
+이메일
+계정 일부 마스킹
+카드번호
+원문 출력 금지
+토큰
+앞 6자리 이하만 표시
+비밀번호
+절대 출력 금지
+로그 필드명 예시는 다음과 같다.
+원본 필드
+로그 필드
+customerNo
+maskedCustomerNo
+accountNo
+maskedAccountNo
+phoneNo
+maskedPhoneNo
+email
+maskedEmail
+accessToken
+maskedAccessToken
+
+24. 금지 규칙
+금지 예시
+문제
+표준
+test.log
+업무·환경 식별 불가
+nsight-prd-sv-app.log
+error1.log
+로그유형·업무 식별 불가
+nsight-prd-sv-error.log
+audit.log 단일 사용
+업무별 분리 불가
+nsight-prd-om-audit.log
+System.out.println
+MDC, 레벨, 파일분리 불가
+SLF4J Logger 사용
+printStackTrace()
+표준 로그 포맷 위반
+log.error() 사용
+SQL 바인딩값 원문 출력
+개인정보 노출
+마스킹 또는 미출력
+요청/응답 전문 전체 저장
+개인정보·용량 위험
+요약 또는 마스킹 저장
+사용자 응답에 StackTrace 노출
+보안 위험
+오류코드만 반환
+로그 파일명에 사용자명 포함
+개인정보 위험
+업무코드·일자·GUID 사용
+
+25. 로그 / 감사로그 검토 체크리스트
+점검 항목
+확인
+로그 파일명이 {systemId}-{envCode}-{businessCode}-{logType}.log 기준인가?
+□
+거래로그에 GUID, TraceId, ServiceId, TransactionCode가 포함되는가?
+□
+감사로그에 userId, branchId, channelId, clientIp가 포함되는가?
+□
+고객조회, 다운로드, 권한변경, 거래통제 변경은 감사로그 대상인가?
+□
+로그 유형이 APP, TX, AUDIT, ERROR, PERF, SQL, IF, FILE, BATCH, SEC로 분리되어 있는가?
+□
+DB 로그 테이블과 파일 로그가 역할별로 분리되어 있는가?
+□
+로그 본문에 개인정보 원문이 남지 않는가?
+□
+System.out.println, printStackTrace()가 제거되었는가?
+□
+운영 Profile에서 로그 레벨이 INFO 기준인가?
+□
+장애 분석 시 특정 패키지만 임시 DEBUG로 올릴 수 있는가?
+□
+로그 보관·압축·삭제 정책이 정의되어 있는가?
+□
+감사로그는 일반 로그보다 장기 보관되는가?
+□
+
+26. 마무리말
+로그 / 감사로그 명명규칙의 핵심은 다음과 같다.
+로그명은 업무를 식별하고,
+거래로그는 상태를 설명하며,
+감사로그는 누가 무엇을 했는지 증명해야 한다.
+
+NSIGHT에서는 좋은 로그명이 짧은 로그명이 아니다.운영자가 로그 파일명과 GUID, ServiceId, screenId, errorCode만 보고도 어느 업무의 어떤 화면에서 어떤 사용자가 어떤 거래를 수행했고, 어디서 실패했는지 추적할 수 있어야 한다.
+따라서 로그 파일은 nsight-{envCode}-{businessCode}-{logType}.log 형식으로 관리하고, DB 로그 테이블은 TCF_TRANSACTION_LOG, TCF_AUDIT_LOG, TCF_PERFORMANCE_LOG, UD_DOWNLOAD_AUDIT_LOG처럼 목적별로 분리한다. 감사 이벤트는 AUDIT-{DOMAIN}-{ACTION} 형식으로 관리하여 운영, 보안, 감사 대응이 가능한 구조로 고정한다.
+

@@ -1,0 +1,987 @@
+41. JWT / SSO 연계 기준
+41.1 도입 전 안내말
+JWT / SSO 연계는 단순히 “로그인 후 토큰을 발급하는 기능”이 아니다.NSIGHT TCF Framework에서는 SSO 인증, OM 사용자 매핑, Spring Session 생성, JWT 발급, Gateway/API 인증, TCF 권한·거래통제 검증이 하나의 흐름으로 연결되어야 한다.
+NSIGHT 기준에서 JWT는 TCF를 대체하지 않는다. JWT는 사용자가 누구인지 증명하는 인증 수단이고, TCF는 인증된 사용자가 해당 serviceId 거래를 실행해도 되는지 판단하는 거래 실행 통제 프레임워크이다. 기존 JWT/SSO 설계에서도 SSO 검증은 tcf-om, JWT 발급은 tcf-jwt, 세션 원천은 Spring Session JDBC + SESSIONDB, 업무 실행 기준은 JWT가 아니라 serviceId로 정리되어 있다.
+핵심 문장은 다음이다.
+SSO는 사용자를 인증하고, JWT는 인증 결과를 전달하며, TCF는 그 사용자가 해당 거래를 실행할 수 있는지 판단한다.
+
+41.2 JWT / SSO 연계 기준 결론
+구분
+기준
+SSO 검증 주체
+tcf-om
+사용자 기준정보
+OM_USER
+세션 생성 주체
+tcf-om
+세션 저장소
+Spring Session JDBC + SESSIONDB
+JWT 발급 주체
+tcf-jwt
+JWT 발급 ServiceId
+JWT.Auth.ssoIssue
+로그인 ServiceId
+OM.Auth.ssoLogin
+업무 인증 방식
+Session Cookie 또는 Bearer Token
+Gateway 역할
+Access Token 또는 Session Cookie 1차 확인, 업무코드 라우팅
+업무 WAR 역할
+Security Filter + TCF STF 전처리에서 최종 인증·권한 검증
+TCF 역할
+Header 검증, Token Claim 비교, 권한 검증, 거래통제, 감사로그
+Refresh Token
+tcf-jwt에서 저장·갱신·폐기
+Token 폐기
+로그아웃, 강제 로그아웃, Refresh Token 폐기, Access Token Denylist 등록
+
+41.3 전체 인증 아키텍처
+[WebTopSuite / BI Portal / DataEye / tcf-ui]
+        │
+        │ 1. SSO Login
+        ▼
+[SSO 서버 / IdP]
+        │
+        │ 2. 사용자 인증
+        │ 3. SSO Token / Code / Assertion 발급
+        ▼
+[화면]
+        │
+        │ 4. POST /om/online
+        │    serviceId = OM.Auth.ssoLogin
+        ▼
+[tcf-om]
+        │
+        │ 5. SSO Token 검증
+        │ 6. OM_USER 조회
+        │ 7. 사용자 상태 / 권한그룹 / 지점 / 채널 확인
+        │ 8. HttpSession 생성
+        │ 9. Spring Session JDBC 저장
+        │ 10. JWT.Auth.ssoIssue 내부 호출
+        ▼
+[tcf-jwt]
+        │
+        │ 11. 내부 호출 검증
+        │ 12. Access Token 발급
+        │ 13. Refresh Token 발급
+        │ 14. Token DB 저장
+        ▼
+[tcf-om]
+        │
+        │ 15. 세션 Cookie + JWT 응답
+        ▼
+[화면]
+        │
+        │ 16. 이후 업무 호출
+        │     Cookie: NSIGHTSID
+        │     Authorization: Bearer {accessToken}
+        ▼
+[Apache / tcf-gateway / 업무 WAR]
+        │
+        │ 17. JWT / 세션 검증
+        ▼
+[TCF STF 전처리]
+        │
+        │ 18. Header 검증
+        │ 19. Token Claim과 Header 비교
+        │ 20. 권한 / 거래통제 확인
+        ▼
+[TransactionDispatcher]
+        │
+        │ serviceId 기준 Handler 실행
+        ▼
+[Business Handler]
+
+SSO Token 검증은 tcf-om이 담당하고, JWT 발급·갱신·폐기는 tcf-jwt가 담당하며, 세션 원천은 Spring Session JDBC + SESSIONDB로 유지하는 구조가 적합하다는 기준은 기존 SSO Token 인증설계에도 동일하게 정의되어 있다.
+
+41.4 구성요소별 책임
+구성요소
+책임
+금지 사항
+SSO 서버 / IdP
+사용자 1차 인증, SSO Token/Code/Assertion 발급
+NSIGHT 업무권한 판단 금지
+WebTopSuite / 화면
+SSO Login 시작, OM.Auth.ssoLogin 호출
+SSO Token 자체 검증 금지
+tcf-om
+SSO Token 검증, OM_USER 조회, 세션 생성, JWT 발급 요청
+JWT 키 직접 관리 금지
+OM_USER
+NSIGHT 사용자 기준정보
+SSO 사용자와 미매핑 상태 허용 금지
+SESSIONDB
+Spring Session JDBC 세션 저장
+업무 데이터 저장 금지
+tcf-jwt
+Access/Refresh Token 발급·검증·갱신·폐기
+외부 직접 호출 허용 금지
+tcf-gateway
+Token/Cookie 1차 확인, 업무코드 라우팅
+SSO 원문 Token 검증 주체로 사용 금지
+업무 WAR
+업무 요청 인증·권한 최종 검증
+로그인·토큰 발급 중복 구현 금지
+STF.preProcess()
+Header, 세션, JWT Claim, 권한, 거래통제 검증
+인증 결과 없이 Dispatcher 호출 금지
+ETF.postProcess()
+표준응답, 오류코드, 거래로그, 감사로그 기록
+토큰 원문 로그 기록 금지
+
+41.5 SSO 로그인 처리 기준
+SSO 로그인은 OM.Auth.ssoLogin 거래로 처리한다.
+순서
+처리 위치
+처리 내용
+실패 시
+1
+화면
+SSO Login 클릭
+SSO 화면 오류
+2
+SSO 서버
+사용자 인증
+SSO 실패
+3
+SSO 서버
+SSO Token/Code/Assertion 발급
+SSO 실패
+4
+화면
+POST /om/online 호출
+통신 오류
+5
+tcf-om
+SSO Token 형식 검증
+E-SSO-TOKEN-0001
+6
+tcf-om
+서명, 만료, issuer, audience 검증
+E-SSO-TOKEN-0002
+7
+tcf-om
+Replay 방지, nonce/assertionId 중복 확인
+E-SSO-TOKEN-0003
+8
+tcf-om
+SSO 사용자 식별자 → OM_USER 매핑
+E-SSO-USER-0001
+9
+tcf-om
+사용자 상태 확인
+E-SSO-USER-0002
+10
+tcf-om
+권한그룹, 지점, 채널 확인
+E-AUTH-0007
+11
+tcf-om
+HttpSession 생성
+E-SES-0001
+12
+SESSIONDB
+SPRING_SESSION 저장
+E-SES-0009
+13
+tcf-om
+JWT.Auth.ssoIssue 내부 호출
+E-JWT-ISSUE-0001
+14
+tcf-jwt
+Access/Refresh Token 발급
+E-JWT-ISSUE-0002
+15
+tcf-om
+표준 응답 조립
+E-TCF-ETF-0001
+16
+화면
+세션 Cookie 유지, Token 저장 정책 적용
+재로그인 안내
+
+41.6 표준 ServiceId
+41.6.1 tcf-om 인증 ServiceId
+ServiceId
+설명
+인증 예외
+감사로그
+OM.Auth.ssoLogin
+SSO Token 검증, OM 세션 생성, JWT 발급 요청
+Y
+Y
+OM.Auth.logout
+로그아웃, 세션 종료, Token 폐기 요청
+N
+Y
+OM.Auth.me
+현재 로그인 사용자 정보 조회
+N
+N
+OM.Session.inquiry
+세션 현황 조회
+N
+Y
+OM.Session.forceLogout
+운영자 강제 로그아웃
+N
+Y
+41.6.2 tcf-jwt 인증 ServiceId
+ServiceId
+설명
+호출 주체
+외부 호출
+JWT.Auth.ssoIssue
+SSO 완료 사용자 대상 Access/Refresh Token 발급
+tcf-om
+금지
+JWT.Auth.refresh
+Access Token 재발급
+화면 / Gateway / 업무 WAR
+제한 허용
+JWT.Auth.revoke
+Token 폐기
+tcf-om, Gateway
+제한 허용
+JWT.Auth.logout
+Logout에 따른 Token 폐기
+tcf-om
+제한 허용
+JWT.Auth.verify
+Token 검증
+Gateway / 업무 WAR
+내부 사용
+JWT.Auth.ssoIssue는 반드시 내부 호출 전용으로 둔다. 외부 사용자가 직접 /jwt/online을 호출해서 Token을 발급받는 구조는 금지한다.
+
+41.7 요청 전문 예시
+41.7.1 OM.Auth.ssoLogin 요청
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "OM",
+    "serviceId": "OM.Auth.ssoLogin",
+    "transactionCode": "OM-AUT-0002",
+    "processingType": "EXECUTE",
+    "channelId": "WEBTOP",
+    "guid": "GUID-20260704-000001",
+    "traceId": "TRC-20260704-000001"
+  },
+  "body": {
+    "ssoToken": "SSO_TOKEN_VALUE",
+    "ssoTokenType": "OIDC_CODE_OR_ASSERTION",
+    "redirectUri": "https://nh.marketing.com/om/sso/callback",
+    "nonce": "N-20260704-000001"
+  }
+}
+
+41.7.2 JWT.Auth.ssoIssue 내부 호출
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "JWT",
+    "serviceId": "JWT.Auth.ssoIssue",
+    "transactionCode": "JWT-AUT-0005",
+    "processingType": "EXECUTE",
+    "channelId": "INTERNAL",
+    "guid": "GUID-20260704-000001",
+    "traceId": "TRC-20260704-000001"
+  },
+  "body": {
+    "userId": "U10001",
+    "userName": "홍길동",
+    "branchId": "123456",
+    "channelId": "WEBTOP",
+    "authGroupIds": ["BR_USER"],
+    "ssoSubject": "sso-user-10001",
+    "ssoAssertionId": "SSO-ASSERTION-20260704-000001",
+    "sessionId": "SESSION-20260704-000001",
+    "loginIp": "10.10.10.10"
+  }
+}
+
+
+41.8 응답 전문 예시
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "OM",
+    "serviceId": "OM.Auth.ssoLogin",
+    "transactionCode": "OM-AUT-0002",
+    "guid": "GUID-20260704-000001",
+    "traceId": "TRC-20260704-000001",
+    "responseDateTime": "2026-07-04T10:30:00+09:00"
+  },
+  "result": {
+    "resultCode": "SUCCESS",
+    "resultMessage": "SSO login success"
+  },
+  "body": {
+    "loggedIn": true,
+    "loginType": "SSO",
+    "userId": "U10001",
+    "userName": "홍길동",
+    "branchId": "123456",
+    "channelId": "WEBTOP",
+    "authGroupIds": ["BR_USER"],
+    "tokenType": "Bearer",
+    "accessToken": "eyJhbGciOiJSUzI1NiJ9...",
+    "expiresIn": 900
+  }
+}
+
+운영 보안 관점에서는 Refresh Token을 응답 Body로 직접 내려주기보다 HttpOnly + Secure Cookie로 내려주는 방식을 우선 검토한다.
+
+41.9 Token 종류와 사용 기준
+Token
+용도
+권장 만료
+저장 위치
+기준
+Access Token
+업무 API 호출 인증
+15분
+Browser Memory 또는 HttpOnly Cookie
+매 요청 전달
+Refresh Token
+Access Token 재발급
+8시간 또는 1영업일
+서버 DB에는 Hash 저장
+Rotation 적용
+Admin Access Token
+OM 관리자 인증
+10분
+HttpOnly Cookie 권장
+관리자 권한 강화
+System Token
+배치/내부 연계
+5~30분
+서버 간 인증
+mTLS/IP 통제 병행
+One-Time Token
+민감 기능 1회 승인
+1~5분
+DB 검증
+다운로드, 마스킹 해제
+Access Token은 짧게, Refresh Token은 서버에서 폐기 가능하게 관리한다. 기존 JWT 설계에서도 Access Token은 업무 요청 인증용, Refresh Token은 재발급용이며 Refresh Token은 DB에 Hash로 저장하는 기준으로 정리되어 있다.
+
+41.10 JWT Claim 표준
+JWT Claim은 업무 데이터가 아니라 인증·권한 판단에 필요한 최소 정보만 포함한다.
+Claim
+설명
+예시
+iss
+발급자
+NSIGHT-JWT
+sub
+사용자 ID
+U10001
+aud
+대상 시스템
+NSIGHT-MP
+jti
+Token ID
+UUID
+iat
+발급 시각
+epoch time
+exp
+만료 시각
+epoch time
+userName
+사용자명
+홍길동
+branchId
+지점 코드
+123456
+channelId
+채널 ID
+WEBTOP
+authGroupIds
+권한그룹
+["BR_USER"]
+sessionId
+Spring Session ID
+SESSION-20260704-000001
+loginType
+로그인 유형
+SSO
+금지 Claim
+금지 정보
+금지 사유
+주민번호, 계좌번호
+개인정보 유출 위험
+고객명, 고객번호 원문
+토큰 탈취 시 위험
+고객 조회 결과
+토큰 비대화, 보안 위험
+메뉴 전체 목록
+권한 변경 즉시 반영 어려움
+기능권한 전체
+토큰 크기 증가, 운영 변경 반영 어려움
+비밀번호
+절대 금지
+SSO Token 원문
+재사용·탈취 위험
+DB URL, 서버 IP
+내부 정보 노출
+SSO Token 인증설계에서도 JWT 금지 Claim으로 고객번호, 고객명, 계좌번호, 조회결과, 캠페인 대상목록, 권한 상세목록 전체, 비밀번호, SSO Token 원문을 두고 있다.
+
+41.11 업무 호출 시 검증 기준
+SSO 로그인 이후 업무 호출은 다음 기준으로 검증한다.
+[화면]
+  POST /sv/online
+  Cookie: NSIGHTSID
+  Authorization: Bearer {accessToken}
+
+        ↓
+
+[Gateway / Security Filter]
+  - Access Token 서명 검증
+  - 만료 확인
+  - Denylist 확인
+  - Cookie 전달
+
+        ↓
+
+[STF.preProcess()]
+  - 세션 존재 확인
+  - Header.userId == Token.sub 비교
+  - Header.branchId == Token.branchId 비교
+  - Header.channelId == Token.channelId 비교
+  - Header.userId == SessionContext.userId 비교
+  - ServiceId 권한 확인
+  - 거래통제 확인
+
+        ↓
+
+[TransactionDispatcher]
+  - serviceId 기준 Handler 실행
+
+검증 항목
+비교 기준
+실패 시
+Token 서명
+RS256 공개키 또는 검증키
+거래 차단
+Token 만료
+exp
+Refresh 유도 또는 재로그인
+Token 폐기
+Denylist 또는 Token DB 상태
+거래 차단
+사용자
+header.userId, token.sub, session.userId
+거래 차단
+지점
+header.branchId, token.branchId, session.branchId
+거래 차단
+채널
+header.channelId, token.channelId, session.channelId
+거래 차단
+ServiceId
+OM_SERVICE_CATALOG
+미등록 차단
+권한
+사용자 권한그룹, 기능권한, 데이터권한
+권한 오류
+거래통제
+TCF_TRANSACTION_CONTROL
+거래 차단
+
+41.12 Gateway 연계 기준
+Gateway는 SSO Token을 직접 검증하는 주체가 아니다.Gateway는 이미 발급된 Session Cookie 또는 JWT Access Token을 확인하고 업무 WAR로 전달한다.
+구분
+기준
+Gateway 인증
+Access Token 또는 Session Cookie 1차 확인
+SSO Token 검증
+Gateway가 아니라 tcf-om 담당
+Token 전달
+Authorization: Bearer 유지
+Cookie 전달
+NSIGHTSID 또는 JSESSIONID 전달
+업무코드 검증
+URL Path businessCode와 Header businessCode 비교
+Downstream 호출
+업무코드 라우팅 테이블 기준
+최종 검증
+업무 WAR의 Security Filter + STF
+로그
+Gateway 진입/종료 로그에 GUID, TraceId 기록
+Gateway는 인프라 장비가 아니라 Application Gateway이며, 인증, Header 검증, 사용자 정합성, ServiceId 검증, 거래통제, 라우팅, Timeout, 로그, 감사, 장애격리 역할을 수행하는 구조로 정의되어 있다.
+
+41.13 세션과 JWT 병행 기준
+구분
+Session Cookie
+JWT
+주 사용 대상
+WebTopSuite, 내부 업무 화면
+Gateway/API, 외부 연계
+상태 저장
+SESSIONDB
+Token + Token DB
+강제 로그아웃
+SESSIONDB 상태 변경
+Denylist + Refresh Token 폐기
+다중 WAR 공유
+Spring Session JDBC
+공개키 검증 또는 introspection
+운영 조회
+OM.Session
+JWT Token 관리 화면
+권장 구조
+내부 화면 기본
+API 호출 병행
+NSIGHT에서는 JWT를 적용하더라도 로그인 세션 원천은 SESSIONDB 기준으로 유지한다. 기존 설계에서도 Spring Session JDBC는 세션 중앙화, WAS 독립 세션 관리, 장애 시 세션 유지, 다중 WAR 세션 공유, 사용자 인증 상태 유지 역할을 담당하므로, JWT 적용 후에도 세션 원천을 SESSIONDB로 유지하는 것이 적합하다고 정리되어 있다.
+
+41.14 로그아웃 / 강제 로그아웃 기준
+41.14.1 일반 로그아웃
+[화면]
+  OM.Auth.logout 호출
+        ↓
+[tcf-om]
+  Spring Session 종료
+  TCF_USER_SESSION 상태 LOGOUT 갱신
+  JWT.Auth.revoke 내부 호출
+        ↓
+[tcf-jwt]
+  Refresh Token 폐기
+  Access Token JTI Denylist 등록
+        ↓
+[ETF]
+  감사로그 기록
+
+41.14.2 강제 로그아웃
+처리 항목
+기준
+세션 종료
+SESSIONDB 세션 삭제 또는 만료 처리
+사용자 세션 상태
+FORCED_LOGOUT
+Refresh Token
+즉시 폐기
+Access Token
+남은 만료시간 동안 Denylist 등록
+감사로그
+강제종료자, 대상자, 사유, 시간 기록
+화면 처리
+다음 요청 시 재로그인 안내
+
+41.15 내부 호출 보안 기준
+tcf-om → tcf-jwt 호출은 반드시 내부망 전용으로 제한한다.
+보안 항목
+적용 기준
+내부 Header
+X-NSIGHT-Internal-Service: tcf-om
+HMAC Signature
+Body + timestamp + secret 기반 서명
+Timestamp
+1~3분 이내 요청만 허용
+Replay 방지
+nonce 또는 requestId 중복 차단
+IP Allowlist
+tcf-om 서버 IP만 허용
+mTLS
+운영환경 권장
+방화벽
+외부망에서 /jwt/online 직접 접근 차단
+감사로그
+발급자, 대상 userId, 발급시간, IP, GUID 기록
+Secret 관리
+application.yml 직접 저장 금지, Secret/환경변수 사용
+SSO Token 인증설계에서도 tcf-om → tcf-jwt 내부 호출은 내부망 전용, HMAC Signature, timestamp, replay 방지, IP Allowlist, mTLS, 방화벽, 감사로그, Secret 외부화 기준을 적용하도록 정리되어 있다.
+
+41.16 주요 테이블 기준
+[OM 사용자 / 세션]
+ ├─ OM_USER
+ ├─ OM_AUTH_GROUP
+ ├─ OM_FUNCTION_AUTH
+ ├─ SPRING_SESSION
+ ├─ SPRING_SESSION_ATTRIBUTES
+ └─ TCF_USER_SESSION
+
+[JWT]
+ ├─ TCF_JWT_TOKEN
+ ├─ TCF_REFRESH_TOKEN
+ ├─ TCF_TOKEN_DENYLIST
+ ├─ TCF_JWT_LOGIN_HISTORY
+ └─ TCF_JWT_SECURITY_POLICY
+
+[감사 / 로그]
+ ├─ OM_AUDIT_LOG
+ └─ TCF_TX_LOG
+
+TCF_JWT_TOKEN
+컬럼
+설명
+TOKEN_ID
+Token 내부 ID
+JTI
+JWT 고유 식별자
+USER_ID
+사용자 ID
+SESSION_ID
+Spring Session ID
+TOKEN_TYPE
+ACCESS
+ISSUED_AT
+발급 시각
+EXPIRES_AT
+만료 시각
+TOKEN_STATUS
+ACTIVE, EXPIRED, REVOKED
+CLIENT_IP
+발급 요청 IP
+USER_AGENT
+발급 요청 단말 정보
+TCF_REFRESH_TOKEN
+컬럼
+설명
+REFRESH_TOKEN_ID
+Refresh Token ID
+USER_ID
+사용자 ID
+SESSION_ID
+세션 ID
+TOKEN_HASH
+Refresh Token Hash
+ISSUED_AT
+발급 시각
+EXPIRES_AT
+만료 시각
+REVOKED_AT
+폐기 시각
+TOKEN_STATUS
+ACTIVE, REVOKED, EXPIRED
+TCF_TOKEN_DENYLIST
+컬럼
+설명
+JTI
+폐기 대상 Access Token ID
+USER_ID
+사용자 ID
+REASON_CODE
+폐기 사유
+EXPIRES_AT
+Denylist 유지 시각
+CREATED_AT
+등록 시각
+
+41.17 application.yml 예시
+server:
+  servlet:
+    session:
+      timeout: 60m
+      tracking-modes: cookie
+      cookie:
+        name: NSIGHTSID
+        path: /
+        http-only: true
+        secure: true
+        same-site: Lax
+
+spring:
+  session:
+    store-type: jdbc
+    jdbc:
+      table-name: SPRING_SESSION
+      initialize-schema: never
+      cleanup-cron: "0 */5 * * * *"
+
+nsight:
+  security:
+    auth-type: sso-jwt
+
+    sso:
+      enabled: true
+      provider-type: oidc
+      issuer: NH-SSO
+      audience: NSIGHT-MP
+      token-verify-timeout-ms: 3000
+      replay-check-enabled: true
+
+    jwt:
+      issuer: NSIGHT-JWT
+      audience: NSIGHT-MP
+      algorithm: RS256
+      jwk-set-uri: http://tcf-jwt:8110/.well-known/jwks.json
+      access-token-valid-minutes: 15
+      refresh-token-valid-hours: 8
+      denylist-check-enabled: true
+      refresh-token-rotation-enabled: true
+
+    internal-call:
+      allowed-services:
+        - tcf-om
+      hmac-enabled: true
+      timestamp-skew-seconds: 180
+
+  session:
+    idle-timeout-minutes: 60
+    absolute-timeout-hours: 8
+    validate-header-user: true
+    validate-header-branch: true
+    validate-header-channel: true
+
+
+41.18 오류코드 기준
+오류코드
+의미
+처리
+E-SSO-TOKEN-0001
+SSO Token 누락 또는 형식 오류
+로그인 실패
+E-SSO-TOKEN-0002
+SSO Token 서명/만료 검증 실패
+로그인 실패
+E-SSO-TOKEN-0003
+SSO Assertion Replay 감지
+로그인 차단, 감사로그
+E-SSO-USER-0001
+OM_USER 매핑 실패
+로그인 실패
+E-SSO-USER-0002
+사용자 상태 비정상
+로그인 차단
+E-JWT-ISSUE-0001
+tcf-jwt 내부 호출 실패
+로그인 실패 또는 재시도
+E-JWT-ISSUE-0002
+Token 발급 실패
+로그인 실패
+E-JWT-AUTH-0001
+Access Token 만료
+Refresh 유도
+E-JWT-AUTH-0002
+Token 서명 검증 실패
+거래 차단
+E-JWT-AUTH-0003
+Token Denylist 등록 상태
+거래 차단
+E-JWT-AUTH-0004
+Token Claim과 Header 불일치
+거래 차단
+E-SES-0001
+세션 없음
+재로그인
+E-SES-0004
+Header 사용자와 세션 사용자 불일치
+거래 차단
+
+41.19 Java 구현 예시
+41.19.1 SSO 로그인 Handler
+@Component
+@RequiredArgsConstructor
+public class OmAuthSsoLoginHandler
+        implements TransactionHandler<OmSsoLoginRequest, OmSsoLoginResponse> {
+
+    private final OmAuthFacade omAuthFacade;
+
+    @Override
+    public OmSsoLoginResponse handle(
+            OmSsoLoginRequest request,
+            TransactionContext context
+    ) {
+        return omAuthFacade.ssoLogin(request, context);
+    }
+}
+
+41.19.2 OM Auth Facade
+@Service
+@RequiredArgsConstructor
+public class OmAuthFacade {
+
+    private final SsoTokenVerifier ssoTokenVerifier;
+    private final OmUserService omUserService;
+    private final OmSessionService omSessionService;
+    private final JwtIssueClient jwtIssueClient;
+
+    @Transactional(timeout = 5)
+    public OmSsoLoginResponse ssoLogin(
+            OmSsoLoginRequest request,
+            TransactionContext context
+    ) {
+        SsoUserInfo ssoUser =
+                ssoTokenVerifier.verify(request.getSsoToken(), request.getNonce());
+
+        OmUser user =
+                omUserService.findEnabledUserBySsoSubject(ssoUser.getSubject());
+
+        SessionContext session =
+                omSessionService.createSession(user, context);
+
+        JwtTokenPair tokenPair =
+                jwtIssueClient.issueSsoTokenPair(user, session, context);
+
+        return OmSsoLoginResponse.builder()
+                .loggedIn(true)
+                .loginType("SSO")
+                .userId(user.getUserId())
+                .userName(user.getUserName())
+                .branchId(user.getBranchId())
+                .channelId(session.getChannelId())
+                .accessToken(tokenPair.getAccessToken())
+                .expiresIn(tokenPair.getExpiresIn())
+                .build();
+    }
+}
+
+41.19.3 JWT Claim과 Header 비교
+@Component
+public class JwtHeaderConsistencyValidator {
+
+    public void validate(
+            StandardHeader header,
+            JwtPrincipal principal,
+            SessionContext session
+    ) {
+        if (!header.getUser().equals(principal.getUserId())) {
+            throw new BusinessException(
+                    "E-JWT-AUTH-0004",
+                    "Token 사용자와 Header 사용자가 일치하지 않습니다."
+            );
+        }
+
+        if (!header.getBranch().equals(principal.getBranchId())) {
+            throw new BusinessException(
+                    "E-JWT-AUTH-0004",
+                    "Token 지점과 Header 지점이 일치하지 않습니다."
+            );
+        }
+
+        if (!header.getChannelId().equals(principal.getChannelId())) {
+            throw new BusinessException(
+                    "E-JWT-AUTH-0004",
+                    "Token 채널과 Header 채널이 일치하지 않습니다."
+            );
+        }
+
+        if (!session.getUserId().equals(principal.getUserId())) {
+            throw new BusinessException(
+                    "E-SES-0004",
+                    "세션 사용자와 Token 사용자가 일치하지 않습니다."
+            );
+        }
+    }
+}
+
+
+41.20 금지 기준
+금지 항목
+사유
+업무 WAR마다 SSO 검증 로직 중복 구현
+인증 기준 분산
+업무 WAR마다 JWT 발급 로직 구현
+키 관리·폐기 정책 분산
+SSO Token 원문 DB 저장
+재사용·탈취 위험
+Refresh Token 원문 저장
+탈취 시 장기 악용 가능
+JWT에 고객정보·조회결과 포함
+개인정보 유출 위험
+Header 사용자 값을 Token 검증 없이 신뢰
+위변조 가능
+JWT 인증만 하고 TCF 권한·거래통제 생략
+미등록 거래 실행 위험
+Gateway에서 SSO Token을 직접 검증
+책임 혼선
+외부에서 JWT.Auth.ssoIssue 직접 호출
+임의 Token 발급 위험
+Access Token을 로그에 남김
+보안 사고 위험
+
+41.21 테스트 케이스
+No
+테스트 케이스
+기대 결과
+1
+정상 SSO Token으로 로그인
+세션 생성 + Access/Refresh Token 발급
+2
+SSO Token 누락
+E-SSO-TOKEN-0001
+3
+SSO Token 만료
+E-SSO-TOKEN-0002
+4
+SSO Assertion Replay
+E-SSO-TOKEN-0003
+5
+SSO 사용자와 OM_USER 미매핑
+E-SSO-USER-0001
+6
+잠긴 사용자 로그인
+E-SSO-USER-0002
+7
+tcf-jwt 내부 호출 실패
+E-JWT-ISSUE-0001
+8
+만료 Access Token으로 업무 호출
+E-JWT-AUTH-0001
+9
+위조 Token으로 업무 호출
+E-JWT-AUTH-0002
+10
+Denylist Token으로 업무 호출
+E-JWT-AUTH-0003
+11
+Token 사용자와 Header 사용자 불일치
+E-JWT-AUTH-0004
+12
+세션 없이 Token만으로 화면 거래 호출
+정책에 따라 차단 또는 API 모드만 허용
+13
+로그아웃 후 기존 Token 재사용
+차단
+14
+강제 로그아웃 후 업무 호출
+재로그인 안내
+15
+Refresh Token Rotation 후 이전 Refresh 재사용
+차단 및 감사로그
+
+41.22 개발자 체크리스트
+점검 항목
+확인
+SSO Token 검증은 tcf-om에서만 수행하는가
+□
+JWT 발급·갱신·폐기는 tcf-jwt에서만 수행하는가
+□
+SSO 성공 후 Spring Session JDBC 세션이 생성되는가
+□
+OM_USER 매핑 실패 시 로그인을 차단하는가
+□
+JWT.Auth.ssoIssue는 내부 호출 전용인가
+□
+Refresh Token은 Hash로 저장하는가
+□
+Access Token Denylist를 적용하는가
+□
+Token Claim과 Header 사용자·지점·채널을 비교하는가
+□
+세션 사용자와 Token 사용자를 비교하는가
+□
+JWT 인증 후에도 ServiceId 권한과 거래통제를 수행하는가
+□
+SSO Token 원문과 Access Token을 로그에 남기지 않는가
+□
+로그아웃·강제 로그아웃 시 세션과 Token을 모두 폐기하는가
+□
+인증 실패, 토큰 발급, 갱신, 폐기 이력을 감사로그에 남기는가
+□
+
+41.23 마무리말
+JWT / SSO 연계 기준의 핵심은 책임 분리이다.SSO는 외부 인증기관의 사용자 인증 결과이고, Session은 NSIGHT 화면 사용 상태이며, JWT는 API 호출 인증 수단이고, TCF는 인증된 사용자가 실제 거래를 실행할 수 있는지 판단하는 프레임워크이다.
+따라서 NSIGHT에서는 로그인 성공만으로 업무를 실행해서는 안 된다.SSO 검증, OM 사용자 매핑, 세션 생성, JWT 발급, Token Claim 검증, Header 비교, 권한검증, 거래통제, 감사로그까지 하나의 인증 수명주기로 묶어야 한다.
+41.24 시사점
+관점
+시사점
+개발 관점
+업무 개발자는 SSO/JWT 로직을 직접 구현하지 않고 TCF 인증 결과와 SessionContext를 사용한다
+운영 관점
+OM에서 사용자, 세션, 토큰, 강제 로그아웃, 감사 이력을 통합 관리해야 한다
+보안 관점
+Token은 짧게, Refresh Token은 Hash 저장, 폐기는 Denylist와 DB 상태로 통제한다
+아키텍처 관점
+JWT는 인증 수단이고, 최종 업무 실행 판단은 ServiceId + 권한 + 거래통제 기준으로 수행한다
+

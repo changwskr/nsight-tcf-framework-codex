@@ -1,0 +1,776 @@
+아래 내용을 NSIGHT TCF 개발자 가이드 3차 - 17장으로 이어 붙이면 됩니다.
+
+17. 거래코드 설계 기준
+17.1 도입 전 안내말
+NSIGHT TCF Framework에서 거래코드(Transaction Code)는 온라인 거래를 업무적으로 식별하기 위한 코드이다.
+ServiceId가 어떤 Handler를 실행할 것인가를 결정하는 실행 식별자라면, 거래코드는 이 거래를 로그, 감사, 재처리, 통계, 장애 추적에서 어떤 업무 거래로 볼 것인가를 결정하는 업무 식별자이다. 기존 ServiceId 설계 기준에서도 serviceId는 실제 실행 Handler 식별자이고, transactionCode는 거래로그·전문·재처리·감사 기준의 거래 식별자로 구분되어 있다.
+따라서 거래코드는 단순 일련번호가 아니라 다음 항목과 연결된다.
+거래코드
+   ↓
+ServiceId
+   ↓
+업무코드
+   ↓
+거래통제
+   ↓
+Timeout 정책
+   ↓
+거래로그
+   ↓
+감사로그
+   ↓
+재처리 / 상태조회
+   ↓
+운영 대시보드
+
+
+17.2 거래코드 설계 결론
+NSIGHT 거래코드는 다음 기준으로 설계한다.
+구분
+설계 기준
+표준 명칭
+transactionCode
+기본 형식
+{업무코드}-{처리유형}-{일련번호}
+예시
+SV-INQ-0001
+주요 목적
+거래로그, 감사로그, 재처리, 통계, 장애 추적
+실행 기준
+실행 자체는 serviceId 기준
+정합성 기준
+businessCode + transactionCode + serviceId 매핑 검증
+관리 주체
+OM ServiceId / 거래코드 관리
+등록 위치
+Service Catalog 또는 거래코드 Master
+거래통제 연계
+TCF_TRANSACTION_CONTROL의 필수 Header 항목
+미등록 거래코드
+기본 차단
+운영 원칙
+한번 운영 반영된 거래코드는 의미 변경 금지
+핵심 문장은 다음과 같다.
+ServiceId = 실행할 프로그램
+TransactionCode = 운영에서 추적할 거래
+BusinessCode = 어느 업무에 속한 거래인지
+
+
+17.3 ServiceId와 거래코드의 차이
+거래코드와 ServiceId는 함께 사용하지만 역할은 다르다.
+구분
+ServiceId
+거래코드
+표준 필드
+serviceId
+transactionCode
+예시
+SV.Customer.selectSummary
+SV-INQ-0001
+목적
+Handler 선택
+거래 식별
+사용 위치
+Dispatcher
+로그, 감사, 통제, 통계
+의미
+어떤 프로그램을 실행할 것인가
+어떤 업무 거래인가
+변경 가능성
+Handler 변경 시 변경 가능
+운영 반영 후 의미 변경 금지
+운영 조회
+ServiceId별 오류/성능 조회
+거래코드별 거래량/오류율 조회
+관계
+거래코드와 매핑되어야 함
+ServiceId와 매핑되어야 함
+권장 관계는 다음이다.
+businessCode + transactionCode
+= 업무 거래 식별
+
+serviceId
+= 실행 Handler 식별
+
+serviceId + transactionCode
+= 실행 프로그램과 운영 거래의 정합성 검증
+
+
+17.4 거래코드 기본 형식
+17.4.1 표준 형식
+거래코드는 다음 형식을 사용한다.
+{BusinessCode}-{ProcessingType}-{Sequence}
+
+예시는 다음과 같다.
+SV-INQ-0001
+CM-REG-0001
+OM-UPD-0001
+MG-SND-0001
+UD-DWN-0001
+
+구성요소
+자리수
+설명
+예시
+BusinessCode
+2~3
+업무코드
+SV, CM, OM, MG
+ProcessingType
+3
+처리유형 코드
+INQ, REG, UPD
+Sequence
+4
+업무 내 일련번호
+0001
+정규식 기준은 다음과 같이 둔다.
+^[A-Z]{2,3}-[A-Z]{3}-[0-9]{4}$
+
+
+17.5 처리유형 코드 표준
+거래코드의 가운데 영역은 처리유형을 나타낸다.
+처리유형
+코드
+의미
+ServiceId Action 예시
+거래코드 예시
+조회
+INQ
+목록, 상세, 요약 조회
+selectList, selectDetail, selectSummary
+SV-INQ-0001
+등록
+REG
+신규 등록
+create
+CM-REG-0001
+수정
+UPD
+기존 데이터 변경
+update
+OM-UPD-0001
+삭제
+DEL
+삭제 또는 논리삭제
+delete
+OM-DEL-0001
+저장
+SAV
+등록/수정 통합 저장
+save
+OM-SAV-0001
+실행
+EXE
+배치, 작업, 명령 실행
+execute
+EB-EXE-0001
+발송
+SND
+메시지, 알림 발송
+send
+MG-SND-0001
+업로드
+UPL
+파일 업로드
+upload
+UD-UPL-0001
+다운로드
+DWN
+파일 다운로드
+download
+UD-DWN-0001
+로그인/인증
+AUT
+로그인, 토큰, SSO 인증
+login, ssoLogin, issueToken
+OM-AUT-0001
+승인
+APP
+승인 처리
+approve
+OM-APP-0001
+반려
+REJ
+반려 처리
+reject
+OM-REJ-0001
+검증
+VAL
+유효성 검증
+validate
+OM-VAL-0001
+재처리
+RTY
+재처리
+retry
+EB-RTY-0001
+처리유형은 개발자가 임의로 만들지 않고, OM 공통코드 또는 표준 코드표로 관리한다.
+
+17.6 거래코드 채번 원칙
+거래코드 채번은 업무코드와 처리유형별로 독립적으로 증가시킨다.
+SV-INQ-0001
+SV-INQ-0002
+SV-INQ-0003
+
+SV-UPD-0001
+SV-UPD-0002
+
+CM-REG-0001
+CM-REG-0002
+
+원칙
+기준
+업무별 채번
+업무코드별로 일련번호를 관리한다
+처리유형별 채번
+INQ, REG, UPD 등 처리유형별로 일련번호를 관리한다
+중복 금지
+동일 업무코드 + 처리유형 + 일련번호 중복 금지
+재사용 금지
+폐기된 거래코드도 재사용하지 않는다
+의미 변경 금지
+운영 반영 후 거래코드의 업무 의미를 바꾸지 않는다
+삭제 금지
+운영 반영된 거래코드는 물리 삭제하지 않고 폐기 상태로 관리한다
+이력 필수
+변경 시 변경자, 변경일시, 변경 사유를 남긴다
+
+17.7 거래코드와 업무코드 정합성
+거래코드의 Prefix는 반드시 businessCode와 일치해야 한다.
+Header businessCode
+transactionCode
+판단
+SV
+SV-INQ-0001
+정상
+SV
+CM-INQ-0001
+오류
+OM
+OM-UPD-0001
+정상
+OM
+SV-INQ-0001
+오류
+검증 기준은 다음과 같다.
+if (!transactionCode.startsWith(businessCode + "-")) {
+    throw new BusinessException(
+        "E-TCF-TX-0002",
+        "업무코드와 거래코드가 일치하지 않습니다."
+    );
+}
+
+이 기준이 없으면 /sv/online으로 들어온 요청이 CM 거래코드를 가지고 실행되는 오류가 발생할 수 있다.
+
+17.8 거래코드와 ServiceId 정합성
+거래코드는 ServiceId와 반드시 매핑되어야 한다.
+예시는 다음과 같다.
+ServiceId
+거래코드
+판단
+SV.Customer.selectSummary
+SV-INQ-0001
+정상
+SV.Customer.selectDetail
+SV-INQ-0002
+정상
+CM.Campaign.create
+CM-REG-0001
+정상
+MG.Message.send
+MG-SND-0001
+정상
+잘못된 예시는 다음과 같다.
+ServiceId
+거래코드
+문제
+SV.Customer.selectSummary
+CM-INQ-0001
+업무코드 불일치
+SV.Customer.selectSummary
+SV-UPD-0001
+조회 서비스인데 수정 거래코드 사용
+CM.Campaign.create
+CM-INQ-0001
+등록 서비스인데 조회 거래코드 사용
+MG.Message.send
+MG-REG-0001
+발송 거래인데 등록 코드 사용
+STF 전처리에서는 Service Catalog 또는 거래코드 Master를 조회하여 다음을 확인한다.
+1. transactionCode 필수값 확인
+2. transactionCode 형식 확인
+3. businessCode와 transactionCode Prefix 일치 확인
+4. serviceId와 transactionCode 매핑 확인
+5. 거래코드 사용 여부 확인
+6. 거래코드 상태 ACTIVE 여부 확인
+7. 거래통제 테이블에 등록된 조합인지 확인
+
+거래통제 설계에서도 요청 Header의 serviceId, transactionCode, businessCode, serviceName, user, channelId, branch 7개 값이 등록되어 있어야 Handler가 실행된다.
+
+17.9 거래코드 Master 관리 기준
+거래코드는 Service Catalog 안에서 함께 관리하거나, 별도 TCF_TRANSACTION_CODE_MASTER로 분리해서 관리할 수 있다.
+개발자 가이드에서는 다음처럼 Service Catalog 중심 관리를 기본으로 한다.
+컬럼
+설명
+예시
+TRANSACTION_CODE
+거래코드
+SV-INQ-0001
+BUSINESS_CODE
+업무코드
+SV
+SERVICE_ID
+실행 ServiceId
+SV.Customer.selectSummary
+TRANSACTION_NAME
+거래명
+고객 요약 조회
+PROCESSING_TYPE
+처리유형
+INQ
+SERVICE_NAME
+서비스명
+고객요약조회
+AUDIT_YN
+감사 대상 여부
+Y
+RETRY_YN
+재처리 가능 여부
+N
+TIMEOUT_POLICY_ID
+Timeout 정책 ID
+TO-SV-INQ-001
+USE_YN
+사용 여부
+Y
+STATUS
+상태
+ACTIVE
+OWNER_TEAM
+담당팀
+SingleView팀
+DESCRIPTION
+설명
+고객번호 기준 요약정보 조회
+Service Catalog에는 ServiceId, 업무코드, 거래코드, 서비스명, Handler Bean, 처리유형, Timeout, 감사 여부, 사용 여부, 담당팀 등이 함께 관리되어야 한다.
+
+17.10 거래코드와 거래통제 연계
+거래코드는 거래통제의 필수 기준이다.
+요청 Header
+  serviceId
+  transactionCode
+  businessCode
+  serviceName
+  user
+  channelId
+  branch
+        ↓
+TCF_TRANSACTION_CONTROL 조회
+        ↓
+등록된 조합이면 허용
+미등록 조합이면 차단
+
+거래통제 테이블의 대표 구조는 다음과 같다.
+컬럼
+설명
+예시
+SERVICE_ID
+실행 서비스 ID
+SV.Customer.selectSummary
+TRANSACTION_CODE
+거래코드
+SV-INQ-0001
+BUSINESS_CODE
+업무코드
+SV
+SERVICE_NAME
+서비스명
+고객요약조회
+USER_ID
+사용자 ID
+U123456
+CHANNEL_ID
+채널 ID
+WEBTOP
+BRANCH_ID
+지점 코드
+001234
+USE_YN
+사용 여부
+Y
+START_DATE
+허용 시작일
+20260701
+END_DATE
+허용 종료일
+99991231
+거래통제 테이블은 SERVICE_ID, TRANSACTION_CODE, BUSINESS_CODE, SERVICE_NAME, USER_ID, CHANNEL_ID, BRANCH_ID를 기준으로 허용 거래를 판단하도록 설계되어 있다.
+
+17.11 거래코드와 거래로그 연계
+거래로그에는 반드시 거래코드가 기록되어야 한다.
+로그 항목
+설명
+예시
+GUID
+End-to-End 추적 ID
+G202607040001
+TRACE_ID
+시스템 추적 ID
+trace-...
+BUSINESS_CODE
+업무코드
+SV
+SERVICE_ID
+실행 ServiceId
+SV.Customer.selectSummary
+TRANSACTION_CODE
+거래코드
+SV-INQ-0001
+SERVICE_NAME
+거래명
+고객요약조회
+USER_ID
+사용자
+U123456
+BRANCH_ID
+지점
+001234
+CHANNEL_ID
+채널
+WEBTOP
+TX_STATUS
+거래 상태
+PROCESSING, SUCCESS, FAIL, TIMEOUT
+ERROR_CODE
+오류코드
+E-TCF-TX-0001
+거래로그 설계 기준에서도 운영 조회는 GUID / TraceId / ServiceId / 거래코드 기준으로 추적하고, 거래 상태는 PROCESSING → SUCCESS / FAIL / TIMEOUT / UNKNOWN으로 관리하도록 정의되어 있다.
+
+17.12 거래코드 오류코드 기준
+거래코드 관련 오류는 다음 기준으로 처리한다.
+상황
+오류코드
+발생 위치
+설명
+거래코드 누락
+E-TCF-TX-0001
+STF
+Header에 transactionCode 없음
+형식 오류
+E-TCF-TX-0002
+STF
+표준 형식 위반
+업무코드 불일치
+E-TCF-TX-0003
+STF
+businessCode와 transactionCode Prefix 불일치
+미등록 거래코드
+E-TCF-TX-0004
+STF
+Master에 등록되지 않음
+중지된 거래코드
+E-TCF-TX-0005
+STF
+사용 중지 상태
+ServiceId 매핑 불일치
+E-TCF-TX-0006
+STF
+ServiceId와 거래코드 매핑 불일치
+거래통제 미등록
+E-TCF-CTL-0001
+STF
+Allow-List 미등록
+중복 등록
+E-TCF-CTL-0002
+STF
+거래통제 데이터 중복
+
+17.13 요청 전문 예시
+SV 고객 요약 조회 요청 예시는 다음과 같다.
+{
+  "header": {
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "serviceName": "고객요약조회",
+    "userId": "U123456",
+    "channelId": "WEBTOP",
+    "branchId": "001234"
+  },
+  "body": {
+    "customerNo": "CUST00000001"
+  }
+}
+
+이 요청에서 각 값의 의미는 다음과 같다.
+항목
+값
+의미
+businessCode
+SV
+Single View 업무로 라우팅
+serviceId
+SV.Customer.selectSummary
+고객 요약 조회 Handler 실행
+transactionCode
+SV-INQ-0001
+고객 요약 조회 거래로 로그·감사 기록
+serviceName
+고객요약조회
+운영자 조회용 거래명
+userId
+U123456
+거래 수행 사용자
+channelId
+WEBTOP
+호출 채널
+branchId
+001234
+지점 코드
+
+17.14 거래코드 등록 예시
+No
+업무코드
+거래코드
+ServiceId
+거래명
+처리유형
+감사
+재처리
+1
+SV
+SV-INQ-0001
+SV.Customer.selectSummary
+고객요약조회
+조회
+Y
+N
+2
+SV
+SV-INQ-0002
+SV.Customer.selectDetail
+고객상세조회
+조회
+Y
+N
+3
+SV
+SV-INQ-0003
+SV.Customer.selectProductList
+보유상품목록조회
+조회
+Y
+N
+4
+CM
+CM-REG-0001
+CM.Campaign.create
+캠페인등록
+등록
+Y
+N
+5
+CM
+CM-UPD-0001
+CM.Campaign.update
+캠페인수정
+수정
+Y
+N
+6
+MG
+MG-SND-0001
+MG.Message.send
+메시지발송
+발송
+Y
+Y
+7
+UD
+UD-DWN-0001
+UD.File.download
+파일다운로드
+다운로드
+Y
+N
+8
+OM
+OM-INQ-0001
+OM.User.selectList
+사용자목록조회
+조회
+Y
+N
+9
+OM
+OM-UPD-0001
+OM.User.update
+사용자정보수정
+수정
+Y
+N
+10
+EB
+EB-EXE-0001
+EB.Batch.execute
+배치수동실행
+실행
+Y
+Y
+
+17.15 거래코드 개발 절차
+개발자는 다음 순서로 거래코드를 정의한다.
+순서
+작업
+예시
+1
+업무코드 확인
+SV
+2
+업무 기능 정의
+고객 요약 조회
+3
+처리유형 결정
+조회 → INQ
+4
+일련번호 채번
+0001
+5
+거래코드 확정
+SV-INQ-0001
+6
+ServiceId 확정
+SV.Customer.selectSummary
+7
+거래명 확정
+고객요약조회
+8
+Service Catalog 등록
+SV.Customer.selectSummary + SV-INQ-0001
+9
+거래통제 등록
+Header 7개 항목 기준
+10
+Timeout 정책 연결
+3초 또는 5초
+11
+감사 여부 결정
+고객정보 조회 → Y
+12
+오류코드 등록
+E-SV-INQ-* 또는 E-TCF-*
+13
+테스트 전문 작성
+JSON Header + Body
+14
+거래로그 확인
+GUID, ServiceId, 거래코드 기준
+
+17.16 거래코드 금지 사항
+금지 사항
+사유
+거래코드 없이 온라인 거래 실행
+로그·감사·통제 불가
+SV-001처럼 처리유형 없는 코드 사용
+거래 성격 파악 어려움
+SV-INQ-1처럼 자리수 미준수
+정렬·검색·관리 어려움
+동일 거래코드 재사용
+로그·감사 이력 혼선
+폐기된 거래코드 재사용
+과거 거래와 신규 거래 구분 불가
+거래코드 의미 변경
+운영 통계와 감사 기준 훼손
+ServiceId와 거래코드 불일치
+실행 프로그램과 운영 거래 불일치
+조회 거래에 UPD 코드 사용
+처리유형 통계 오류
+파일 다운로드 거래를 일반 조회 코드로 처리
+감사 누락 위험
+운영 반영 후 물리 삭제
+과거 로그와 기준정보 연결 단절
+
+17.17 운영 변경 기준
+거래코드는 운영 반영 후 신중하게 변경해야 한다.
+변경 유형
+기준
+신규 추가
+OM 승인 후 등록
+명칭 수정
+가능하나 이력 필수
+ServiceId 매핑 변경
+운영 영향 분석 후 승인 필요
+Timeout 변경
+Timeout 정책에서 변경
+감사 여부 변경
+보안/감사 승인 필요
+사용 중지
+SUSPENDED 또는 USE_YN = N
+폐기
+DEPRECATED 처리
+물리 삭제
+원칙적으로 금지
+운영 기준은 다음과 같다.
+운영 반영된 거래코드는 삭제하지 않는다.
+사용하지 않는 거래코드는 폐기 상태로 둔다.
+동일 거래코드는 다시 사용하지 않는다.
+거래코드와 ServiceId 매핑 변경은 승인 이력을 남긴다.
+고객정보 조회, 다운로드, 권한변경 거래는 감사 대상에서 제외하지 않는다.
+
+
+17.18 개발자 체크리스트
+점검 항목
+확인
+거래코드가 {업무코드}-{처리유형}-{일련번호} 형식인가?
+□
+거래코드 Prefix가 businessCode와 일치하는가?
+□
+처리유형 코드가 표준 코드표에 존재하는가?
+□
+일련번호가 4자리인가?
+□
+동일 거래코드가 중복 등록되지 않았는가?
+□
+ServiceId와 거래코드 매핑이 등록되어 있는가?
+□
+ServiceId의 업무코드와 거래코드의 업무코드가 일치하는가?
+□
+조회/등록/수정/삭제 처리유형이 실제 기능과 일치하는가?
+□
+거래통제 테이블에 등록되어 있는가?
+□
+거래로그에 transactionCode가 기록되는가?
+□
+감사 대상 거래 여부가 정의되어 있는가?
+□
+Timeout 정책이 연결되어 있는가?
+□
+오류코드가 정의되어 있는가?
+□
+운영 반영 전 OM 승인 절차를 거쳤는가?
+□
+
+17.19 마무리말
+거래코드는 NSIGHT 온라인 거래의 운영 식별자이다.개발자는 ServiceId만 만들고 끝내면 안 된다. 반드시 거래코드를 함께 정의해야 한다.
+ServiceId가 프로그램 실행을 위한 키라면, 거래코드는 운영자가 장애를 분석하고, 감사자가 증적을 확인하고, PMO가 거래 현황을 설명할 수 있게 하는 기준이다.
+
+17.20 시사점
+거래코드가 표준화되지 않으면 다음 문제가 발생한다.
+문제
+영향
+거래 추적 불가
+장애 발생 시 어떤 업무 거래인지 확인 어려움
+감사 대응 곤란
+고객정보 조회, 다운로드 거래 증적 부족
+통계 왜곡
+조회/등록/수정/삭제 거래량 구분 불가
+재처리 혼선
+실패 거래 재처리 기준 불명확
+거래통제 약화
+허용 거래와 미허용 거래 구분 어려움
+운영관리 복잡화
+ServiceId, 로그, 권한, Timeout 기준 분리
+따라서 NSIGHT 개발자는 다음 원칙을 지켜야 한다.
+ServiceId를 만들 때 거래코드를 함께 만든다.거래코드는 프로그램명이 아니라 운영 가능한 거래 식별자이다.
+

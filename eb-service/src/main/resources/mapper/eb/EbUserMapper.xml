@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nh.nsight.marketing.eb.persistence.mapper.EbUserMapper">
+
+    <insert id="insertUser" parameterType="com.nh.nsight.marketing.eb.persistence.dto.user.UserInsertRow">
+        INSERT INTO EB_USER (USER_ID, USER_NAME, BRANCH_ID)
+        VALUES (#{userId}, #{userName}, #{branchId})
+    </insert>
+
+    <select id="countByUserId" resultType="int">
+        SELECT COUNT(1) FROM EB_USER WHERE USER_ID = #{userId}
+    </select>
+
+    <sql id="userSearchWhere">
+        <where>
+            <if test="userId != null and userId != ''">
+                AND u.USER_ID LIKE CONCAT('%', #{userId}, '%')
+            </if>
+            <if test="userName != null and userName != ''">
+                AND u.USER_NAME LIKE CONCAT('%', #{userName}, '%')
+            </if>
+            <if test="branchId != null and branchId != ''">
+                AND u.BRANCH_ID = #{branchId}
+            </if>
+        </where>
+    </sql>
+
+    <select id="searchUsers"
+            parameterType="com.nh.nsight.marketing.eb.application.dto.user.UserSearchCriteria"
+            resultType="com.nh.nsight.marketing.eb.persistence.dto.user.UserRow">
+        SELECT u.USER_ID AS userId,
+               u.USER_NAME AS userName,
+               u.BRANCH_ID AS branchId,
+               u.CREATED_AT AS createdAt,
+               e.EVENT_ID AS eventId,
+               e.EVENT_TYPE AS eventType,
+               e.EVENT_STATUS AS eventStatus
+          FROM EB_USER u
+          LEFT JOIN (
+               SELECT USER_ID, EVENT_ID, EVENT_TYPE, EVENT_STATUS,
+                      ROW_NUMBER() OVER (PARTITION BY USER_ID ORDER BY CREATED_AT DESC) AS RN
+                 FROM EB_EVENT
+          ) e ON u.USER_ID = e.USER_ID AND e.RN = 1
+        <include refid="userSearchWhere"/>
+         ORDER BY u.CREATED_AT DESC
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+
+    <select id="countUsers"
+            parameterType="com.nh.nsight.marketing.eb.application.dto.user.UserSearchCriteria"
+            resultType="int">
+        SELECT COUNT(1)
+          FROM EB_USER u
+        <include refid="userSearchWhere"/>
+    </select>
+
+</mapper>

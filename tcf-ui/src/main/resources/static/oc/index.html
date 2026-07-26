@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NSIGHT OC · 용량산정 포털</title>
+  <script src="/_shared/ui-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/oc-hub.css">
+</head>
+<body class="tcf-home oc-hub-page">
+  <div class="tcf-main">
+    <header class="tcf-topbar">
+      <div class="tcf-topbar__brand">
+        <h1>NSIGHT OC · 용량산정 포털</h1>
+        <p>용량 산정(CAP)과 환경설정 점검(ENV) 화면을 한곳에서 안내합니다. 기존 상세 화면은 그대로 사용합니다.</p>
+      </div>
+      <nav class="tcf-topbar__nav" aria-label="주요 이동">
+        <a class="tcf-topbar__link" href="/index.html#moduleSection">TCF UI</a>
+        <a class="tcf-topbar__link tcf-topbar__link--active" href="/oc/index.html">OC 포털</a>
+        <a class="tcf-topbar__link" href="/oc/capacity.html">용량 산정</a>
+        <a class="tcf-topbar__link" href="/oc/cap-new/index.html">NEW 용량산정</a>
+        <a class="tcf-topbar__link" href="/oc/env-001.html">ENV</a>
+        <a class="tcf-topbar__link" href="/help.html">HELP</a>
+        <span class="badge">OC</span>
+      </nav>
+    </header>
+
+    <section class="oc-hub-hero" aria-labelledby="hubHeroTitle">
+      <h2 id="hubHeroTitle">무엇을 하시나요?</h2>
+      <p>
+        <strong>용량 산정</strong>은 지점·사용자 수로 TPS, AP 대수, WAS 스레드, DB 커넥션 풀을 계산합니다.
+        <strong>환경설정 점검</strong>은 산정 결과를 바탕으로 Tomcat·Hikari·Timeout 등 실제 설정값을 검증합니다.
+        아래에서 목적에 맞는 화면으로 바로 이동하세요.
+      </p>
+      <div class="oc-hub-status" aria-label="연결 상태">
+        <span id="hubApiStatus" class="oc-hub-status__pill oc-hub-status__pill--muted">OC API 확인 중…</span>
+        <span id="hubEnvStatus" class="oc-hub-status__pill oc-hub-status__pill--muted">ENV 데이터 확인 중…</span>
+      </div>
+    </section>
+
+    <div class="oc-hub-tracks">
+      <a class="oc-hub-track oc-hub-track--cap" href="/oc/capacity.html" data-oc-hub-link>
+        <span class="oc-hub-track__badge">CAP · 용량 산정</span>
+        <h3>TPS → AP → WAS → DB Pool 계산</h3>
+        <p>
+          지점 수, 동시 사용자, 목표 응답시간을 입력하면 5단계(CAP-010~050) 산정을 한 화면에서 진행합니다.
+          처음이거나 숫자만 빠르게 뽑고 싶을 때 여기부터 시작하세요.
+        </p>
+        <span class="oc-hub-track__cta">용량 산정 화면 열기 →</span>
+      </a>
+      <a class="oc-hub-track oc-hub-track--env" href="/oc/env-002.html" data-oc-hub-link>
+        <span class="oc-hub-track__badge">ENV · 환경설정</span>
+        <h3>산정 조건 입력 → 계층별 설정 점검</h3>
+        <p>
+          ENV-002에서 조건을 넣고 산정을 실행한 뒤, ENV-003·004에서 VM·TPMC·Timeout·Pool을 점검합니다.
+          종합 보고서와 Rule 점검으로 최종 결론을 확인합니다.
+        </p>
+        <span class="oc-hub-track__cta">ENV-002 조건 입력 →</span>
+      </a>
+    </div>
+
+    <section class="oc-hub-path" aria-labelledby="hubPathTitle">
+      <h3 id="hubPathTitle">처음이신가요? — 추천 순서</h3>
+      <p>아래 4단계만 따라가면 CAP 산정부터 ENV 점검까지 이어서 진행할 수 있습니다.</p>
+      <ol class="oc-hub-path__steps">
+        <li class="oc-hub-path__step">
+          <strong>조건·시나리오 입력</strong>
+          <span>지점, 사용자, TPS 시나리오, VM 규격을 입력합니다.</span>
+          <a href="/oc/capacity.html" data-oc-hub-link>CAP 용량 산정 →</a>
+        </li>
+        <li class="oc-hub-path__step">
+          <strong>산정 결과 확인</strong>
+          <span>TPS, AP 대수, maxThreads, Hikari poolSize를 단계별로 확인합니다.</span>
+          <a href="/oc/capacity.html" data-oc-hub-link>결과 탭 (동일 화면) →</a>
+        </li>
+        <li class="oc-hub-path__step">
+          <strong>환경설정 연동</strong>
+          <span>ENV-002에서 산정을 실행하고 ENV-003·004에서 계층별 값을 점검합니다.</span>
+          <a href="/oc/env-002.html" data-oc-hub-link>ENV-002 →</a>
+        </li>
+        <li class="oc-hub-path__step">
+          <strong>종합·Rule 점검</strong>
+          <span>종합 보고서와 SC Rule로 Timeout·Pool 위험을 최종 검토합니다.</span>
+          <a href="/oc/check.html" data-oc-hub-link>종합 보고서 →</a>
+        </li>
+      </ol>
+    </section>
+
+    <section class="oc-hub-section" aria-labelledby="hubCapTitle">
+      <div class="oc-hub-section__head">
+        <div>
+          <h2 id="hubCapTitle">용량 산정 화면 (CAP)</h2>
+          <p>설계서 CAP-010~050 — 기존 마법사 화면 그대로</p>
+        </div>
+        <a href="/oc/capacity.html" data-oc-hub-link>전체 화면 열기 →</a>
+      </div>
+      <div class="oc-hub-cap-flow" aria-label="CAP 산정 흐름">
+        <strong>① 조건</strong><span class="oc-hub-cap-flow__arrow">→</span>
+        <strong>② TPS</strong><span class="oc-hub-cap-flow__arrow">→</span>
+        <strong>③ AP·DR</strong><span class="oc-hub-cap-flow__arrow">→</span>
+        <strong>④ WAS Thread</strong><span class="oc-hub-cap-flow__arrow">→</span>
+        <strong>⑤ DB Pool</strong>
+      </div>
+      <div class="oc-hub-grid">
+        <a class="oc-hub-card" href="/oc/capacity.html" data-oc-hub-link>
+          <span class="oc-hub-card__code">CAP-010~050</span>
+          <h3 class="oc-hub-card__title">용량 산정 마법사</h3>
+          <p class="oc-hub-card__desc">3단계: 조건 입력 → 산정 실행 → 결과 확인. CAP 전 단계를 한 화면에서 처리합니다.</p>
+          <span class="oc-hub-card__arrow">화면 열기 →</span>
+        </a>
+        <a class="oc-hub-card" href="/oc/plan.html" data-oc-hub-link>
+          <span class="oc-hub-card__code">별칭</span>
+          <h3 class="oc-hub-card__title">plan.html</h3>
+          <p class="oc-hub-card__desc">구 URL 호환. 용량 산정 화면으로 자동 이동합니다.</p>
+          <span class="oc-hub-card__arrow">리다이렉트 →</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="oc-hub-section" aria-labelledby="hubEnvTitle">
+      <div class="oc-hub-section__head">
+        <div>
+          <h2 id="hubEnvTitle">환경설정 점검 화면 (ENV)</h2>
+          <p>설계서 ENV-001~004 · 종합 보고서 · Rule 점검</p>
+        </div>
+        <a href="/oc/env-001.html" data-oc-hub-link>ENV 대시보드 →</a>
+      </div>
+      <div class="oc-hub-grid">
+        <a class="oc-hub-card oc-hub-card--env" href="/oc/env-001.html" data-oc-hub-link>
+          <span class="oc-hub-card__code">ENV-001</span>
+          <h3 class="oc-hub-card__title">대시보드</h3>
+          <p class="oc-hub-card__desc">최근 산정 실행 요약, 시나리오·위험 등급(정상/경고/위험) 집계.</p>
+          <span class="oc-hub-card__arrow">화면 열기 →</span>
+        </a>
+        <a class="oc-hub-card oc-hub-card--env" href="/oc/env-002.html" data-oc-hub-link>
+          <span class="oc-hub-card__code">ENV-002</span>
+          <h3 class="oc-hub-card__title">산정 조건 입력</h3>
+          <p class="oc-hub-card__desc">지점·사용자·TPS·VM·세션 조건 입력 후 「산정 실행」.</p>
+          <span class="oc-hub-card__arrow">화면 열기 →</span>
+        </a>
+        <a class="oc-hub-card oc-hub-card--env" href="/oc/env-003.html" data-oc-hub-link>
+          <span class="oc-hub-card__code">ENV-003</span>
+          <h3 class="oc-hub-card__title">TPS · VM 결과</h3>
+          <p class="oc-hub-card__desc">시나리오별 TPS, TPMC, AP VM 규격·대수 산정 결과 표시.</p>
+          <span class="oc-hub-card__arrow">화면 열기 →</span>
+        </a>
+        <a class="oc-hub-card oc-hub-card--env" href="/oc/env-004.html" data-oc-hub-link>
+          <span class="oc-hub-card__code">ENV-004</span>
+          <h3 class="oc-hub-card__title">계층별 설정 Grid</h3>
+          <p class="oc-hub-card__desc">Tomcat·Hikari·L4·세션 등 계층별 설계값 vs 점검값 비교.</p>
+          <span class="oc-hub-card__arrow">화면 열기 →</span>
+        </a>
+        <a class="oc-hub-card oc-hub-card--env" href="/oc/check.html" data-oc-hub-link>
+          <span class="oc-hub-card__code">보고서</span>
+          <h3 class="oc-hub-card__title">종합 보고서</h3>
+          <p class="oc-hub-card__desc">ENV-002~004 결론을 한 페이지로 요약. Excel보내기 지원.</p>
+          <span class="oc-hub-card__arrow">화면 열기 →</span>
+        </a>
+        <a class="oc-hub-card oc-hub-card--env" href="/oc/rule-check.html" data-oc-hub-link>
+          <span class="oc-hub-card__code">SC Rule</span>
+          <h3 class="oc-hub-card__title">Rule 점검</h3>
+          <p class="oc-hub-card__desc">SC-002/004/007/008/009 Timeout·Pool 규칙 위반 여부 점검.</p>
+          <span class="oc-hub-card__arrow">화면 열기 →</span>
+        </a>
+      </div>
+    </section>
+
+    <p class="oc-hub-footnote">
+      API: <code>/api/oc/capacity</code> · <code>/api/oc/env</code> (tcf-ui Relay → tcf-oc 8094).
+      Tomcat 배포 시 URL 앞에 <code>/ui</code> 접두사가 붙을 수 있습니다 (<code>ui-context.js</code> 자동 보정).
+      상세 설계는 <code>ztcf-book-capacity-md</code> 가이드를 참고하세요.
+    </p>
+  </div>
+  <script src="/_shared/oc-hub.js"></script>
+</body>
+</html>

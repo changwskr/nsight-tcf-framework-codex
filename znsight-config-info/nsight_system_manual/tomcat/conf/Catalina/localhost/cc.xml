@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- CC - Common -->
+<Context path="/cc"
+         docBase="/app/nsight/war/cc.war"
+         reloadable="false"
+         sessionCookieName="JSESSIONID">
+</Context>

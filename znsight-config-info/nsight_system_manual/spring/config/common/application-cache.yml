@@ -1,0 +1,13 @@
+spring:
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=10000,expireAfterWrite=10m
+
+nsight:
+  cache:
+    enabled: true
+    code-cache-ttl-minutes: 30
+    menu-cache-ttl-minutes: 10
+    auth-cache-ttl-minutes: 5
+    customer-data-cache-enabled: false

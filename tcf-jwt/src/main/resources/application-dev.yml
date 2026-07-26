@@ -1,0 +1,29 @@
+# dev - ztomcat WAR (/jwt)
+spring:
+  application:
+    name: nsight-jwt-service
+  datasource:
+    url: jdbc:h2:tcp://127.0.0.1:9092/./nsight_om;MODE=Oracle;DATABASE_TO_UPPER=false
+    hikari:
+      pool-name: nsight-jwt-hikari-dev
+  h2:
+    console:
+      enabled: true
+
+nsight:
+  security:
+    jwt:
+      issuer-uri: http://127.0.0.1:8080/jwt
+      jwk-set-uri: http://127.0.0.1:8080/jwt/.well-known/jwks.json
+  tcf:
+    transaction-log-schema-auto-init: true
+    transaction-log-datasource:
+      separate: false
+      url: jdbc:h2:tcp://127.0.0.1:9092/./nsight_om;MODE=Oracle;DATABASE_TO_UPPER=false
+      username: sa
+      password:
+      driver-class-name: org.h2.Driver
+    runtime-monitor-enabled: true
+    runtime-slow-sql-threshold-ms: 1000
+    runtime:
+      business-code: JWT

@@ -1,0 +1,834 @@
+29. SQL 작성 기준
+29.1 도입 전 안내말
+SQL은 NSIGHT TCF Framework에서 가장 직접적으로 성능과 장애에 영향을 주는 개발 요소이다.
+Java 코드가 아무리 표준 구조를 따르더라도 SQL이 느리거나, Full Scan이 발생하거나, Paging 없이 대량 조회를 수행하면 다음 장애로 이어진다.
+느린 SQL
+  ↓
+DB Active Session 증가
+  ↓
+HikariCP Connection 점유
+  ↓
+Tomcat Thread 대기
+  ↓
+업무 응답 지연
+  ↓
+p95 3초 초과
+  ↓
+Timeout / 장애 확산
+
+NSIGHT에서는 MyBatis를 단순 SQL 실행 도구가 아니라 SQL 위치, Query Timeout, RDW/ADW 접근 경계, Mapper 명명, SQL 추적성을 통제하는 표준 메커니즘으로 본다. 통합 운영 기준에서도 Mapper는 resources/mapper/{업무영역} 기준으로 분리하고, SELECT * 금지, Paging 필수, RDW 3초 / ADW 5초 Timeout을 기준으로 둔다.
+
+29.2 SQL 작성 기준 결론
+구분
+SQL 작성 기준
+SQL 위치
+Java 코드 금지, MyBatis Mapper XML에 작성
+SQL 식별
+SQL ID 주석 필수
+컬럼
+SELECT * 금지, 필요한 컬럼만 명시
+조회 조건
+인덱스 사용 가능한 조건 우선
+RDW SQL
+실시간 단건·소량 조회 중심
+ADW SQL
+분석·집계·대량 조회 중심
+Full Scan
+원칙 금지
+Cartesian Join
+금지
+목록 조회
+Paging 필수
+Paging 정렬
+ORDER BY 필수
+대량 조회
+온라인 직접 조회 금지, 배치/다운로드 거래로 분리
+동적 SQL
+<if>, <choose>, <foreach> 제한 사용
+바인딩
+#{} 기본 사용
+문자열 치환
+${} 원칙 금지
+Timeout
+RDW 3초, ADW 5초 기준
+Fetch Size
+기본 100~500 범위
+SQL 검증
+실행계획 확인 필수
+로그 추적
+GUID, ServiceId, SQL ID 연계
+핵심 문장은 다음이다.
+SQL은 “결과가 나오는가”가 아니라 “운영 중에도 안전하게 수행되는가”를 기준으로 작성한다.
+
+29.3 SQL 작성 최상위 원칙
+원칙
+설명
+목적 DB를 먼저 정한다
+RDW, ADW, SESSIONDB, LOGDB, OMDB 중 어디에 접근하는 SQL인지 먼저 결정한다
+필요한 컬럼만 조회한다
+화면 또는 응답 DTO에서 사용하는 컬럼만 조회한다
+조건 없는 목록 조회를 금지한다
+화면 목록 조회는 검색조건 또는 Paging을 반드시 가진다
+인덱스를 고려한다
+WHERE, JOIN, ORDER BY 컬럼은 인덱스 활용 가능성을 확인한다
+SQL ID를 남긴다
+장애 시 SQL을 바로 추적할 수 있어야 한다
+Timeout 안에 끝나야 한다
+RDW는 3초, ADW는 5초 기준으로 관리한다
+대량 처리는 분리한다
+대량 조회, 대량 다운로드, 집계는 온라인 일반 거래와 분리한다
+업무 판단은 SQL에 숨기지 않는다
+복잡한 업무 판단은 Rule/Service에서 처리한다
+RDW/ADW 운영 기준에서도 RDW는 단건·소량·실시간 조회를 허용하고 Full Scan, 대량 집계, 통계 SQL을 금지하며, ADW는 집계·분석·대량 조회를 허용하되 실시간 거래 처리는 금지한다.
+
+29.4 SQL 위치 기준
+SQL은 반드시 MyBatis Mapper XML에 작성한다.
+좋은 구조
+DAO → Mapper Interface → Mapper XML → DB
+
+나쁜 구조
+Service 또는 DAO 안에 문자열 SQL 직접 작성
+
+구분
+기준
+SQL 작성 위치
+src/main/resources/mapper/{업무코드}/...Mapper.xml
+Java Mapper
+SQL 실행 메서드 선언만 수행
+DAO
+Mapper 호출 캡슐화
+Service / Rule
+업무 판단과 입력값 검증
+Facade
+트랜잭션 경계
+ETF
+응답 조립
+예시는 다음과 같다.
+resources/mapper
+├── sv
+│   ├── SvCustomerRdwMapper.xml
+│   └── SvTransactionRdwMapper.xml
+├── cm
+│   ├── CmCampaignRdwMapper.xml
+│   └── CmCampaignAdwMapper.xml
+└── om
+    ├── OmUserMapper.xml
+    └── OmServiceCatalogMapper.xml
+
+
+29.5 SQL ID 작성 기준
+SQL ID는 장애 추적을 위한 운영 식별자이다.
+MyBatis XML의 id는 Java Mapper Method명과 맞추고, NSIGHT SQL ID는 SQL 주석으로 남긴다.
+<select id="selectCustomerSummary"
+        parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerQuery"
+        resultMap="SvCustomerSummaryRowMap">
+    /* SQL_ID: SV.Customer.selectSummary */
+    SELECT
+          C.CUSTOMER_NO
+        , C.CUSTOMER_NAME
+        , C.BRANCH_CODE
+        , C.TOTAL_BALANCE
+    FROM RDW_CUSTOMER_SUMMARY C
+    WHERE C.CUSTOMER_NO = #{customerNo}
+</select>
+
+구분
+예시
+설명
+ServiceId
+SV.Customer.selectSummary
+TCF 실행 식별자
+거래코드
+SV-INQ-0001
+거래로그·전문 추적
+Mapper Method
+selectCustomerSummary
+Java 호출 메서드
+SQL ID
+SV.Customer.selectSummary
+SQL 로그·성능 추적
+XML id
+selectCustomerSummary
+MyBatis Statement ID
+업무코드 체계에서도 Mapper Interface, Mapper XML, SQL ID, 거래코드, ServiceId를 표준 정의 대상으로 두고 있으며, SQL ID는 SQL 로그와 성능분석, 장애 추적 기준으로 사용하도록 정리되어 있다.
+
+29.6 SELECT 작성 기준
+29.6.1 기본 기준
+항목
+기준
+SELECT *
+금지
+컬럼
+필요한 컬럼만 명시
+Alias
+DTO 필드와 매핑 가능하도록 명확히 부여
+조회 조건
+인덱스 컬럼 우선
+정렬
+필요한 경우에만 명시
+함수 사용
+인덱스 컬럼에 함수 적용 주의
+서브쿼리
+성능 확인 후 사용
+대량 Join
+온라인 거래에서는 제한
+RDW/ADW 운영 기준에서도 SELECT *, Cartesian Join, Full Table Scan, ORDER BY 없는 Paging을 금지 항목으로 둔다.
+
+29.6.2 나쁜 예
+<select id="selectCustomerList" resultType="map">
+    /* 나쁜 예: SELECT * 사용, 조건 없음, Paging 없음 */
+    SELECT *
+    FROM RDW_CUSTOMER_SUMMARY
+</select>
+
+문제점은 다음과 같다.
+문제
+설명
+SELECT *
+불필요한 컬럼까지 조회
+조건 없음
+Full Scan 가능성 높음
+Paging 없음
+대량 데이터가 WAS로 유입
+DTO 없음
+응답 구조와 컬럼 사용 여부 불명확
+SQL ID 없음
+장애 추적 어려움
+
+29.6.3 좋은 예
+<select id="selectCustomerList"
+        parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerQuery"
+        resultMap="SvCustomerSummaryRowMap">
+    /* SQL_ID: SV.Customer.selectList */
+    SELECT
+          C.CUSTOMER_NO
+        , C.CUSTOMER_NAME
+        , C.BRANCH_CODE
+        , C.CUSTOMER_GRADE
+        , C.TOTAL_BALANCE
+    FROM RDW_CUSTOMER_SUMMARY C
+    WHERE 1 = 1
+    <if test="branchCode != null and branchCode != ''">
+        AND C.BRANCH_CODE = #{branchCode}
+    </if>
+    <if test="customerNo != null and customerNo != ''">
+        AND C.CUSTOMER_NO = #{customerNo}
+    </if>
+    ORDER BY C.CUSTOMER_NO
+    OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+</select>
+
+
+29.7 WHERE 조건 작성 기준
+기준
+설명
+인덱스 컬럼 우선
+고객번호, 계좌번호, 지점코드, 기준일자 등
+조건 없는 조회 금지
+운영 화면 일부를 제외하고 조건 없는 목록 조회 금지
+컬럼 가공 주의
+SUBSTR(COL), TO_CHAR(DATE_COL) 등은 인덱스 사용을 방해할 수 있음
+Like 검색 제한
+선행 % 검색은 Full Scan 가능성이 높음
+날짜 범위 필수
+거래이력, 로그조회, 캠페인이력은 기간 조건 필수
+IN 조건 제한
+과도한 IN 목록은 임시 테이블 또는 별도 처리 검토
+Null 조건 명확화
+Null 허용 컬럼은 조건 누락 여부 확인
+나쁜 예는 다음과 같다.
+WHERE TO_CHAR(TX_DATE, 'YYYYMMDD') = #{baseDate}
+
+좋은 예는 다음과 같다.
+WHERE TX_DATE >= TO_DATE(#{baseDate}, 'YYYYMMDD')
+  AND TX_DATE <  TO_DATE(#{baseDate}, 'YYYYMMDD') + 1
+
+
+29.8 JOIN 작성 기준
+항목
+기준
+Join 조건
+반드시 명시
+Cartesian Join
+금지
+Join 대상
+필요한 테이블만
+Join 순서
+기준 테이블과 필터링 조건 명확화
+Outer Join
+필요한 경우만 사용
+코드명 조회
+공통코드 Cache 또는 작은 기준 테이블 사용 검토
+대량 Join
+ADW 또는 배치 처리 검토
+나쁜 예는 다음과 같다.
+SELECT
+      C.CUSTOMER_NO
+    , A.ACCOUNT_NO
+FROM RDW_CUSTOMER C,
+     RDW_ACCOUNT A
+
+좋은 예는 다음과 같다.
+SELECT
+      C.CUSTOMER_NO
+    , C.CUSTOMER_NAME
+    , A.ACCOUNT_NO
+    , A.BALANCE
+FROM RDW_CUSTOMER C
+JOIN RDW_ACCOUNT A
+  ON A.CUSTOMER_NO = C.CUSTOMER_NO
+WHERE C.CUSTOMER_NO = #{customerNo}
+
+
+29.9 Paging SQL 작성 기준
+목록 조회는 반드시 Paging을 적용한다.
+항목
+기준
+기본 pageNo
+1
+기본 pageSize
+100
+일반 최대 pageSize
+500
+운영관리 최대 pageSize
+업무별 승인 기준
+offset
+서버에서 계산
+ORDER BY
+필수
+Count SQL
+별도 작성
+다운로드
+일반 목록 조회와 분리
+<select id="selectTransactionLogList"
+        parameterType="com.nh.nsight.marketing.om.dto.OmTransactionLogQuery"
+        resultMap="OmTransactionLogRowMap">
+    /* SQL_ID: OM.TransactionLog.selectList */
+    SELECT
+          L.GUID
+        , L.SERVICE_ID
+        , L.TRANSACTION_CODE
+        , L.USER_ID
+        , L.START_TIME
+        , L.END_TIME
+        , L.RESULT_CODE
+    FROM TCF_TX_LOG L
+    WHERE L.START_TIME >= #{fromDateTime}
+      AND L.START_TIME <  #{toDateTime}
+    <if test="serviceId != null and serviceId != ''">
+        AND L.SERVICE_ID = #{serviceId}
+    </if>
+    ORDER BY L.START_TIME DESC, L.GUID DESC
+    OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+</select>
+
+Paging에서 ORDER BY가 없으면 페이지 간 데이터 순서가 보장되지 않는다. RDW/ADW 운영 기준에서도 ORDER BY 없는 Paging은 금지 기준으로 정리되어 있다.
+
+29.10 Count SQL 작성 기준
+목록 조회의 총건수는 별도 Count SQL로 작성한다.
+<select id="countTransactionLogList"
+        parameterType="com.nh.nsight.marketing.om.dto.OmTransactionLogQuery"
+        resultType="int">
+    /* SQL_ID: OM.TransactionLog.countList */
+    SELECT COUNT(1)
+    FROM TCF_TX_LOG L
+    WHERE L.START_TIME >= #{fromDateTime}
+      AND L.START_TIME <  #{toDateTime}
+    <if test="serviceId != null and serviceId != ''">
+        AND L.SERVICE_ID = #{serviceId}
+    </if>
+</select>
+
+구분
+기준
+일반 화면
+Count SQL 작성
+대량 테이블
+Count 성능 확인
+로그 테이블
+기간 조건 필수
+Count 지연
+총건수 생략 또는 hasNext 방식 검토
+분석 화면
+ADW 또는 별도 집계 테이블 검토
+
+29.11 INSERT SQL 작성 기준
+<insert id="insertCustomerMemo"
+        parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerMemoCommand">
+    /* SQL_ID: SV.Customer.insertMemo */
+    INSERT INTO SV_CUSTOMER_MEMO
+    (
+          CUSTOMER_NO
+        , MEMO_SEQ
+        , MEMO_CONTENT
+        , CREATED_BY
+        , CREATED_AT
+    )
+    VALUES
+    (
+          #{customerNo}
+        , #{memoSeq}
+        , #{memoContent}
+        , #{createdBy}
+        , SYSTIMESTAMP
+    )
+</insert>
+
+항목
+기준
+필수 컬럼
+업무 Key, 등록자, 등록시각
+등록시각
+DB 기준시각 권장
+채번
+Sequence 또는 업무 채번 기준
+중복 검증
+Rule/Service에서 처리
+개인정보
+저장 필요성 검토
+감사
+주요 정보 등록은 감사로그 대상
+
+29.12 UPDATE SQL 작성 기준
+<update id="updateCustomerMemo"
+        parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerMemoCommand">
+    /* SQL_ID: SV.Customer.updateMemo */
+    UPDATE SV_CUSTOMER_MEMO
+       SET MEMO_CONTENT = #{memoContent}
+         , UPDATED_BY   = #{updatedBy}
+         , UPDATED_AT   = SYSTIMESTAMP
+     WHERE CUSTOMER_NO  = #{customerNo}
+       AND MEMO_SEQ     = #{memoSeq}
+</update>
+
+항목
+기준
+WHERE 조건
+PK 또는 Unique Key 필수
+수정자
+updatedBy 필수
+수정시각
+DB 기준시각 권장
+영향 건수
+DAO 또는 Service에서 확인
+0건 수정
+업무 예외 처리
+대량 수정
+온라인 일반 거래 금지
+상태 변경
+변경 전/후 감사로그 검토
+
+29.13 DELETE SQL 작성 기준
+온라인 업무에서는 물리 삭제보다 논리 삭제를 우선한다.
+<update id="deleteCustomerMemo"
+        parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerMemoCommand">
+    /* SQL_ID: SV.Customer.deleteMemo */
+    UPDATE SV_CUSTOMER_MEMO
+       SET USE_YN     = 'N'
+         , UPDATED_BY = #{updatedBy}
+         , UPDATED_AT = SYSTIMESTAMP
+     WHERE CUSTOMER_NO = #{customerNo}
+       AND MEMO_SEQ    = #{memoSeq}
+</update>
+
+삭제 방식
+기준
+논리 삭제
+기본 권장
+물리 삭제
+보관·감사 정책 검토 후 제한 허용
+대량 삭제
+배치 처리
+개인정보 삭제
+보안·감사·법적 보관기간 검토
+운영 기준정보 삭제
+미사용 처리 우선
+
+29.14 동적 SQL 작성 기준
+동적 SQL은 필요한 경우에만 사용한다.
+태그
+사용 기준
+<if>
+선택 검색조건
+<choose>
+조건별 분기
+<where>
+동적 WHERE 자동 조립
+<set>
+동적 UPDATE SET 조립
+<foreach>
+IN 조건
+<trim>
+prefix/suffix 제어
+<select id="selectCustomerList"
+        parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerQuery"
+        resultMap="SvCustomerSummaryRowMap">
+    /* SQL_ID: SV.Customer.selectList */
+    SELECT
+          C.CUSTOMER_NO
+        , C.CUSTOMER_NAME
+        , C.BRANCH_CODE
+        , C.CUSTOMER_GRADE
+    FROM RDW_CUSTOMER_SUMMARY C
+    <where>
+        <if test="customerNo != null and customerNo != ''">
+            C.CUSTOMER_NO = #{customerNo}
+        </if>
+        <if test="branchCode != null and branchCode != ''">
+            AND C.BRANCH_CODE = #{branchCode}
+        </if>
+        <if test="gradeList != null and gradeList.size() > 0">
+            AND C.CUSTOMER_GRADE IN
+            <foreach collection="gradeList"
+                     item="grade"
+                     open="("
+                     separator=","
+                     close=")">
+                #{grade}
+            </foreach>
+        </if>
+    </where>
+    ORDER BY C.CUSTOMER_NO
+    OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+</select>
+
+동적 SQL은 편리하지만 조건이 많아질수록 실행계획이 흔들릴 수 있으므로 주요 SQL은 실제 조건 조합별 실행계획을 확인해야 한다.
+
+29.15 바인딩 기준
+구분
+의미
+사용 기준
+#{}
+PreparedStatement 바인딩
+기본 사용
+${}
+문자열 치환
+원칙 금지
+${} 예외
+정렬 컬럼, 파티션명 등
+whitelist 검증 후 제한 사용
+금지 예시는 다음과 같다.
+ORDER BY ${sortColumn}
+
+허용하려면 Java에서 반드시 whitelist 검증을 수행한다.
+public String resolveSortColumn(String sortKey) {
+    return switch (sortKey) {
+        case "customerNo" -> "C.CUSTOMER_NO";
+        case "customerName" -> "C.CUSTOMER_NAME";
+        case "branchCode" -> "C.BRANCH_CODE";
+        default -> "C.CUSTOMER_NO";
+    };
+}
+
+그리고 Mapper에는 검증된 값만 전달한다.
+ORDER BY ${sortColumn}
+
+이 경우에도 ${} 사용 SQL은 코드 리뷰와 보안 점검 대상이다.
+
+29.16 RDW SQL 작성 기준
+RDW는 실시간 조회 DB이다.
+허용
+금지
+고객 단건 조회
+Full Scan
+계좌 단건 조회
+대량 집계
+거래 소량 조회
+통계 SQL
+Single View 조회
+대량 다운로드 직접 처리
+마케팅 온라인 조회
+장시간 Join
+RDW 응답시간 목표는 평균 100~300ms, P95 1초 이하, 최대 3초 이하로 정의되어 있다.
+RDW SQL 예시는 다음과 같다.
+<select id="selectCustomerSummary"
+        parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerQuery"
+        resultMap="SvCustomerSummaryRowMap">
+    /* SQL_ID: SV.Customer.selectSummary */
+    SELECT
+          C.CUSTOMER_NO
+        , C.CUSTOMER_NAME
+        , C.BRANCH_CODE
+        , C.CUSTOMER_GRADE
+        , C.TOTAL_BALANCE
+    FROM RDW_CUSTOMER_SUMMARY C
+    WHERE C.CUSTOMER_NO = #{customerNo}
+</select>
+
+
+29.17 ADW SQL 작성 기준
+ADW는 분석·집계 DB이다.
+허용
+금지
+통계 조회
+실시간 거래 처리
+집계 조회
+온라인 단건 거래 대체
+캠페인 대상 추출
+세션·권한 조회
+모델링 데이터 조회
+짧은 응답이 필요한 고객 단건 조회
+BI성 분석 조회
+트랜잭션성 Update
+ADW 응답시간 목표는 평균 500ms~3초, 최대 10초이며, 운영상 Query Timeout은 5초 기준으로 관리한다.
+ADW SQL 예시는 다음과 같다.
+<select id="selectCampaignTargetSummary"
+        parameterType="com.nh.nsight.marketing.cm.dto.CmCampaignQuery"
+        resultMap="CmCampaignTargetSummaryRowMap">
+    /* SQL_ID: CM.Campaign.selectTargetSummary */
+    SELECT
+          A.CAMPAIGN_ID
+        , A.TARGET_GROUP_CODE
+        , COUNT(1) AS TARGET_COUNT
+    FROM ADW_CAMPAIGN_TARGET A
+    WHERE A.CAMPAIGN_ID = #{campaignId}
+    GROUP BY
+          A.CAMPAIGN_ID
+        , A.TARGET_GROUP_CODE
+</select>
+
+
+29.18 Timeout / Fetch Size 기준
+항목
+기준
+RDW Query Timeout
+3초
+ADW Query Timeout
+5초
+기본 Fetch Size
+100~500
+대량 다운로드 Fetch Size
+별도 스트리밍 기준
+Hikari Connection Timeout
+3초
+온라인 Transaction Timeout
+5초
+MyBatis 설정 기준에서는 default-statement-timeout: 3, default-fetch-size: 500, cache-enabled: false를 기본으로 두며, SQL 위치는 Mapper XML 기준, 업무별 Mapper 분리, RDW/ADW 구분, Paging 없는 화면 조회 금지를 운영 기준으로 정리한다.
+설정 예시는 다음과 같다.
+mybatis:
+  mapper-locations:
+    - classpath:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    default-statement-timeout: 3
+    default-fetch-size: 500
+    cache-enabled: false
+    jdbc-type-for-null: NULL
+
+
+29.19 대량 조회 / 다운로드 SQL 기준
+대량 조회는 일반 온라인 목록 조회와 분리한다.
+구분
+처리 기준
+일반 목록 조회
+Paging 적용
+엑셀 다운로드
+별도 ServiceId
+대량 파일 생성
+배치 또는 비동기 처리
+10만 건 이상
+온라인 동기 응답 금지
+DB Cursor 장시간 유지
+금지 또는 별도 승인
+WAS 메모리 적재
+금지
+파일 다운로드
+Streaming 또는 파일 생성 후 다운로드
+감사
+다운로드 이력 필수
+나쁜 방식
+화면 조회 SQL을 그대로 사용해서 전체 건수 엑셀 다운로드
+
+좋은 방식
+일반 조회 ServiceId와 다운로드 ServiceId 분리
+다운로드는 별도 Timeout, 감사로그, 파일관리 정책 적용
+
+
+29.20 SQL 주석 작성 기준
+운영 추적을 위해 주요 SQL에는 주석을 남긴다.
+/*
+ SQL_ID          : SV.Customer.selectSummary
+ ServiceId       : SV.Customer.selectSummary
+ TransactionCode : SV-INQ-0001
+ DB              : RDW
+ Description     : 고객 요약정보 조회
+*/
+SELECT
+      C.CUSTOMER_NO
+    , C.CUSTOMER_NAME
+    , C.BRANCH_CODE
+FROM RDW_CUSTOMER_SUMMARY C
+WHERE C.CUSTOMER_NO = #{customerNo}
+
+주석 항목
+필수 여부
+설명
+SQL_ID
+필수
+SQL 추적 기준
+ServiceId
+권장
+거래 실행 식별자
+TransactionCode
+권장
+거래로그 식별
+DB
+권장
+RDW / ADW / OMDB 등
+Description
+권장
+SQL 목적
+변경이력
+선택
+복잡 SQL의 경우 사용
+
+29.21 SQL 실행계획 확인 기준
+점검 항목
+확인 기준
+Access Path
+Index Range Scan 또는 적절한 Access
+Full Table Scan
+원칙 금지, 예외 승인 필요
+Join Method
+Nested Loop / Hash Join 적정성 확인
+Cardinality
+예상 건수와 실제 건수 차이 확인
+Sort 비용
+ORDER BY, GROUP BY 비용 확인
+Temp 사용
+과도한 Temp 사용 여부 확인
+Partition Pruning
+파티션 테이블은 pruning 여부 확인
+Bind 변수
+Literal SQL 남발 여부 확인
+수행시간
+RDW 3초, ADW 5초 기준
+반환건수
+Paging / Limit 적용 여부
+운영 기준에서도 RDW 장애 시 SQL, Lock, Pool, Index를 확인하고, ADW 지연 시 CDC, 통계, 집계 SQL을 확인하도록 정리되어 있다.
+
+29.22 금지 SQL 패턴
+금지 패턴
+사유
+SELECT *
+불필요한 데이터 전송, 변경 영향 확대
+조건 없는 목록 조회
+Full Scan 및 대량 데이터 유입
+Paging 없는 화면 조회
+WAS Thread / DB 부하 증가
+ORDER BY 없는 Paging
+페이지 순서 불안정
+Cartesian Join
+데이터 폭증
+인덱스 컬럼 함수 처리
+인덱스 사용 불가 가능성
+선행 %LIKE
+Full Scan 가능성
+${} 직접 사용
+SQL Injection 위험
+온라인 대량 집계
+RDW 부하
+Mapper XML에 업무 판단 로직 과다
+유지보수성 저하
+로그성 테이블 기간 조건 누락
+대량 Scan 가능성
+무제한 IN 조건
+SQL 길이와 실행계획 불안정
+
+29.23 좋은 SQL / 나쁜 SQL 비교
+구분
+나쁜 SQL
+좋은 SQL
+컬럼
+SELECT *
+필요한 컬럼 명시
+조건
+조건 없음
+인덱스 조건 포함
+날짜
+TO_CHAR(DATE_COL)
+범위 조건 사용
+Paging
+없음
+ORDER BY + OFFSET/FETCH
+정렬
+사용자 입력 직접 사용
+whitelist 검증
+Join
+조건 누락
+명시적 Join
+Count
+목록 SQL 재사용
+Count SQL 분리
+대량
+온라인 직접 처리
+배치/다운로드 분리
+추적
+SQL ID 없음
+SQL ID 주석 포함
+
+29.24 SQL 작성 체크리스트
+점검 항목
+확인
+SQL이 Mapper XML에 작성되어 있는가
+□
+SQL ID 주석이 있는가
+□
+ServiceId 또는 거래코드와 연결되는가
+□
+SELECT *를 사용하지 않았는가
+□
+필요한 컬럼만 조회하는가
+□
+RDW / ADW 목적이 맞는가
+□
+WHERE 조건이 인덱스를 활용할 수 있는가
+□
+날짜 조건이 범위 조건으로 작성되었는가
+□
+목록 조회에 Paging이 있는가
+□
+Paging SQL에 ORDER BY가 있는가
+□
+Count SQL이 별도로 있는가
+□
+Cartesian Join 가능성이 없는가
+□
+Full Table Scan 가능성을 확인했는가
+□
+${} 사용 시 whitelist 검증이 있는가
+□
+Query Timeout 기준 안에 수행되는가
+□
+Fetch Size 기준이 적정한가
+□
+대량 다운로드는 별도 ServiceId로 분리했는가
+□
+개인정보 컬럼은 필요한 경우에만 조회하는가
+□
+SQL 실행계획을 확인했는가
+□
+성능시험 또는 개발 DB에서 수행시간을 확인했는가
+□
+
+29.25 마무리말
+SQL 작성 기준의 핵심은 SQL 문법을 통일하는 것이 아니다.
+NSIGHT에서 SQL 표준은 다음을 보장하기 위한 기준이다.
+RDW 실시간 서비스 보호
+ADW 분석 서비스 분리
+HikariCP Connection 보호
+Tomcat Thread 보호
+Timeout 기준 준수
+거래로그 / SQL ID 기반 장애 추적
+
+SQL은 Mapper XML 안에 있지만, 영향은 DB에만 머물지 않는다.느린 SQL 하나가 WAS Thread, Hikari Pool, 사용자 응답시간, 장애 전파까지 연결된다.
+
+29.26 시사점
+NSIGHT SQL 작성 기준은 개발 편의를 위한 가이드가 아니라 운영 안정성을 코드 단계에서 확보하기 위한 통제 기준이다.
+따라서 SQL 작성자는 다음 세 가지를 항상 확인해야 한다.
+첫째, 이 SQL은 RDW용인가 ADW용인가?
+둘째, 이 SQL은 Timeout 안에 끝나는가?
+셋째, 장애 발생 시 SQL ID로 추적 가능한가?
+
+이 세 가지 질문에 답할 수 없는 SQL은 운영 반영 전에 반드시 보완해야 한다.
+

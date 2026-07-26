@@ -1,0 +1,43 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'nsight-tcf-framework-tcfmodules'
+
+include 'tcf-util'
+include 'tcf-core'
+include 'tcf-web'
+include 'tcf-eai'
+include 'tcf-cache'
+include 'tcf-ui'
+include 'tcf-uj'
+include 'tcf-batch'
+include 'tcf-om'
+include 'tcf-jwt'
+include 'tcf-gateway'
+include 'av-service'
+include 'ln-service'
+include 'ic-service'
+include 'pc-service'
+include 'ms-service'
+include 'sv-service'
+include 'pd-service'
+include 'eb-service'
+include 'tcf-oc'
+include 'tcf-help'
+include 'ep-service'
+include 'ss-service'
+include 'mg-service'
+include 'om-service'
+include 'tcf-ai-methodology'
+include 'tcf-ai-crud-meoy'

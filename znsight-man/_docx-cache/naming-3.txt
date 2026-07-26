@@ -1,0 +1,727 @@
+업무코드 / Context / WAR / Package 명명규칙 설계기준
+1. 도입 전 안내말
+본 절은 NSIGHT TCF Framework에서 사용하는 업무코드, Context Path, WAR 파일명, Java Package의 명명규칙을 정의한다.
+이 네 가지는 별도 기준이 아니라 하나의 기준으로 묶어야 한다.
+업무코드
+   ↓
+Context Path
+   ↓
+WAR 파일명
+   ↓
+Gradle Module
+   ↓
+Java Package
+   ↓
+ServiceId / Handler / Mapper / SQL ID / 오류코드
+
+NSIGHT 명명규칙 문서에서도 이름 하나가 업무코드, Context Path, WAR, Gradle Module, Java Package, ServiceId, Handler, Mapper XML, SQL ID, 거래로그, 오류코드, 감사로그까지 연결되어야 한다고 정의하고 있다.
+
+2. 설계 결론
+업무코드 / Context / WAR / Package는 다음 규칙으로 고정한다.
+구분
+표준 형식
+예시
+업무코드
+영문 대문자 2자리
+SV, CM, OM
+Context Path
+/ + 업무코드 소문자
+/sv, /cm, /om
+WAR 파일명
+업무코드 소문자 + .war
+sv.war, cm.war, om.war
+Gradle Module
+업무코드 소문자 + -service
+sv-service, cm-service
+OM Module 예외
+tcf-om
+tcf-om
+Java Prefix
+업무코드 PascalCase
+Sv, Cm, Om
+Java Package
+com.nh.nsight.marketing.{업무코드소문자}
+com.nh.nsight.marketing.sv
+핵심 기준은 다음이다.
+업무코드가 정해지면 Context, WAR, Module, Package는 자동으로 결정되어야 한다.
+
+3. 표준 변환 규칙
+업무코드 = SV
+
+Context Path  = /sv
+WAR 파일명    = sv.war
+Gradle Module = sv-service
+Java Prefix   = Sv
+Package       = com.nh.nsight.marketing.sv
+ServiceId     = SV.Customer.selectSummary
+
+변환 대상
+변환 방식
+예시
+업무코드 → Context
+소문자 변환 후 / 붙임
+SV → /sv
+업무코드 → WAR
+소문자 변환 후 .war 붙임
+SV → sv.war
+업무코드 → Module
+소문자 변환 후 -service 붙임
+SV → sv-service
+업무코드 → Java Prefix
+PascalCase 변환
+SV → Sv
+업무코드 → Package
+소문자 변환 후 Package Root 뒤에 붙임
+SV → .sv
+업무코드 → ServiceId Prefix
+대문자 그대로 사용
+SV → SV.Customer.selectSummary
+
+4. 17개 업무코드 기준표
+NSIGHT 표준 정의 대상에서도 업무코드는 업무 경계, URL, WAR, Package, Mapper 기준을 통일하기 위한 최상위 기준으로 정의되어 있으며, URL Context, WAR명, Java Package도 별도 표준 정의 대상으로 정리되어 있다.
+No
+구분
+업무코드
+영문명
+Context
+WAR
+Gradle Module
+Package
+1
+공통
+CC
+Common
+/cc
+cc.war
+cc-service
+com.nh.nsight.marketing.cc
+2
+고객
+IC
+Integration Customer
+/ic
+ic.war
+ic-service
+com.nh.nsight.marketing.ic
+3
+고객
+PC
+Private Customer
+/pc
+pc.war
+pc-service
+com.nh.nsight.marketing.pc
+4
+고객
+BC
+Business Customer
+/bc
+bc.war
+bc-service
+com.nh.nsight.marketing.bc
+5
+고객
+MS
+Mini Single View
+/ms
+ms.war
+ms-service
+com.nh.nsight.marketing.ms
+6
+마케팅
+SV
+Single View
+/sv
+sv.war
+sv-service
+com.nh.nsight.marketing.sv
+7
+마케팅
+PD
+Product
+/pd
+pd.war
+pd-service
+com.nh.nsight.marketing.pd
+8
+마케팅
+CM
+Campaign
+/cm
+cm.war
+cm-service
+com.nh.nsight.marketing.cm
+9
+마케팅
+EB
+EBM
+/eb
+eb.war
+eb-service
+com.nh.nsight.marketing.eb
+10
+실시간
+EP
+Event Processing
+/ep
+ep.war
+ep-service
+com.nh.nsight.marketing.ep
+11
+실시간
+BP
+Behavior Processing
+/bp
+bp.war
+bp-service
+com.nh.nsight.marketing.bp
+12
+데이터
+BD
+Behavior Data
+/bd
+bd.war
+bd-service
+com.nh.nsight.marketing.bd
+13
+지원
+SS
+Sales Support
+/ss
+ss.war
+ss-service
+com.nh.nsight.marketing.ss
+14
+지원
+CS
+Common Service
+/cs
+cs.war
+cs-service
+com.nh.nsight.marketing.cs
+15
+지원
+CT
+Contents
+/ct
+ct.war
+ct-service
+com.nh.nsight.marketing.ct
+16
+지원
+MG
+Message
+/mg
+mg.war
+mg-service
+com.nh.nsight.marketing.mg
+17
+운영
+OM
+Operation Management
+/om
+om.war
+tcf-om
+com.nh.nsight.marketing.om
+
+5. 업무코드 설계기준
+업무코드는 NSIGHT 전체 명명규칙의 출발점이다. 개발자 가이드에서도 업무코드가 흔들리면 Context, WAR, Package, Mapper, SQL ID, 로그, 오류코드가 모두 흔들린다고 정의되어 있다.
+항목
+기준
+자리수
+영문 대문자 2자리
+표기
+Upper Case
+사용 범위
+Context, WAR, Module, Package, ServiceId, 거래코드, 오류코드, 로그
+중복 허용
+불가
+변경 가능 여부
+원칙적으로 운영 반영 후 변경 금지
+관리 주체
+아키텍처팀 / PMO / OM 기준정보 관리
+예시
+SV, CM, MG, OM
+5.1 업무코드 채번 원칙
+원칙
+설명
+업무 의미 우선
+업무 성격을 대표할 수 있는 코드 사용
+기존 코드 재사용 금지
+다른 의미로 사용 중인 코드를 재사용하지 않음
+기술명 사용 금지
+API, WEB, DB 같은 기술명은 업무코드로 사용하지 않음
+조직명 사용 지양
+조직 변경 시 업무코드 의미가 흔들릴 수 있음
+OM 분리
+운영관리 업무는 MG가 아니라 OM으로 분리
+
+6. Context Path 설계기준
+Context Path는 Apache, Gateway, Tomcat, Spring Boot에서 요청을 어느 업무 WAR로 전달할지 결정하는 기준이다.
+항목
+기준
+표준 형식
+/{업무코드소문자}
+예시
+/sv, /cm, /mg, /om
+사용 위치
+Apache Routing, Gateway Routing, Tomcat Context, Spring Context Path
+대소문자
+소문자만 사용
+복수 단어
+사용 금지
+업무 기능명 포함
+금지
+버전 포함
+원칙적 금지
+실제 온라인 진입점
+/{업무코드소문자}/online
+6.1 표준 예시
+업무
+Context
+Online Endpoint
+SV
+/sv
+/sv/online
+CM
+/cm
+/cm/online
+MG
+/mg
+/mg/online
+OM
+/om
+/om/online
+6.2 금지 예시
+잘못된 Context
+문제
+표준
+/singleview
+업무코드와 불일치
+/sv
+/single-view
+하이픈 사용, 코드 기준 아님
+/sv
+/sv-service
+모듈명과 Context 혼동
+/sv
+/sv/v1
+버전이 Context에 포함됨
+/sv
+/customer
+업무코드가 아닌 도메인명
+/sv 또는 해당 업무 Context
+
+7. WAR 파일명 설계기준
+WAR 파일명은 운영 배포, Rollback, Tomcat 배포 디렉터리, 장애 영향도 분석의 기준이다.
+항목
+기준
+표준 형식
+{업무코드소문자}.war
+예시
+sv.war, cm.war, om.war
+대소문자
+소문자만 사용
+파일명과 Context
+반드시 일치
+업무 기능명 포함
+금지
+버전 포함
+Artifact 저장소에서는 허용, Tomcat 배포명에는 미포함 권장
+운영 배포명
+Context와 동일하게 유지
+7.1 WAR명과 Context 관계
+sv.war  → /sv
+cm.war  → /cm
+mg.war  → /mg
+om.war  → /om
+
+7.2 배포 Artifact와 운영 WAR 구분
+구분
+예시
+설명
+CI 산출물
+sv-service-1.0.3-20260705.war
+버전 식별 가능
+운영 배포명
+sv.war
+Tomcat Context 고정
+백업 파일
+sv.war.20260705_210000.bak
+Rollback용
+배포 디렉터리
+$CATALINA_BASE/webapps/sv.war
+Context /sv
+
+8. Gradle Module 설계기준
+업무 모듈은 소스 빌드 단위이고, WAR는 운영 배포 단위이다.
+구분
+기준
+예시
+업무 서비스 모듈
+{업무코드소문자}-service
+sv-service
+공통 모듈
+tcf-*
+tcf-core, tcf-web
+운영관리 모듈
+tcf-om
+tcf-om
+Gateway 모듈
+tcf-gateway
+tcf-gateway
+Batch 모듈
+tcf-batch
+tcf-batch
+JWT 모듈
+tcf-jwt
+tcf-jwt
+8.1 업무 모듈과 WAR 관계
+sv-service  → bootWar → sv.war
+cm-service  → bootWar → cm.war
+mg-service  → bootWar → mg.war
+tcf-om      → bootWar → om.war
+
+
+9. Package 설계기준
+Package는 소스의 책임 경계를 표현한다. 업무코드가 Package에 포함되어야 개발자가 소스만 보고 어느 업무의 코드인지 알 수 있다.
+항목
+기준
+표준 Root
+com.nh.nsight.marketing
+업무 Package
+com.nh.nsight.marketing.{업무코드소문자}
+예시
+com.nh.nsight.marketing.sv
+대소문자
+소문자만 사용
+업무코드 누락
+금지
+업무 간 Package 혼재
+금지
+일부 개발자 가이드에는 Package Root를 com.nh.nsight.{업무코드}로 표현한 예시가 있으나, NSIGHT 마케팅플랫폼 기준으로는 com.nh.nsight.marketing.{업무코드}를 표준으로 고정하는 것이 좋다. 패키지 Root가 혼재되면 소스 이동, Scan 범위, Mapper Scan, Component Scan, 운영 추적 기준이 흔들릴 수 있다.
+9.1 Package 표준 구조
+com.nh.nsight.marketing.{업무코드소문자}
+│
+├── entry
+│   ├── handler
+│   ├── facade
+│   └── web
+│
+├── application
+│   ├── service
+│   ├── rule
+│   └── scheduler
+│
+├── persistence
+│   ├── dao
+│   └── mapper
+│
+├── dto
+│   ├── request
+│   ├── response
+│   ├── command
+│   └── result
+│
+├── client
+├── config
+└── support
+
+개발자 가이드에서도 Handler, Facade, Service, Rule, DAO, Mapper, DTO, Client, Config, Support의 패키지 위치를 계층별로 분리하는 기준을 제시하고 있다.
+
+10. SV 업무 기준 예시
+10.1 기본 식별자
+구분
+표준명
+업무코드
+SV
+업무명
+Single View
+Context
+/sv
+WAR
+sv.war
+Gradle Module
+sv-service
+Package Root
+com.nh.nsight.marketing.sv
+Java Prefix
+Sv
+Online Endpoint
+/sv/online
+ServiceId Prefix
+SV.
+거래코드 Prefix
+SV-
+오류코드 Prefix
+E-SV-
+10.2 Package 예시
+com.nh.nsight.marketing.sv.entry.handler
+com.nh.nsight.marketing.sv.entry.facade
+com.nh.nsight.marketing.sv.application.service
+com.nh.nsight.marketing.sv.application.rule
+com.nh.nsight.marketing.sv.persistence.dao
+com.nh.nsight.marketing.sv.persistence.mapper
+com.nh.nsight.marketing.sv.dto.request
+com.nh.nsight.marketing.sv.dto.response
+com.nh.nsight.marketing.sv.client
+com.nh.nsight.marketing.sv.config
+com.nh.nsight.marketing.sv.support
+
+10.3 전체 연결 예시
+SV
+ → /sv
+ → sv.war
+ → sv-service
+ → com.nh.nsight.marketing.sv
+ → SV.Customer.selectSummary
+ → SvCustomerSummaryHandler
+ → SvCustomerFacade
+ → SvCustomerService
+ → SvCustomerRule
+ → SvCustomerDao
+ → SvCustomerMapper
+ → mapper/sv/SvCustomerMapper.xml
+ → SV.Customer.selectSummary
+ → SV-INQ-0001
+ → E-SV-BIZ-0001
+
+
+11. OM 업무 예외 기준
+OM은 업무코드는 OM이지만, 모듈명은 일반 업무 모듈 규칙인 om-service가 아니라 tcf-om을 사용한다.
+구분
+표준
+업무코드
+OM
+업무명
+Operation Management
+Context
+/om
+WAR
+om.war
+Gradle Module
+tcf-om
+Package
+com.nh.nsight.marketing.om
+Java Prefix
+Om
+ServiceId 예시
+OM.User.selectList
+거래코드 예시
+OM-INQ-0001
+오류코드 예시
+E-OM-AUTH-0001
+11.1 OM을 예외로 두는 이유
+항목
+설명
+운영관리 성격
+일반 업무가 아니라 운영 기준정보 관리 모듈
+관리 대상
+사용자, 권한, 메뉴, ServiceId, 거래통제, Timeout, 오류코드
+배포 특성
+업무 WAR와 분리해 장애 격리 필요
+명칭 충돌 방지
+MG는 Message로 사용하므로 Management 의미로 사용 금지
+표준 모듈성
+TCF 운영관리 모듈이므로 tcf-om 사용
+
+12. Apache / Gateway 라우팅 기준
+Context는 Apache와 Gateway 라우팅의 기준이 된다.
+https://nh.marketing.com/sv/online
+        ↓
+Apache / Gateway
+        ↓
+sv.war
+        ↓
+com.nh.nsight.marketing.sv
+        ↓
+SV.Customer.selectSummary
+
+요청 URL
+대상 WAR
+업무코드
+Package
+/cc/online
+cc.war
+CC
+com.nh.nsight.marketing.cc
+/sv/online
+sv.war
+SV
+com.nh.nsight.marketing.sv
+/cm/online
+cm.war
+CM
+com.nh.nsight.marketing.cm
+/mg/online
+mg.war
+MG
+com.nh.nsight.marketing.mg
+/om/online
+om.war
+OM
+com.nh.nsight.marketing.om
+
+13. Spring 설정 기준
+각 업무 WAR의 application.yml에는 업무코드와 Context Path가 명확히 들어가야 한다.
+13.1 SV 예시
+spring:
+  application:
+    name: nsight-sv-service
+
+server:
+  servlet:
+    context-path: /sv
+
+nsight:
+  application:
+    business-code: SV
+    module-name: sv-service
+    war-name: sv.war
+    package-root: com.nh.nsight.marketing.sv
+
+13.2 OM 예시
+spring:
+  application:
+    name: nsight-om-service
+
+server:
+  servlet:
+    context-path: /om
+
+nsight:
+  application:
+    business-code: OM
+    module-name: tcf-om
+    war-name: om.war
+    package-root: com.nh.nsight.marketing.om
+
+
+14. 금지 명명 사례
+금지 사례
+문제
+표준
+singleview-service
+업무코드 기준 불일치
+sv-service
+singleview.war
+Context와 WAR 추적 어려움
+sv.war
+/singleview
+Apache / Gateway 라우팅 기준 불일치
+/sv
+com.nh.nsight.singleview
+Package 업무코드 불일치
+com.nh.nsight.marketing.sv
+com.nh.nsight.marketing.customer
+업무코드가 아니라 도메인명 사용
+com.nh.nsight.marketing.sv
+svService.war
+WAR 파일명 대소문자 혼재
+sv.war
+/SV
+URL 대문자 사용
+/sv
+om-service
+OM 표준 모듈명 불일치
+tcf-om
+mg-admin
+MG와 운영관리 의미 혼재
+tcf-om 또는 om.war
+
+15. 정합성 검증 규칙
+운영전환 전에는 다음 정합성을 반드시 확인한다.
+검증 항목
+정상 기준
+업무코드 ↔ Context
+SV이면 /sv
+업무코드 ↔ WAR
+SV이면 sv.war
+업무코드 ↔ Module
+SV이면 sv-service
+업무코드 ↔ Package
+SV이면 com.nh.nsight.marketing.sv
+Context ↔ WAR
+/sv이면 sv.war
+Context ↔ Spring 설정
+server.servlet.context-path=/sv
+ServiceId ↔ 업무코드
+/sv/online 요청의 ServiceId는 SV.로 시작
+거래코드 ↔ 업무코드
+SV 업무 거래코드는 SV-로 시작
+오류코드 ↔ 업무코드
+SV 업무 오류코드는 E-SV-로 시작
+Mapper 위치 ↔ 업무코드
+SV Mapper는 mapper/sv 하위에 위치
+
+16. 운영 점검 기준
+점검 영역
+점검 방법
+예시
+Tomcat 배포
+webapps 디렉터리 확인
+sv.war, om.war
+Context 확인
+Actuator 또는 호출 URL 확인
+/sv/actuator/health
+Spring 기동 로그
+Application Name 확인
+nsight-sv-service
+Package Scan
+Component Scan 범위 확인
+com.nh.nsight.marketing.sv
+ServiceId 등록
+OM ServiceId 관리 조회
+SV.Customer.selectSummary
+거래로그
+업무코드 기준 검색
+businessCode=SV
+오류로그
+오류코드 Prefix 확인
+E-SV-*
+배포 이력
+WAR명 / Module명 확인
+sv-service → sv.war
+
+17. 설계 체크리스트
+점검 항목
+확인
+업무코드는 2자리 대문자로 정의되었는가
+□
+Context는 업무코드 소문자 기준인가
+□
+WAR 파일명은 Context와 일치하는가
+□
+Gradle Module은 {업무코드소문자}-service 규칙을 따르는가
+□
+OM은 tcf-om 모듈 예외 기준을 따르는가
+□
+Package Root는 com.nh.nsight.marketing.{업무코드}로 통일되었는가
+□
+Java Prefix는 업무코드 PascalCase 기준인가
+□
+ServiceId Prefix는 업무코드 대문자와 일치하는가
+□
+거래코드 Prefix는 업무코드와 일치하는가
+□
+오류코드 Prefix는 업무코드와 일치하는가
+□
+Mapper XML 위치가 mapper/{업무코드} 기준인가
+□
+Apache / Gateway 라우팅과 Context가 일치하는가
+□
+Spring context-path와 WAR Context가 일치하는가
+□
+
+18. 마무리말
+업무코드 / Context / WAR / Package 명명규칙은 NSIGHT 개발 표준의 시작점이다.
+업무코드가 정해지면
+Context가 정해지고,
+WAR가 정해지고,
+Package가 정해지고,
+ServiceId와 Mapper와 SQL ID와 오류코드까지 정해진다.
+
+따라서 NSIGHT에서는 다음 원칙을 고정한다.
+업무코드는 대문자, Context와 WAR는 소문자, Package는 업무코드 소문자 기준, 실행은 ServiceId 기준으로 관리한다.
+이 기준을 지키면 개발, 배포, 로그 추적, 장애 분석, PMO 보고, 운영 인수인계까지 같은 이름 체계로 설명할 수 있다.
+

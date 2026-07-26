@@ -1,0 +1,19 @@
+﻿# dev — Tomcat WAR 공통 (ztomcat)
+logging:
+  charset:
+    file: UTF-8
+  file:
+    name: ${CATALINA_BASE:./logs}/logs/nsight-${spring.application.name}.log
+  logback:
+    rollingpolicy:
+      max-file-size: 50MB
+      max-history: 14
+
+nsight:
+  tcf:
+    transaction-log-datasource:
+      separate: false
+      url: jdbc:h2:tcp://127.0.0.1:9092/./nsight_om;MODE=Oracle;DATABASE_TO_UPPER=false
+      username: sa
+      password:
+      driver-class-name: org.h2.Driver

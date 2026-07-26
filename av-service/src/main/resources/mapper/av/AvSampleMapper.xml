@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nh.nsight.marketing.av.persistence.mapper.AvSampleMapper">
+
+    <sql id="sampleSearchWhere">
+        <where>
+            <if test="sampleKey != null and sampleKey != ''">
+                AND s.SAMPLE_KEY LIKE CONCAT('%', #{sampleKey}, '%')
+            </if>
+            <if test="sampleName != null and sampleName != ''">
+                AND s.SAMPLE_NAME LIKE CONCAT('%', #{sampleName}, '%')
+            </if>
+            <if test="useYn != null and useYn != ''">
+                AND s.USE_YN = #{useYn}
+            </if>
+        </where>
+    </sql>
+
+    <select id="searchSamples"
+            parameterType="com.nh.nsight.marketing.av.application.dto.sample.SampleSearchCriteria"
+            resultType="com.nh.nsight.marketing.av.persistence.dto.sample.SampleRow">
+        /* SQL_ID: AV.Sample.inquiry */
+        SELECT s.SAMPLE_KEY AS sampleKey,
+               s.SAMPLE_NAME AS sampleName,
+               s.USE_YN AS useYn,
+               s.CREATED_AT AS createdAt
+          FROM AV_SAMPLE s
+        <include refid="sampleSearchWhere"/>
+         ORDER BY s.CREATED_AT DESC, s.SAMPLE_KEY DESC
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+
+    <select id="countSamples"
+            parameterType="com.nh.nsight.marketing.av.application.dto.sample.SampleSearchCriteria"
+            resultType="int">
+        /* SQL_ID: AV.Sample.inquiry(count) */
+        SELECT COUNT(1)
+          FROM AV_SAMPLE s
+        <include refid="sampleSearchWhere"/>
+    </select>
+
+</mapper>

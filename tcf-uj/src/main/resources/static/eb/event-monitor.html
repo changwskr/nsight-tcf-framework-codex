@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EB 이벤트·배치 모니터</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/eb-admin.css">
+</head>
+<body>
+  <div class="eb-admin-wrap">
+    <header>
+      <h1>EB 이벤트·배치 모니터</h1>
+      <p><code>EB_EVENT</code> Outbox 상태와 EP 발행 배치 설정·집계를 조회합니다.</p>
+      <div class="nav-links">
+        <a class="nav-link" href="/index.html">← 업무 목록</a>
+        <a class="nav-link" href="/eb/user-management.html">사용자 관리</a>
+        <a class="nav-link" href="/eb/index.html">EB 거래 테스트</a>
+      </div>
+    </header>
+
+    <section class="eb-meta-bar">
+      <div class="eb-meta-card">
+        <div class="label">연결 대상</div>
+        <div class="value" id="metaTargetUrl">-</div>
+      </div>
+      <div class="eb-meta-card">
+        <div class="label">배치 조회</div>
+        <div class="value">EB.Batch.inquiry (EB-BAT-0001)</div>
+      </div>
+      <div class="eb-meta-card">
+        <div class="label">이벤트 조회</div>
+        <div class="value">EB.Event.inquiry (EB-EVT-0001)</div>
+      </div>
+      <div class="eb-meta-card">
+        <div class="label">마지막 갱신</div>
+        <div class="value" id="lastRefreshed">-</div>
+      </div>
+    </section>
+
+    <section class="eb-table-panel">
+      <div class="eb-toolbar-row">
+        <h2 style="margin:0">배치 상태</h2>
+        <div class="eb-actions">
+          <label><input type="checkbox" id="autoRefresh" checked> 30초 자동 갱신</label>
+          <button type="button" class="btn-primary" id="btnRefreshAll">전체 새로고침</button>
+        </div>
+      </div>
+      <div class="eb-stat-grid" id="statusSummary"></div>
+      <div class="eb-batch-grid" id="batchInfo">
+        <div class="eb-batch-item"><div class="label">배치</div><div class="value">조회 중...</div></div>
+      </div>
+    </section>
+
+    <section class="eb-filter-bar">
+      <div class="field">
+        <label for="filterEventId">이벤트 ID</label>
+        <input id="filterEventId" type="text" placeholder="부분 일치">
+      </div>
+      <div class="field">
+        <label for="filterUserId">사용자 ID</label>
+        <input id="filterUserId" type="text" placeholder="부분 일치">
+      </div>
+      <div class="field">
+        <label for="filterEventType">이벤트 유형</label>
+        <input id="filterEventType" type="text" placeholder="USER_CREATED">
+      </div>
+      <div class="field">
+        <label for="filterEventStatus">상태</label>
+        <select id="filterEventStatus">
+          <option value="">전체</option>
+          <option value="READY">READY</option>
+          <option value="SENT">SENT</option>
+          <option value="FAIL">FAIL</option>
+        </select>
+      </div>
+      <div class="eb-actions">
+        <button type="button" class="btn-primary" id="btnSearch">이벤트 조회</button>
+        <button type="button" class="btn-secondary" id="btnClearFilter">필터 초기화</button>
+      </div>
+    </section>
+
+    <section class="eb-table-panel">
+      <h2>이벤트 목록</h2>
+      <div class="eb-table-wrap">
+        <table class="eb-table">
+          <thead>
+            <tr>
+              <th>이벤트 ID</th>
+              <th>사용자 ID</th>
+              <th>유형</th>
+              <th>상태</th>
+              <th>재시도</th>
+              <th>생성일시</th>
+              <th>전송일시</th>
+            </tr>
+          </thead>
+          <tbody id="eventTableBody">
+            <tr><td colspan="7" class="eb-empty">조회 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="pagination" class="eb-pagination" hidden></div>
+    </section>
+  </div>
+
+  <script src="/_shared/uj-context.js"></script>
+  <script src="/_shared/eb-admin.js"></script>
+  <script>
+    const PAGE_SIZE = 15;
+    let pageNo = 1;
+    let refreshTimer = null;
+
+    function readEventFilters() {
+      const v = id => document.getElementById(id).value.trim();
+      const filters = { pageNo, pageSize: PAGE_SIZE };
+      if (v('filterEventId')) filters.eventId = v('filterEventId');
+      if (v('filterUserId')) filters.userId = v('filterUserId');
+      if (v('filterEventType')) filters.eventType = v('filterEventType');
+      if (v('filterEventStatus')) filters.eventStatus = v('filterEventStatus');
+      return filters;
+    }
+
+    function renderBatchInfo(body) {
+      const enabled = EbAdmin.formatEnabled(body.enabled);
+      const scheduler = `${body.schedulerClass || 'EbEventPublishScheduler'}.${body.schedulerMethod || 'publishUserEvents'}`;
+      document.getElementById('batchInfo').innerHTML = `
+        <div class="eb-batch-item"><div class="label">배치 활성</div><div class="value">${enabled}</div></div>
+        <div class="eb-batch-item"><div class="label">실행 주기</div><div class="value">${EbAdmin.formatMs(body.fixedDelayMs)}</div></div>
+        <div class="eb-batch-item"><div class="label">1회 처리 건수</div><div class="value">${body.batchSize ?? '-'}</div></div>
+        <div class="eb-batch-item"><div class="label">스케줄러</div><div class="value">${scheduler}</div></div>
+        <div class="eb-batch-item"><div class="label">EP URL</div><div class="value">${body.epOnlineUrl || '-'}</div></div>
+        <div class="eb-batch-item"><div class="label">대기(READY)</div><div class="value">${body.readyCount ?? 0}건</div></div>`;
+      EbAdmin.renderStatusSummary(document.getElementById('statusSummary'), body.statusSummary || {
+        READY: body.readyCount, SENT: body.sentCount, FAIL: body.failCount, TOTAL: body.totalCount
+      });
+    }
+
+    function renderEventRows(rows) {
+      const tbody = document.getElementById('eventTableBody');
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="eb-empty">조회된 이벤트가 없습니다.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(row => `
+        <tr>
+          <td class="mono">${EbAdmin.field(row, 'eventId')}</td>
+          <td>${EbAdmin.field(row, 'userId')}</td>
+          <td>${EbAdmin.field(row, 'eventType')}</td>
+          <td>${EbAdmin.chipForEventStatus(EbAdmin.field(row, 'eventStatus'))}</td>
+          <td>${EbAdmin.field(row, 'retryCount', '0')}</td>
+          <td>${EbAdmin.formatTs(EbAdmin.field(row, 'createdAt'))}</td>
+          <td>${EbAdmin.formatTs(EbAdmin.field(row, 'sentAt'))}</td>
+        </tr>`).join('');
+    }
+
+    async function loadBatchStatus() {
+      const { body } = await EbAdmin.inquiry('batchInquiry', {});
+      renderBatchInfo(body);
+      return body;
+    }
+
+    async function loadEvents(nextPage) {
+      if (nextPage != null) pageNo = nextPage;
+      const tbody = document.getElementById('eventTableBody');
+      tbody.innerHTML = '<tr><td colspan="7" class="eb-empty">조회 중...</td></tr>';
+      const { body } = await EbAdmin.inquiry('eventInquiry', readEventFilters());
+      renderEventRows(body.rows || []);
+      EbAdmin.renderStatusSummary(document.getElementById('statusSummary'), body.statusSummary);
+      EbAdmin.renderPagination(
+        document.getElementById('pagination'),
+        body.pageNo || pageNo,
+        body.pageSize || PAGE_SIZE,
+        body.totalCount || 0,
+        loadEvents
+      );
+    }
+
+    async function refreshAll() {
+      try {
+        await Promise.all([loadBatchStatus(), loadEvents(pageNo)]);
+        document.getElementById('lastRefreshed').textContent = new Date().toLocaleString('ko-KR');
+      } catch (error) {
+        document.getElementById('batchInfo').innerHTML =
+          `<div class="eb-batch-item"><div class="label">오류</div><div class="value">${error.message || '조회 실패'}</div></div>`;
+        document.getElementById('eventTableBody').innerHTML =
+          `<tr><td colspan="7" class="eb-empty">${error.message || '조회 실패'}</td></tr>`;
+      }
+    }
+
+    function setupAutoRefresh() {
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+      }
+      if (document.getElementById('autoRefresh').checked) {
+        refreshTimer = setInterval(refreshAll, 30000);
+      }
+    }
+
+    function clearFilter() {
+      document.getElementById('filterEventId').value = '';
+      document.getElementById('filterUserId').value = '';
+      document.getElementById('filterEventType').value = '';
+      document.getElementById('filterEventStatus').value = '';
+      pageNo = 1;
+      loadEvents(1);
+    }
+
+    document.getElementById('btnRefreshAll').addEventListener('click', refreshAll);
+    document.getElementById('btnSearch').addEventListener('click', () => loadEvents(1));
+    document.getElementById('btnClearFilter').addEventListener('click', clearFilter);
+    document.getElementById('autoRefresh').addEventListener('change', setupAutoRefresh);
+    ['filterEventId', 'filterUserId', 'filterEventType'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') loadEvents(1);
+      });
+    });
+    document.getElementById('filterEventStatus').addEventListener('change', () => loadEvents(1));
+
+    EbAdmin.loadConfig()
+      .then(() => {
+        document.getElementById('metaTargetUrl').textContent = EbAdmin.getTargetUrl();
+        return refreshAll();
+      })
+      .then(setupAutoRefresh)
+      .catch(error => {
+        if (window.NsightErrorPopup) {
+          NsightErrorPopup.show(NsightErrorPopup.fromError(error, { systemNote: 'EB 이벤트 모니터' }));
+        } else {
+          alert('화면 초기화 실패: ' + error.message);
+        }
+      });
+  </script>
+</body>
+</html>

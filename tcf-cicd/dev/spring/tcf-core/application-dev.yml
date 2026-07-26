@@ -1,0 +1,4 @@
+# dev — ztomcat txlog 경로
+nsight:
+  txlog:
+    path: ${NSIGHT_TXLOG_PATH:./data/nsight-txlog}

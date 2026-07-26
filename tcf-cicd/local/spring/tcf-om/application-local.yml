@@ -1,0 +1,43 @@
+# local — bootRun (:8097)
+server:
+  port: 8097
+
+spring:
+  application:
+    name: nsight-tcf-om
+  datasource:
+    url: jdbc:h2:file:${nsight.txlog.path:./data/nsight-txlog}/nsight_om;MODE=Oracle;AUTO_SERVER=TRUE;DATABASE_TO_UPPER=false
+    hikari:
+      pool-name: nsight-om-hikari-local
+      auto-commit: true
+  h2:
+    console:
+      enabled: true
+  sql:
+    init:
+      mode: embedded
+      continue-on-error: true
+      encoding: UTF-8
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+  session:
+    store-type: jdbc
+    timeout: 60m
+    jdbc:
+      initialize-schema: always
+      table-name: SPRING_SESSION
+
+nsight:
+  tcf:
+    transaction-log-schema-auto-init: false
+    transaction-log-datasource:
+      separate: false
+      url: jdbc:h2:file:${nsight.txlog.path:./data/nsight-txlog}/nsight_om;MODE=Oracle;AUTO_SERVER=TRUE;DATABASE_TO_UPPER=false
+      username: sa
+      password:
+      driver-class-name: org.h2.Driver
+  om:
+    batch-service-url: http://127.0.0.1:8098/batch
+  updownload:
+    storage-path: ./data/updownload
+    max-file-size-bytes: 52428800

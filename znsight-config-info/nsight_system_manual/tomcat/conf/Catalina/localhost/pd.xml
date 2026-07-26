@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- PD - Product -->
+<Context path="/pd"
+         docBase="/app/nsight/war/pd.war"
+         reloadable="false"
+         sessionCookieName="JSESSIONID">
+</Context>

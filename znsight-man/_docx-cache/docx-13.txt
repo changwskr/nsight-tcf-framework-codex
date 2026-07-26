@@ -1,0 +1,904 @@
+8. Gradle 멀티 모듈 구조
+8.1 도입 전 안내말
+본 장은 NSIGHT TCF Framework의 Gradle 멀티 모듈 구조를 정의한다.
+NSIGHT TCF Framework는 하나의 Spring Boot 프로젝트가 아니다.공통 프레임워크, 업무 서비스, 운영관리, Gateway, JWT, Batch, UI, Cache, CI/CD 설정이 함께 동작하는 구조이다. 따라서 Gradle도 단일 build.gradle 중심이 아니라, 루트 프로젝트 + 하위 모듈 구조로 관리한다.
+기존 TCF 설계 기준에서도 NSIGHT TCF Framework는 tcf-util, tcf-core, tcf-web, tcf-cache, tcf-om, tcf-batch, tcf-ui, tcf-gateway, tcf-jwt, 업무 서비스 WAR들로 구성되는 멀티 모듈 구조로 정리되어 있다. 또한 CI/CD 운영 기준도 GitLab, GitLab Runner, Gradle, WAR 배포를 기준으로 빌드 자동화와 배포 자동화를 수행하도록 정의한다.
+
+8.2 Gradle 멀티 모듈 구조의 목적
+Gradle 멀티 모듈 구조의 목적은 다음과 같다.
+목적
+설명
+공통 기능 재사용
+TCF Core, Web, Cache, Util 기능을 여러 업무 WAR에서 재사용
+업무 서비스 독립성 확보
+SV, IC, OM 등 업무별 모듈을 독립 개발·빌드·배포
+의존성 표준화
+Spring Boot, MyBatis, HikariCP, Logging, Test 라이브러리 버전 통제
+배포 단위 분리
+업무별 WAR, OM, Gateway, Batch, JWT 산출물을 분리
+CI/CD 자동화
+변경 모듈 기준 빌드, 테스트, 패키징 자동화
+영향도 통제
+공통 모듈 변경이 어떤 업무 서비스에 영향을 주는지 추적
+개발 생산성 확보
+개발자는 필요한 업무 모듈만 실행하고 테스트 가능
+
+8.3 전체 모듈 구조 결론
+NSIGHT TCF Framework의 Gradle 멀티 모듈은 다음 6개 영역으로 구분한다.
+nsight-tcf-framework
+ ├─ tcf-util
+ ├─ tcf-core
+ ├─ tcf-web
+ ├─ tcf-cache
+ ├─ tcf-integration
+ │
+ ├─ tcf-om
+ ├─ tcf-gateway
+ ├─ tcf-jwt
+ ├─ tcf-batch
+ ├─ tcf-ui
+ │
+ ├─ sv-service
+ ├─ ic-service
+ ├─ pc-service
+ ├─ cm-service
+ ├─ mg-service
+ └─ 기타 업무 서비스
+
+구분
+모듈
+성격
+산출물
+공통 유틸
+tcf-util
+공통 Util, 날짜, 문자열, 마스킹, 코드성 기능
+JAR
+공통 Core
+tcf-core
+표준 전문, TCF, STF, ETF, Dispatcher, 예외
+JAR
+공통 Web
+tcf-web
+Online Controller, Filter, Exception Handler
+JAR
+공통 Cache
+tcf-cache
+Spring Cache, EhCache, Cache Manager
+JAR
+공통 연동
+tcf-integration
+서비스 간 HTTP/JSON 호출 Client
+JAR
+운영관리
+tcf-om
+사용자, 권한, 메뉴, ServiceId, 거래통제, Timeout
+WAR
+Gateway
+tcf-gateway
+업무코드 라우팅, Downstream Relay
+WAR 또는 JAR
+JWT
+tcf-jwt
+Access Token, Refresh Token, Token 관리
+WAR 또는 JAR
+Batch
+tcf-batch
+Job, Scheduler, 실행이력, 재처리
+JAR 또는 WAR
+UI
+tcf-ui
+테스트 UI, OM Admin UI, Relay
+WAR 또는 정적 리소스
+업무 서비스
+sv-service, ic-service 등
+업무 Handler, Facade, Service, Rule, DAO, Mapper
+WAR
+
+8.4 모듈 의존성 방향
+NSIGHT Gradle 멀티 모듈에서 가장 중요한 원칙은 의존성 방향을 한쪽으로만 흐르게 하는 것이다.
+tcf-util
+   ↑
+tcf-core
+   ↑
+tcf-web
+   ↑
+업무 서비스 / tcf-om / tcf-gateway / tcf-batch / tcf-jwt
+
+더 상세히 표현하면 다음과 같다.
+[업무 서비스 WAR]
+ sv-service / ic-service / pc-service
+        │
+        ├─ depends on tcf-web
+        ├─ depends on tcf-core
+        ├─ depends on tcf-cache
+        └─ depends on tcf-integration
+                    │
+                    ▼
+              [tcf-core]
+                    │
+                    ▼
+              [tcf-util]
+
+원칙
+설명
+공통 모듈은 업무 모듈을 참조하지 않는다
+tcf-core가 sv-service를 참조하면 안 됨
+업무 모듈은 공통 모듈을 참조한다
+업무 서비스는 tcf-web, tcf-core 사용
+업무 모듈끼리 직접 참조하지 않는다
+ic-service가 sv-service Java 클래스를 직접 참조하면 안 됨
+업무 간 호출은 HTTP/JSON으로 한다
+tcf-integration Client 사용
+DB 접근은 업무 모듈 내부에서 처리한다
+업무별 DAO/Mapper 분리
+공통 모듈 변경은 전체 영향도를 검토한다
+tcf-core, tcf-web 변경은 승인 필요
+
+8.5 루트 프로젝트 구성 기준
+루트 프로젝트는 전체 모듈의 기준을 관리한다.
+nsight-tcf-framework
+ ├─ settings.gradle
+ ├─ build.gradle
+ ├─ gradle.properties
+ ├─ gradlew
+ ├─ gradlew.bat
+ ├─ .gitlab-ci.yml
+ ├─ docs
+ └─ modules...
+
+파일
+역할
+settings.gradle
+전체 하위 모듈 등록
+build.gradle
+공통 Plugin, Repository, Dependency, Test 기준
+gradle.properties
+Java 버전, 프로젝트 버전, 빌드 옵션
+gradlew
+Linux/macOS Gradle Wrapper
+gradlew.bat
+Windows Gradle Wrapper
+.gitlab-ci.yml
+CI/CD Pipeline 정의
+docs
+설계서, 개발자 가이드, 운영 문서
+
+8.6 settings.gradle 구성 기준
+settings.gradle은 전체 모듈을 등록하는 기준 파일이다.
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'nsight-tcf-framework'
+
+include 'tcf-util'
+include 'tcf-core'
+include 'tcf-web'
+include 'tcf-cache'
+include 'tcf-integration'
+
+include 'tcf-om'
+include 'tcf-gateway'
+include 'tcf-jwt'
+include 'tcf-batch'
+include 'tcf-ui'
+
+include 'sv-service'
+include 'ic-service'
+include 'pc-service'
+include 'cm-service'
+include 'mg-service'
+
+운영 기준은 다음과 같다.
+항목
+기준
+모듈명
+소문자와 하이픈 사용
+업무 서비스
+{업무코드소문자}-service
+공통 모듈
+tcf-*
+신규 모듈 추가
+settings.gradle에 반드시 등록
+삭제 모듈
+CI/CD, 배포 스크립트 영향 확인 후 삭제
+모듈명 변경
+원칙적으로 금지, 필요 시 전체 영향도 검토
+
+8.7 루트 build.gradle 구성 기준
+루트 build.gradle은 전체 프로젝트의 공통 기준을 정의한다.
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.0' apply false
+    id 'io.spring.dependency-management' version '1.1.5' apply false
+}
+
+allprojects {
+    group = 'com.nh.nsight'
+    version = '1.0.0'
+
+    repositories {
+        mavenCentral()
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+}
+
+구분
+기준
+group
+com.nh.nsight
+version
+배포 버전 기준
+Java Version
+17 이상 권장
+Encoding
+UTF-8
+Repository
+사내 Nexus 또는 Maven Central
+Test
+JUnit Platform
+Spring Boot Plugin
+루트에서 버전 통제
+Dependency Management
+루트에서 공통 관리
+
+8.8 공통 모듈 build.gradle 기준
+공통 모듈은 실행 애플리케이션이 아니므로 bootJar, bootWar를 생성하지 않는다.일반 JAR로 빌드한다.
+tcf-util 예시
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api 'org.apache.commons:commons-lang3'
+}
+
+tcf-core 예시
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':tcf-util')
+
+    api 'org.springframework:spring-context'
+    api 'com.fasterxml.jackson.core:jackson-databind'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tcf-web 예시
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':tcf-core')
+
+    api 'org.springframework.boot:spring-boot-starter-web'
+    api 'org.springframework.boot:spring-boot-starter-validation'
+    api 'org.springframework.boot:spring-boot-starter-aop'
+}
+
+모듈
+적용 Plugin
+산출물
+비고
+tcf-util
+java-library
+JAR
+순수 유틸
+tcf-core
+java-library
+JAR
+표준 전문, TCF 처리
+tcf-web
+java-library
+JAR
+Controller, Filter, Web 공통
+tcf-cache
+java-library
+JAR
+Cache 공통
+tcf-integration
+java-library
+JAR
+서비스 간 호출 Client
+
+8.9 업무 서비스 build.gradle 기준
+업무 서비스 모듈은 Spring Boot 기반으로 실행되며, 운영 배포 시 WAR를 생성한다.
+plugins {
+    id 'java'
+    id 'war'
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+}
+
+dependencies {
+    implementation project(':tcf-web')
+    implementation project(':tcf-core')
+    implementation project(':tcf-cache')
+    implementation project(':tcf-integration')
+
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter'
+    implementation 'com.zaxxer:HikariCP'
+
+    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+bootWar {
+    archiveFileName = 'sv.war'
+}
+
+항목
+기준
+Plugin
+java, war, org.springframework.boot
+공통 의존성
+tcf-web, tcf-core, tcf-cache
+Tomcat
+운영 Tomcat 배포 시 providedRuntime
+산출물
+{업무코드소문자}.war
+예시
+sv.war, ic.war, om.war
+로컬 실행
+bootRun
+운영 실행
+Tomcat WAR 배포
+
+8.10 모듈별 산출물 기준
+모듈
+로컬 실행
+빌드 산출물
+운영 배포 여부
+tcf-util
+직접 실행 안 함
+tcf-util.jar
+단독 배포 안 함
+tcf-core
+직접 실행 안 함
+tcf-core.jar
+단독 배포 안 함
+tcf-web
+직접 실행 안 함
+tcf-web.jar
+단독 배포 안 함
+tcf-cache
+직접 실행 안 함
+tcf-cache.jar
+단독 배포 안 함
+tcf-integration
+직접 실행 안 함
+tcf-integration.jar
+단독 배포 안 함
+tcf-om
+bootRun 가능
+om.war
+배포 대상
+tcf-gateway
+bootRun 가능
+gateway.war 또는 JAR
+배포 대상
+tcf-jwt
+bootRun 가능
+jwt.war 또는 JAR
+배포 대상
+tcf-batch
+bootRun 가능
+JAR 또는 WAR
+배포 대상
+sv-service
+bootRun 가능
+sv.war
+배포 대상
+ic-service
+bootRun 가능
+ic.war
+배포 대상
+
+8.11 모듈 의존성 금지 규칙
+Gradle 멀티 모듈에서 다음 의존성은 금지한다.
+금지 의존성
+사유
+tcf-core → sv-service
+공통 모듈이 업무 모듈에 종속됨
+tcf-web → tcf-om
+Web 공통이 운영관리 기능에 종속됨
+ic-service → sv-service
+업무 간 직접 결합 발생
+sv-service → tcf-om
+업무 서비스가 운영관리 구현에 종속됨
+tcf-cache → tcf-om
+Cache 공통이 OM 구현에 종속됨
+tcf-util → Spring Boot Web
+Util 모듈이 무거워짐
+업무 서비스 → Gateway
+Gateway는 앞단 라우터이며 업무가 참조하면 안 됨
+업무 서비스 → JWT 구현체 직접 참조
+인증은 Filter 또는 Client 계층에서 처리
+허용되는 방향은 다음과 같다.
+업무 서비스
+   → tcf-web
+   → tcf-core
+   → tcf-util
+
+업무 서비스
+   → tcf-cache
+
+업무 서비스
+   → tcf-integration
+
+
+8.12 공통 모듈 역할 정의
+8.12.1 tcf-util
+tcf-util은 가장 하위 공통 유틸 모듈이다.
+항목
+기준
+역할
+문자열, 날짜, 마스킹, 공통 변환, 공통 상수
+의존성
+최소화
+금지
+Spring Web, DB, 업무 로직 의존
+사용 주체
+전체 모듈
+예시 기능은 다음과 같다.
+DateTimeUtil
+StringMaskingUtil
+GuidGenerator
+JsonUtil
+CodeValueUtil
+
+
+8.12.2 tcf-core
+tcf-core는 TCF Framework의 핵심 모듈이다.
+항목
+기준
+역할
+표준 전문, TCF 처리, STF, ETF, Dispatcher, Context, 예외
+주요 클래스
+StandardRequest, StandardResponse, TransactionContext
+사용 주체
+tcf-web, 업무 서비스, OM
+금지
+특정 업무 Service 참조
+TCF 설계 기준에서 모든 온라인 거래는 STF → TransactionDispatcher → ETF 흐름으로 처리되며, serviceId에 매핑된 Handler를 실행한다.
+
+8.12.3 tcf-web
+tcf-web은 HTTP 진입점과 Web 공통 처리를 제공한다.
+항목
+기준
+역할
+Online Controller, Filter, Interceptor, Global Exception Handler
+제공 기능
+/online, /{businessCode}/online, 예외 변환
+사용 주체
+업무 서비스, OM
+금지
+업무별 Controller 개별 구현 남발
+
+8.12.4 tcf-cache
+tcf-cache는 Cache 공통 모듈이다.
+항목
+기준
+역할
+Spring Cache, EhCache, Cache Manager
+Cache 대상
+공통코드, ServiceId, 거래통제, Timeout 정책
+금지
+대량 업무 데이터 Cache
+관리 주체
+OM Cache 관리 화면
+Cache 구조 설계에서도 tcf-cache는 Spring Cache + EhCache 기반 공통 모듈이고, 업무 데이터가 아니라 기준정보와 정책정보를 Cache 대상으로 둔다.
+
+8.12.5 tcf-integration
+tcf-integration은 서비스 간 호출 공통 모듈이다.
+항목
+기준
+역할
+업무 간 HTTP/JSON 표준 전문 호출
+호출 방식
+businessCode, serviceId, transactionCode 기준
+금지
+업무 서비스 Java 클래스 직접 호출
+사용 예
+IC → SV, OM → JWT
+서비스 간 연동은 업무 서비스의 Java 클래스를 직접 참조하지 않고, HTTP/JSON 표준 전문과 serviceId 호출 방식으로 수행하는 것이 기준이다.
+
+8.13 업무 서비스 모듈 구조
+업무 서비스 모듈은 다음 구조를 따른다.
+sv-service
+ ├─ build.gradle
+ ├─ src/main/java
+ │   └─ com/nh/nsight/sv
+ │       ├─ SvServiceApplication.java
+ │       ├─ entry
+ │       │   ├─ handler
+ │       │   └─ facade
+ │       ├─ application
+ │       │   ├─ service
+ │       │   └─ rule
+ │       ├─ persistence
+ │       │   ├─ dao
+ │       │   └─ mapper
+ │       ├─ client
+ │       ├─ support
+ │       └─ config
+ │
+ ├─ src/main/resources
+ │   ├─ application.yml
+ │   ├─ application-local.yml
+ │   ├─ mapper
+ │   │   └─ sv
+ │   │       └─ SvCustomerMapper.xml
+ │   └─ logback-spring.xml
+ │
+ └─ src/test/java
+
+디렉터리
+역할
+entry.handler
+ServiceId별 Handler
+entry.facade
+유스케이스 조립, 트랜잭션 경계
+application.service
+업무 처리 흐름
+application.rule
+업무 규칙, 검증, 계산
+persistence.dao
+Mapper 호출 캡슐화
+persistence.mapper
+MyBatis Mapper Interface
+client
+외부 또는 내부 서비스 호출
+support
+업무 내부 지원 컴포넌트
+config
+업무별 Spring 설정
+resources/mapper/{업무코드}
+MyBatis XML
+애플리케이션 계층구조는 Handler → Facade → Service → Rule → DAO/Mapper를 표준으로 한다. MyBatis는 DAO/Mapper 계층에 위치하며, SQL 실행 책임만 갖도록 정의되어 있다.
+
+8.14 업무 서비스 간 직접 의존 금지
+업무 모듈 간 직접 의존은 금지한다.
+// 금지
+dependencies {
+    implementation project(':sv-service')
+}
+
+IC 업무에서 SV 업무를 호출해야 하는 경우 다음처럼 tcf-integration을 사용한다.
+dependencies {
+    implementation project(':tcf-integration')
+}
+
+구조는 다음과 같다.
+ic-service
+   ↓
+tcf-integration
+   ↓
+HTTP/JSON 표준 전문
+   ↓
+sv-service
+   ↓
+SV.Customer.selectSummary
+
+이 기준을 지키면 업무 모듈 간 결합을 줄이고, 각 업무 WAR를 독립 배포할 수 있다.
+
+8.15 빌드 명령 기준
+전체 프로젝트 빌드는 다음 명령으로 수행한다.
+./gradlew clean build
+
+특정 모듈만 빌드할 경우 다음과 같이 수행한다.
+./gradlew :sv-service:clean :sv-service:build
+
+업무 WAR만 생성할 경우 다음과 같이 수행한다.
+./gradlew :sv-service:bootWar
+
+테스트만 수행할 경우 다음과 같다.
+./gradlew test
+
+특정 모듈 테스트는 다음과 같다.
+./gradlew :sv-service:test
+
+
+8.16 로컬 실행 기준
+로컬 개발 시에는 bootRun으로 업무 모듈을 실행한다.
+./gradlew :sv-service:bootRun --args='--spring.profiles.active=local'
+
+OM 실행 예시는 다음과 같다.
+./gradlew :tcf-om:bootRun --args='--spring.profiles.active=local'
+
+Gateway 실행 예시는 다음과 같다.
+./gradlew :tcf-gateway:bootRun --args='--spring.profiles.active=local'
+
+운영 배포는 bootRun이 아니라 WAR를 생성하여 Tomcat에 배포한다.
+로컬 개발 = bootRun
+운영 배포 = bootWar → Tomcat 배포
+
+
+8.17 모듈별 빌드 영향도
+Gradle 멀티 모듈에서는 어떤 모듈을 수정했는지에 따라 빌드 영향도가 달라진다.
+변경 모듈
+영향 범위
+권장 빌드
+tcf-util
+전체 모듈 영향 가능
+전체 빌드
+tcf-core
+전체 TCF 거래 영향
+전체 빌드 + 주요 거래 테스트
+tcf-web
+모든 업무 온라인 요청 영향
+전체 빌드 + 표준 전문 테스트
+tcf-cache
+Cache 사용 업무 영향
+전체 빌드 또는 관련 업무 빌드
+tcf-integration
+서비스 간 호출 업무 영향
+관련 업무 빌드
+sv-service
+SV 업무 영향
+:sv-service:build
+tcf-om
+OM 운영관리 영향
+:tcf-om:build
+tcf-gateway
+전체 라우팅 영향
+Gateway + 주요 업무 Smoke Test
+tcf-jwt
+인증 영향
+JWT + OM + Gateway 테스트
+tcf-batch
+배치 영향
+Batch 테스트
+
+8.18 CI/CD 빌드 기준
+CI/CD에서는 다음 순서로 빌드한다.
+Git Push / Merge Request
+   ↓
+Gradle clean
+   ↓
+Gradle compileJava
+   ↓
+Unit Test
+   ↓
+Code Inspection
+   ↓
+bootWar
+   ↓
+Artifact 저장
+   ↓
+배포 승인
+   ↓
+Tomcat 배포
+
+단계
+Gradle Task
+설명
+Clean
+clean
+이전 빌드 산출물 제거
+Compile
+compileJava
+Java 컴파일
+Test
+test
+단위 테스트
+Build
+build
+컴파일 + 테스트 + 패키징
+WAR
+bootWar
+업무 WAR 생성
+Artifact
+CI/CD 저장
+WAR 보관
+Deploy
+배포 Script
+Tomcat 배포
+
+8.19 버전 관리 기준
+프로젝트 버전은 루트 gradle.properties 또는 루트 build.gradle에서 관리한다.
+nsightVersion=1.0.0
+javaVersion=17
+springBootVersion=3.3.0
+
+구분
+기준
+Major
+구조 변경, 호환성 깨지는 변경
+Minor
+기능 추가
+Patch
+오류 수정
+Snapshot
+개발 중 버전
+Release
+운영 배포 버전
+예시는 다음과 같다.
+버전
+의미
+1.0.0-SNAPSHOT
+개발 중
+1.0.0
+운영 배포
+1.0.1
+Patch 수정
+1.1.0
+기능 추가
+2.0.0
+구조 변경
+
+8.20 신규 업무 모듈 추가 절차
+신규 업무 모듈을 추가할 때는 다음 절차를 따른다.
+순서
+작업
+설명
+1
+업무코드 확정
+예: BD
+2
+모듈 생성
+bd-service
+3
+settings.gradle 등록
+include 'bd-service'
+4
+build.gradle 작성
+업무 서비스 표준 적용
+5
+Package 생성
+com.nh.nsight.bd
+6
+Context 설정
+/bd
+7
+Application Class 생성
+BdServiceApplication
+8
+Mapper 경로 생성
+mapper/bd
+9
+bootRun 실행 확인
+local Profile
+10
+bootWar 생성 확인
+bd.war
+11
+CI/CD 등록
+배포 대상 추가
+12
+Apache/Gateway 라우팅 등록
+/bd/online
+
+8.21 신규 공통 모듈 추가 기준
+공통 모듈은 남발하지 않는다.다음 기준을 만족할 때만 신규 공통 모듈을 만든다.
+기준
+설명
+3개 이상 업무에서 사용
+특정 업무 전용이면 업무 모듈 내부에 둠
+공통 책임이 명확
+Cache, Integration, Security 등 책임 분명
+업무 의존성이 없음
+특정 업무 테이블, DTO, ServiceId에 종속되면 안 됨
+테스트 가능
+독립 단위 테스트 가능
+운영 영향도 검토
+전체 업무 영향도 분석 필요
+아키텍처 승인
+공통 모듈 추가는 승인 필요
+예를 들어 tcf-integration은 여러 업무에서 서비스 간 HTTP/JSON 호출이 필요하므로 공통 모듈로 분리할 수 있다. 반면 SvCustomerRule은 SV 업무 전용이므로 공통 모듈로 분리하면 안 된다.
+
+8.22 Gradle 멀티 모듈 금지사항
+금지사항
+사유
+업무 모듈끼리 직접 참조
+WAR 독립성 훼손
+공통 모듈에서 업무 모듈 참조
+의존성 역전
+모든 기능을 tcf-core에 추가
+공통 Core 비대화
+특정 업무 로직을 tcf-web에 추가
+Web 공통 오염
+업무별 라이브러리 버전 임의 지정
+의존성 충돌
+운영 Secret을 build.gradle에 작성
+보안 위험
+모듈별 Java 버전 다르게 사용
+빌드 불안정
+bootWar 파일명 임의 사용
+배포 자동화 오류
+테스트 제외 후 Merge
+품질 저하
+로컬 전용 설정 Commit
+환경 오염
+
+8.23 Gradle 멀티 모듈 체크리스트
+점검 항목
+확인
+신규 모듈이 settings.gradle에 등록되었는가
+□
+모듈명이 표준을 따르는가
+□
+공통 모듈과 업무 모듈 책임이 분리되었는가
+□
+업무 모듈끼리 직접 의존하지 않는가
+□
+tcf-core가 업무 모듈을 참조하지 않는가
+□
+업무 WAR 파일명이 표준과 일치하는가
+□
+bootRun으로 로컬 실행 가능한가
+□
+bootWar로 WAR 생성 가능한가
+□
+Mapper XML 경로가 업무코드 기준으로 분리되었는가
+□
+테스트 Task가 정상 수행되는가
+□
+전체 빌드가 성공하는가
+□
+CI/CD 배포 대상에 반영되었는가
+□
+
+8.24 마무리말
+Gradle 멀티 모듈 구조는 단순히 프로젝트 폴더를 여러 개로 나누는 방식이 아니다.NSIGHT TCF Framework에서는 멀티 모듈 구조가 곧 공통과 업무의 경계, 개발과 운영의 경계, 빌드와 배포의 경계를 결정한다.
+따라서 개발자는 다음 기준을 반드시 지켜야 한다.
+공통 기능 = tcf-* 모듈
+업무 기능 = 업무코드-service 모듈
+업무 실행 = ServiceId Handler
+공통 처리 = tcf-core / tcf-web
+업무 간 호출 = tcf-integration
+배포 단위 = 업무별 WAR
+
+
+8.25 시사점
+NSIGHT TCF Framework에서 Gradle 멀티 모듈 구조의 핵심은 “재사용은 하되 결합하지 않는 것”이다.
+핵심 원칙
+의미
+공통은 아래에 둔다
+tcf-util, tcf-core, tcf-web은 업무를 몰라야 한다
+업무는 독립시킨다
+각 업무 서비스는 독립 WAR로 빌드·배포되어야 한다
+업무 간 호출은 HTTP/JSON으로 한다
+Java 직접 참조가 아니라 표준 전문 호출을 사용한다
+빌드는 자동화한다
+Gradle Task와 CI/CD Pipeline으로 통제한다
+배포 산출물은 명확히 한다
+sv.war, om.war, gateway.war처럼 식별 가능해야 한다
+결론적으로 Gradle 멀티 모듈 구조는 다음 한 문장으로 정리할 수 있다.
+공통 프레임워크는 JAR로 재사용하고, 업무 서비스는 WAR로 독립 배포하며, 모든 업무 실행은 TCF 표준 전문과 ServiceId Dispatcher 기준으로 통제한다.
+

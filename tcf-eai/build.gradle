@@ -1,0 +1,14 @@
+// tcf-eai: 서비스 간 HTTP/JSON 표준 전문 연동 공통 모듈 (Enterprise Application Integration)
+// 업무 서비스가 다른 업무 서비스를 serviceId 기반 표준 전문으로 호출할 때 사용.
+// 빌드: gradle :tcf-eai:build
+
+dependencies {
+    api project(':tcf-core')
+    api 'org.springframework:spring-web'
+    api 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'org.springframework.boot:spring-boot'
+    compileOnly 'org.springframework.boot:spring-boot-autoconfigure'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}

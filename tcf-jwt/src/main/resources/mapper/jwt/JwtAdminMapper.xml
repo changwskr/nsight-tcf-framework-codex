@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nh.nsight.auth.jwt.persistence.mapper.JwtAdminMapper">
+
+    <sql id="jwtTokenWhere">
+        <where>
+            <if test="userId != null and userId != ''">
+                AND T.USER_ID = #{userId}
+            </if>
+            <if test="jti != null and jti != ''">
+                AND T.JTI = #{jti}
+            </if>
+            <if test="revokedYn != null and revokedYn != ''">
+                AND T.REVOKED_YN = #{revokedYn}
+            </if>
+            <if test="activeOnly != null and activeOnly != ''">
+                AND T.REVOKED_YN = 'N'
+                AND T.EXPIRES_AT &gt; CURRENT_TIMESTAMP
+            </if>
+        </where>
+    </sql>
+
+    <select id="searchJwtTokens" parameterType="map" resultType="map">
+        SELECT T.TOKEN_ID AS "tokenId",
+               T.JTI AS "jti",
+               T.ISSUER AS "issuer",
+               T.USER_ID AS "userId",
+               U.USER_NAME AS "userName",
+               T.BRANCH_ID AS "branchId",
+               T.CHANNEL_ID AS "channelId",
+               T.AUTH_GROUP_ID AS "authGroupId",
+               T.TOKEN_TYPE AS "tokenType",
+               T.AUDIENCE AS "audience",
+               T.ISSUED_AT AS "issuedAt",
+               T.EXPIRES_AT AS "expiresAt",
+               T.REVOKED_YN AS "revokedYn",
+               T.REVOKED_AT AS "revokedAt",
+               T.REVOKE_REASON AS "revokeReason",
+               T.CLIENT_IP AS "clientIp"
+          FROM TCF_JWT_TOKEN T
+          LEFT JOIN OM_USER U ON T.USER_ID = U.USER_ID
+        <include refid="jwtTokenWhere"/>
+         ORDER BY T.ISSUED_AT DESC
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+
+    <select id="countJwtTokens" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+          FROM TCF_JWT_TOKEN T
+        <include refid="jwtTokenWhere"/>
+    </select>
+
+    <select id="selectJwtTokenByJti" parameterType="map" resultType="map">
+        SELECT TOKEN_ID AS "tokenId",
+               JTI AS "jti",
+               ISSUER AS "issuer",
+               USER_ID AS "userId",
+               EXPIRES_AT AS "expiresAt",
+               REVOKED_YN AS "revokedYn"
+          FROM TCF_JWT_TOKEN
+         WHERE ISSUER = #{issuer}
+           AND JTI = #{jti}
+    </select>
+
+    <sql id="refreshTokenWhere">
+        <where>
+            <if test="userId != null and userId != ''">
+                AND R.USER_ID = #{userId}
+            </if>
+            <if test="revokedYn != null and revokedYn != ''">
+                AND R.REVOKED_YN = #{revokedYn}
+            </if>
+            <if test="activeOnly != null and activeOnly != ''">
+                AND R.REVOKED_YN = 'N'
+                AND R.ROTATED_YN = 'N'
+                AND R.EXPIRES_AT &gt; CURRENT_TIMESTAMP
+            </if>
+        </where>
+    </sql>
+
+    <select id="searchRefreshTokens" parameterType="map" resultType="map">
+        SELECT R.REFRESH_TOKEN_ID AS "refreshTokenId",
+               R.USER_ID AS "userId",
+               U.USER_NAME AS "userName",
+               R.TOKEN_HASH AS "tokenHash",
+               R.TOKEN_FAMILY_ID AS "tokenFamilyId",
+               R.ISSUED_AT AS "issuedAt",
+               R.EXPIRES_AT AS "expiresAt",
+               R.LAST_USED_AT AS "lastUsedAt",
+               R.ROTATED_YN AS "rotatedYn",
+               R.REVOKED_YN AS "revokedYn",
+               R.REVOKED_AT AS "revokedAt",
+               R.CLIENT_IP AS "clientIp",
+               R.USER_AGENT AS "userAgent"
+          FROM TCF_REFRESH_TOKEN R
+          LEFT JOIN OM_USER U ON R.USER_ID = U.USER_ID
+        <include refid="refreshTokenWhere"/>
+         ORDER BY R.ISSUED_AT DESC
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+
+    <select id="countRefreshTokens" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+          FROM TCF_REFRESH_TOKEN R
+        <include refid="refreshTokenWhere"/>
+    </select>
+
+    <sql id="loginHistoryWhere">
+        <where>
+            <if test="userId != null and userId != ''">
+                AND H.USER_ID = #{userId}
+            </if>
+            <if test="loginResult != null and loginResult != ''">
+                AND H.LOGIN_RESULT = #{loginResult}
+            </if>
+            <if test="fromDate != null and fromDate != ''">
+                AND H.LOGIN_TIME &gt;= #{fromDate}
+            </if>
+            <if test="toDate != null and toDate != ''">
+                AND H.LOGIN_TIME &lt;= #{toDate}
+            </if>
+        </where>
+    </sql>
+
+    <select id="searchLoginHistories" parameterType="map" resultType="map">
+        SELECT H.LOG_ID AS "logId",
+               H.USER_ID AS "userId",
+               U.USER_NAME AS "userName",
+               H.LOGIN_RESULT AS "loginResult",
+               H.FAIL_REASON AS "failReason",
+               H.CHANNEL_ID AS "channelId",
+               H.CLIENT_IP AS "clientIp",
+               H.LOGIN_TIME AS "loginTime"
+          FROM TCF_JWT_LOGIN_HISTORY H
+          LEFT JOIN OM_USER U ON H.USER_ID = U.USER_ID
+        <include refid="loginHistoryWhere"/>
+         ORDER BY H.LOGIN_TIME DESC
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+
+    <select id="countLoginHistories" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+          FROM TCF_JWT_LOGIN_HISTORY H
+        <include refid="loginHistoryWhere"/>
+    </select>
+
+    <insert id="insertLoginHistory" parameterType="map">
+        INSERT INTO TCF_JWT_LOGIN_HISTORY (
+            LOG_ID, USER_ID, LOGIN_RESULT, FAIL_REASON, CHANNEL_ID, CLIENT_IP, LOGIN_TIME
+        ) VALUES (
+            #{logId}, #{userId}, #{loginResult}, #{failReason}, #{channelId}, #{clientIp}, #{loginTime}
+        )
+    </insert>
+
+    <select id="selectSecurityPolicy" parameterType="string" resultType="map">
+        SELECT POLICY_ID AS "policyId",
+               ISSUER AS "issuer",
+               AUDIENCE AS "audience",
+               ACCESS_TOKEN_VALID_MINUTES AS "accessTokenValidMinutes",
+               REFRESH_TOKEN_VALID_HOURS AS "refreshTokenValidHours",
+               ALGORITHM AS "algorithm",
+               CLOCK_SKEW_SECONDS AS "clockSkewSeconds",
+               DENYLIST_CHECK_ENABLED AS "denylistCheckEnabled",
+               REFRESH_TOKEN_ROTATION_ENABLED AS "refreshTokenRotationEnabled",
+               UPDATED_AT AS "updatedAt",
+               UPDATED_BY AS "updatedBy"
+          FROM TCF_JWT_SECURITY_POLICY
+         WHERE POLICY_ID = #{policyId}
+    </select>
+
+    <insert id="mergeSecurityPolicy" parameterType="map">
+        MERGE INTO TCF_JWT_SECURITY_POLICY (
+            POLICY_ID, ISSUER, AUDIENCE, ACCESS_TOKEN_VALID_MINUTES, REFRESH_TOKEN_VALID_HOURS,
+            ALGORITHM, CLOCK_SKEW_SECONDS, DENYLIST_CHECK_ENABLED, REFRESH_TOKEN_ROTATION_ENABLED,
+            UPDATED_AT, UPDATED_BY
+        ) KEY (POLICY_ID) VALUES (
+            #{policyId}, #{issuer}, #{audience}, #{accessTokenValidMinutes}, #{refreshTokenValidHours},
+            #{algorithm}, #{clockSkewSeconds}, #{denylistCheckEnabled}, #{refreshTokenRotationEnabled},
+            #{updatedAt}, #{updatedBy}
+        )
+    </insert>
+</mapper>

@@ -1,0 +1,51 @@
+# NSIGHT TCF — Ingress (template)
+#
+# Apply via deploy.sh, or:
+#   kubectl apply -f tcf-k8s/templates/ingress.yaml -n nsight
+#
+# Adjust host / paths for your cluster ingress controller.
+#
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nsight-tcf-ingress
+  namespace: nsight
+  labels:
+    app.kubernetes.io/part-of: nsight-tcf-framework
+  annotations:
+    # nginx example — change for your controller
+    nginx.ingress.kubernetes.io/proxy-body-size: "32m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: nsight.local
+      http:
+        paths:
+          - path: /ui
+            pathType: Prefix
+            backend:
+              service:
+                name: nsight-ui
+                port:
+                  number: 8099
+          - path: /sv
+            pathType: Prefix
+            backend:
+              service:
+                name: nsight-sv
+                port:
+                  number: 8086
+          - path: /eb
+            pathType: Prefix
+            backend:
+              service:
+                name: nsight-eb
+                port:
+                  number: 8089
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nsight-gateway
+                port:
+                  number: 8080

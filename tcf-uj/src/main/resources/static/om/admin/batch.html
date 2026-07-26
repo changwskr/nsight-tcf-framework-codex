@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 배치 관리</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260627c"></script>
+  <script>
+    const PAGE_SIZE = 10;
+    let currentPage = 1;
+
+    async function load(page, el) {
+      currentPage = page;
+      const jobId = document.getElementById('filterJobId').value.trim();
+      const runStatus = document.getElementById('filterRunStatus').value;
+      const body = { pageNo: page, pageSize: PAGE_SIZE };
+      if (jobId) body.jobId = jobId;
+      if (runStatus) body.runStatus = runStatus;
+
+      const { body: data, relay } = await OmAdmin.inquiry('batch', body);
+      document.getElementById('listStatus').textContent = `${relay.elapsedMs}ms · 실행이력 ${data.totalCount ?? 0}건`;
+
+      const jobs = data.jobs || [];
+      document.getElementById('jobBody').innerHTML = jobs.length ? jobs.map(r => `
+        <tr data-job-id="${OmAdmin.field(r, 'jobId')}" style="cursor:pointer">
+          <td class="om-mono">${OmAdmin.field(r, 'jobId')}</td>
+          <td>${OmAdmin.field(r, 'jobName')}</td>
+          <td>${OmAdmin.field(r, 'businessCode')}</td>
+          <td class="om-mono">${OmAdmin.field(r, 'cronExpr')}</td>
+          <td>${OmAdmin.field(r, 'useYn') === 'Y' ? '<span class="om-chip ok">Y</span>' : '<span class="om-chip muted">N</span>'}</td>
+          <td>${OmAdmin.field(r, 'description')}</td>
+        </tr>`).join('') : '<tr><td colspan="6" class="om-empty">배치 없음</td></tr>';
+
+      document.getElementById('jobBody').querySelectorAll('tr[data-job-id]').forEach(tr => {
+        tr.addEventListener('click', () => {
+          document.getElementById('filterJobId').value = tr.getAttribute('data-job-id');
+          load(1, el).catch(e => OmAdmin.showError(el, e.message));
+        });
+      });
+
+      const histories = data.histories || [];
+      const histBody = document.getElementById('histBody');
+      histBody.innerHTML = histories.length ? histories.map(r => `
+        <tr>
+          <td>${OmAdmin.field(r, 'runTime')}</td>
+          <td class="om-mono">${OmAdmin.field(r, 'jobId')}</td>
+          <td>${OmAdmin.chipForResult(OmAdmin.field(r, 'runStatus'))}</td>
+          <td>${OmAdmin.field(r, 'durationMs')}ms</td>
+          <td>${OmAdmin.field(r, 'resultMessage')}</td>
+        </tr>`).join('') : '<tr><td colspan="5" class="om-empty">실행 이력 없음</td></tr>';
+
+      OmAdmin.renderPagination(document.getElementById('pagination'), data.pageNo || page, PAGE_SIZE, data.totalCount || 0,
+        p => load(p, el).catch(e => OmAdmin.showError(el, e.message)));
+    }
+
+    OmAdmin.initPage('batch', '배치 / 스케줄 관리', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">배치 목록 클릭 → 이력 필터. 재실행은 사유 입력 후 승인 처리됩니다.</div>
+        <section class="om-filter-bar">
+          <div class="field"><label for="filterJobId">Job ID</label><input id="filterJobId" type="text" placeholder="행 클릭으로 선택"></div>
+          <div class="field"><label for="filterRunStatus">실행결과</label>
+            <select id="filterRunStatus"><option value="">전체</option><option value="SUCCESS">SUCCESS</option><option value="FAIL">FAIL</option></select>
+          </div>
+          <div class="field field-wide"><label for="executeReason">재실행 사유 (5자+)</label><input id="executeReason" type="text" placeholder="장애 복구 수동 재처리"></div>
+          <div class="actions" style="display:flex;gap:8px;align-items:end">
+            <button class="btn-primary" id="searchBtn" type="button">조회</button>
+            <button class="btn-secondary" id="executeBtn" type="button">선택 Job 재실행</button>
+            <button class="btn-secondary" id="deleteAllHistBtn" type="button">실행이력 전체 삭제</button>
+            <button class="btn-secondary" id="resetBtn" type="button">초기화</button>
+          </div>
+        </section>
+        <div style="margin-bottom:10px;color:var(--muted);font-size:0.85rem" id="listStatus">-</div>
+        <div class="om-grid-2">
+          <div class="om-card">
+            <div class="om-card-head">배치 / 스케줄 목록</div>
+            <div class="om-card-body om-table-wrap">
+              <table class="om-table">
+                <thead><tr><th>Job ID</th><th>명칭</th><th>업무</th><th>Cron</th><th>사용</th><th>설명</th></tr></thead>
+                <tbody id="jobBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="om-card">
+            <div class="om-card-head">실행 이력</div>
+            <div class="om-card-body om-table-wrap">
+              <table class="om-table">
+                <thead><tr><th>실행일시</th><th>Job</th><th>결과</th><th>소요</th><th>메시지</th></tr></thead>
+                <tbody id="histBody"></tbody>
+              </table>
+              <div class="om-pagination" id="pagination" hidden></div>
+            </div>
+          </div>
+        </div>`;
+      document.getElementById('searchBtn').addEventListener('click', () => load(1, el).catch(e => OmAdmin.showError(el, e.message)));
+      document.getElementById('executeBtn').addEventListener('click', async () => {
+        const jobId = document.getElementById('filterJobId').value.trim();
+        const executeReason = document.getElementById('executeReason').value.trim();
+        if (!jobId) { alert('Job ID를 선택하세요.'); return; }
+        if (!confirm('배치 ' + jobId + ' 를 재실행하시겠습니까?')) return;
+        try {
+          const { body } = await OmAdmin.mutate('batchExecute', { jobId, executeReason }, 'EXECUTE');
+          alert('재실행 완료: ' + body.runStatus);
+          await load(1, el);
+        } catch (e) { alert(e.message); }
+      });
+      document.getElementById('deleteAllHistBtn').addEventListener('click', async () => {
+        if (!confirm('OM_BATCH_HISTORY 테이블의 실행 이력을 전부 삭제합니다.\n되돌릴 수 없습니다. 계속하시겠습니까?')) {
+          return;
+        }
+        const deleteReason = prompt('삭제 사유 (5자 이상, 감사로그에 기록됩니다):');
+        if (!deleteReason || deleteReason.trim().length < 5) {
+          alert('삭제 사유를 5자 이상 입력해야 합니다.');
+          return;
+        }
+        try {
+          const { body } = await OmAdmin.mutate('batchHistoryDeleteAll', {
+            confirmCode: 'DELETE_ALL',
+            deleteReason: deleteReason.trim()
+          }, 'DELETE');
+          alert(`실행 이력 ${body.deletedCount ?? 0}건이 삭제되었습니다.`);
+          await load(1, el);
+        } catch (e) { alert(e.message); }
+      });
+      document.getElementById('resetBtn').addEventListener('click', () => {
+        document.getElementById('filterJobId').value = '';
+        document.getElementById('filterRunStatus').value = '';
+      });
+      await load(1, el);
+    });
+  </script>
+</body>
+</html>

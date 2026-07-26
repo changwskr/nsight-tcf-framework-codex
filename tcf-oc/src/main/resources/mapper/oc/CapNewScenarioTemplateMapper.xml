@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nh.nsight.marketing.oc.capnew.persistence.mapper.CapNewScenarioTemplateMapper">
+
+    <select id="selectAllEnabled" resultType="com.nh.nsight.marketing.oc.capnew.persistence.dto.CapNewScenarioTemplateRow">
+        SELECT
+            TEMPLATE_CODE,
+            LABEL,
+            DESCRIPTION,
+            PURPOSE,
+            TARGET_ENV,
+            VM_PROFILE_CODE,
+            TOTAL_USERS,
+            DESIGN_PEAK_TPS,
+            DEPLOYMENT_AP,
+            MAX_THREADS,
+            POOL_PER_VM,
+            SORT_ORDER,
+            ENABLED,
+            SEED_PAYLOAD,
+            CAST(CREATED_AT AS VARCHAR) AS CREATED_AT,
+            CAST(UPDATED_AT AS VARCHAR) AS UPDATED_AT
+        FROM CAP_NEW_SCENARIO_TEMPLATE
+        WHERE ENABLED = 'Y'
+        ORDER BY SORT_ORDER, TEMPLATE_CODE
+    </select>
+
+    <select id="selectByCode" resultType="com.nh.nsight.marketing.oc.capnew.persistence.dto.CapNewScenarioTemplateRow">
+        SELECT
+            TEMPLATE_CODE,
+            LABEL,
+            DESCRIPTION,
+            PURPOSE,
+            TARGET_ENV,
+            VM_PROFILE_CODE,
+            TOTAL_USERS,
+            DESIGN_PEAK_TPS,
+            DEPLOYMENT_AP,
+            MAX_THREADS,
+            POOL_PER_VM,
+            SORT_ORDER,
+            ENABLED,
+            SEED_PAYLOAD,
+            CAST(CREATED_AT AS VARCHAR) AS CREATED_AT,
+            CAST(UPDATED_AT AS VARCHAR) AS UPDATED_AT
+        FROM CAP_NEW_SCENARIO_TEMPLATE
+        WHERE TEMPLATE_CODE = #{templateCode}
+    </select>
+
+    <insert id="insert" parameterType="com.nh.nsight.marketing.oc.capnew.persistence.dto.CapNewScenarioTemplateRow">
+        INSERT INTO CAP_NEW_SCENARIO_TEMPLATE (
+            TEMPLATE_CODE, LABEL, DESCRIPTION, PURPOSE, TARGET_ENV,
+            VM_PROFILE_CODE, TOTAL_USERS, DESIGN_PEAK_TPS, DEPLOYMENT_AP,
+            MAX_THREADS, POOL_PER_VM, SORT_ORDER, ENABLED, SEED_PAYLOAD
+        ) VALUES (
+            #{templateCode}, #{label}, #{description}, #{purpose}, #{targetEnv},
+            #{vmProfileCode}, #{totalUsers}, #{designPeakTps}, #{deploymentAp},
+            #{maxThreads}, #{poolPerVm}, #{sortOrder}, #{enabled}, #{seedPayload}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.nh.nsight.marketing.oc.capnew.persistence.dto.CapNewScenarioTemplateRow">
+        UPDATE CAP_NEW_SCENARIO_TEMPLATE
+        SET LABEL = #{label},
+            DESCRIPTION = #{description},
+            PURPOSE = #{purpose},
+            TARGET_ENV = #{targetEnv},
+            VM_PROFILE_CODE = #{vmProfileCode},
+            TOTAL_USERS = #{totalUsers},
+            DESIGN_PEAK_TPS = #{designPeakTps},
+            DEPLOYMENT_AP = #{deploymentAp},
+            MAX_THREADS = #{maxThreads},
+            POOL_PER_VM = #{poolPerVm},
+            SORT_ORDER = #{sortOrder},
+            ENABLED = #{enabled},
+            SEED_PAYLOAD = #{seedPayload},
+            UPDATED_AT = CURRENT_TIMESTAMP
+        WHERE TEMPLATE_CODE = #{templateCode}
+    </update>
+</mapper>

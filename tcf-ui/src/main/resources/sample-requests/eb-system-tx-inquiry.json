@@ -1,0 +1,30 @@
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "EB",
+    "serviceId": "EB.SystemTx.inquiry",
+    "transactionCode": "EB-STX-0001",
+    "serviceName": "시스템 거래 현황",
+    "processingType": "INQUIRY",
+    "guid": "",
+    "traceId": "",
+    "channelId": "WEBTOP",
+    "userId": "ADMIN",
+    "branchId": "001",
+    "requestTime": "2026-07-14T10:30:00+09:00",
+    "systemDate": "20260714",
+    "bizDate": "20260714",
+    "clientIp": "127.0.0.1"
+  },
+  "body": {
+    "pageNo": 1,
+    "pageSize": 20,
+    "txDateFrom": "2026-03-05T09:00",
+    "txDateTo": "2026-03-06T23:59",
+    "txType": "",
+    "txSeqNo": "",
+    "empNo": "",
+    "screenId": "",
+    "serviceId": ""
+  }
+}

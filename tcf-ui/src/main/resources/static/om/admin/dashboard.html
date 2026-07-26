@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 운영 대시보드</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260627c"></script>
+  <script>
+    OmAdmin.initPage('dashboard', '운영 대시보드', async (el) => {
+      const REFRESH_MS = 60_000;
+
+      el.innerHTML = `
+        <div class="om-toolbar" style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px">
+          <button class="btn-secondary" id="dashboardResetBtn" type="button">DB 초기화</button>
+        </div>
+        <div id="dashboardBody"></div>`;
+      const bodyEl = el.querySelector('#dashboardBody');
+
+      document.getElementById('dashboardResetBtn').addEventListener('click', async () => {
+        if (!confirm(
+          '대시보드 스냅샷 DB(OM_AP_STATUS, OM_DB_STATUS, OM_SESSION_STATUS, OM_DEPLOY_STATUS)를 초기화하고\n'
+          + 'tcf-batch 수집을 즉시 재실행합니다.\n\n'
+          + '거래로그·사용자·메뉴 등 운영 데이터는 삭제되지 않습니다.\n계속하시겠습니까?'
+        )) {
+          return;
+        }
+        const resetReason = prompt('초기화 사유 (5자 이상, 감사로그에 기록됩니다):');
+        if (!resetReason || resetReason.trim().length < 5) {
+          alert('초기화 사유를 5자 이상 입력해야 합니다.');
+          return;
+        }
+        const btn = document.getElementById('dashboardResetBtn');
+        btn.disabled = true;
+        try {
+          const { body } = await OmAdmin.mutate('dashboardReset', {
+            confirmCode: 'RESET_DASHBOARD',
+            resetReason: resetReason.trim()
+          }, 'EXECUTE');
+          const deleted = (body.deletedApCount ?? 0) + (body.deletedDbCount ?? 0)
+            + (body.deletedSessionCount ?? 0) + (body.deletedDeployCount ?? 0);
+          alert(`${body.message || '초기화 완료'}\n삭제 행: ${deleted}건`);
+          await renderDashboard();
+        } catch (e) {
+          OmAdmin.showErrorBanner(el, e.message);
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      const formatCheckedAt = (value) => {
+        const s = String(value || '');
+        if (!s) return '-';
+        if (s.length >= 19) return s.substring(0, 19).replace('T', ' ');
+        return s;
+      };
+
+      const renderDashboard = async () => {
+        const baseDate = OmAdmin.todayIsoDate();
+        const { body } = await OmAdmin.inquiry('dashboard', { baseDate });
+
+        const statusClass = (body.overallStatus || 'NORMAL').toLowerCase();
+        const statusLabel = body.overallStatus === 'WARN' ? '주의' : body.overallStatus === 'CRITICAL' ? '장애' : '정상';
+        const summary = body.transactionSummary || {};
+        const batchAt = formatCheckedAt(body.batchLastCollectedAt);
+        const batchLabel = OmAdmin.resolveBatchLabel();
+        const staleHint = body.batchDataStale
+          ? `<span class="om-stat-pill" style="background:#fff3cd;color:#856404">배치 미수집 · ${batchLabel} 기동 확인</span>`
+          : `<span class="om-stat-pill">배치 수집 ${batchAt}</span>`;
+
+        const apRows = (body.apStatus || []).map(r => `
+          <tr>
+            <td>${OmAdmin.field(r, 'apName')}</td>
+            <td>${OmAdmin.chipForHealth(OmAdmin.field(r, 'healthStatus'))}</td>
+            <td>${OmAdmin.field(r, 'cpuUsagePct')}%</td>
+            <td>${OmAdmin.field(r, 'heapUsagePct')}%</td>
+            <td>${OmAdmin.field(r, 'threadCount')}</td>
+          </tr>`).join('') || `<tr><td colspan="5" class="om-empty">데이터 없음 · ${batchLabel} 기동 후 5분 이내 자동 수집</td></tr>`;
+
+        const dbRows = (body.dbStatus || []).map(r => `
+          <tr>
+            <td>${OmAdmin.field(r, 'dbName')}</td>
+            <td>${OmAdmin.chipForHealth(OmAdmin.field(r, 'healthStatus'))}</td>
+            <td>${OmAdmin.field(r, 'poolUsagePct', 0)}%</td>
+          </tr>`).join('') || '<tr><td colspan="3" class="om-empty">배치 수집 전 · tcf-batch BAT-BATCH-002 실행 필요</td></tr>';
+
+        const sessionRows = (body.sessionStatus || []).map(r => `
+          <tr>
+            <td>${OmAdmin.field(r, 'scopeName')}</td>
+            <td>${OmAdmin.chipForHealth(OmAdmin.field(r, 'healthStatus'))}</td>
+            <td>${OmAdmin.field(r, 'activeCount', 0)}</td>
+            <td>${OmAdmin.field(r, 'expiredCount', 0)}</td>
+            <td>${OmAdmin.field(r, 'uniqueUserCount', 0)}</td>
+          </tr>`).join('') || '<tr><td colspan="5" class="om-empty">배치 수집 전 · tcf-batch 실행 필요</td></tr>';
+
+        const recentWindow = body.recentWindowMinutes ?? body.slowTransactionWindowMinutes ?? 15;
+
+        const formatTxTime = (value) => {
+          const s = String(value || '');
+          if (s.length >= 19) return s.substring(11, 19);
+          return s || '-';
+        };
+
+        const formatDeployTime = (value) => {
+          const s = String(value || '');
+          if (!s || s === '-') return '-';
+          if (s.length >= 19) return s.substring(0, 19).replace('T', ' ');
+          return s;
+        };
+
+        const slowTxRows = (body.slowTransactionTop || []).map((r, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td class="om-mono">${formatTxTime(OmAdmin.field(r, 'txTime'))}</td>
+            <td>${OmAdmin.field(r, 'businessCode')}</td>
+            <td class="om-mono">${OmAdmin.field(r, 'serviceId')}</td>
+            <td>${OmAdmin.field(r, 'userId')}</td>
+            <td>${OmAdmin.chipForResult(OmAdmin.field(r, 'resultStatus'))}</td>
+            <td><strong>${OmAdmin.field(r, 'elapsedTimeMs', 0)}</strong>ms</td>
+          </tr>`).join('') || `<tr><td colspan="7" class="om-empty">최근 ${recentWindow}분 내 거래 없음</td></tr>`;
+
+        const errorRows = (body.errorTop || []).map(r => `
+          <tr>
+            <td class="om-mono">${OmAdmin.field(r, 'serviceId')}</td>
+            <td class="om-mono">${OmAdmin.field(r, 'errorCode')}</td>
+            <td>${OmAdmin.field(r, 'errorCount')}</td>
+          </tr>`).join('') || `<tr><td colspan="3" class="om-empty">최근 ${recentWindow}분 내 오류 없음</td></tr>`;
+
+        const deployRows = (body.deployStatus || []).map(r => `
+          <tr>
+            <td>${OmAdmin.field(r, 'businessCode')}</td>
+            <td class="om-mono">${OmAdmin.field(r, 'warName')}</td>
+            <td>${OmAdmin.field(r, 'warVersion')}</td>
+            <td>${OmAdmin.chipForHealth(OmAdmin.field(r, 'healthStatus'))}</td>
+            <td class="om-mono">${formatDeployTime(OmAdmin.field(r, 'deployedAt'))}</td>
+          </tr>`).join('') || '<tr><td colspan="5" class="om-empty">배치 수집 전 · tcf-batch BAT-BATCH-004 실행 필요</td></tr>';
+
+        bodyEl.innerHTML = `
+          <div class="om-alert info">기준일 <strong>${body.baseDate || baseDate}</strong> · 60초마다 자동 갱신 · ${batchLabel} 5분 주기 수집</div>
+          <section class="om-status-banner ${statusClass}">
+            <div class="om-status-main ${statusClass}">전체 상태: ${statusLabel}</div>
+            ${staleHint}
+            <span class="om-stat-pill">오류율 ${body.errorRatePct ?? 0}%</span>
+            <span class="om-stat-pill">Timeout ${body.timeoutCount ?? summary.timeoutCount ?? 0}건</span>
+            <span class="om-stat-pill">금일 거래 ${summary.totalCount ?? 0}건</span>
+            <span class="om-stat-pill">평균 응답 ${Math.round(summary.avgElapsedMs ?? body.avgElapsedMs ?? 0)}ms</span>
+            <span class="om-stat-pill">활성 세션 ${body.activeSessionCount ?? 0}</span>
+            <span class="om-stat-pill">만료 세션 ${body.expiredSessionCount ?? 0}</span>
+            <span class="om-stat-pill">로그인 사용자 ${body.uniqueUserCount ?? 0}</span>
+          </section>
+
+          <div class="om-grid-3">
+            <div class="om-card">
+              <div class="om-card-head">AP 상태 (tcf-batch 수집)</div>
+              <div class="om-card-body om-table-wrap">
+                <table class="om-table"><thead><tr><th>서버</th><th>상태</th><th>CPU</th><th>Heap</th><th>Thread</th></tr></thead><tbody>${apRows}</tbody></table>
+              </div>
+            </div>
+            <div class="om-card">
+              <div class="om-card-head">DB 상태 (공유 nsight_om · tcf-batch 수집)</div>
+              <div class="om-card-body om-table-wrap">
+                <table class="om-table"><thead><tr><th>DB</th><th>상태</th><th>Pool</th></tr></thead><tbody>${dbRows}</tbody></table>
+              </div>
+            </div>
+            <div class="om-card">
+              <div class="om-card-head">세션 현황 (tcf-batch 수집)</div>
+              <div class="om-card-body om-table-wrap">
+                <table class="om-table">
+                  <thead><tr><th>범위</th><th>상태</th><th>활성</th><th>만료</th><th>사용자</th></tr></thead>
+                  <tbody>${sessionRows}</tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="om-card">
+            <div class="om-card-head">최근 ${recentWindow}분 소요 Top 10</div>
+            <div class="om-card-body om-table-wrap">
+              <table class="om-table">
+                <thead><tr><th>#</th><th>거래시각</th><th>업무</th><th>ServiceId</th><th>사용자</th><th>결과</th><th>소요</th></tr></thead>
+                <tbody>${slowTxRows}</tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="om-grid-2">
+            <div class="om-card">
+              <div class="om-card-head">최근 ${recentWindow}분 오류 Top 10</div>
+              <div class="om-card-body om-table-wrap">
+                <table class="om-table"><thead><tr><th>ServiceId</th><th>오류코드</th><th>건수</th></tr></thead><tbody>${errorRows}</tbody></table>
+              </div>
+            </div>
+            <div class="om-card">
+              <div class="om-card-head">배포 현황 (tcf-batch 수집)</div>
+              <div class="om-card-body om-table-wrap">
+                <table class="om-table"><thead><tr><th>업무</th><th>WAR</th><th>버전</th><th>상태</th><th>배포일시</th></tr></thead><tbody>${deployRows}</tbody></table>
+              </div>
+            </div>
+          </div>`;
+      };
+
+      await renderDashboard();
+      setInterval(() => {
+        renderDashboard().catch(err => console.error('dashboard refresh failed', err));
+      }, REFRESH_MS);
+    }).catch(err => alert(err.message));
+  </script>
+</body>
+</html>

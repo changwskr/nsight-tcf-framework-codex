@@ -1,0 +1,74 @@
+[
+  {
+    "label": "JWT 로그인 (Access + Refresh 발급)",
+    "sampleFile": "jwt-sample-inquiry.json"
+  },
+  {
+    "label": "Refresh Token 갱신",
+    "sampleRequest": {
+      "header": {
+        "systemId": "NSIGHT-AUTH",
+        "businessCode": "JWT",
+        "serviceId": "JWT.Auth.refresh",
+        "transactionCode": "JWT-AUT-0002",
+        "processingType": "EXECUTE",
+        "guid": "",
+        "traceId": "",
+        "channelId": "WEBTOP",
+        "userId": "admin01",
+        "branchId": "000001",
+        "requestTime": "2026-06-27T14:00:00+09:00",
+        "clientIp": "127.0.0.1"
+      },
+      "body": {
+        "refreshToken": "REPLACE_WITH_REFRESH_TOKEN"
+      }
+    }
+  },
+  {
+    "label": "Access Token 폐기 (Denylist)",
+    "sampleRequest": {
+      "header": {
+        "systemId": "NSIGHT-AUTH",
+        "businessCode": "JWT",
+        "serviceId": "JWT.Auth.revoke",
+        "transactionCode": "JWT-AUT-0003",
+        "processingType": "EXECUTE",
+        "guid": "",
+        "traceId": "",
+        "channelId": "WEBTOP",
+        "userId": "admin01",
+        "branchId": "000001",
+        "requestTime": "2026-06-27T14:00:00+09:00",
+        "clientIp": "127.0.0.1"
+      },
+      "body": {
+        "accessToken": "REPLACE_WITH_ACCESS_TOKEN",
+        "reason": "REVOKE"
+      }
+    }
+  },
+  {
+    "label": "로그아웃 (Access + Refresh 폐기)",
+    "sampleRequest": {
+      "header": {
+        "systemId": "NSIGHT-AUTH",
+        "businessCode": "JWT",
+        "serviceId": "JWT.Auth.logout",
+        "transactionCode": "JWT-AUT-0004",
+        "processingType": "EXECUTE",
+        "guid": "",
+        "traceId": "",
+        "channelId": "WEBTOP",
+        "userId": "admin01",
+        "branchId": "000001",
+        "requestTime": "2026-06-27T14:00:00+09:00",
+        "clientIp": "127.0.0.1"
+      },
+      "body": {
+        "accessToken": "REPLACE_WITH_ACCESS_TOKEN",
+        "refreshToken": "REPLACE_WITH_REFRESH_TOKEN"
+      }
+    }
+  }
+]

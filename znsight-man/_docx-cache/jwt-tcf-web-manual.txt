@@ -1,0 +1,238 @@
+맞습니다. 클라이언트가 tcf-gateway를 통과하지 않고 업무 WAR/Tomcat으로 직접 들어올 가능성이 있다면, 업무 WAR 쪽에서도 JWT 유효성 검증을 해야 합니다.
+다만 정확히 말하면, tcf-core 안에 직접 JwtDecoder를 넣기보다는, 업무 WAR의 공통 진입 계층인 tcf-web 또는 공통 Filter/Interceptor에서 토큰을 검증하고, tcf-core의 STF에서는 검증 결과와 전문 Header가 맞는지 2차 확인하는 구조가 가장 좋습니다.
+
+1. 결론
+상황
+JWT 검증 위치
+모든 요청이 반드시 Gateway를 통과
+Gateway에서 JWT 검증, TCF는 2차 정합성 확인
+업무 WAR/Tomcat 직접 호출 가능
+업무 WAR 앞단에서도 JWT 검증 필요
+업무 WAR 직접 호출을 네트워크에서 차단 가능
+Gateway 검증 중심으로 충분
+업무 WAR 직접 호출 차단이 불완전
+Gateway + 업무 WAR 이중 검증 필요
+즉, Gateway 우회 가능성이 있다면 업무 WAR도 스스로 방어해야 합니다.
+
+2. 왜 필요한가
+현재 tcf-core는 표준 전문 모델, 거래 컨텍스트, STF/TCF/ETF 처리기, Dispatcher를 제공하는 핵심 프레임워크 모듈로 설명되어 있고, 처리 흐름도 TCF.process() 안에서 STF.preProcess()가 Header 검증, GUID/TraceId, 세션·권한, 멱등성, 거래통제, Timeout 정책을 수행하는 구조로 되어 있습니다. (GitHub)
+현재 STF.preProcess() 실제 흐름도 Header 검증 후 GUID/TraceId를 만들고, SessionValidator, AuthorizationValidator, 거래통제, Timeout, 멱등성, 거래로그 시작 순서로 실행됩니다. (GitHub)
+그런데 현재 SessionValidator는 header.userId가 있는지만 확인하고, AuthorizationValidator도 branchId 존재 여부만 확인하는 단순 구조입니다. (GitHub) 즉, 업무 WAR로 직접 들어온 요청이 Header에 userId와 branchId만 임의로 넣으면, 지금 구조만으로는 “진짜 인증된 사용자냐”를 충분히 확인하기 어렵습니다.
+
+3. 쉽게 비유하면
+Gateway는 정문 경비원입니다.TCF는 교실 앞 담임 선생님입니다.
+정상 구조는 이렇습니다.
+학생
+  ↓
+정문 경비원
+  - 학생증 진짜인지 확인
+  - 유효기간 확인
+  - 위조 여부 확인
+  ↓
+교실 앞 담임
+  - 이 학생이 이 수업을 들어도 되는지 확인
+
+그런데 학생이 정문을 안 지나고 창문으로 교실에 바로 들어올 수 있다면?
+학생
+  ↓
+정문 우회
+  ↓
+교실 직접 진입
+
+이 경우 담임 선생님도 최소한 학생증을 확인해야 합니다.시스템으로 말하면, Gateway를 우회할 수 있다면 업무 WAR도 JWT를 검증해야 합니다.
+
+4. 가장 좋은 구조
+권장 구조
+클라이언트
+   ↓
+업무 WAR / Tomcat 직접 호출
+   ↓
+tcf-web 공통 JWT Filter
+   - Authorization: Bearer 토큰 확인
+   - JwtDecoder 검증
+   - exp / iss / aud / signature 확인
+   - denylist 확인
+   - 인증 컨텍스트 생성
+   ↓
+OnlineTransactionController
+   ↓
+TCF.process()
+   ↓
+STF.preProcess()
+   - Header 검증
+   - 인증 컨텍스트와 Header 비교
+   - 권한 검증
+   - 거래통제
+   - Timeout
+   ↓
+Handler 실행
+
+핵심은 이것입니다.
+토큰 자체 검증은 업무 WAR 앞단 Filter에서 하고, TCF Core는 검증된 사용자 정보와 전문 Header가 일치하는지 확인한다.
+
+5. tcf-core에 직접 넣는 것과 tcf-web에 넣는 것의 차이
+위치
+역할
+적합성
+tcf-gateway
+Gateway 경유 요청의 JWT 검증
+적합
+tcf-web Filter/Interceptor
+업무 WAR 직접 호출 시 JWT 검증
+적합
+tcf-core STF
+인증 결과와 전문 Header 정합성 확인
+적합
+tcf-core 안에서 직접 JwtDecoder 실행
+토큰 서명·만료 직접 검증
+비추천
+왜 tcf-core에 직접 JwtDecoder를 넣는 것은 비추천이냐면, tcf-core는 HTTP Header를 직접 다루는 보안 필터 계층이 아니라, 표준 전문과 거래 실행을 처리하는 코어 엔진이기 때문입니다. tcf-core의 Header 모델인 StandardHeader는 businessCode, serviceId, transactionCode, channelId, userId, branchId 같은 전문 Header 값을 담는 구조입니다. (GitHub) JWT 원문인 Authorization Header는 이 모델의 본래 책임이 아닙니다.
+
+6. 권장 구현 방식
+6.1 업무 WAR 앞단에 추가
+공통 모듈은 tcf-web 쪽에 두는 것이 좋습니다.
+tcf-web
+ └─ security
+     ├─ TcfJwtAuthenticationFilter
+     ├─ TcfJwtAuthenticationProvider
+     ├─ AuthenticatedUserContext
+     └─ AuthenticatedUserContextHolder
+
+이 Filter가 하는 일은 다음입니다.
+단계
+처리
+1
+Authorization Header 확인
+2
+Bearer 토큰 추출
+3
+JwtDecoder.decode() 수행
+4
+서명, 만료, issuer, audience 검증
+5
+jti Denylist 확인
+6
+userId, branchId, channelId, jti 추출
+7
+AuthenticatedUserContext 저장
+8
+이후 TCF.process()로 전달
+
+6.2 tcf-core STF에는 2차 검증 추가
+tcf-core에는 AuthenticationContextValidator 같은 것을 추가합니다.
+tcf-core
+ └─ security
+     ├─ SessionValidator
+     ├─ AuthorizationValidator
+     └─ AuthenticationContextValidator
+
+역할은 이것입니다.
+검증
+설명
+인증 컨텍스트 존재 여부
+앞단 Filter 또는 Gateway에서 인증한 정보가 있는지 확인
+userId 일치
+JWT userId와 전문 Header userId 비교
+branchId 일치
+JWT branchId와 전문 Header branchId 비교
+channelId 일치
+JWT channelId와 전문 Header channelId 비교
+jti 기록
+거래로그·감사로그에 토큰 ID 기록
+불일치 시 차단
+401 또는 403 반환
+
+7. STF 처리 순서 권장
+현재 STF.preProcess()는 Header 검증, 세션 검증, 권한 검증, 거래통제, Timeout, 멱등성, 거래로그 시작 순서로 되어 있습니다. (GitHub) 여기에 인증 컨텍스트 검증을 추가한다면 다음 순서가 좋습니다.
+STF.preProcess()
+  1. Header 검증
+  2. GUID / TraceId 생성
+  3. Session 검증
+  4. AuthenticationContext 검증   ← 추가
+  5. Authorization 검증
+  6. 거래통제
+  7. Timeout 정책
+  8. Idempotency
+  9. 거래로그 시작
+
+
+8. 직접 호출을 허용할 때의 최종 기준
+업무 WAR 직접 호출 가능성이 있으면 아래 기준을 적용하는 것이 좋습니다.
+항목
+기준
+업무 WAR 직접 호출
+가능하다면 네트워크에서 차단
+차단 불가 시
+업무 WAR 앞단에서 JWT 검증 필수
+검증 위치
+tcf-web 공통 Filter
+검증 방식
+Gateway와 동일한 JwtDecoder + JWKS + issuer + audience
+Denylist
+Gateway뿐 아니라 업무 WAR도 확인
+TCF Core
+인증 결과와 전문 Header 비교
+Header 위조 방지
+클라이언트가 보낸 userId/branchId를 그대로 신뢰하지 않음
+Token 원문 로그
+금지
+업무 실행
+JWT 검증 + TCF 거래통제 통과 후 실행
+
+9. 최종 구조 비교
+Gateway 경유만 허용하는 경우
+클라이언트
+  ↓
+Gateway
+  - JWT 검증
+  ↓
+업무 WAR
+  ↓
+TCF
+  - Header와 인증정보 비교
+  - 권한/거래통제
+
+Gateway 우회 가능성이 있는 경우
+클라이언트
+  ↓
+업무 WAR / Tomcat
+  ↓
+tcf-web JWT Filter
+  - JWT 검증
+  ↓
+TCF
+  - Header와 인증정보 비교
+  - 권한/거래통제
+
+가장 안전한 운영 구조
+클라이언트
+  ↓
+Apache / L4
+  ↓
+Gateway
+  - 1차 JWT 검증
+  ↓
+업무 WAR
+  - 2차 JWT 검증 또는 Gateway 인증 Header 검증
+  ↓
+TCF
+  - Header 정합성
+  - 권한
+  - 거래통제
+  - Timeout
+
+
+10. 결론
+네, Gateway를 통과하지 않고 업무 WAR/Tomcat으로 직접 들어올 수 있다면 TCF 영역에서도 토큰 유효성 처리가 필요합니다.
+다만 설계상 더 정확한 표현은 다음입니다.
+JWT 원문의 서명·만료·issuer·audience 검증은 tcf-web의 공통 JWT Filter에서 수행하고, tcf-core의 STF에서는 검증된 사용자 정보와 전문 Header의 userId·branchId·channelId가 일치하는지 확인한다.
+따라서 최종 권장안은 이렇습니다.
+1. 업무 WAR 직접 접근은 인프라에서 최대한 차단한다.
+2. 그래도 직접 접근 가능성이 있으면 업무 WAR 앞단에 JWT Filter를 둔다.
+3. JWT Filter는 Gateway와 동일한 기준으로 토큰을 검증한다.
+4. TCF Core는 JwtDecoder를 직접 갖기보다 인증 결과와 전문 Header를 비교한다.
+5. 권한, 거래통제, Timeout, 거래로그는 기존 TCF 흐름에서 처리한다.
+
+한 줄로 정리하면:
+직접 호출 가능성이 있다면 업무 WAR도 JWT를 검증해야 하고, 그 검증은 tcf-core 안보다는 tcf-web 앞단 Filter에 두는 것이 가장 합당합니다.
+

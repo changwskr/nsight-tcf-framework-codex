@@ -1,0 +1,8 @@
+# local — bootRun / 공통 거래로그 DS 기본
+nsight:
+  tcf:
+    transaction-log-datasource:
+      url: jdbc:h2:file:${nsight.txlog.path:./data/nsight-txlog}/nsight_om;MODE=Oracle;AUTO_SERVER=TRUE;DATABASE_TO_UPPER=false
+      username: sa
+      password:
+      driver-class-name: org.h2.Driver

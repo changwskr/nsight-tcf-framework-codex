@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ENV-003 TPS·VM · NSIGHT OC</title>
+  <script src="/_shared/ui-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css"/>
+  <link rel="stylesheet" href="/_shared/oc-capacity.css"/>
+  <link rel="stylesheet" href="/_shared/oc-env.css"/>
+</head>
+<body class="tcf-env-page" data-env-page="env003" data-env-title="ENV-003 TPS·VM · NSIGHT OC" data-env-subtitle="ENV-003 — TPS·VM 산정 결과">
+<div id="envPageShell"></div>
+<div id="statusBar" class="status-bar hidden" role="status"></div>
+
+<main class="env-layout">
+    <div id="envNoDataBanner" class="env-no-data-banner">
+        <p>산정 결과가 없습니다. <a href="/oc/env-002.html">ENV-002</a>에서 「산정 실행」 후 다시 열어 주세요.</p>
+    </div>
+
+    <section class="card env-screen" id="env003Section">
+        <div class="card-title row-title">
+            <div>
+                <h2>ENV-003 TPS·VM 산정 결과</h2>
+                <p id="env003ScenarioLabel">시나리오: —</p>
+            </div>
+            <button type="button" class="secondary env-export-excel-btn" data-env-export="ENV003">Excel 다운로드</button>
+        </div>
+
+        <div id="env003Summary" class="env003-summary env003-summary--empty" aria-label="산정 요약">
+            <p class="env003-summary__placeholder">ENV-002에서 산정 실행 후 요약 지표가 표시됩니다.</p>
+        </div>
+
+        <details class="env003-guide-panel" open>
+            <summary class="env003-guide-panel__summary">표 항목 · 산식 설명</summary>
+            <div id="env003FormulaGuide" class="env-env003-guide env-env003-guide--empty" role="region" aria-label="ENV-003 표 항목 설명">
+                <p class="env-env003-guide__placeholder">「산정 실행」 후 아래에 <strong>열 정의표</strong>와 <strong>계산 예시</strong>가 표시됩니다.</p>
+            </div>
+        </details>
+
+        <div class="env003-table-section">
+            <div class="env003-table-section__head">
+                <h3>시나리오별 산정 결과</h3>
+                <p class="env003-table-legend">
+                    <span class="env003-legend-item env003-legend-item--ok">정상</span>
+                    <span class="env003-legend-item env003-legend-item--warn">경고</span>
+                    <span class="env003-legend-item env003-legend-item--crit">위험</span>
+                    · 행 = 요청률(%) + 응답 Timeout(초) 조합
+                </p>
+            </div>
+            <div class="table-wrap table-wrap--sticky-head env003-table-wrap">
+                <table class="dump-report__table dump-report__table--data dump-report__table--env-vm-result">
+                    <thead>
+                    <tr class="env003-group-head">
+                        <th colspan="4" scope="colgroup">부하 시나리오</th>
+                        <th colspan="5" scope="colgroup">VM 산정</th>
+                        <th colspan="4" scope="colgroup">VM당 리소스</th>
+                        <th scope="colgroup">판정</th>
+                    </tr>
+                    <tr>
+                        <th scope="col">요청률 / 초</th>
+                        <th scope="col">실요청자</th>
+                        <th scope="col">목표 TPS</th>
+                        <th scope="col">TPMC</th>
+                        <th scope="col">VM 사양</th>
+                        <th scope="col">VM TPS(35)</th>
+                        <th scope="col">필요 VM</th>
+                        <th scope="col">A-A 권장</th>
+                        <th scope="col">JVM Heap</th>
+                        <th scope="col">WAS Threads</th>
+                        <th scope="col">DB Pool</th>
+                        <th scope="col">Pool 합계</th>
+                        <th scope="col">상태</th>
+                    </tr>
+                    </thead>
+                    <tbody id="capVmResultBody">
+                    <tr><td colspan="13" class="env-empty-cell">ENV-002 조건 입력 후 산정 실행</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <p class="env-screen-footer-hint"><a href="/oc/env-002.html">← ENV-002 조건</a> · <a href="/oc/env-004.html">ENV-004 계층 점검 →</a></p>
+    </section>
+</main>
+
+  <script src="/_shared/oc-env-layout.js"></script>
+  <script src="/_shared/oc-env-planner.js"></script>
+  <script src="/_shared/oc-env-export.js"></script>
+</body>
+</html>

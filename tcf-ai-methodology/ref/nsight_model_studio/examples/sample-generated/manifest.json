@@ -1,0 +1,32 @@
+{
+  "generator": "NSIGHT Model Studio",
+  "version": "0.1.0",
+  "modelCount": 1,
+  "serviceIds": [
+    "SV.Customer.selectSummary"
+  ],
+  "businessCodes": [
+    "SV"
+  ],
+  "files": [
+    "QUALITY_GATE.md",
+    "db/ddl/SV_CUSTOMER.sql",
+    "db/om/SV_Customer_selectSummary_OM_SERVICE_CATALOG.sql",
+    "docs/TRACEABILITY_MATRIX.csv",
+    "docs/screens/SV-CUS-0001_E01.md",
+    "docs/transactions/SV_Customer_selectSummary.md",
+    "requests/SV_Customer_selectSummary.http",
+    "src/main/java/com/nh/nsight/marketing/sv/application/dto/customer/CustomerSummaryCriteria.java",
+    "src/main/java/com/nh/nsight/marketing/sv/application/dto/customer/CustomerSummaryRequest.java",
+    "src/main/java/com/nh/nsight/marketing/sv/application/dto/customer/CustomerSummaryResponse.java",
+    "src/main/java/com/nh/nsight/marketing/sv/application/rule/SvCustomerRule.java",
+    "src/main/java/com/nh/nsight/marketing/sv/application/service/SvCustomerService.java",
+    "src/main/java/com/nh/nsight/marketing/sv/entry/facade/SvCustomerFacade.java",
+    "src/main/java/com/nh/nsight/marketing/sv/entry/handler/SvCustomerHandler.java",
+    "src/main/java/com/nh/nsight/marketing/sv/persistence/dao/SvCustomerDao.java",
+    "src/main/java/com/nh/nsight/marketing/sv/persistence/dto/customer/CustomerSummaryRow.java",
+    "src/main/java/com/nh/nsight/marketing/sv/persistence/mapper/SvCustomerMapper.java",
+    "src/main/resources/mapper/sv/SvCustomerMapper.xml",
+    "src/test/java/com/nh/nsight/marketing/sv/application/rule/SvCustomerRuleTest.java"
+  ]
+}

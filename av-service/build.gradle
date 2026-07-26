@@ -1,0 +1,31 @@
+// AV 업무 서비스
+// 빌드: gradle :av-service:bootWar
+// 실행: gradle :av-service:bootRun  (포트 8101 — 8084는 tcf-ui 모듈 정의상 BC 예약)
+
+plugins {
+    id 'org.springframework.boot'
+    id 'war'
+}
+
+dependencies {
+    implementation project(':tcf-util')
+    implementation project(':tcf-core')
+    implementation project(':tcf-web')
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation 'org.springframework.session:spring-session-jdbc'
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
+    runtimeOnly 'com.h2database:h2'
+    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+}
+
+bootWar {
+    archiveFileName = 'av.war'
+}
+
+war {
+    archiveFileName = 'av.war'
+}

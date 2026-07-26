@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NSIGHT TCF HELP · 문서</title>
+  <script src="/_shared/ui-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/help-viewer.css">
+</head>
+<body class="tcf-home tcf-help-viewer">
+  <div class="tcf-main">
+    <header class="tcf-topbar" style="grid-column: 1 / -1;">
+      <div class="tcf-topbar__brand">
+        <h1 id="helpViewerTitle">HELP 문서</h1>
+        <p id="helpViewerBreadcrumb">HELP</p>
+      </div>
+      <nav class="tcf-topbar__nav" aria-label="주요 섹션">
+        <a class="tcf-topbar__link" href="/help.html" data-help-ui-link>HELP 홈</a>
+        <a class="tcf-topbar__link" href="/index.html#moduleSection" data-help-ui-link>업무 모듈</a>
+        <a class="tcf-topbar__link" href="/oc/index.html" data-help-ui-link>OC 포털</a>
+        <a class="tcf-topbar__link tcf-topbar__link--active" href="/help/view.html" data-help-ui-link>문서</a>
+        <span class="badge">TCF</span>
+      </nav>
+    </header>
+
+    <aside class="help-viewer-sidebar">
+      <input type="search" id="helpViewerSearch" class="help-viewer-search" placeholder="문서 검색…" aria-label="문서 검색"/>
+      <nav id="helpViewerNav" aria-label="HELP 문서 목록"></nav>
+    </aside>
+
+    <main class="help-viewer-content">
+      <article id="helpViewerArticle" class="help-viewer-article">
+        <p class="help-viewer-empty">문서를 불러오는 중…</p>
+      </article>
+      <nav id="helpViewerPager" class="help-viewer-pager" aria-label="이전·다음 문서"></nav>
+    </main>
+  </div>
+  <script src="/_shared/help-viewer.js"></script>
+  <script>
+    (function () {
+      const input = document.getElementById('helpViewerSearch');
+      const nav = document.getElementById('helpViewerNav');
+      if (!input || !nav) return;
+      input.addEventListener('input', () => {
+        const q = input.value.trim().toLowerCase();
+        nav.querySelectorAll('.help-viewer-nav__link').forEach(link => {
+          const text = link.textContent.toLowerCase();
+          const li = link.closest('li');
+          if (li) li.style.display = !q || text.includes(q) ? '' : 'none';
+        });
+        nav.querySelectorAll('.help-viewer-nav__section').forEach(section => {
+          const visible = section.querySelectorAll('li:not([style*="display: none"])').length;
+          section.style.display = visible ? '' : 'none';
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

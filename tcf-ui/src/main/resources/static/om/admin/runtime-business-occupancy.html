@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 업무 점유 현황</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+  <style>
+    .om-row-dominant td { background: rgba(251, 191, 36, 0.08); font-weight: 500; }
+    .om-row-warn td { background: rgba(239, 68, 68, 0.06); }
+  </style>
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260711j"></script>
+  <script>
+    function formatPct(value) {
+      if (value == null || value === '') return '-';
+      return `${value}%`;
+    }
+
+    function formatNum(value) {
+      if (value == null || value === '') return '-';
+      return Number(value).toLocaleString('ko-KR');
+    }
+
+    function renderRows(rows, columns, emptyText) {
+      if (!rows.length) {
+        return `<tr><td colspan="${columns}" class="om-empty">${emptyText}</td></tr>`;
+      }
+      return rows.join('');
+    }
+
+    function rowClass(pct, dbDisplay) {
+      if (Number(pct) >= 60) return 'om-row-dominant';
+      const parts = String(dbDisplay || '').split('/');
+      if (parts.length === 2 && parts[0] === parts[1] && parts[0] !== '-') {
+        return 'om-row-warn';
+      }
+      return '';
+    }
+
+    async function load(el) {
+      const { body, relay } = await OmAdmin.inquiry('runtimeDiagnostics', { includeDetails: 'N' });
+      const occupancy = body.businessOccupancyAnalysis || {};
+
+      document.getElementById('rtmStatus').textContent =
+        `${relay.elapsedMs}ms · 점검 ${body.checkedAt || '-'} · 전체 ${formatNum(occupancy.totalActiveTransactions)}건`;
+      document.getElementById('scopeNote').textContent = occupancy.scopeNote || '-';
+
+      const rows = (occupancy.rows || []).map(r => `
+        <tr class="${rowClass(r.ownershipPct, r.dbDisplay)}">
+          <td>${OmAdmin.field(r, 'businessCode')}</td>
+          <td>${formatNum(r.activeTransactions)}</td>
+          <td>${formatPct(r.ownershipPct)}</td>
+          <td>${OmAdmin.field(r, 'dbDisplay')}</td>
+          <td>${formatNum(r.slowCount)}</td>
+        </tr>`);
+
+      document.getElementById('occupancyBody').innerHTML =
+        renderRows(rows, 5, '업무 점유 데이터 없음');
+    }
+
+    OmAdmin.initPage('runtime-business-occupancy', '업무 점유 현황', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">
+          설계 15.5 업무 점유 — WAR(업무)별 실행 거래·DB Pool·Slow 집계.
+          <a href="/om/admin/runtime-diagnostics.html" style="margin-left:8px">← 런타임 진단 통합</a>
+          <a href="/om/admin/runtime-dominance-analysis.html" style="margin-left:8px">자원 독점 분석</a>
+          <a href="/om/admin/runtime-active-transactions.html" style="margin-left:8px">실행 중 거래</a>
+        </div>
+        <section class="om-filter-bar">
+          <button class="btn-primary" id="refreshBtn" type="button">새로고침</button>
+          <span id="rtmStatus" style="color:var(--muted);font-size:0.85rem;align-self:center">조회 중...</span>
+        </section>
+
+        <div class="om-card">
+          <div class="om-card-head">15.5 업무 점유 현황</div>
+          <div class="om-card-body om-table-wrap">
+            <table class="om-table">
+              <thead>
+                <tr>
+                  <th>업무</th>
+                  <th>실행 거래</th>
+                  <th>점유율</th>
+                  <th>DB Active</th>
+                  <th>Slow</th>
+                </tr>
+              </thead>
+              <tbody id="occupancyBody">
+                <tr><td colspan="5" class="om-empty">조회 중...</td></tr>
+              </tbody>
+            </table>
+            <div id="scopeNote" style="color:var(--muted);font-size:0.85rem;margin-top:8px">-</div>
+          </div>
+        </div>`;
+
+      document.getElementById('refreshBtn').addEventListener('click', () => {
+        load(el).catch(err => OmAdmin.showErrorBanner(el, err.message));
+      });
+      await load(el);
+      window.setInterval(() => {
+        load(el).catch(() => {});
+      }, 30000);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nh.nsight.marketing.ep.persistence.mapper.EpUserEventMapper">
+
+    <sql id="userEventColumns">
+        EVENT_ID AS eventId,
+        USER_ID AS userId,
+        EVENT_TYPE AS eventType,
+        RECEIVED_AT AS receivedAt
+    </sql>
+
+    <sql id="userEventSearchWhere">
+        <where>
+            <if test="eventId != null and eventId != ''">
+                AND EVENT_ID LIKE CONCAT('%', #{eventId}, '%')
+            </if>
+            <if test="userId != null and userId != ''">
+                AND USER_ID LIKE CONCAT('%', #{userId}, '%')
+            </if>
+            <if test="eventType != null and eventType != ''">
+                AND EVENT_TYPE = #{eventType}
+            </if>
+        </where>
+    </sql>
+
+    <insert id="insertReceivedEvent"
+            parameterType="com.nh.nsight.marketing.ep.persistence.dto.userevent.UserEventInsertRow">
+        INSERT INTO EP_USER_EVENT (EVENT_ID, USER_ID, EVENT_TYPE)
+        VALUES (#{eventId}, #{userId}, #{eventType})
+    </insert>
+
+    <select id="countByEventId" resultType="int">
+        SELECT COUNT(1) FROM EP_USER_EVENT WHERE EVENT_ID = #{eventId}
+    </select>
+
+    <select id="searchReceivedEvents"
+            parameterType="com.nh.nsight.marketing.ep.application.dto.userevent.UserEventSearchCriteria"
+            resultType="com.nh.nsight.marketing.ep.persistence.dto.userevent.UserEventRow">
+        SELECT <include refid="userEventColumns"/>
+          FROM EP_USER_EVENT
+        <include refid="userEventSearchWhere"/>
+         ORDER BY RECEIVED_AT DESC
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+
+    <select id="countReceivedEvents"
+            parameterType="com.nh.nsight.marketing.ep.application.dto.userevent.UserEventSearchCriteria"
+            resultType="int">
+        SELECT COUNT(1)
+          FROM EP_USER_EVENT
+        <include refid="userEventSearchWhere"/>
+    </select>
+
+</mapper>

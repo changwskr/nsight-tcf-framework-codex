@@ -1,0 +1,18 @@
+﻿no,war_file,context_path,description,spring_application_name,health_check
+1,nsight-auth.war,/auth,인증/세션/SSO 연계,auth-service,/auth/actuator/health
+2,nsight-portal.war,/portal,메인 포털/공통 메뉴,portal-service,/portal/actuator/health
+3,nsight-customer-service.war,/customer-service,고객 기본/상세 조회,customer-service,/customer-service/actuator/health
+4,nsight-singleview-service.war,/singleview-service,고객 Single View 조회,singleview-service,/singleview-service/actuator/health
+5,nsight-campaign-service.war,/campaign-service,캠페인 관리/대상자 조회,campaign-service,/campaign-service/actuator/health
+6,nsight-event-service.war,/event-service,이벤트/반응 조회,event-service,/event-service/actuator/health
+7,nsight-platform-service.war,/platform-service,플랫폼 공통/환경관리,platform-service,/platform-service/actuator/health
+8,nsight-ebm-service.war,/ebm-service,EBM Rule/추천/판정,ebm-service,/ebm-service/actuator/health
+9,nsight-message-service.war,/message-service,메시지/템플릿/발송관리,message-service,/message-service/actuator/health
+10,nsight-segment-service.war,/segment-service,고객 세그먼트/조건관리,segment-service,/segment-service/actuator/health
+11,nsight-report-service.war,/report-service,리포트/업무현황 조회,report-service,/report-service/actuator/health
+12,nsight-stat-service.war,/stat-service,통계/성과 지표 조회,stat-service,/stat-service/actuator/health
+13,nsight-admin-service.war,/admin-service,관리자/권한/코드관리,admin-service,/admin-service/actuator/health
+14,nsight-code-service.war,/code-service,공통코드/기준정보 조회,code-service,/code-service/actuator/health
+15,nsight-file-service.war,/file-service,파일 업로드/다운로드 관리,file-service,/file-service/actuator/health
+16,nsight-audit-service.war,/audit-service,감사로그/거래로그 조회,audit-service,/audit-service/actuator/health
+17,nsight-batch-admin.war,/batch-admin,배치 운영/상태조회,batch-admin,/batch-admin/actuator/health

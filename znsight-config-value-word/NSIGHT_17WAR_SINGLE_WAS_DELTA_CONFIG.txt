@@ -1,0 +1,158 @@
+NSIGHT 17 WAR 단일 WAS + DeltaManager 설정 패키지
+
+구조:
+nh.marketing.com -> Apache -> Tomcat Cluster(DeltaManager) -> 17 WAR
+
+업무 WAR:
+cc, ic, pc, bc, ms, sv, pd, cm, eb, ep, bp, bd, ss, cs, ct, mg
+
+[apache/httpd.conf]
+ServerRoot "/app/apache"
+Listen 80
+Listen 443
+ServerName nh.marketing.com
+ServerTokens Prod
+ServerSignature Off
+TraceEnable Off
+Timeout 30
+KeepAlive On
+KeepAliveTimeout 5
+MaxKeepAliveRequests 100
+LoadModule proxy_module modules/mod_proxy.so
+LoadModule proxy_http_module modules/mod_proxy_http.so
+LoadModule proxy_balancer_module modules/mod_proxy_balancer.so
+LoadModule slotmem_shm_module modules/mod_slotmem_shm.so
+LoadModule lbmethod_byrequests_module modules/mod_lbmethod_byrequests.so
+LoadModule ssl_module modules/mod_ssl.so
+LoadModule rewrite_module modules/mod_rewrite.so
+LoadModule headers_module modules/mod_headers.so
+Include conf/extra/nsight-balancer.conf
+Include conf/extra/nsight-vhost.conf
+
+[apache/extra/nsight-balancer.conf]
+<Proxy "balancer://nsight-marketing-was-cluster">
+  BalancerMember "http://10.10.10.11:8080" route=was1 connectiontimeout=3 timeout=10 retry=0
+  BalancerMember "http://10.10.10.12:8080" route=was2 connectiontimeout=3 timeout=10 retry=0
+  ProxySet lbmethod=byrequests stickysession=JSESSIONID|jsessionid scolonpathdelim=On
+</Proxy>
+
+[apache/extra/nsight-vhost.conf]
+<VirtualHost *:80>
+  ServerName nh.marketing.com
+  RewriteEngine On
+  RewriteRule ^/(.*)$ https://nh.marketing.com/$1 [R=301,L]
+</VirtualHost>
+
+<VirtualHost *:443>
+  ServerName nh.marketing.com
+  SSLEngine on
+  SSLCertificateFile /app/apache/ssl/nh.marketing.com.crt
+  SSLCertificateKeyFile /app/apache/ssl/nh.marketing.com.key
+  ProxyRequests Off
+  ProxyPreserveHost On
+  ProxyTimeout 10
+  RequestHeader set X-Forwarded-Proto "https"
+  RequestHeader set X-Forwarded-Port "443"
+  ProxyPass /cc/ balancer://nsight-marketing-was-cluster/cc/
+  ProxyPassReverse /cc/ balancer://nsight-marketing-was-cluster/cc/
+  ProxyPass /ic/ balancer://nsight-marketing-was-cluster/ic/
+  ProxyPassReverse /ic/ balancer://nsight-marketing-was-cluster/ic/
+  ProxyPass /pc/ balancer://nsight-marketing-was-cluster/pc/
+  ProxyPassReverse /pc/ balancer://nsight-marketing-was-cluster/pc/
+  ProxyPass /bc/ balancer://nsight-marketing-was-cluster/bc/
+  ProxyPassReverse /bc/ balancer://nsight-marketing-was-cluster/bc/
+  ProxyPass /ms/ balancer://nsight-marketing-was-cluster/ms/
+  ProxyPassReverse /ms/ balancer://nsight-marketing-was-cluster/ms/
+  ProxyPass /sv/ balancer://nsight-marketing-was-cluster/sv/
+  ProxyPassReverse /sv/ balancer://nsight-marketing-was-cluster/sv/
+  ProxyPass /pd/ balancer://nsight-marketing-was-cluster/pd/
+  ProxyPassReverse /pd/ balancer://nsight-marketing-was-cluster/pd/
+  ProxyPass /cm/ balancer://nsight-marketing-was-cluster/cm/
+  ProxyPassReverse /cm/ balancer://nsight-marketing-was-cluster/cm/
+  ProxyPass /eb/ balancer://nsight-marketing-was-cluster/eb/
+  ProxyPassReverse /eb/ balancer://nsight-marketing-was-cluster/eb/
+  ProxyPass /ep/ balancer://nsight-marketing-was-cluster/ep/
+  ProxyPassReverse /ep/ balancer://nsight-marketing-was-cluster/ep/
+  ProxyPass /bp/ balancer://nsight-marketing-was-cluster/bp/
+  ProxyPassReverse /bp/ balancer://nsight-marketing-was-cluster/bp/
+  ProxyPass /bd/ balancer://nsight-marketing-was-cluster/bd/
+  ProxyPassReverse /bd/ balancer://nsight-marketing-was-cluster/bd/
+  ProxyPass /ss/ balancer://nsight-marketing-was-cluster/ss/
+  ProxyPassReverse /ss/ balancer://nsight-marketing-was-cluster/ss/
+  ProxyPass /cs/ balancer://nsight-marketing-was-cluster/cs/
+  ProxyPassReverse /cs/ balancer://nsight-marketing-was-cluster/cs/
+  ProxyPass /ct/ balancer://nsight-marketing-was-cluster/ct/
+  ProxyPassReverse /ct/ balancer://nsight-marketing-was-cluster/ct/
+  ProxyPass /mg/ balancer://nsight-marketing-was-cluster/mg/
+  ProxyPassReverse /mg/ balancer://nsight-marketing-was-cluster/mg/
+</VirtualHost>
+
+[tomcat/conf/server.xml]
+<Server port="8005" shutdown="SHUTDOWN">
+  <Service name="Catalina">
+    <Connector port="8080" protocol="HTTP/1.1"
+      maxThreads="500" minSpareThreads="100" acceptCount="500"
+      maxConnections="10000" connectionTimeout="8000"
+      keepAliveTimeout="5000" maxKeepAliveRequests="100"
+      URIEncoding="UTF-8" />
+    <Engine name="Catalina" defaultHost="localhost" jvmRoute="was1">
+      <Host name="localhost" appBase="webapps" unpackWARs="true" autoDeploy="false">
+        <Cluster className="org.apache.catalina.ha.tcp.SimpleTcpCluster">
+          <Manager className="org.apache.catalina.ha.session.DeltaManager"
+            expireSessionsOnShutdown="false" notifyListenersOnReplication="true" />
+        </Cluster>
+      </Host>
+    </Engine>
+  </Service>
+</Server>
+
+[webxml/WEB-INF-web.xml]
+<web-app>
+  <distributable/>
+  <session-config>
+    <session-timeout>60</session-timeout>
+  </session-config>
+</web-app>
+
+[spring/application.yml]
+server:
+  servlet:
+    session:
+      timeout: 60m
+      cookie:
+        name: JSESSIONID
+        path: /
+        http-only: true
+        secure: true
+        same-site: Lax
+  tomcat:
+    threads:
+      max: 500
+      min-spare: 100
+    accept-count: 500
+    max-connections: 10000
+    connection-timeout: 8s
+
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 15
+      connection-timeout: 3000
+      validation-timeout: 3000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      keepalive-time: 300000
+      auto-commit: false
+
+mybatis:
+  configuration:
+    default-statement-timeout: 3
+
+[JVM setenv.sh]
+export JVM_ROUTE=was1
+export CATALINA_OPTS="$CATALINA_OPTS -Xms32g -Xmx32g -Xss512k"
+export CATALINA_OPTS="$CATALINA_OPTS -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+export CATALINA_OPTS="$CATALINA_OPTS -XX:+HeapDumpOnOutOfMemoryError"
+export CATALINA_OPTS="$CATALINA_OPTS -XX:+ExitOnOutOfMemoryError"
+export CATALINA_OPTS="$CATALINA_OPTS -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Seoul"

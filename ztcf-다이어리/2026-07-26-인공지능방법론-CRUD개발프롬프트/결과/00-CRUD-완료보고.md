@@ -1,0 +1,103 @@
+# NSIGHT-TCF CRUD 완료보고 — LN CustomerContact
+
+> 본문은 `C18-최종-완료보고.md` 와 동일. C00~C17 대화 결과 통합.
+
+---
+
+## 1. 요약
+
+| 항목 | 내용 |
+| --- | --- |
+| 대상 | `ln-service` / 도메인 CustomerContact |
+| 범위 | 목록+상세 조회 (CUD 제외) |
+| 기준 | `av-service` |
+| 설계 Gate | C14 조건부 통과 |
+| 검증 | build·bootRun·POST T01/T02/T04/T05 성공 |
+| Gate 판정 | **조건부완료** `[사용자 확정]` — OM·채번·잔여시험·운영보안 Gap |
+
+## 2. 아키텍처
+
+```text
+tcf-ui → POST /online → LnCustomerContactHandler
+  → Facade(@Transactional readOnly, timeout=5)
+  → Service → Rule → Dao → Mapper → LN_CUSTOMER_CONTACT (H2 시범)
+```
+
+- 업무 Controller 없음 / LN DML = SELECT만  
+- SoT: 운영 아님(시범 로컬 H2)  
+- 포트 8103, WAR `ln.war`, context `/ln`(Tomcat)
+
+## 3. 주요 파일
+
+| 구분 | 경로 |
+| --- | --- |
+| 모듈 | `ln-service/**` |
+| Mapper | `mapper/ln/LnCustomerContactMapper.xml` |
+| UI | `tcf-ui/.../static/ln/contact-list.html`, `_shared/ln-admin.js` |
+| 샘플 | `sample-requests/ln-customer-contact-select*.json` |
+| OM 초안 | `ln-service/.../om/ln-om-seed-draft.sql` |
+| 등록 | `settings.gradle`, `build.gradle`, `BusinessModuleDefinitions` |
+| 대화결과 | `결과/C00`~`C17`, `_확정정보원장.md` |
+
+## 4. CRUD·거래 결과
+
+| ServiceId | 거래코드 | 상태 |
+| --- | --- | --- |
+| LN.CustomerContact.selectList | LN-INQ-0001 | 구현·POST 성공 |
+| LN.CustomerContact.selectDetail | LN-INQ-0002 | 구현·POST 성공 |
+| create/update/delete | — | **범위 제외** |
+
+## 5. DB
+
+| 항목 | 내용 |
+| --- | --- |
+| 테이블 | `LN_CUSTOMER_CONTACT` (시범) |
+| PK | CONTACT_ID |
+| 목록 | CUSTOMER_NO 필수, CONTACT_TYPE 선택, USE_YN='Y' |
+| 상세 | CONTACT_ID, USE_YN 필터 없음 |
+
+## 6. 오류·보안
+
+| 코드 | 상황 | 검증 |
+| --- | --- | --- |
+| LN-CCT-V001 | customerNo 누락 | POST 성공 |
+| LN-CCT-E404 | 상세 없음 | POST 성공 |
+| LN-CCT-V002 | contactId 누락 | 미실행 |
+| 마스킹 | 응답 없음(시범) / 로그 평문 금지 권고 | — |
+| 권한 | 로그인 시범 / 코드값 미확정 | T08 미실행 |
+
+## 7. 테스트
+
+| 구분 | 내용 |
+| --- | --- |
+| 실행 | S1 정적, build, bootRun, T01, T02, T04, T05 |
+| 미실행 | T03, T06, T08, T09, UI 클릭 (**≠성공**) |
+| 회귀 | T01+T04 통과 |
+
+## 8. 실행방법
+
+```text
+.\gradlew :ln-service:bootRun
+# POST http://127.0.0.1:8103/online  (header에 serviceName 필수)
+# UI: tcf-ui 기동 후 /ln/contact-list.html
+```
+
+## 9. 추적성
+
+화면 E01/E02 ↔ ServiceId 2건 ↔ Handler 1 ↔ Mapper 3 id ↔ 테이블 ↔ T01/T02/T04/T05  
+상세: `결과/C17-추적성-변경영향.md`
+
+## 10. 미해결 (Explicit)
+
+1. OM Catalog/Timeout AA 승인·실등록  
+2. 포트·화면ID·거래코드 공식 채번  
+3. 잔여 테스트·UI 수동  
+4. 운영 마스킹·권한코드  
+5. 시범 스키마 ≠ 운영 SoT  
+
+## 11. Gate 판정 (확정)
+
+**조건부완료** `[사용자 확정]`
+
+- 근거: 조회 범위 구현·핵심 POST 증적 있음 / OM·채번·잔여시험·운영보안은 Gap  
+- 운영반영: **AA 승인 전 불가** (C14 조건 유지)

@@ -1,0 +1,10 @@
+# dev — ztomcat WAR (tcf-uj.war → uj.war, /uj)
+spring:
+  application:
+    name: nsight-tcf-uj
+
+nsight:
+  tcf-uj:
+    deployment-mode: tomcat
+    tomcat-gateway-url: http://localhost:8080
+    bootrun-host: http://127.0.0.1

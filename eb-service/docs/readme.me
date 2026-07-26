@@ -1,0 +1,30 @@
+예상 콘솔 출력 (사용자 등록 → 배치 → EP 수신)
+
+1) tcf-ui에서 사용자 등록 (eb-service)
+
+---------- [EB-EVENT] START Outbox 적재 (EB.User.create / EbUserService.create) userId=U001 ----------
+---------- [EB-EVENT] END Outbox 적재 (EbUserService.create) eventId=... eventType=USER_CREATED status=READY ----------
+
+2) 배치 tick (eb-service, 60초마다)
+
+========== [EB-SCHEDULER] START 배치 tick (EbEventPublishScheduler.publishUserEvents) ==========
+---------- [EB-BATCH] START publishReadyEvents (EbEventPublishService.publishReadyEvents) ----------
+[EB-BATCH] READY 이벤트 1건 EP 전송 시작 (EbEventPublishService.publishReadyEvents)
+  >> [EB-EVENT] START publishOne (EbEventPublishService.publishOne) eventId=... userId=U001
+    >>> [EB→EP] START HTTP POST (EpOnlineClient.sendUserEvent) eventId=... userId=U001 url=http://127.0.0.1:8090/ep/online
+    >>> [EB→EP] END HTTP POST (EpOnlineClient.sendUserEvent) eventId=... success=true resultCode=S0000
+  >> [EB-EVENT] END publishOne (EbEventPublishService.publishOne) eventId=... status=SENT
+[EB-BATCH] READY 이벤트 1건 처리 완료 (EbEventPublishService.publishReadyEvents)
+---------- [EB-BATCH] END publishReadyEvents (EbEventPublishService.publishReadyEvents) ----------
+========== [EB-SCHEDULER] END 배치 tick (EbEventPublishScheduler.publishUserEvents) ==========
+
+3) EP 수신 (ep-service)
+
+========== [EP-EVENT] START receive (EP.UserEvent.receive / EpUserEventService.receive) eventId=... ==========
+[EP-EVENT] body (EpUserEventService.receive) eventId=... userId=U001 eventType=USER_CREATED
+[EP-EVENT] EP_USER_EVENT 저장 완료 (EpUserEventService.receive) eventId=...
+========== [EP-EVENT] END receive (EP.UserEvent.receive / EpUserEventService.receive) eventId=... ==========
+
+READY 이벤트가 없으면 [EB-BATCH] SKIP READY 이벤트 없음 (EbEventPublishService.publishReadyEvents) 만 출력됩니다.
+
+eb-service와 ep-service를 모두 재기동한 뒤 사용자 등록 → 최대 60초 대기하면 위 로그를 확인할 수 있습니다.

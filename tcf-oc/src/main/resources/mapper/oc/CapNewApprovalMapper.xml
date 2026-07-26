@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nh.nsight.marketing.oc.capnew.persistence.mapper.CapNewApprovalMapper">
+
+    <select id="selectAll" resultType="com.nh.nsight.marketing.oc.capnew.persistence.dto.CapNewApprovalRow">
+        SELECT
+            APPROVAL_ID,
+            SCENARIO_ID,
+            PROJECT_ID,
+            SCENARIO_NAME,
+            VERSION_NO,
+            ACTION,
+            APPROVER,
+            REVIEWER,
+            APPROVAL_NOTE,
+            OVERALL_JUDGMENT,
+            SNAPSHOT_JSON,
+            CAST(CREATED_AT AS VARCHAR) AS CREATED_AT
+        FROM CAP_NEW_APPROVAL
+        ORDER BY CREATED_AT DESC
+    </select>
+
+    <select id="selectByScenarioId" resultType="com.nh.nsight.marketing.oc.capnew.persistence.dto.CapNewApprovalRow">
+        SELECT
+            APPROVAL_ID,
+            SCENARIO_ID,
+            PROJECT_ID,
+            SCENARIO_NAME,
+            VERSION_NO,
+            ACTION,
+            APPROVER,
+            REVIEWER,
+            APPROVAL_NOTE,
+            OVERALL_JUDGMENT,
+            SNAPSHOT_JSON,
+            CAST(CREATED_AT AS VARCHAR) AS CREATED_AT
+        FROM CAP_NEW_APPROVAL
+        WHERE SCENARIO_ID = #{scenarioId}
+        ORDER BY CREATED_AT DESC
+    </select>
+
+    <insert id="insert" parameterType="com.nh.nsight.marketing.oc.capnew.persistence.dto.CapNewApprovalRow">
+        INSERT INTO CAP_NEW_APPROVAL (
+            APPROVAL_ID, SCENARIO_ID, PROJECT_ID, SCENARIO_NAME, VERSION_NO,
+            ACTION, APPROVER, REVIEWER, APPROVAL_NOTE, OVERALL_JUDGMENT, SNAPSHOT_JSON
+        ) VALUES (
+            #{approvalId}, #{scenarioId}, #{projectId}, #{scenarioName}, #{versionNo},
+            #{action}, #{approver}, #{reviewer}, #{approvalNote}, #{overallJudgment}, #{snapshotJson}
+        )
+    </insert>
+</mapper>

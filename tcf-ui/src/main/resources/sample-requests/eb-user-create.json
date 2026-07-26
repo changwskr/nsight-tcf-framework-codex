@@ -1,0 +1,23 @@
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "EB",
+    "serviceId": "EB.User.create",
+    "transactionCode": "EB-USR-0001",
+    "processingType": "CREATE",
+    "guid": "",
+    "traceId": "",
+    "channelId": "WEBTOP",
+    "userId": "ADMIN",
+    "branchId": "001",
+    "requestTime": "2026-06-14T10:30:00+09:00",
+    "systemDate": "20260614",
+    "bizDate": "20260614",
+    "clientIp": "127.0.0.1"
+  },
+  "body": {
+    "userId": "U001",
+    "userName": "홍길동",
+    "branchId": "001"
+  }
+}

@@ -1,0 +1,74 @@
+spring:
+  datasource:
+    rdw:
+      driver-class-name: oracle.jdbc.OracleDriver
+      jdbc-url: jdbc:oracle:thin:@//rdw-vip.nh.local:1521/RDW
+      username: ${RDW_DB_USER}
+      password: ${RDW_DB_PASSWORD}
+      hikari:
+        pool-name: nsight-rdw-hikari
+        maximum-pool-size: 50
+        minimum-idle: 15
+        connection-timeout: 3000
+        validation-timeout: 3000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+        keepalive-time: 300000
+        auto-commit: false
+
+    adw:
+      driver-class-name: oracle.jdbc.OracleDriver
+      jdbc-url: jdbc:oracle:thin:@//adw-vip.nh.local:1521/ADW
+      username: ${ADW_DB_USER}
+      password: ${ADW_DB_PASSWORD}
+      hikari:
+        pool-name: nsight-adw-hikari
+        maximum-pool-size: 30
+        minimum-idle: 10
+        connection-timeout: 3000
+        validation-timeout: 3000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+        keepalive-time: 300000
+        auto-commit: false
+
+    sessiondb:
+      driver-class-name: oracle.jdbc.OracleDriver
+      jdbc-url: jdbc:oracle:thin:@//sessiondb-vip.nh.local:1521/SESSIONDB
+      username: ${SESSION_DB_USER}
+      password: ${SESSION_DB_PASSWORD}
+      hikari:
+        pool-name: nsight-sessiondb-hikari
+        maximum-pool-size: 80
+        minimum-idle: 20
+        connection-timeout: 3000
+        validation-timeout: 3000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+        keepalive-time: 300000
+        auto-commit: false
+
+    logdb:
+      driver-class-name: oracle.jdbc.OracleDriver
+      jdbc-url: jdbc:oracle:thin:@//logdb-vip.nh.local:1521/LOGDB
+      username: ${LOG_DB_USER}
+      password: ${LOG_DB_PASSWORD}
+      hikari:
+        pool-name: nsight-logdb-hikari
+        maximum-pool-size: 20
+        minimum-idle: 5
+        connection-timeout: 3000
+        validation-timeout: 3000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+        keepalive-time: 300000
+        auto-commit: false
+
+nsight:
+  datasource:
+    default: rdw
+    session: sessiondb
+    read-only-default: true
+    query-timeout-seconds: 3
+    pool-usage-warning-percent: 70
+    pool-usage-critical-percent: 80

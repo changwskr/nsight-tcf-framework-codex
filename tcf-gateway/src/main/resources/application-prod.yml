@@ -1,0 +1,9 @@
+# prod (운용) — ENV_CODE=PRD
+nsight:
+  gateway:
+    env-code: PRD
+    route-table:
+      cache-enabled: true
+      cache-ttl-seconds: 60
+    om:
+      tomcat-online-path: /om/online

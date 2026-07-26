@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- MS - Mini Single View -->
+<Context path="/ms"
+         docBase="/app/nsight/war/ms.war"
+         reloadable="false"
+         sessionCookieName="JSESSIONID">
+</Context>

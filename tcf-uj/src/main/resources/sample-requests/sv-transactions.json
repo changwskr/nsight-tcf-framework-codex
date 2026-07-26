@@ -1,0 +1,62 @@
+[
+  {
+    "label": "Sample Inquiry",
+    "sampleFile": "sv-sample-inquiry.json"
+  },
+  {
+    "label": "Customer Detail Inquiry",
+    "sampleRequest": {
+      "header": {
+        "systemId": "NSIGHT-MP",
+        "businessCode": "SV",
+        "serviceId": "SV.Customer.detail",
+        "transactionCode": "SV-INQ-0002",
+        "processingType": "INQUIRY",
+        "guid": "",
+        "traceId": "",
+        "channelId": "WEBTOP",
+        "userId": "U123456",
+        "branchId": "001234",
+        "centerId": "DC1",
+        "requestTime": "2026-06-14T10:30:00+09:00",
+        "transactionIntime": "2026-06-14T10:30:00+09:00",
+        "transactionOuttime": "",
+        "systemDate": "20260614",
+        "bizDate": "20260614",
+        "clientIp": "10.10.10.10"
+      },
+      "body": {
+        "customerId": "CUST-0001",
+        "includeHistory": true
+      }
+    }
+  },
+  {
+    "label": "Customer Register",
+    "sampleRequest": {
+      "header": {
+        "systemId": "NSIGHT-MP",
+        "businessCode": "SV",
+        "serviceId": "SV.Customer.register",
+        "transactionCode": "SV-REG-0001",
+        "processingType": "CREATE",
+        "guid": "",
+        "traceId": "",
+        "channelId": "WEBTOP",
+        "userId": "U123456",
+        "branchId": "001234",
+        "centerId": "DC1",
+        "requestTime": "2026-06-14T10:30:00+09:00",
+        "transactionIntime": "2026-06-14T10:30:00+09:00",
+        "transactionOuttime": "",
+        "systemDate": "20260614",
+        "bizDate": "20260614",
+        "clientIp": "10.10.10.10"
+      },
+      "body": {
+        "customerName": "홍길동",
+        "birthDate": "19900101"
+      }
+    }
+  }
+]

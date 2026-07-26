@@ -1,0 +1,46 @@
+spring:
+  datasource:
+    rdw:
+      jdbc-url: jdbc:oracle:thin:@//rdw-vip.nh.local:1521/RDW
+      username: ${RDW_DB_USER}
+      password: ${RDW_DB_PASSWORD}
+      driver-class-name: oracle.jdbc.OracleDriver
+      hikari:
+        pool-name: RDW-HIKARI
+        maximum-pool-size: 40
+        minimum-idle: 10
+        connection-timeout: 3000
+        validation-timeout: 2000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+        keepalive-time: 300000
+        auto-commit: false
+        connection-test-query: SELECT 1 FROM DUAL
+    applog:
+      jdbc-url: jdbc:oracle:thin:@//applog-vip.nh.local:1521/APPLOG
+      username: ${APPLOG_DB_USER}
+      password: ${APPLOG_DB_PASSWORD}
+      driver-class-name: oracle.jdbc.OracleDriver
+      hikari:
+        pool-name: APPLOG-HIKARI
+        maximum-pool-size: 10
+        minimum-idle: 3
+        connection-timeout: 3000
+        validation-timeout: 2000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+        keepalive-time: 300000
+        auto-commit: false
+
+nsight:
+  session:
+    absolute-timeout-minutes: 480
+    max-session-size-kb: 5
+  timeout:
+    db-query-seconds: 3
+    transaction-seconds: 5
+    cruzapim-connect-ms: 2000
+    cruzapim-read-ms: 5000
+  cruzapim:
+    base-url: https://cruzapim.nh.local
+    retry-count: 0

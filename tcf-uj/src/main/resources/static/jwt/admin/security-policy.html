@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JWT 보안정책</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+  <link rel="stylesheet" href="/_shared/jwt-admin.css">
+</head>
+<body>
+  <script src="/_shared/jwt-admin.js?v=20260628b"></script>
+  <script>
+    function fieldVal(row, key, fallback) {
+      const v = JwtAdmin.field(row, key, fallback);
+      return v === '-' ? (fallback ?? '') : v;
+    }
+
+    function ynChecked(row, key) {
+      const v = String(JwtAdmin.field(row, key, 'Y')).toUpperCase();
+      return v === 'Y' || v === 'TRUE';
+    }
+
+    async function loadPolicy(el) {
+      const { body } = await JwtAdmin.inquiry('securityPolicyInquiry', {});
+      const p = body.policy || {};
+      document.getElementById('fIssuer').value = fieldVal(p, 'issuer');
+      document.getElementById('fAudience').value = fieldVal(p, 'audience');
+      document.getElementById('fAccessMinutes').value = fieldVal(p, 'accessTokenValidMinutes', '15');
+      document.getElementById('fRefreshHours').value = fieldVal(p, 'refreshTokenValidHours', '8');
+      document.getElementById('fAlgorithm').value = fieldVal(p, 'algorithm', 'RS256');
+      document.getElementById('fClockSkew').value = fieldVal(p, 'clockSkewSeconds', '60');
+      document.getElementById('fDenylist').checked = ynChecked(p, 'denylistCheckEnabled');
+      document.getElementById('fRotation').checked = ynChecked(p, 'refreshTokenRotationEnabled');
+      const updated = fieldVal(p, 'updatedAt', '');
+      document.getElementById('policyMeta').textContent = updated
+        ? `최종 수정: ${JwtAdmin.formatTs(updated)} · ${fieldVal(p, 'updatedBy', '-')}`
+        : '기본 정책 (yml)';
+    }
+
+    JwtAdmin.initPage('security-policy', '보안정책 관리', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">Access/Refresh 만료시간, Issuer, Audience, Denylist·Rotation 정책을 런타임에 갱신합니다. (알고리즘 RS256은 키 쌍 변경 시 재배포 필요)</div>
+        <div class="om-card">
+          <div class="om-card-head">JWT 보안 정책</div>
+          <div class="om-card-body om-form-panel">
+            <p id="policyMeta" class="jwt-hint">-</p>
+            <div class="om-form-grid">
+              <div class="field"><label for="fIssuer">Issuer</label><input id="fIssuer" type="text"></div>
+              <div class="field"><label for="fAudience">Audience</label><input id="fAudience" type="text"></div>
+              <div class="field"><label for="fAccessMinutes">Access 유효(분)</label><input id="fAccessMinutes" type="number" min="1" max="1440"></div>
+              <div class="field"><label for="fRefreshHours">Refresh 유효(시간)</label><input id="fRefreshHours" type="number" min="1" max="720"></div>
+              <div class="field"><label for="fAlgorithm">Algorithm</label><input id="fAlgorithm" type="text" readonly></div>
+              <div class="field"><label for="fClockSkew">Clock Skew(초)</label><input id="fClockSkew" type="number" min="0" max="600"></div>
+            </div>
+            <div class="om-form-grid" style="margin-top:12px">
+              <label><input id="fDenylist" type="checkbox"> Denylist 검증 사용</label>
+              <label><input id="fRotation" type="checkbox"> Refresh Token Rotation</label>
+            </div>
+            <div class="jwt-actions" style="margin-top:16px">
+              <button type="button" class="btn-primary" id="btnSave">저장</button>
+              <button type="button" class="btn-secondary" id="btnReload">다시 불러오기</button>
+            </div>
+            <div id="saveResult" class="om-alert" hidden style="margin-top:12px"></div>
+          </div>
+        </div>`;
+      document.getElementById('btnReload').addEventListener('click', () => {
+        loadPolicy(el).catch(e => alert(e.message));
+      });
+      document.getElementById('btnSave').addEventListener('click', async () => {
+        const resultEl = document.getElementById('saveResult');
+        resultEl.hidden = true;
+        try {
+          const payload = {
+            issuer: document.getElementById('fIssuer').value.trim(),
+            audience: document.getElementById('fAudience').value.trim(),
+            accessTokenValidMinutes: Number(document.getElementById('fAccessMinutes').value),
+            refreshTokenValidHours: Number(document.getElementById('fRefreshHours').value),
+            algorithm: document.getElementById('fAlgorithm').value.trim(),
+            clockSkewSeconds: Number(document.getElementById('fClockSkew').value),
+            denylistCheckEnabled: document.getElementById('fDenylist').checked ? 'Y' : 'N',
+            refreshTokenRotationEnabled: document.getElementById('fRotation').checked ? 'Y' : 'N'
+          };
+          await JwtAdmin.mutate('securityPolicyUpdate', payload, 'UPDATE');
+          resultEl.className = 'om-alert ok';
+          resultEl.textContent = '보안정책이 저장되었습니다. 이후 발급되는 토큰에 적용됩니다.';
+          resultEl.hidden = false;
+          await loadPolicy(el);
+        } catch (e) {
+          resultEl.className = 'om-alert error';
+          resultEl.textContent = e.message || '저장 실패';
+          resultEl.hidden = false;
+        }
+      });
+      await loadPolicy(el);
+    });
+  </script>
+</body>
+</html>

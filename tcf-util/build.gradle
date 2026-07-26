@@ -1,0 +1,6 @@
+// Module build settings are inherited from root build.gradle.
+
+dependencies {
+    // SLF4J API only — CoreTcfConsoleLog (tcf-core TcfConsoleLog 복사본)
+    api 'org.slf4j:slf4j-api'
+}

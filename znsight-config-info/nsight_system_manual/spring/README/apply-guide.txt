@@ -1,0 +1,28 @@
+# 적용 가이드
+
+1. Redis 설정 제거
+   - spring.session.store-type=redis 제거
+   - spring.data.redis 제거
+   - Redis 관련 Health Check 비활성화
+
+2. Spring Session JDBC 적용
+   - spring.session.store-type=jdbc
+   - spring.session.jdbc.table-name=SPRING_SESSION
+   - spring.sql/spring-session-schema-oracle.sql 선반영
+
+3. Tomcat DeltaManager
+   - JDBC Session을 쓰면 Tomcat DeltaManager는 사용하지 않는 것을 권장
+   - 세션 공유는 SESSION DB가 담당
+   - Apache Sticky는 성능상 유지 가능하나 필수는 아님
+
+4. 모든 WAR 공통
+   - 동일 SESSION DB 사용
+   - 동일 JSESSIONID 쿠키 사용
+   - Cookie path=/
+   - Session 객체 Serializable 권장
+
+5. 운영 점검
+   - SPRING_SESSION 건수
+   - SPRING_SESSION_ATTRIBUTES BLOB 크기
+   - SESSIONDB Hikari Pool 사용률
+   - 만료 세션 Cleanup 정상 수행 여부

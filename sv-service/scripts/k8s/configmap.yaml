@@ -1,0 +1,26 @@
+# sv-service ConfigMap — non-sensitive runtime settings
+#
+# Apply:
+#   kubectl apply -f sv-service/scripts/k8s/configmap.yaml
+#
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nsight-sv-config
+  namespace: nsight
+  labels:
+    app: nsight-sv
+    app.kubernetes.io/name: sv-service
+    app.kubernetes.io/part-of: nsight-tcf-framework
+data:
+  SPRING_PROFILES_ACTIVE: "local"
+  SERVER_PORT: "8086"
+  NSIGHT_TXLOG_PATH: "/app/data/nsight-txlog"
+  # IC integration target (in-cluster Service DNS example)
+  NSIGHT_INTEGRATION_SERVICES_IC_BASE_URL: "http://nsight-ic:8082"
+  JAVA_OPTS: "-XX:MaxRAMPercentage=75.0 -Dfile.encoding=UTF-8"
+  # Optional JDBC overrides for non-local profiles (see secret.yaml for credentials)
+  # NSIGHT_SV_DB_URL: "jdbc:oracle:thin:@//oracle:1521/nsight_sv"
+  # NSIGHT_SV_DB_DRIVER: "oracle.jdbc.OracleDriver"
+  # NSIGHT_TXLOG_JDBC_URL: "jdbc:h2:file:/app/data/nsight-txlog/nsight_om;MODE=Oracle;DATABASE_TO_UPPER=false"
+  # NSIGHT_TXLOG_DB_DRIVER: "org.h2.Driver"

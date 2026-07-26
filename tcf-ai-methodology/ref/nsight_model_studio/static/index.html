@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NSIGHT Model Studio</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">N</div>
+        <div>
+          <h1>NSIGHT Model Studio</h1>
+          <p>TCF 업무모델 자동화</p>
+        </div>
+      </div>
+      <button id="newModelBtn" class="primary full">+ 신규 업무모델</button>
+      <div class="sidebar-heading">저장 모델</div>
+      <div id="modelList" class="model-list"></div>
+      <div class="sidebar-footer">
+        <button id="validateAllBtn" class="ghost full">전체 모델 검증</button>
+        <button id="generateAllBtn" class="ghost full">전체 Workspace 생성</button>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">NSIGHT-TCF-FRAMEWORK</div>
+          <h2 id="pageTitle">업무모델 정의</h2>
+        </div>
+        <div class="toolbar">
+          <button id="duplicateBtn" class="ghost">복제</button>
+          <button id="deleteBtn" class="danger ghost">삭제</button>
+          <button id="validateBtn" class="ghost">검증</button>
+          <button id="previewBtn" class="ghost">코드 미리보기</button>
+          <button id="saveBtn" class="primary">저장</button>
+          <button id="generateBtn" class="primary strong">ZIP 생성</button>
+        </div>
+      </header>
+
+      <nav class="stepper" aria-label="모델링 단계">
+        <button class="step active" data-step="1"><span>1</span>프로젝트·도메인</button>
+        <button class="step" data-step="2"><span>2</span>화면·이벤트</button>
+        <button class="step" data-step="3"><span>3</span>서비스·거래</button>
+        <button class="step" data-step="4"><span>4</span>테이블·필드</button>
+        <button class="step" data-step="5"><span>5</span>검증·추적성</button>
+        <button class="step" data-step="6"><span>6</span>코드 생성</button>
+      </nav>
+
+      <section id="step1" class="panel step-panel active">
+        <div class="panel-title">
+          <div><h3>프로젝트와 업무 도메인</h3><p>WAR·업무코드·도메인·패키지 경계를 먼저 확정합니다.</p></div>
+          <span class="badge">G3/G6</span>
+        </div>
+        <div class="form-grid cols-3">
+          <label>프로젝트명<input id="projectName" type="text"></label>
+          <label>BASE 패키지<input id="basePackage" type="text" placeholder="com.nh.nsight.marketing"></label>
+          <label>패키지 프로파일
+            <select id="packageProfile">
+              <option value="CURRENT_SOURCE">현재 소스 호환형</option>
+              <option value="DOMAIN_FIRST">도메인 우선 목표형</option>
+            </select>
+          </label>
+          <label>업무코드<input id="businessCode" type="text" maxlength="3" placeholder="SV"></label>
+          <label>업무명<input id="businessName" type="text" placeholder="Single View"></label>
+          <label>Gradle/WAR 모듈명<input id="moduleName" type="text" placeholder="sv-service"></label>
+          <label>Context Path<input id="contextPath" type="text" placeholder="/sv"></label>
+          <label>도메인 코드<input id="domainCode" type="text" placeholder="Customer"></label>
+          <label>도메인명<input id="domainName" type="text" placeholder="고객"></label>
+          <label>DTO/유스케이스 기준명<input id="aggregateName" type="text" placeholder="CustomerSummary"></label>
+        </div>
+        <div class="callout info">
+          <strong>설계 원칙</strong>
+          <span>업무코드 → 도메인 → 계층 순서로 모델을 정의하고, 동일 도메인의 여러 ServiceId는 하나의 Handler가 처리합니다.</span>
+        </div>
+      </section>
+
+      <section id="step2" class="panel step-panel">
+        <div class="panel-title">
+          <div><h3>화면과 이벤트 정의</h3><p>사용자 행위를 ServiceId와 연결하는 추적성의 출발점입니다.</p></div>
+          <span class="badge">UI → ServiceId</span>
+        </div>
+        <div class="form-grid cols-3">
+          <label>화면 ID<input id="screenId" type="text" placeholder="SV-CUS-0001"></label>
+          <label>화면명<input id="screenName" type="text" placeholder="고객 종합정보 조회"></label>
+          <label>UI 객체 ID<input id="uiObjectId" type="text" placeholder="btnSearch"></label>
+          <label>이벤트 ID<input id="eventId" type="text" placeholder="SV-CUS-0001-E01"></label>
+          <label>이벤트명<input id="eventName" type="text" placeholder="고객요약 조회"></label>
+          <label>중복요청 방지
+            <select id="idempotencyRequired"><option value="false">해당 없음/검토</option><option value="true">적용</option></select>
+          </label>
+          <label class="span-3">성공 처리<input id="successAction" type="text" placeholder="조회 결과 표시"></label>
+          <label class="span-3">실패 처리<input id="failureAction" type="text" placeholder="오류 메시지 표시 후 입력값 유지"></label>
+        </div>
+        <div class="flow-box">
+          <code>화면 → 이벤트 → StandardRequest.header.serviceId → TCF → Handler → 업무계층 → ETF → 화면</code>
+        </div>
+      </section>
+
+      <section id="step3" class="panel step-panel">
+        <div class="panel-title">
+          <div><h3>서비스와 거래 정의</h3><p>ServiceId를 중심으로 실행·통제·감사·Timeout 기준을 정의합니다.</p></div>
+          <span class="badge">Service Catalog</span>
+        </div>
+        <div class="form-grid cols-3">
+          <label>ServiceId<input id="serviceId" type="text" placeholder="SV.Customer.selectSummary"></label>
+          <label>서비스명<input id="serviceName" type="text"></label>
+          <label>거래코드<input id="transactionCode" type="text" placeholder="SV-INQ-0001"></label>
+          <label>처리유형
+            <select id="operation">
+              <option value="SELECT_ONE">단건조회</option>
+              <option value="SELECT_LIST">목록조회</option>
+              <option value="INSERT">등록</option>
+              <option value="UPDATE">변경</option>
+              <option value="DELETE">삭제</option>
+            </select>
+          </label>
+          <label>Facade/Service 메서드<input id="methodName" type="text" placeholder="selectCustomerSummary"></label>
+          <label>Timeout(초)<input id="timeoutSeconds" type="number" min="1" max="120"></label>
+          <label>권한코드<input id="permissionCode" type="text" placeholder="SV_CUSTOMER_INQUIRY"></label>
+          <label>감사로그 대상
+            <select id="auditRequired"><option value="false">N</option><option value="true">Y</option></select>
+          </label>
+        </div>
+        <div class="naming-preview" id="namingPreview"></div>
+      </section>
+
+      <section id="step4" class="panel step-panel">
+        <div class="panel-title">
+          <div><h3>테이블과 필드 정의</h3><p>화면·DTO·Mapper·SQL·DB 컬럼을 하나의 메타모델로 관리합니다.</p></div>
+          <button id="addFieldBtn" class="ghost">+ 필드 추가</button>
+        </div>
+        <div class="form-grid cols-2 compact">
+          <label>테이블명<input id="tableName" type="text" placeholder="SV_CUSTOMER"></label>
+          <label>테이블 설명<input id="tableComment" type="text"></label>
+        </div>
+        <div class="table-wrap">
+          <table class="field-table">
+            <thead>
+              <tr>
+                <th>Java 필드</th><th>업무명</th><th>DB 컬럼</th><th>Java 타입</th><th>DB 타입</th>
+                <th>길이</th><th>NULL</th><th>PK</th><th>요청</th><th>조건</th><th>응답</th><th>민감</th><th>검증/마스킹</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="fieldRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="step5" class="panel step-panel">
+        <div class="panel-title">
+          <div><h3>검증·추적성</h3><p>생성 전에 식별자, 데이터, 책임 경계와 Workspace 중복을 점검합니다.</p></div>
+          <button id="runValidationBtn" class="primary">검증 실행</button>
+        </div>
+        <div class="metric-row">
+          <div class="metric"><span>오류</span><strong id="errorCount">0</strong></div>
+          <div class="metric"><span>경고</span><strong id="warningCount">0</strong></div>
+          <div class="metric"><span>추적 경로</span><strong>15</strong></div>
+          <div class="metric"><span>생성 계층</span><strong>8</strong></div>
+        </div>
+        <div id="validationResults" class="validation-results empty">검증을 실행하면 결과가 표시됩니다.</div>
+        <div class="trace-card">
+          <h4>End-to-End 추적 경로</h4>
+          <div id="traceFlow" class="trace-flow"></div>
+        </div>
+      </section>
+
+      <section id="step6" class="panel step-panel">
+        <div class="panel-title">
+          <div><h3>코드·산출물 생성</h3><p>동일 도메인 모델을 병합하여 Handler, Facade, Service, Rule, DAO, Mapper와 설계 산출물을 생성합니다.</p></div>
+          <button id="refreshPreviewBtn" class="primary">미리보기 갱신</button>
+        </div>
+        <div class="generator-layout">
+          <div class="artifact-list" id="artifactList"></div>
+          <div class="code-view">
+            <div class="code-header"><span id="previewPath">미리보기 파일</span><button id="copyCodeBtn" class="ghost small">복사</button></div>
+            <pre><code id="previewCode">코드 미리보기를 실행하십시오.</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <footer class="statusbar">
+        <span id="statusText">준비</span>
+        <span>NSIGHT Model Studio v0.1.0</span>
+      </footer>
+    </main>
+  </div>
+  <div id="toast" class="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

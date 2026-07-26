@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Context sessionCookieName="JSESSIONID" useHttpOnly="true">
+  <Manager pathname="" />
+  <WatchedResource>WEB-INF/web.xml</WatchedResource>
+  <CookieProcessor className="org.apache.tomcat.util.http.Rfc6265CookieProcessor" sameSiteCookies="lax" />
+  <JarScanner scanManifest="false" />
+</Context>

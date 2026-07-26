@@ -1,0 +1,918 @@
+Java DTO 명명규칙 설계기준
+1. 도입 전 안내말
+Java DTO 명명규칙은 단순히 Request, Response 이름을 붙이는 기준이 아니다.NSIGHT TCF Framework에서는 DTO가 표준 전문, ServiceId, Handler, Facade, Service, DAO/Mapper, SQL Parameter, 응답 Body를 연결하는 데이터 전달 기준이 된다.
+NSIGHT Java 코딩 스타일 가이드에서도 데이터 전달 구조를 기존 IDataSet, IOnlineContext, 전문 Header 개념에서 Request/Response DTO, StandardHeader, RequestContext, GUID/MDC 구조로 전환하도록 정의하고 있다.또한 NSIGHT TCF 개발자 가이드에서는 DTO를 외부 요청, 외부 응답, 내부 처리 요청, 내부 처리 결과로 분리하고 Request, Response, Command, Result, Criteria, Entity, Item 유형을 구분하도록 제시한다.
+핵심 원칙은 다음이다.
+외부 전문 DTO와 내부 처리 DTO를 분리하고, DTO 이름만 보고 데이터의 사용 위치와 책임을 알 수 있어야 한다.
+
+2. DTO 설계 결론
+NSIGHT Java DTO는 다음 유형으로 표준화한다.
+DTO 유형
+표준 형식
+사용 위치
+예시
+Request
+{업무대상}{행위}Request
+외부 요청 Body
+CustomerSummaryRequest
+Response
+{업무대상}{행위}Response
+외부 응답 Body
+CustomerSummaryResponse
+Command
+{업무대상}{행위}Command
+Facade → Service 내부 처리 요청
+CustomerSummaryCommand
+Result
+{업무대상}{행위}Result
+Service / DAO 처리 결과
+CustomerSummaryResult
+Criteria
+{업무대상}SearchCriteria
+검색 조건
+CustomerSearchCriteria
+Query
+{업무대상}{행위}Query
+DAO / Mapper 조회 조건
+CustomerSummaryQuery
+Entity
+{업무대상}Entity
+DB Row 매핑
+CustomerEntity
+Item
+{업무대상}Item
+목록 Row / 반복 데이터
+CustomerProductItem
+Page
+PageRequest, PageResponse
+페이징 제어
+PageRequest, PageResponse
+File
+{업무대상}{행위}FileRequest
+파일 업로드 / 다운로드
+CustomerExcelDownloadRequest
+
+3. DTO와 표준 전문 관계
+NSIGHT TCF 표준 전문은 요청은 StandardRequest, 응답은 StandardResponse로 구성한다. 요청 전문은 header + body, 응답 전문은 header + result + body 구조를 가진다.
+HTTP/JSON 요청
+   ↓
+StandardRequest<업무 Request DTO>
+   ↓
+Handler
+   ↓
+Command DTO
+   ↓
+Service / Rule / DAO
+   ↓
+Result DTO
+   ↓
+Response DTO
+   ↓
+StandardResponse<업무 Response DTO>
+
+구분
+DTO
+역할
+표준 요청 전문
+StandardRequest<T>
+Header와 업무 Body를 감싸는 공통 요청 DTO
+요청 Header
+StandardHeader
+serviceId, transactionCode, businessCode, userId, traceId 등
+업무 요청 Body
+{업무대상}{행위}Request
+화면 / 외부에서 들어온 업무 입력값
+내부 처리 요청
+{업무대상}{행위}Command
+검증·보정이 끝난 내부 처리용 객체
+DAO 조회 조건
+{업무대상}{행위}Query
+Mapper 호출용 조회 조건
+DB 결과
+{업무대상}{행위}Result 또는 Entity
+Service / DAO 처리 결과
+업무 응답 Body
+{업무대상}{행위}Response
+화면 / 외부로 내려갈 응답 데이터
+표준 응답 전문
+StandardResponse<T>
+Header, Result, Body를 감싸는 공통 응답 DTO
+
+4. DTO Package 배치 기준
+앞 절에서 정한 Package Root 기준에 맞춰 DTO는 다음 위치에 둔다.
+com.nh.nsight.marketing.{업무코드소문자}.dto
+│
+├── request
+├── response
+├── command
+├── result
+├── query
+├── criteria
+├── entity
+└── item
+
+예를 들어 SV 업무는 다음과 같다.
+com.nh.nsight.marketing.sv.dto.request
+com.nh.nsight.marketing.sv.dto.response
+com.nh.nsight.marketing.sv.dto.command
+com.nh.nsight.marketing.sv.dto.result
+com.nh.nsight.marketing.sv.dto.query
+com.nh.nsight.marketing.sv.dto.entity
+com.nh.nsight.marketing.sv.dto.item
+
+NSIGHT TCF 개발자 가이드에서도 DTO Package를 {업무}.dto.{request/response/command/result} 구조로 분리하도록 제시한다.
+
+5. DTO 유형별 명명규칙
+5.1 Request DTO
+Request DTO는 외부 요청 Body를 표현한다.
+{업무대상}{행위}Request
+
+ServiceId
+Request DTO
+설명
+SV.Customer.selectSummary
+CustomerSummaryRequest
+고객 요약 조회 요청
+SV.Customer.selectDetail
+CustomerDetailRequest
+고객 상세 조회 요청
+CM.Campaign.create
+CampaignCreateRequest
+캠페인 등록 요청
+MG.Message.send
+MessageSendRequest
+메시지 발송 요청
+OM.User.selectList
+UserListRequest
+사용자 목록 조회 요청
+Request DTO에는 화면 또는 외부 시스템에서 입력한 값만 둔다.
+포함 가능
+포함 금지
+조회 조건
+serviceId
+등록/수정 입력값
+transactionCode
+검색어
+businessCode
+페이징 조건
+세션 사용자 정보
+다운로드 조건
+권한 정보
+Header 값은 StandardHeader에 있어야 하며, 업무 Request Body에 중복해서 넣지 않는다.
+
+5.2 Response DTO
+Response DTO는 외부 응답 Body를 표현한다.
+{업무대상}{행위}Response
+
+ServiceId
+Response DTO
+설명
+SV.Customer.selectSummary
+CustomerSummaryResponse
+고객 요약 조회 응답
+SV.Customer.selectDetail
+CustomerDetailResponse
+고객 상세 조회 응답
+CM.Campaign.create
+CampaignCreateResponse
+캠페인 등록 결과
+MG.Message.send
+MessageSendResponse
+메시지 발송 결과
+OM.User.selectList
+UserListResponse
+사용자 목록 조회 응답
+Response DTO에는 화면에 내려줄 값만 둔다.
+포함 가능
+포함 금지
+업무 결과 데이터
+StackTrace
+마스킹된 고객정보
+SQL 문장
+처리 결과 요약
+서버 내부 경로
+목록 / 페이징 정보
+내부 Exception Class
+다운로드 파일 식별자
+DB 접속 정보
+오류코드, 오류메시지, 처리 성공 여부는 Response DTO가 아니라 StandardResponse.result 영역에 둔다.
+
+5.3 Command DTO
+Command DTO는 내부 처리용 요청 객체이다.
+{업무대상}{행위}Command
+
+Request DTO
+Command DTO
+설명
+CustomerSummaryRequest
+CustomerSummaryCommand
+검증·보정이 끝난 고객요약조회 처리 요청
+CampaignCreateRequest
+CampaignCreateCommand
+캠페인 등록 처리 요청
+MessageSendRequest
+MessageSendCommand
+메시지 발송 처리 요청
+ServiceCatalogSaveRequest
+ServiceCatalogSaveCommand
+ServiceId 저장 처리 요청
+Command DTO에는 외부 입력값뿐 아니라 서버에서 보정한 처리 기준을 포함할 수 있다.
+포함 가능
+세션 기준 사용자 ID
+지점 코드
+권한 등급
+기준일자
+마스킹 레벨
+내부 처리 옵션
+idempotencyKey
+traceId
+예시는 다음과 같다.
+public class CustomerSummaryCommand {
+    private String customerNo;
+    private LocalDate baseDate;
+    private String userId;
+    private String branchCode;
+    private String channelId;
+    private String traceId;
+}
+
+
+5.4 Result DTO
+Result DTO는 Service 또는 DAO 처리 결과를 표현한다.
+{업무대상}{행위}Result
+
+처리
+Result DTO
+설명
+고객 요약 조회
+CustomerSummaryResult
+고객 요약 조회 결과
+고객 상세 조회
+CustomerDetailResult
+고객 상세 조회 결과
+캠페인 대상 추출
+CampaignTargetResult
+캠페인 대상 추출 결과
+메시지 발송
+MessageSendResult
+메시지 발송 처리 결과
+사용자 목록 조회
+UserListResult
+사용자 목록 조회 결과
+Result DTO는 내부 처리 결과이므로 화면 응답과 1:1로 같을 필요는 없다.
+DAO / Mapper Result
+   ↓
+Service Result
+   ↓
+Response 변환
+
+Response DTO와 Result DTO를 분리하는 이유는 다음과 같다.
+구분
+Result DTO
+Response DTO
+사용 위치
+내부 처리
+외부 응답
+민감정보 포함
+가능하나 통제 필요
+마스킹 후 제공
+DB 구조 영향
+일부 영향 가능
+DB 구조 노출 금지
+화면 의존
+낮음
+높음
+변환 위치
+Service / Facade
+Handler / ETF 전
+
+5.5 Query DTO
+Query DTO는 DAO / Mapper에 전달하는 조회 조건이다.
+{업무대상}{행위}Query
+
+DAO Method
+Query DTO
+설명
+selectCustomerSummary()
+CustomerSummaryQuery
+고객 요약 조회 SQL 조건
+selectCustomerList()
+CustomerListQuery
+고객 목록 조회 SQL 조건
+selectCampaignTargetList()
+CampaignTargetQuery
+캠페인 대상 조회 SQL 조건
+selectUserList()
+UserListQuery
+사용자 목록 조회 SQL 조건
+Query DTO에는 SQL 조회에 필요한 조건만 둔다.
+포함 가능
+포함 금지
+조회 조건
+화면 표시 전용 값
+기간 조건
+버튼 권한
+정렬 조건
+사용자 메시지
+페이징 Offset / Limit
+응답 결과
+DB 파티션 기준
+외부 전문 Header 전체
+
+5.6 Criteria DTO
+Criteria DTO는 검색 조건을 표현한다.
+{업무대상}SearchCriteria
+
+용도
+Criteria DTO
+설명
+고객 검색
+CustomerSearchCriteria
+고객 검색 조건
+캠페인 검색
+CampaignSearchCriteria
+캠페인 검색 조건
+사용자 검색
+UserSearchCriteria
+사용자 검색 조건
+메시지 검색
+MessageSearchCriteria
+메시지 검색 조건
+Criteria와 Query의 차이는 다음과 같다.
+구분
+Criteria
+Query
+관점
+업무 검색 조건
+SQL 실행 조건
+사용 위치
+Request / Service
+DAO / Mapper
+화면 영향
+있음
+낮음
+DB 영향
+낮음
+높음
+예시
+CustomerSearchCriteria
+CustomerListQuery
+
+5.7 Entity DTO
+Entity는 DB Row 또는 테이블 결과를 표현한다.
+{업무대상}Entity
+
+테이블 / 조회
+Entity
+설명
+고객 기본정보
+CustomerEntity
+고객 Row
+캠페인
+CampaignEntity
+캠페인 Row
+사용자
+UserEntity
+사용자 Row
+Service Catalog
+ServiceCatalogEntity
+ServiceId 기준정보 Row
+거래로그
+TransactionLogEntity
+거래로그 Row
+Entity는 DB 구조에 가까운 객체이므로 외부 응답으로 직접 반환하지 않는다.
+Entity
+   ↓
+Result
+   ↓
+Response
+
+
+5.8 Item DTO
+Item DTO는 목록 안의 개별 Row를 표현한다.
+{업무대상}Item
+
+목록 응답
+Item DTO
+설명
+고객 상품 목록
+CustomerProductItem
+고객 보유상품 Row
+캠페인 대상 목록
+CampaignTargetItem
+캠페인 대상자 Row
+사용자 목록
+UserItem
+사용자 Row
+메시지 발송 결과 목록
+MessageSendResultItem
+메시지별 발송 결과 Row
+목록 Response는 보통 다음 구조를 사용한다.
+public class CustomerListResponse {
+    private List<CustomerItem> customerList;
+    private PageResponse page;
+}
+
+
+6. 업무 Prefix 사용 기준
+DTO에 업무 Prefix를 붙일지 여부는 다음 기준으로 결정한다.
+구분
+기준
+예시
+업무 내부 전용 DTO
+Prefix 생략 가능
+CustomerSummaryRequest
+여러 업무에서 이름 충돌 가능
+업무 Prefix 사용
+SvCustomerSummaryRequest
+공통 TCF DTO
+업무 Prefix 금지
+StandardRequest, StandardResponse
+OM DTO
+Om Prefix 권장
+OmUserSaveRequest
+JWT DTO
+Jwt Prefix 권장
+JwtTokenIssueRequest
+Gateway DTO
+Gateway Prefix 권장
+GatewayRouteRequest
+공통 코드성 DTO
+Common 또는 Tcf Prefix
+TcfErrorResponse
+권장 기준은 다음과 같다.
+업무 Package 안에서만 쓰는 DTO는 Prefix 생략 가능
+업무 간 공유되거나 이름 충돌 가능성이 있으면 Prefix 사용
+공통 DTO에는 업무 Prefix 사용 금지
+
+
+7. DTO Field 명명규칙
+DTO Field는 lowerCamelCase를 사용한다.
+구분
+표준 Field
+예시
+고객번호
+customerNo
+private String customerNo;
+고객명
+customerName
+private String customerName;
+지점코드
+branchCode
+private String branchCode;
+사용자 ID
+userId
+private String userId;
+캠페인 ID
+campaignId
+private String campaignId;
+상품코드
+productCode
+private String productCode;
+기준일자
+baseDate
+private LocalDate baseDate;
+생성일시
+createdAt
+private LocalDateTime createdAt;
+수정일시
+updatedAt
+private LocalDateTime updatedAt;
+목록
+{대상}List
+private List<CustomerItem> customerList;
+총건수
+totalCount
+private int totalCount;
+금지 기준은 다음과 같다.
+금지 Field
+사유
+표준
+data
+의미 없음
+customerSummary
+list
+대상 없음
+customerList
+map
+Key/Value 의미 없음
+serviceIdToHandlerMap
+temp
+임시명
+실제 의미명 사용
+str
+타입만 표현
+customerName
+custNo
+약어
+customerNo
+brCd
+약어
+branchCode
+flag
+의미 불명확
+active, deleted, masked
+
+8. Request / Response / Command / Result 변환 기준
+DTO 변환은 다음 흐름으로 고정한다.
+Request
+   ↓ from(request, header)
+Command
+   ↓ Service 처리
+Result
+   ↓ from(result)
+Response
+
+권장 Method명은 다음과 같다.
+변환
+Method
+예시
+Request → Command
+toCommand() 또는 from()
+CustomerSummaryCommand.from(request, header)
+Result → Response
+from()
+CustomerSummaryResponse.from(result)
+Entity → Result
+from()
+CustomerSummaryResult.from(entity)
+Criteria → Query
+toQuery()
+CustomerSearchCriteria.toQuery()
+예시는 다음과 같다.
+public class CustomerSummaryCommand {
+
+    private String customerNo;
+    private LocalDate baseDate;
+    private String userId;
+    private String branchCode;
+
+    public static CustomerSummaryCommand from(
+            CustomerSummaryRequest request,
+            StandardHeader header
+    ) {
+        CustomerSummaryCommand command = new CustomerSummaryCommand();
+        command.customerNo = request.getCustomerNo();
+        command.baseDate = request.getBaseDate();
+        command.userId = header.getUserId();
+        command.branchCode = header.getBranchCode();
+        return command;
+    }
+}
+
+public class CustomerSummaryResponse {
+
+    private String customerNo;
+    private String customerName;
+    private String customerGrade;
+
+    public static CustomerSummaryResponse from(CustomerSummaryResult result) {
+        CustomerSummaryResponse response = new CustomerSummaryResponse();
+        response.customerNo = result.getMaskedCustomerNo();
+        response.customerName = result.getCustomerName();
+        response.customerGrade = result.getCustomerGrade();
+        return response;
+    }
+}
+
+
+9. 계층별 DTO 사용 기준
+계층
+입력 DTO
+출력 DTO
+기준
+Handler
+StandardRequest<Request>
+StandardResponse<Response>
+외부 전문 변환
+Facade
+Command
+Response 또는 Result
+유스케이스 조립
+Service
+Command
+Result
+업무 처리
+Rule
+Command, Domain
+Boolean / Enum / Result
+업무 판단
+DAO
+Query
+Entity, Result
+DB 접근
+Mapper
+Query, Primitive
+Entity, Result
+SQL 실행
+권장 흐름은 다음과 같다.
+Handler
+  StandardRequest<CustomerSummaryRequest>
+  → CustomerSummaryCommand
+
+Facade
+  CustomerSummaryCommand
+  → CustomerSummaryResult
+
+Service
+  CustomerSummaryCommand
+  → CustomerSummaryResult
+
+DAO / Mapper
+  CustomerSummaryQuery
+  → CustomerEntity
+
+Handler / ETF
+  CustomerSummaryResult
+  → CustomerSummaryResponse
+  → StandardResponse<CustomerSummaryResponse>
+
+
+10. 페이징 DTO 명명 기준
+목록 조회는 반드시 페이징 DTO를 분리한다.
+DTO
+역할
+예시 Field
+PageRequest
+요청 페이징 조건
+pageNo, pageSize, sortKey, sortDirection
+PageResponse
+응답 페이징 결과
+pageNo, pageSize, totalCount, hasNext
+{대상}ListRequest
+목록 조회 요청
+searchCriteria, page
+{대상}ListResponse
+목록 조회 응답
+{대상}List, page
+{대상}Item
+목록 Row
+customerNo, customerName
+예시는 다음과 같다.
+public class CustomerListRequest {
+    private CustomerSearchCriteria searchCriteria;
+    private PageRequest page;
+}
+
+public class CustomerListResponse {
+    private List<CustomerItem> customerList;
+    private PageResponse page;
+}
+
+
+11. 파일 업다운로드 DTO 명명 기준
+파일 처리 DTO는 처리 방향을 명확히 표현한다.
+처리
+DTO
+설명
+파일 업로드 요청
+{대상}UploadRequest
+메타정보 + 파일 식별자
+파일 업로드 응답
+{대상}UploadResponse
+업로드 결과
+파일 다운로드 요청
+{대상}DownloadRequest
+다운로드 조건
+파일 다운로드 응답
+{대상}DownloadResponse
+파일 ID, 파일명, 다운로드 URL
+엑셀 다운로드 요청
+{대상}ExcelDownloadRequest
+엑셀 생성 조건
+엑셀 다운로드 응답
+{대상}ExcelDownloadResponse
+파일 식별자
+예시는 다음과 같다.
+CustomerExcelDownloadRequest
+CustomerExcelDownloadResponse
+CampaignTargetUploadRequest
+CampaignTargetUploadResponse
+
+
+12. Validation DTO 기준
+Validation Annotation은 Request DTO에 우선 적용한다.
+public class CustomerSummaryRequest {
+
+    @NotBlank
+    private String customerNo;
+
+    @NotNull
+    private LocalDate baseDate;
+}
+
+DTO 유형
+Validation 적용 기준
+Request
+필수값, 길이, 형식, 범위 검증
+Command
+서버 보정 후 내부 검증
+Query
+SQL 조건 안전성 검증
+Response
+일반적으로 Validation 적용하지 않음
+Entity
+DB 제약과 중복되지 않도록 제한 적용
+업무 규칙성 검증은 DTO Annotation에 모두 넣지 말고 Rule에서 처리한다.
+검증 유형
+위치
+필수값
+Request DTO
+길이 / 형식
+Request DTO
+고객 존재 여부
+Rule / Service
+권한 여부
+STF / Authorization / Rule
+다운로드 가능 여부
+Rule
+SQL 조건 유효성
+Service / DAO 직전
+
+13. SV 고객요약조회 DTO 전체 예시
+ServiceId      : SV.Customer.selectSummary
+거래코드       : SV-INQ-0001
+Request DTO    : CustomerSummaryRequest
+Command DTO    : CustomerSummaryCommand
+Query DTO      : CustomerSummaryQuery
+Entity DTO     : CustomerEntity
+Result DTO     : CustomerSummaryResult
+Response DTO   : CustomerSummaryResponse
+
+public class CustomerSummaryRequest {
+    private String customerNo;
+    private LocalDate baseDate;
+    private boolean includeProduct;
+    private boolean includeCampaign;
+}
+
+public class CustomerSummaryQuery {
+    private String customerNo;
+    private LocalDate baseDate;
+    private String branchCode;
+}
+
+public class CustomerSummaryResult {
+    private String customerNo;
+    private String customerName;
+    private String customerGrade;
+    private List<CustomerProductItem> productList;
+}
+
+public class CustomerSummaryResponse {
+    private String maskedCustomerNo;
+    private String customerName;
+    private String customerGrade;
+    private List<CustomerProductItem> productList;
+}
+
+
+14. OM 사용자 목록조회 DTO 예시
+ServiceId      : OM.User.selectList
+거래코드       : OM-INQ-0001
+Request DTO    : OmUserListRequest
+Criteria DTO   : OmUserSearchCriteria
+Query DTO      : OmUserListQuery
+Item DTO       : OmUserItem
+Response DTO   : OmUserListResponse
+
+OM, JWT, Gateway처럼 모듈 성격이 명확한 경우에는 DTO에도 모듈 Prefix를 붙이는 것이 좋다.
+public class OmUserListResponse {
+    private List<OmUserItem> userList;
+    private PageResponse page;
+}
+
+
+15. DTO 금지 명명 사례
+잘못된 DTO
+문제
+표준
+CustomerDTO
+용도 불명확
+CustomerSummaryRequest, CustomerSummaryResponse
+CustomerVO
+View/Value 의미 혼재
+CustomerEntity, CustomerResult
+CustomerBO
+업무 객체인지 DTO인지 불명확
+CustomerCommand, CustomerResult
+CustomerParam
+요청/조회 조건 구분 불명확
+CustomerSummaryRequest, CustomerSummaryQuery
+CustomerData
+의미 없음
+CustomerSummaryResult
+CustomerInfo
+조회/응답/DB 결과 구분 불가
+목적별 DTO로 분리
+RequestData
+업무대상 없음
+CustomerSummaryRequest
+ResponseData
+업무대상 없음
+CustomerSummaryResponse
+ListResponse
+대상 없음
+CustomerListResponse
+TempCustomerDto
+임시명
+실제 업무 목적명 사용
+
+16. DTO 작성 금지 기준
+금지 기준
+설명
+Request DTO에 Header 값 중복 저장
+serviceId, transactionCode, businessCode는 Header 영역
+Response DTO에 오류코드 직접 저장
+오류코드는 StandardResponse.result 영역
+Entity를 화면 응답으로 직접 반환
+DB 구조와 민감정보 노출 위험
+하나의 DTO를 Request/Response/Query로 재사용
+계층 책임 혼재
+Map<String, Object> 남용
+타입 안정성, Validation, 문서화 어려움
+DTO에 업무 로직 구현
+DTO는 데이터 전달 책임만 수행
+DTO에 Repository / Service 주입
+DTO는 Spring Bean이 아님
+DTO에 SQL 문자열 포함
+SQL은 Mapper XML에 위치
+DTO Field에 약어 남용
+운영 추적성과 가독성 저하
+민감정보 평문 Response
+마스킹 후 Response 생성
+
+17. DTO 정합성 검증 기준
+검증 항목
+정상 기준
+DTO명이 사용 목적을 표현하는가
+Request / Response / Command / Result / Query 구분
+DTO Package가 유형별로 분리되었는가
+dto.request, dto.response, dto.command
+Request DTO가 외부 입력값만 포함하는가
+Header 중복 없음
+Command DTO가 내부 처리 기준을 포함하는가
+userId, branchCode 등 서버 보정값 가능
+Query DTO가 SQL 조건만 포함하는가
+화면 표시 전용값 없음
+Entity가 외부 응답으로 직접 반환되지 않는가
+Response로 변환
+Response DTO가 마스킹 기준을 반영하는가
+민감정보 평문 없음
+목록 응답이 Item DTO와 Page DTO를 사용하는가
+List<Item> + PageResponse
+DTO Field가 lowerCamelCase인가
+customerNo, branchCode
+DTO에 업무 로직이나 DB 접근 코드가 없는가
+데이터 전달만 수행
+Map<String, Object> 사용이 제한되는가
+명시적 DTO 우선
+ServiceId 의미와 DTO명이 연결되는가
+SV.Customer.selectSummary ↔ CustomerSummaryRequest
+
+18. DTO 설계 체크리스트
+점검 항목
+확인
+Request / Response / Command / Result DTO가 분리되었는가
+□
+DTO명이 {업무대상}{행위}{DTO유형} 형식인가
+□
+업무 내부 전용 DTO와 공통 DTO Prefix 기준이 명확한가
+□
+DTO Package가 dto.request, dto.response, dto.command, dto.result로 분리되었는가
+□
+Request DTO에 Header 항목이 중복 포함되지 않았는가
+□
+Response DTO에 오류코드나 StackTrace가 포함되지 않았는가
+□
+Entity가 외부 Response로 직접 반환되지 않는가
+□
+Query DTO가 Mapper SQL 조건과 일치하는가
+□
+목록 응답은 Item + PageResponse 구조인가
+□
+민감정보는 Response 생성 전에 마스킹되는가
+□
+DTO Field가 의미 있는 업무 용어를 사용하는가
+□
+CustomerDTO, Param, Data, Info 같은 모호한 이름이 없는가
+□
+DTO 변환 Method가 from, toCommand, toQuery 등으로 일관되는가
+□
+
+19. 마무리말
+Java DTO 명명규칙은 NSIGHT TCF Framework의 데이터 흐름을 명확히 하는 기준이다.
+StandardRequest<Request>
+   ↓
+Command
+   ↓
+Query / Entity / Result
+   ↓
+Response
+   ↓
+StandardResponse<Response>
+
+따라서 NSIGHT에서는 다음 원칙을 고정한다.
+외부 전문 DTO는 Request/Response로, 내부 처리 DTO는 Command/Result/Query/Entity로 분리한다.
+이 기준을 지키면 개발자는 DTO의 사용 위치를 혼동하지 않고, 운영자는 ServiceId와 거래로그를 기준으로 요청값, 처리값, SQL 조건, 응답값을 일관되게 추적할 수 있다.
+

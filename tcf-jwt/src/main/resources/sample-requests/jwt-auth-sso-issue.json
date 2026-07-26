@@ -1,0 +1,26 @@
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "JWT",
+    "serviceId": "JWT.Auth.ssoIssue",
+    "serviceName": "JWT SSO 토큰 발급",
+    "transactionCode": "JWT-AUT-0005",
+    "processingType": "EXECUTE",
+    "channelId": "WEBTOP",
+    "guid": "00000000-0000-4000-8000-000000000001",
+    "traceId": "SSO-ASSERTION-20260629-000001",
+    "userId": "admin01",
+    "branchId": "000001",
+    "clientIp": "127.0.0.1"
+  },
+  "body": {
+    "userId": "admin01",
+    "userName": "운영관리자",
+    "branchId": "000001",
+    "authGroupId": "ROLE_ADMIN",
+    "authGroupName": "시스템관리자",
+    "issuer": "OM-SSO",
+    "ssoSubject": "admin01",
+    "ssoAssertionId": "SSO-ASSERTION-20260629-000001"
+  }
+}

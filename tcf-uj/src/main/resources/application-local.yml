@@ -1,0 +1,13 @@
+# local — bootRun (:8102)
+server:
+  port: 8102
+
+spring:
+  application:
+    name: nsight-tcf-uj
+
+nsight:
+  tcf-uj:
+    deployment-mode: bootrun
+    tomcat-gateway-url: http://localhost:8080
+    bootrun-host: http://127.0.0.1

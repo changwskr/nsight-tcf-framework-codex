@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SV 샘플 목록 (페이징)</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/eb-admin.css">
+</head>
+<body>
+  <div class="eb-admin-wrap">
+    <header>
+      <h1>SV 샘플 목록</h1>
+      <p><code>SV.Sample.inquiry</code> — <code>SvSampleService</code> 업무 페이징 (<code>list</code> / <code>totalPage</code>) 테스트 화면입니다.</p>
+      <div class="nav-links">
+        <a class="nav-link" href="/index.html">← 업무 목록</a>
+        <a class="nav-link" href="/sv/index.html">SV 거래 테스트</a>
+        <a class="nav-link" href="/sv/index-multi.html">다중 서비스 테스트</a>
+      </div>
+    </header>
+
+    <section class="eb-meta-bar">
+      <div class="eb-meta-card">
+        <div class="label">연결 대상</div>
+        <div class="value" id="metaTargetUrl">-</div>
+      </div>
+      <div class="eb-meta-card">
+        <div class="label">serviceId</div>
+        <div class="value">SV.Sample.inquiry (SV-INQ-0001)</div>
+      </div>
+      <div class="eb-meta-card">
+        <div class="label">조회 상태</div>
+        <div class="value" id="metaStatus">-</div>
+      </div>
+      <div class="eb-meta-card">
+        <div class="label">마지막 갱신</div>
+        <div class="value" id="lastRefreshed">-</div>
+      </div>
+    </section>
+
+    <section class="eb-filter-bar">
+      <div class="field">
+        <label for="filterSampleKey">샘플 키</label>
+        <input id="filterSampleKey" type="text" placeholder="부분 일치 (예: A00)">
+      </div>
+      <div class="field" style="max-width:120px">
+        <label for="filterPageSize">pageSize</label>
+        <select id="filterPageSize">
+          <option value="2">2</option>
+          <option value="5">5</option>
+          <option value="10" selected>10</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+      <div class="eb-actions">
+        <button type="button" class="btn-primary" id="btnSearch">조회</button>
+        <button type="button" class="btn-secondary" id="btnClearFilter">필터 초기화</button>
+      </div>
+    </section>
+
+    <section class="eb-table-panel">
+      <h2>샘플 목록</h2>
+      <div class="eb-table-wrap">
+        <table class="eb-table">
+          <thead>
+            <tr>
+              <th>샘플 키</th>
+              <th>샘플 명</th>
+              <th>생성일시</th>
+            </tr>
+          </thead>
+          <tbody id="sampleTableBody">
+            <tr><td colspan="3" class="eb-empty">조회 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="pagination" class="eb-pagination" hidden></div>
+    </section>
+
+    <section class="eb-table-panel">
+      <div class="eb-toolbar-row">
+        <h2 style="margin:0">응답 JSON (디버그)</h2>
+        <button type="button" class="btn-secondary" id="btnToggleJson">접기/펼치기</button>
+      </div>
+      <pre id="responseJson" style="margin:0;max-height:280px;overflow:auto;font-family:Consolas,'Courier New',monospace;font-size:0.85rem;background:var(--bg);padding:12px;border-radius:8px;border:1px solid var(--border)"></pre>
+    </section>
+  </div>
+
+  <script src="/_shared/ui-context.js"></script>
+  <script src="/_shared/sv-admin.js"></script>
+  <script>
+    let pageNo = 1;
+
+    function readFilters() {
+      const sampleKey = document.getElementById('filterSampleKey').value.trim();
+      const pageSize = Number(document.getElementById('filterPageSize').value) || 10;
+      const filters = { pageNo, pageSize };
+      if (sampleKey) filters.sampleKey = sampleKey;
+      return filters;
+    }
+
+    function renderRows(list) {
+      const tbody = document.getElementById('sampleTableBody');
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="eb-empty">조회된 샘플이 없습니다.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(row => `
+        <tr>
+          <td class="mono">${SvAdmin.field(row, 'sampleKey')}</td>
+          <td>${SvAdmin.field(row, 'sampleName')}</td>
+          <td>${SvAdmin.formatTs(SvAdmin.field(row, 'createdAt'))}</td>
+        </tr>`).join('');
+    }
+
+    function updateMeta(body, relay) {
+      const totalCount = body.totalCount ?? 0;
+      const totalPage = body.totalPage ?? 0;
+      const appliedPageNo = body.pageNo || pageNo;
+      const appliedPageSize = body.pageSize || readFilters().pageSize;
+      document.getElementById('metaStatus').textContent =
+        `${relay.elapsedMs}ms · 페이지 ${appliedPageNo} / ${totalPage} · 총 ${totalCount}건 · 페이지당 ${appliedPageSize}건`;
+      document.getElementById('lastRefreshed').textContent = new Date().toLocaleString('ko-KR');
+      document.getElementById('responseJson').textContent = JSON.stringify(body, null, 2);
+    }
+
+    async function loadSamples(nextPage) {
+      if (nextPage != null) pageNo = nextPage;
+      const tbody = document.getElementById('sampleTableBody');
+      tbody.innerHTML = '<tr><td colspan="3" class="eb-empty">조회 중...</td></tr>';
+      try {
+        const { body, relay } = await SvAdmin.inquiry('sampleInquiry', readFilters());
+        const list = body.list || [];
+        renderRows(list);
+        SvAdmin.renderPagination(
+          document.getElementById('pagination'),
+          body.pageNo || pageNo,
+          body.pageSize || readFilters().pageSize,
+          body.totalCount || 0,
+          loadSamples
+        );
+        updateMeta(body, relay);
+      } catch (error) {
+        tbody.innerHTML = `<tr><td colspan="3" class="eb-empty">${error.message || '조회 실패'}</td></tr>`;
+        document.getElementById('pagination').hidden = true;
+        document.getElementById('metaStatus').textContent = error.message || '조회 실패';
+      }
+    }
+
+    function clearFilter() {
+      document.getElementById('filterSampleKey').value = '';
+      document.getElementById('filterPageSize').value = '10';
+      pageNo = 1;
+      loadSamples(1);
+    }
+
+    document.getElementById('btnSearch').addEventListener('click', () => loadSamples(1));
+    document.getElementById('btnClearFilter').addEventListener('click', clearFilter);
+    document.getElementById('filterPageSize').addEventListener('change', () => loadSamples(1));
+    document.getElementById('filterSampleKey').addEventListener('keydown', e => {
+      if (e.key === 'Enter') loadSamples(1);
+    });
+    document.getElementById('btnToggleJson').addEventListener('click', () => {
+      const el = document.getElementById('responseJson');
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    });
+
+    SvAdmin.loadConfig()
+      .then(() => {
+        document.getElementById('metaTargetUrl').textContent = SvAdmin.getTargetUrl();
+        return loadSamples(1);
+      })
+      .catch(error => {
+        if (window.NsightErrorPopup) {
+          NsightErrorPopup.show(NsightErrorPopup.fromError(error, { systemNote: 'SV 샘플 목록' }));
+        } else {
+          alert('화면 초기화 실패: ' + error.message);
+        }
+      });
+  </script>
+</body>
+</html>

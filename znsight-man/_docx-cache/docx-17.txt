@@ -1,0 +1,1002 @@
+12. 애플리케이션 계층구조
+12.1 도입 전 안내말
+본 장은 NSIGHT TCF Framework에서 업무 프로그램을 어떤 계층으로 나누어 개발해야 하는지 정의한다.
+NSIGHT 업무 서비스는 단순히 Controller, Service, Mapper로만 구성하지 않는다.모든 온라인 거래는 TCF 표준 전문을 통해 들어오고, serviceId를 기준으로 Handler가 선택되며, 이후 정해진 계층을 따라 업무 로직과 DB 접근이 수행된다.
+NSIGHT 애플리케이션 계층구조의 기본 원칙은 다음과 같다.
+표준 전문 요청
+   ↓
+TCF Framework
+   ↓
+Handler
+   ↓
+Facade
+   ↓
+Service
+   ↓
+Rule
+   ↓
+DAO
+   ↓
+Mapper
+   ↓
+DB
+
+핵심은 업무 로직을 한 클래스에 몰아넣지 않고, 역할별로 나누는 것이다.
+
+12.2 애플리케이션 계층구조 결론
+NSIGHT 업무 애플리케이션은 다음 계층을 표준으로 한다.
+계층
+역할
+개발자 관점 설명
+Handler
+TCF에서 호출되는 업무 진입점
+serviceId와 1:1로 연결되는 시작 클래스
+Facade
+유스케이스 조립 및 트랜잭션 경계
+하나의 거래 흐름을 책임지는 대표 클래스
+Service
+업무 처리 흐름 제어
+여러 Rule, DAO, Client 호출을 조정
+Rule
+업무 규칙 처리
+조건 판단, 검증, 계산, 정책 적용
+DAO
+DB 접근 캡슐화
+Mapper 호출을 감싸는 DB 접근 계층
+Mapper
+SQL 실행
+MyBatis XML SQL과 연결
+DTO
+요청·응답 데이터 구조
+Request, Response, Command, Result 객체
+Client
+다른 서비스 호출
+SV, IC, OM, 외부 API 호출
+한 문장으로 정리하면 다음과 같다.
+Handler는 받기만 하고, Facade는 거래를 조립하고, Service는 흐름을 처리하고, Rule은 판단하고, DAO는 DB 접근을 감싸고, Mapper는 SQL만 실행한다.
+
+12.3 전체 처리 흐름
+SV 고객 요약 조회 거래를 예로 들면 다음과 같다.
+POST /sv/online
+   ↓
+StandardRequest
+   ↓
+TCF.process()
+   ↓
+STF.preProcess()
+   ↓
+TransactionDispatcher
+   ↓
+serviceId = SV.Customer.selectSummary
+   ↓
+SvCustomerSummaryHandler
+   ↓
+SvCustomerFacade
+   ↓
+SvCustomerService
+   ↓
+SvCustomerRule
+   ↓
+SvCustomerDao
+   ↓
+SvCustomerMapper.xml
+   ↓
+RDW / ADW
+   ↓
+StandardResponse
+
+이 구조에서 개발자가 주로 작성하는 영역은 다음이다.
+개발자 작성 영역
+ ├─ Handler
+ ├─ Facade
+ ├─ Service
+ ├─ Rule
+ ├─ DAO
+ ├─ Mapper
+ └─ DTO
+
+TCF 공통 영역은 개발자가 임의로 수정하지 않는다.
+공통 Framework 영역
+ ├─ StandardRequest
+ ├─ StandardResponse
+ ├─ STF
+ ├─ ETF
+ ├─ TransactionDispatcher
+ ├─ TransactionContext
+ └─ GlobalExceptionHandler
+
+
+12.4 계층별 책임 요약
+계층
+책임
+하면 안 되는 일
+Handler
+요청 Body 변환, Facade 호출, 응답 반환
+SQL 실행, 복잡한 업무 로직 작성
+Facade
+트랜잭션 경계, 유스케이스 조립
+SQL 직접 실행, 화면용 데이터 가공 남발
+Service
+업무 흐름 처리, Rule/DAO 호출
+HTTP 요청 직접 처리, 세션 직접 조작
+Rule
+업무 판단, 검증, 계산
+DB 직접 조회, Mapper 직접 호출
+DAO
+Mapper 호출, DB 결과 변환
+업무 규칙 판단, 트랜잭션 시작
+Mapper
+SQL 실행
+Java 로직 작성, 업무 규칙 처리
+DTO
+데이터 전달
+업무 로직 포함
+Client
+서비스 간 호출
+다른 업무 Java 클래스 직접 참조
+
+12.5 쉬운 설명
+개발자가 이해하기 쉽게 비유하면 다음과 같다.
+계층
+비유
+설명
+Handler
+접수 창구
+요청을 받고 담당 Facade로 넘긴다
+Facade
+업무 책임자
+이 거래를 어떤 순서로 처리할지 결정한다
+Service
+실무 담당자
+실제 업무 흐름을 수행한다
+Rule
+심사 기준표
+조건이 맞는지 판단하고 계산한다
+DAO
+DB 담당 직원
+DB에 물어볼 일을 정리한다
+Mapper
+SQL 문서
+실제 SQL을 실행한다
+DTO
+신청서/결과서
+요청값과 응답값을 담는다
+즉, Handler가 모든 일을 직접 하면 안 된다.Handler는 접수만 하고, 실제 판단과 처리는 아래 계층으로 내려보내야 한다.
+
+12.6 표준 패키지 구조
+SV 업무 기준 표준 패키지는 다음과 같다.
+com.nh.nsight.sv
+ ├─ SvServiceApplication.java
+ │
+ ├─ entry
+ │   ├─ handler
+ │   │   └─ SvCustomerSummaryHandler.java
+ │   └─ facade
+ │       └─ SvCustomerFacade.java
+ │
+ ├─ application
+ │   ├─ service
+ │   │   └─ SvCustomerService.java
+ │   └─ rule
+ │       └─ SvCustomerRule.java
+ │
+ ├─ persistence
+ │   ├─ dao
+ │   │   └─ SvCustomerDao.java
+ │   └─ mapper
+ │       └─ SvCustomerMapper.java
+ │
+ ├─ dto
+ │   ├─ request
+ │   │   └─ SvCustomerSummaryRequest.java
+ │   ├─ response
+ │   │   └─ SvCustomerSummaryResponse.java
+ │   ├─ command
+ │   │   └─ SvCustomerSummaryCommand.java
+ │   └─ result
+ │       └─ SvCustomerSummaryResult.java
+ │
+ ├─ client
+ │   └─ SvIntegrationClient.java
+ │
+ ├─ support
+ └─ config
+
+Mapper XML은 Java Package와 분리하여 resources 아래에 둔다.
+src/main/resources
+ └─ mapper
+     └─ sv
+         └─ SvCustomerMapper.xml
+
+
+12.7 계층 호출 방향
+계층 호출 방향은 위에서 아래로만 흐른다.
+Handler
+   ↓
+Facade
+   ↓
+Service
+   ↓
+Rule
+   ↓
+DAO
+   ↓
+Mapper
+
+허용되는 호출은 다음과 같다.
+호출
+허용 여부
+설명
+Handler → Facade
+허용
+표준 호출
+Facade → Service
+허용
+업무 처리 위임
+Service → Rule
+허용
+업무 판단 요청
+Service → DAO
+허용
+DB 조회·저장 요청
+DAO → Mapper
+허용
+SQL 실행
+Service → Client
+허용
+다른 서비스 호출
+Rule → DAO
+원칙적 금지
+Rule은 DB를 직접 알지 않는 것이 좋음
+Handler → DAO
+금지
+계층 우회
+Handler → Mapper
+금지
+계층 위반
+Mapper → Service
+금지
+역방향 호출
+DAO → Service
+금지
+역방향 호출
+업무 WAR → 다른 업무 WAR Java 직접 참조
+금지
+독립 배포 훼손
+
+12.8 Handler 계층
+12.8.1 Handler의 역할
+Handler는 TCF Dispatcher가 serviceId를 기준으로 호출하는 업무 진입점이다.
+항목
+기준
+위치
+entry.handler
+개수
+ServiceId 1개당 Handler 1개 권장
+입력
+StandardRequest의 Body
+출력
+업무 Response DTO
+호출 대상
+Facade
+트랜잭션
+직접 관리하지 않음
+업무 로직
+작성하지 않음
+12.8.2 Handler 예시
+@Component("SV.Customer.selectSummary")
+@RequiredArgsConstructor
+public class SvCustomerSummaryHandler
+        implements TcfTransactionHandler<SvCustomerSummaryRequest, SvCustomerSummaryResponse> {
+
+    private final SvCustomerFacade svCustomerFacade;
+
+    @Override
+    public SvCustomerSummaryResponse handle(SvCustomerSummaryRequest request,
+                                            TransactionContext context) {
+        return svCustomerFacade.selectCustomerSummary(request, context);
+    }
+}
+
+12.8.3 Handler 작성 기준
+기준
+설명
+ServiceId와 명확히 매핑
+SV.Customer.selectSummary
+요청 DTO만 수신
+Map 남발 금지
+Facade만 호출
+Service, DAO 직접 호출 금지
+예외 직접 삼키기 금지
+공통 예외 처리로 전달
+로그 최소화
+시작/종료 로그는 TCF 공통에서 처리
+
+12.9 Facade 계층
+12.9.1 Facade의 역할
+Facade는 하나의 업무 유스케이스를 조립하는 계층이다.트랜잭션 경계를 관리하고, 여러 Service 호출을 하나의 거래로 묶는다.
+항목
+기준
+위치
+entry.facade
+역할
+유스케이스 조립, 트랜잭션 경계
+호출 대상
+Service
+트랜잭션
+@Transactional 적용 가능
+DB 접근
+DAO 직접 호출은 지양, Service 경유 권장
+예외
+업무 예외를 의미 있게 변환 가능
+12.9.2 Facade 예시
+@Component
+@RequiredArgsConstructor
+public class SvCustomerFacade {
+
+    private final SvCustomerService svCustomerService;
+
+    @Transactional(readOnly = true, timeout = 5)
+    public SvCustomerSummaryResponse selectCustomerSummary(
+            SvCustomerSummaryRequest request,
+            TransactionContext context) {
+
+        SvCustomerSummaryCommand command =
+                SvCustomerSummaryCommand.from(request, context);
+
+        SvCustomerSummaryResult result =
+                svCustomerService.selectCustomerSummary(command);
+
+        return SvCustomerSummaryResponse.from(result);
+    }
+}
+
+12.9.3 Facade 작성 기준
+기준
+설명
+거래 단위 메서드 작성
+ServiceId와 유사한 유스케이스 단위
+트랜잭션 경계 설정
+조회는 readOnly = true
+Request를 Command로 변환
+내부 처리 객체로 변환
+Response 조립
+외부 응답 DTO 생성
+복잡한 Rule 직접 작성 금지
+Rule 또는 Service로 위임
+
+12.10 Service 계층
+12.10.1 Service의 역할
+Service는 실제 업무 처리 흐름을 담당한다.Rule을 호출하여 판단하고, DAO를 호출하여 데이터를 조회하거나 저장한다.
+항목
+기준
+위치
+application.service
+역할
+업무 흐름 제어
+호출 대상
+Rule, DAO, Client
+트랜잭션
+원칙적으로 Facade에서 관리
+업무 로직
+흐름 중심 로직 작성
+SQL
+직접 작성 금지
+12.10.2 Service 예시
+@Service
+@RequiredArgsConstructor
+public class SvCustomerService {
+
+    private final SvCustomerRule svCustomerRule;
+    private final SvCustomerDao svCustomerDao;
+
+    public SvCustomerSummaryResult selectCustomerSummary(
+            SvCustomerSummaryCommand command) {
+
+        svCustomerRule.validateCustomerNo(command.customerNo());
+
+        CustomerBasicInfo basicInfo =
+                svCustomerDao.selectCustomerBasicInfo(command.customerNo());
+
+        List<CustomerProductInfo> products =
+                svCustomerDao.selectCustomerProducts(command.customerNo());
+
+        return SvCustomerSummaryResult.of(basicInfo, products);
+    }
+}
+
+12.10.3 Service 작성 기준
+기준
+설명
+업무 흐름 중심
+검증 → 조회 → 조립 순서
+Rule 호출
+업무 판단은 Rule로 분리
+DAO 호출
+DB 접근은 DAO로 분리
+Client 호출
+다른 업무 호출은 Client 사용
+Mapper 직접 호출 금지
+DAO를 거쳐야 함
+Controller/Request 객체 사용 금지
+TCF 표준 DTO 또는 Command 사용
+
+12.11 Rule 계층
+12.11.1 Rule의 역할
+Rule은 업무 규칙을 담당한다.조건 판단, 유효성 검증, 계산, 정책 적용을 담당한다.
+항목
+기준
+위치
+application.rule
+역할
+업무 규칙, 검증, 계산
+입력
+Command, 값 객체
+출력
+판단 결과 또는 계산 결과
+DB 접근
+원칙적으로 하지 않음
+상태
+가능하면 Stateless
+테스트
+단위 테스트 필수
+12.11.2 Rule 예시
+@Component
+public class SvCustomerRule {
+
+    public void validateCustomerNo(String customerNo) {
+        if (customerNo == null || customerNo.isBlank()) {
+            throw new BusinessException("SV-VAL-0001", "고객번호는 필수입니다.");
+        }
+
+        if (customerNo.length() != 10) {
+            throw new BusinessException("SV-VAL-0002", "고객번호 형식이 올바르지 않습니다.");
+        }
+    }
+
+    public boolean isVipCustomer(CustomerBasicInfo basicInfo) {
+        return basicInfo.totalAssetAmount().compareTo(BigDecimal.valueOf(100000000)) >= 0;
+    }
+}
+
+12.11.3 Rule 작성 기준
+기준
+설명
+업무 판단은 Rule로 분리
+Service가 복잡해지는 것 방지
+DB 조회 금지
+필요한 데이터는 Service가 DAO에서 조회 후 전달
+순수 함수에 가깝게 작성
+입력이 같으면 결과가 같도록
+테스트 쉽게 작성
+DB 없이 테스트 가능해야 함
+예외코드 명확화
+검증 오류는 업무 오류코드 사용
+
+12.12 DAO 계층
+12.12.1 DAO의 역할
+DAO는 Mapper 호출을 캡슐화한다.Service가 MyBatis Mapper를 직접 알지 않도록 중간에서 DB 접근을 정리한다.
+항목
+기준
+위치
+persistence.dao
+역할
+Mapper 호출 캡슐화
+호출 대상
+Mapper Interface
+입력
+조회 조건 DTO, Command 일부
+출력
+Entity, Result, DTO
+업무 규칙
+작성 금지
+트랜잭션
+시작하지 않음
+12.12.2 DAO 예시
+@Repository
+@RequiredArgsConstructor
+public class SvCustomerDao {
+
+    private final SvCustomerMapper svCustomerMapper;
+
+    public CustomerBasicInfo selectCustomerBasicInfo(String customerNo) {
+        return svCustomerMapper.selectCustomerBasicInfo(customerNo);
+    }
+
+    public List<CustomerProductInfo> selectCustomerProducts(String customerNo) {
+        return svCustomerMapper.selectCustomerProducts(customerNo);
+    }
+}
+
+12.12.3 DAO 작성 기준
+기준
+설명
+Mapper 호출만 담당
+SQL 실행 위임
+업무 판단 금지
+판단은 Rule에서 수행
+SQL ID와 메서드명 일치
+유지보수 용이
+Null 처리 기준 명확화
+결과 없음 처리 정책 적용
+예외 변환 가능
+DB 예외를 업무 예외로 변환 가능
+
+12.13 Mapper 계층
+12.13.1 Mapper의 역할
+Mapper는 MyBatis SQL 실행 계층이다.Java Interface와 XML SQL로 구성한다.
+항목
+기준
+위치
+persistence.mapper
+XML 위치
+resources/mapper/{업무코드}
+역할
+SQL 실행
+업무 로직
+작성 금지
+SQL ID
+Mapper 메서드명과 일치
+Timeout
+MyBatis Query Timeout 적용
+12.13.2 Mapper Interface 예시
+@Mapper
+public interface SvCustomerMapper {
+
+    CustomerBasicInfo selectCustomerBasicInfo(String customerNo);
+
+    List<CustomerProductInfo> selectCustomerProducts(String customerNo);
+}
+
+12.13.3 Mapper XML 예시
+<mapper namespace="com.nh.nsight.sv.persistence.mapper.SvCustomerMapper">
+
+    <select id="selectCustomerBasicInfo"
+            parameterType="string"
+            resultType="com.nh.nsight.sv.dto.result.CustomerBasicInfo">
+        SELECT
+            CUSTOMER_NO,
+            CUSTOMER_NAME,
+            TOTAL_ASSET_AMOUNT
+        FROM RDW_CUSTOMER_BASIC
+        WHERE CUSTOMER_NO = #{customerNo}
+    </select>
+
+    <select id="selectCustomerProducts"
+            parameterType="string"
+            resultType="com.nh.nsight.sv.dto.result.CustomerProductInfo">
+        SELECT
+            CUSTOMER_NO,
+            PRODUCT_CODE,
+            PRODUCT_NAME,
+            BALANCE_AMOUNT
+        FROM RDW_CUSTOMER_PRODUCT
+        WHERE CUSTOMER_NO = #{customerNo}
+        ORDER BY PRODUCT_CODE
+    </select>
+
+</mapper>
+
+12.13.4 Mapper 작성 기준
+기준
+설명
+SQL만 작성
+업무 판단은 Java 계층에서 수행
+Full Scan 주의
+조건 없는 대량 조회 금지
+Timeout 적용
+장시간 SQL 차단
+Paging 적용
+목록 조회는 페이징 기준 적용
+ResultMap 명확화
+복잡한 조인은 ResultMap 사용
+운영 SQL 검증
+로컬 H2만 믿지 말고 실제 DB 문법 확인
+
+12.14 DTO 구조
+DTO는 계층 간 데이터를 전달하는 객체이다.NSIGHT에서는 DTO를 목적별로 나누는 것이 좋다.
+dto
+ ├─ request
+ ├─ response
+ ├─ command
+ └─ result
+
+DTO 유형
+사용 위치
+설명
+Request DTO
+Handler 입력
+외부 요청 Body 구조
+Response DTO
+Handler 출력
+외부 응답 Body 구조
+Command DTO
+Facade → Service
+내부 처리 요청 구조
+Result DTO
+Service → Facade
+내부 처리 결과 구조
+Entity DTO
+DAO/Mapper
+DB 조회 결과 구조
+예시는 다음과 같다.
+public record SvCustomerSummaryRequest(
+        String customerNo
+) {
+}
+
+public record SvCustomerSummaryCommand(
+        String customerNo,
+        String userId,
+        String branchCode
+) {
+    public static SvCustomerSummaryCommand from(
+            SvCustomerSummaryRequest request,
+            TransactionContext context) {
+        return new SvCustomerSummaryCommand(
+                request.customerNo(),
+                context.getUserId(),
+                context.getBranchCode()
+        );
+    }
+}
+
+public record SvCustomerSummaryResponse(
+        String customerNo,
+        String customerName,
+        String vipYn
+) {
+    public static SvCustomerSummaryResponse from(SvCustomerSummaryResult result) {
+        return new SvCustomerSummaryResponse(
+                result.customerNo(),
+                result.customerName(),
+                result.vipYn()
+        );
+    }
+}
+
+
+12.15 트랜잭션 경계 기준
+트랜잭션은 원칙적으로 Facade에서 시작한다.
+계층
+트랜잭션 기준
+Handler
+트랜잭션 선언 금지
+Facade
+@Transactional 선언 가능
+Service
+필요 시 제한적으로 선언
+Rule
+트랜잭션 선언 금지
+DAO
+트랜잭션 선언 금지
+Mapper
+트랜잭션 선언 없음
+조회 거래 예시는 다음과 같다.
+@Transactional(readOnly = true, timeout = 5)
+public SvCustomerSummaryResponse selectCustomerSummary(...) {
+    ...
+}
+
+변경 거래 예시는 다음과 같다.
+@Transactional(timeout = 5, rollbackFor = Exception.class)
+public SvCustomerMemoUpdateResponse updateCustomerMemo(...) {
+    ...
+}
+
+거래 유형
+트랜잭션 기준
+조회
+readOnly = true
+등록
+rollbackFor = Exception.class
+수정
+rollbackFor = Exception.class
+삭제
+승인된 업무만 허용
+외부 연계 포함 거래
+보상 처리 또는 별도 설계 필요
+장시간 거래
+온라인 거래에서 지양
+
+12.16 예외 처리 기준
+각 계층은 예외를 직접 숨기지 않는다.업무 예외는 명확한 오류코드와 함께 던지고, 최종 응답 변환은 TCF 공통 예외 처리에서 수행한다.
+계층
+예외 처리 기준
+Handler
+예외를 잡아서 무시하지 않음
+Facade
+유스케이스 의미의 예외로 변환 가능
+Service
+업무 조건 오류 발생 가능
+Rule
+검증 오류 발생 가능
+DAO
+DB 결과 없음, DB 오류 변환 가능
+Mapper
+MyBatis 예외 발생
+TCF 공통
+StandardResponse 오류 응답 생성
+예시는 다음과 같다.
+if (basicInfo == null) {
+    throw new BusinessException("SV-BIZ-0001", "고객 기본정보가 존재하지 않습니다.");
+}
+
+금지 예시는 다음과 같다.
+try {
+    return svCustomerDao.selectCustomerBasicInfo(customerNo);
+} catch (Exception e) {
+    return null; // 금지
+}
+
+
+12.17 로그 처리 기준
+로그는 계층별 목적에 맞게 남긴다.
+계층
+로그 기준
+TCF 공통
+GUID, TraceId, ServiceId, 거래 시작/종료
+Handler
+별도 로그 최소화
+Facade
+주요 유스케이스 흐름
+Service
+주요 업무 분기
+Rule
+검증 실패 사유
+DAO
+SQL ID, 조회 결과 건수
+Mapper
+SQL 로그는 운영에서 제한
+Global Exception
+오류코드, 예외 메시지, TraceId
+로그에는 다음 정보가 포함되어야 한다.
+GUID
+TraceId
+businessCode
+serviceId
+transactionCode
+userId
+branchCode
+
+단, 개인정보와 민감정보는 반드시 마스킹한다.
+항목
+처리 기준
+주민번호
+출력 금지 또는 마스킹
+계좌번호
+일부 마스킹
+고객명
+필요 시 마스킹
+전화번호
+마스킹
+JWT Token
+출력 금지
+Password
+출력 금지
+
+12.18 서비스 간 연동 위치
+업무 서비스가 다른 업무 서비스를 호출해야 하는 경우, Service 계층 또는 전용 Client 계층에서 처리한다.
+IC Service
+   ↓
+IcCustomerService
+   ↓
+SvIntegrationClient
+   ↓
+tcf-integration
+   ↓
+POST /sv/online
+   ↓
+SV.Customer.selectSummary
+
+방식
+허용 여부
+설명
+tcf-integration으로 HTTP/JSON 호출
+허용
+표준 방식
+다른 업무 Java Service 직접 호출
+금지
+WAR 독립성 훼손
+Mapper로 다른 업무 DB 직접 조회
+원칙적 금지
+업무 소유권 침해
+Gateway를 통한 호출
+구조에 따라 허용
+라우팅·인증 정책 적용 가능
+Client 예시는 다음과 같다.
+@Component
+@RequiredArgsConstructor
+public class SvIntegrationClient {
+
+    private final TcfServiceClient tcfServiceClient;
+
+    public SvCustomerSummaryResponse selectCustomerSummary(String customerNo) {
+        return tcfServiceClient.call(
+                "SV",
+                "SV.Customer.selectSummary",
+                "SV-INQ-0001",
+                Map.of("customerNo", customerNo),
+                SvCustomerSummaryResponse.class
+        );
+    }
+}
+
+
+12.19 계층별 테스트 기준
+계층
+테스트 방식
+테스트 대상
+Handler
+단위 또는 통합 테스트
+ServiceId 매핑, Facade 호출
+Facade
+통합 테스트
+트랜잭션, Response 변환
+Service
+단위 테스트
+업무 흐름, Rule/DAO 호출
+Rule
+단위 테스트
+검증, 계산, 조건 판단
+DAO
+통합 테스트
+Mapper 호출, 결과 변환
+Mapper
+DB 테스트
+SQL 정상 실행
+Client
+Mock 테스트
+외부 호출 실패·성공
+TCF 거래
+API 테스트
+표준 전문 요청/응답
+Rule 테스트 예시는 가장 우선적으로 작성한다.
+class SvCustomerRuleTest {
+
+    private final SvCustomerRule rule = new SvCustomerRule();
+
+    @Test
+    void 고객번호가_없으면_오류() {
+        assertThrows(BusinessException.class,
+                () -> rule.validateCustomerNo(""));
+    }
+}
+
+
+12.20 신규 ServiceId 개발 순서
+신규 ServiceId 하나를 개발할 때는 다음 순서로 진행한다.
+1. ServiceId 정의
+2. 거래코드 정의
+3. Request / Response DTO 작성
+4. Handler 작성
+5. Facade 작성
+6. Service 작성
+7. Rule 작성
+8. DAO 작성
+9. Mapper Interface 작성
+10. Mapper XML 작성
+11. 단위 테스트 작성
+12. 표준 전문 호출 테스트
+13. OM ServiceId 등록
+14. 거래통제 등록
+15. Timeout 정책 등록
+16. 오류코드 등록
+17. MR 생성
+
+SV 고객 요약 조회 예시는 다음과 같다.
+항목
+예시
+업무코드
+SV
+ServiceId
+SV.Customer.selectSummary
+거래코드
+SV-INQ-0001
+Handler
+SvCustomerSummaryHandler
+Facade
+SvCustomerFacade
+Service
+SvCustomerService
+Rule
+SvCustomerRule
+DAO
+SvCustomerDao
+Mapper
+SvCustomerMapper
+XML
+SvCustomerMapper.xml
+
+12.21 계층구조 금지사항
+금지사항
+사유
+Handler에서 SQL 실행
+계층 책임 위반
+Handler에서 업무 로직 작성
+테스트·유지보수 어려움
+Service에서 Request 객체 직접 사용
+외부 요청 구조에 내부 로직 종속
+Rule에서 Mapper 호출
+규칙 계층이 DB에 종속
+DAO에서 업무 판단 수행
+업무 규칙 위치 혼란
+Mapper XML에 업무 조건 남발
+SQL 복잡도 증가
+업무 WAR 간 Java 직접 참조
+독립 배포 불가
+공통 모듈에 업무 로직 추가
+전체 업무 영향 확대
+예외를 잡고 null 반환
+장애 원인 추적 불가
+로그에 개인정보 출력
+보안·감사 위반
+
+12.22 계층구조 점검 체크리스트
+점검 항목
+확인
+ServiceId 1개에 Handler가 명확히 존재하는가
+□
+Handler는 Facade만 호출하는가
+□
+Facade에 트랜잭션 경계가 있는가
+□
+Service는 업무 흐름만 담당하는가
+□
+업무 판단은 Rule로 분리했는가
+□
+DAO가 Mapper 호출을 캡슐화하는가
+□
+Mapper XML은 SQL만 포함하는가
+□
+Request DTO와 내부 Command DTO를 분리했는가
+□
+Response DTO와 내부 Result DTO를 분리했는가
+□
+업무 간 호출은 Client 또는 tcf-integration을 사용하는가
+□
+다른 업무 WAR의 Java 클래스를 직접 참조하지 않는가
+□
+오류코드가 명확한가
+□
+개인정보 로그 출력이 없는가
+□
+Rule 단위 테스트가 있는가
+□
+Mapper SQL 테스트를 수행했는가
+□
+표준 전문 호출 테스트를 수행했는가
+□
+
+12.23 마무리말
+애플리케이션 계층구조는 개발자가 보기에는 다소 복잡해 보일 수 있다.그러나 NSIGHT TCF Framework에서는 이 구조가 반드시 필요하다.
+그 이유는 다음과 같다.
+이유
+설명
+변경 영향 최소화
+화면, 업무, SQL 변경을 분리
+테스트 용이성
+Rule, Service, Mapper를 독립 테스트
+장애 추적 용이성
+어느 계층에서 오류가 났는지 확인 가능
+운영 통제 연계
+ServiceId, 거래통제, Timeout, 로그와 연결
+업무 WAR 독립성
+업무별 배포와 유지보수 가능
+공통 Framework 보호
+업무 로직이 TCF 공통에 섞이지 않음
+
+12.24 시사점
+NSIGHT의 애플리케이션 계층구조는 단순한 개발 스타일이 아니다.이 구조는 ServiceId 기반 TCF 실행 모델을 업무 코드로 구현하는 표준 방법이다.
+결론적으로 다음 기준을 지키면 된다.
+Handler는 얇게
+Facade는 거래 단위로
+Service는 흐름 중심으로
+Rule은 판단 중심으로
+DAO는 DB 접근 중심으로
+Mapper는 SQL 중심으로
+DTO는 목적별로 분리
+
+한 문장으로 정리하면 다음과 같다.
+업무 로직은 Service와 Rule에 두고, 거래 경계는 Facade에 두며, DB 접근은 DAO와 Mapper에 두어야 한다.
+

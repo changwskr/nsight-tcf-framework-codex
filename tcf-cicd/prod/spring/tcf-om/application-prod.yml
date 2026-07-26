@@ -1,0 +1,41 @@
+# prod — 운영 Tomcat WAR (om.war → /om)
+spring:
+  application:
+    name: nsight-tcf-om
+  datasource:
+    url: ${NSIGHT_OM_DB_URL:jdbc:oracle:thin:@//localhost:1521/nsight_om}
+    username: ${NSIGHT_OM_DB_USER:}
+    password: ${NSIGHT_OM_DB_PASSWORD:}
+    driver-class-name: ${NSIGHT_OM_DB_DRIVER:oracle.jdbc.OracleDriver}
+    hikari:
+      pool-name: nsight-om-hikari-prod
+      auto-commit: true
+  h2:
+    console:
+      enabled: false
+  sql:
+    init:
+      mode: never
+  session:
+    store-type: jdbc
+    timeout: 60m
+    jdbc:
+      initialize-schema: never
+      table-name: SPRING_SESSION
+
+nsight:
+  gateway:
+    base-url: ${NSIGHT_GATEWAY_BASE_URL:https://marketing.example.com}
+  tcf:
+    transaction-log-schema-auto-init: false
+    transaction-log-datasource:
+      separate: false
+      url: ${NSIGHT_TXLOG_JDBC_URL:jdbc:oracle:thin:@//localhost:1521/nsight_om}
+      username: ${NSIGHT_TXLOG_DB_USER:}
+      password: ${NSIGHT_TXLOG_DB_PASSWORD:}
+      driver-class-name: ${NSIGHT_TXLOG_DB_DRIVER:oracle.jdbc.OracleDriver}
+  om:
+    batch-service-url: ${NSIGHT_BATCH_SERVICE_URL:${nsight.gateway.base-url}/batch}
+  updownload:
+    storage-path: ${NSIGHT_UPDOWNLOAD_PATH:/var/nsight/updownload}
+    max-file-size-bytes: 52428800

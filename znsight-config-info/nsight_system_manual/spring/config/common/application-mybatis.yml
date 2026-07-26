@@ -1,0 +1,21 @@
+mybatis:
+  mapper-locations:
+    - classpath:/mapper/**/*.xml
+  type-aliases-package: com.nh.nsight
+  configuration:
+    map-underscore-to-camel-case: true
+    default-statement-timeout: 3
+    jdbc-type-for-null: NULL
+    call-setters-on-nulls: true
+    default-fetch-size: 500
+    cache-enabled: false
+
+nsight:
+  mybatis:
+    sql-id-required: true
+    mapper-package-rule: com.nh.nsight.**.mapper
+    max-page-size: 1000
+    default-page-size: 100
+    block-full-table-scan: true
+    rdw-query-timeout-seconds: 3
+    adw-query-timeout-seconds: 5

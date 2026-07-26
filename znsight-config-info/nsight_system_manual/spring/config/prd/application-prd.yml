@@ -1,0 +1,27 @@
+spring:
+  profiles:
+    active: prd
+
+logging:
+  level:
+    root: WARN
+    com.nh.nsight: INFO
+    org.mybatis: WARN
+    org.springframework.session: WARN
+    org.springframework.security: WARN
+
+server:
+  error:
+    include-exception: false
+    include-stacktrace: never
+    include-message: never
+
+nsight:
+  security:
+    csrf:
+      enabled: true
+    audit:
+      enabled: true
+  monitoring:
+    response-warning-ms: 2000
+    response-critical-ms: 3000

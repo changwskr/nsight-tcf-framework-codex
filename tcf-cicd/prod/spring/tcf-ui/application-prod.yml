@@ -1,0 +1,10 @@
+# prod — 운영 Tomcat Relay
+spring:
+  application:
+    name: nsight-tcf-ui
+
+nsight:
+  tcf-ui:
+    deployment-mode: tomcat
+    tomcat-gateway-url: ${NSIGHT_GATEWAY_BASE_URL:https://marketing.example.com}
+    bootrun-host: http://127.0.0.1

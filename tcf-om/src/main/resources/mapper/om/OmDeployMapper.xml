@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nh.nsight.marketing.om.persistence.mapper.OmDeployMapper">
+
+  <sql id="deployRequestColumns">
+    DEPLOY_REQUEST_ID AS "deployRequestId",
+    REQUEST_TYPE AS "requestType",
+    ENV_CODE AS "envCode",
+    BUSINESS_CODE AS "businessCode",
+    MODULE_NAME AS "moduleName",
+    BRANCH_NAME AS "branchName",
+    COMMIT_ID AS "commitId",
+    GRADLE_TASK AS "gradleTask",
+    ARTIFACT_NAME AS "artifactName",
+    STATUS AS "status",
+    REQUEST_USER_ID AS "requestUserId",
+    APPROVE_USER_ID AS "approveUserId",
+    REQUEST_TIME AS "requestTime",
+    APPROVE_TIME AS "approveTime",
+    START_TIME AS "startTime",
+    END_TIME AS "endTime",
+    CAST(ERROR_MESSAGE AS VARCHAR(10000)) AS "errorMessage"
+  </sql>
+
+  <insert id="insertDeployRequest">
+    INSERT INTO OM_DEPLOY_REQUEST (
+      DEPLOY_REQUEST_ID, REQUEST_TYPE, ENV_CODE, BUSINESS_CODE, MODULE_NAME,
+      BRANCH_NAME, COMMIT_ID, GRADLE_TASK, ARTIFACT_NAME, STATUS,
+      REQUEST_USER_ID, APPROVE_USER_ID, REQUEST_TIME, APPROVE_TIME, START_TIME, END_TIME, ERROR_MESSAGE
+    ) VALUES (
+      #{deployRequestId}, #{requestType}, #{envCode}, #{businessCode}, #{moduleName},
+      #{branchName}, #{commitId}, #{gradleTask}, #{artifactName}, #{status},
+      #{requestUserId}, #{approveUserId}, #{requestTime}, #{approveTime}, #{startTime}, #{endTime}, #{errorMessage}
+    )
+  </insert>
+
+  <update id="updateDeployRequest">
+    UPDATE OM_DEPLOY_REQUEST
+    <set>
+      <if test="status != null">STATUS = #{status},</if>
+      <if test="approveUserId != null">APPROVE_USER_ID = #{approveUserId},</if>
+      <if test="approveTime != null">APPROVE_TIME = #{approveTime},</if>
+      <if test="startTime != null">START_TIME = #{startTime},</if>
+      <if test="endTime != null">END_TIME = #{endTime},</if>
+      <if test="errorMessage != null">ERROR_MESSAGE = #{errorMessage},</if>
+      <if test="artifactName != null">ARTIFACT_NAME = #{artifactName},</if>
+    </set>
+    WHERE DEPLOY_REQUEST_ID = #{deployRequestId}
+  </update>
+
+  <select id="selectDeployRequestById" resultType="map">
+    SELECT <include refid="deployRequestColumns"/>
+    FROM OM_DEPLOY_REQUEST
+    WHERE DEPLOY_REQUEST_ID = #{deployRequestId}
+  </select>
+
+  <select id="searchDeployRequests" resultType="map">
+    SELECT <include refid="deployRequestColumns"/>
+    FROM OM_DEPLOY_REQUEST
+    <where>
+      <if test="requestType != null and requestType != ''">AND REQUEST_TYPE = #{requestType}</if>
+      <if test="envCode != null and envCode != ''">AND ENV_CODE = #{envCode}</if>
+      <if test="businessCode != null and businessCode != ''">AND BUSINESS_CODE = #{businessCode}</if>
+      <if test="status != null and status != ''">AND STATUS = #{status}</if>
+      <if test="moduleName != null and moduleName != ''">AND MODULE_NAME = #{moduleName}</if>
+    </where>
+    ORDER BY REQUEST_TIME DESC
+    OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+  </select>
+
+  <select id="countDeployRequests" resultType="int">
+    SELECT COUNT(*)
+    FROM OM_DEPLOY_REQUEST
+    <where>
+      <if test="requestType != null and requestType != ''">AND REQUEST_TYPE = #{requestType}</if>
+      <if test="envCode != null and envCode != ''">AND ENV_CODE = #{envCode}</if>
+      <if test="businessCode != null and businessCode != ''">AND BUSINESS_CODE = #{businessCode}</if>
+      <if test="status != null and status != ''">AND STATUS = #{status}</if>
+      <if test="moduleName != null and moduleName != ''">AND MODULE_NAME = #{moduleName}</if>
+    </where>
+  </select>
+
+  <insert id="insertDeployHistory">
+    INSERT INTO OM_DEPLOY_HISTORY (
+      DEPLOY_HISTORY_ID, DEPLOY_REQUEST_ID, ENV_CODE, TARGET_SERVER, CONTEXT_PATH,
+      BEFORE_VERSION, AFTER_VERSION, RESULT_CODE, RESULT_MESSAGE,
+      HEALTH_CHECK_URL, HEALTH_CHECK_RESULT, CREATED_TIME
+    ) VALUES (
+      #{deployHistoryId}, #{deployRequestId}, #{envCode}, #{targetServer}, #{contextPath},
+      #{beforeVersion}, #{afterVersion}, #{resultCode}, #{resultMessage},
+      #{healthCheckUrl}, #{healthCheckResult}, #{createdTime}
+    )
+  </insert>
+
+  <select id="searchDeployHistories" resultType="map">
+    SELECT
+      DEPLOY_HISTORY_ID AS "deployHistoryId",
+      DEPLOY_REQUEST_ID AS "deployRequestId",
+      ENV_CODE AS "envCode",
+      TARGET_SERVER AS "targetServer",
+      CONTEXT_PATH AS "contextPath",
+      BEFORE_VERSION AS "beforeVersion",
+      AFTER_VERSION AS "afterVersion",
+      RESULT_CODE AS "resultCode",
+      RESULT_MESSAGE AS "resultMessage",
+      HEALTH_CHECK_URL AS "healthCheckUrl",
+      HEALTH_CHECK_RESULT AS "healthCheckResult",
+      CREATED_TIME AS "createdTime"
+    FROM OM_DEPLOY_HISTORY
+    <where>
+      <if test="deployRequestId != null and deployRequestId != ''">AND DEPLOY_REQUEST_ID = #{deployRequestId}</if>
+      <if test="envCode != null and envCode != ''">AND ENV_CODE = #{envCode}</if>
+      <if test="resultCode != null and resultCode != ''">AND RESULT_CODE = #{resultCode}</if>
+    </where>
+    ORDER BY CREATED_TIME DESC
+    OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+  </select>
+
+  <select id="countDeployHistories" resultType="int">
+    SELECT COUNT(*)
+    FROM OM_DEPLOY_HISTORY
+    <where>
+      <if test="deployRequestId != null and deployRequestId != ''">AND DEPLOY_REQUEST_ID = #{deployRequestId}</if>
+      <if test="envCode != null and envCode != ''">AND ENV_CODE = #{envCode}</if>
+      <if test="resultCode != null and resultCode != ''">AND RESULT_CODE = #{resultCode}</if>
+    </where>
+  </select>
+
+  <select id="selectDeployStatusByBusinessCode" resultType="map">
+    SELECT
+      BUSINESS_CODE AS "businessCode",
+      WAR_NAME AS "warName",
+      WAR_VERSION AS "warVersion",
+      DEPLOYED_AT AS "deployedAt",
+      HEALTH_STATUS AS "healthStatus"
+    FROM OM_DEPLOY_STATUS
+    WHERE BUSINESS_CODE = #{businessCode}
+  </select>
+
+  <delete id="deleteAllDeployHistories">
+    DELETE FROM OM_DEPLOY_HISTORY
+  </delete>
+
+  <delete id="deleteAllDeployRequests">
+    DELETE FROM OM_DEPLOY_REQUEST
+  </delete>
+</mapper>

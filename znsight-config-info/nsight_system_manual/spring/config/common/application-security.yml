@@ -1,0 +1,32 @@
+spring:
+  security:
+    filter:
+      dispatcher-types:
+        - request
+        - error
+
+nsight:
+  security:
+    sso-enabled: true
+    sso-header-user-id: X-SSO-USER-ID
+    sso-header-branch-id: X-SSO-BRANCH-ID
+    sso-header-role-id: X-SSO-ROLE-ID
+
+    csrf:
+      enabled: true
+
+    headers:
+      frame-options: SAMEORIGIN
+      content-type-options: nosniff
+      xss-protection: true
+
+    masking:
+      enabled: true
+      default-level: BASIC
+      log-masking-enabled: true
+
+    audit:
+      enabled: true
+      customer-view-audit: true
+      download-audit: true
+      admin-action-audit: true

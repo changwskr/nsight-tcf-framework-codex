@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- MG - Message -->
+<Context path="/mg"
+         docBase="/app/nsight/war/mg.war"
+         reloadable="false"
+         sessionCookieName="JSESSIONID">
+</Context>

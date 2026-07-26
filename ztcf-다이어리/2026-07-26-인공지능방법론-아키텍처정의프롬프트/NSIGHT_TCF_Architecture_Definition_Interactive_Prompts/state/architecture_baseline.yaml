@@ -1,0 +1,49 @@
+metadata:
+  project: NSIGHT-TCF-FRAMEWORK
+  architecture_definition_target: null
+  version: 0.1
+  status: draft
+  baseline_date: null
+  source_branch: null
+  owner: null
+  reviewers: []
+  approver: null
+
+state_legend:
+  confirmed: 확정
+  assumed: 가정
+  design_example: 설계 예시
+  needs_verification: 확인 필요
+  conflict: 충돌
+
+progress:
+  current_stage: M00
+  completed_stages: []
+  next_question: null
+
+baseline:
+  purpose: {value: null, state: needs_verification, evidence: []}
+  scope: {value: null, state: needs_verification, evidence: []}
+  source_baseline: {value: null, state: needs_verification, evidence: []}
+  requirements: []
+  constraints: []
+  quality_attributes: []
+  architecture_principles: []
+  decisions: []
+  components: []
+  runtime_flows: []
+  data_ownership: []
+  integrations: []
+  security_controls: []
+  capacity_assumptions: []
+  operational_controls: []
+  quality_gates: []
+  tests: []
+  raci: []
+  compatibility_rules: []
+  deprecations: []
+
+open_issues: []
+risks: []
+assumptions: []
+conflicts: []

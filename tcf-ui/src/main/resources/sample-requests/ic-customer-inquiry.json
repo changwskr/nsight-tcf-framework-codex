@@ -1,0 +1,23 @@
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "IC",
+    "serviceId": "IC.Customer.inquiry",
+    "serviceName": "IC 고객상세 조회(SV 연동)",
+    "transactionCode": "IC-INQ-0002",
+    "processingType": "INQUIRY",
+    "guid": "",
+    "traceId": "",
+    "channelId": "WEBTOP",
+    "userId": "U123456",
+    "branchId": "001234",
+    "centerId": "DC1",
+    "requestTime": "2026-07-03T10:30:00+09:00",
+    "systemDate": "20260703",
+    "bizDate": "20260703",
+    "clientIp": "10.10.10.10"
+  },
+  "body": {
+    "customerNo": "CUST00000001"
+  }
+}

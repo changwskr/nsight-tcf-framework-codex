@@ -1,0 +1,39 @@
+{
+  "version": "1.0",
+  "generatedAt": "2026-07-25T12:16:05.050Z",
+  "links": {
+    "scanned": 94,
+    "broken": 0,
+    "warnings": 0
+  },
+  "screens": {
+    "totalHtml": 109,
+    "mapped": 105,
+    "unmapped": 5,
+    "manualOverrides": 19
+  },
+  "broken": [],
+  "unmappedScreens": [
+    {
+      "screen": "/cache/common-code-sample.html",
+      "reason": "HELP screen 맵 없음"
+    },
+    {
+      "screen": "/eb/system-tx-status.html",
+      "reason": "HELP screen 맵 없음"
+    },
+    {
+      "screen": "/et/transaction-log.html",
+      "reason": "HELP screen 맵 없음"
+    },
+    {
+      "screen": "/jwt/index-multi.html",
+      "reason": "HELP screen 맵 없음"
+    },
+    {
+      "screen": "/jwt/index.html",
+      "reason": "HELP screen 맵 없음"
+    }
+  ],
+  "unmappedTruncated": false
+}

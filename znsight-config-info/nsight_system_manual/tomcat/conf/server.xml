@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Server port="8005" shutdown="SHUTDOWN">
+  <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
+  <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" />
+  <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
+  <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
+  <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener" />
+  <Service name="Catalina">
+    <Connector port="8080" protocol="HTTP/1.1"
+      maxThreads="500" minSpareThreads="100" acceptCount="500" maxConnections="10000"
+      connectionTimeout="8000" keepAliveTimeout="5000" maxKeepAliveRequests="100"
+      URIEncoding="UTF-8" useBodyEncodingForURI="true" server="NSIGHT-Tomcat" redirectPort="8443" />
+    <Engine name="Catalina" defaultHost="localhost" jvmRoute="${JVM_ROUTE}">
+      <Host name="localhost" appBase="webapps" unpackWARs="true" autoDeploy="false" deployOnStartup="true">
+        <Cluster className="org.apache.catalina.ha.tcp.SimpleTcpCluster" channelSendOptions="8">
+          <Manager className="org.apache.catalina.ha.session.DeltaManager" expireSessionsOnShutdown="false" notifyListenersOnReplication="true" />
+          <Channel className="org.apache.catalina.tribes.group.GroupChannel">
+            <Membership className="org.apache.catalina.tribes.membership.McastService" address="228.0.0.4" port="45564" frequency="500" dropTime="3000" />
+            <Receiver className="org.apache.catalina.tribes.transport.nio.NioReceiver" address="auto" port="4000" autoBind="100" selectorTimeout="5000" maxThreads="6" />
+            <Sender className="org.apache.catalina.tribes.transport.ReplicationTransmitter">
+              <Transport className="org.apache.catalina.tribes.transport.nio.PooledParallelSender" />
+            </Sender>
+            <Interceptor className="org.apache.catalina.tribes.group.interceptors.TcpFailureDetector" />
+            <Interceptor className="org.apache.catalina.tribes.group.interceptors.MessageDispatchInterceptor" />
+          </Channel>
+          <Valve className="org.apache.catalina.ha.tcp.ReplicationValve" filter="" />
+          <ClusterListener className="org.apache.catalina.ha.session.ClusterSessionListener" />
+        </Cluster>
+        <Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs" prefix="access" suffix=".log" pattern="%h %l %u %t &quot;%r&quot; %s %b %D %{X-GUID}i %{X-Trace-Id}i" />
+      </Host>
+    </Engine>
+  </Service>
+</Server>

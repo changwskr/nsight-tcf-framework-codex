@@ -1,0 +1,733 @@
+28. MyBatis Mapper 개발
+28.1 도입 전 안내말
+MyBatis Mapper는 NSIGHT TCF Framework에서 Java 업무 프로그램과 SQL을 연결하는 표준 데이터 접근 계층이다.
+NSIGHT의 업무 처리는 다음 흐름을 따른다.
+Handler
+  ↓
+Facade
+  ↓
+Service
+  ↓
+Rule
+  ↓
+DAO
+  ↓
+Mapper Interface
+  ↓
+Mapper XML
+  ↓
+RDW / ADW / SESSIONDB / LOGDB
+
+MyBatis Mapper는 업무 로직을 처리하는 곳이 아니다.Mapper의 책임은 SQL 실행, 파라미터 바인딩, 결과 매핑이다.
+NSIGHT Java 코딩 스타일 기준에서도 기존 금융권 DU/DM 구조를 Spring Boot의 DAO + Mapper 구조로 매핑하고, DB 접근은 DAO/Mapper, MyBatis XML, SQL ID 기준으로 표준화하도록 정리하고 있다. 또한 NSIGHT 운영 기준에서는 MyBatis를 SQL 위치, Query Timeout, RDW/ADW 접근 경계, Mapper 명명, SQL 추적성을 통제하는 표준 메커니즘으로 정의한다.
+
+28.2 MyBatis Mapper 개발 결론
+구분
+개발 기준
+Mapper Interface 위치
+persistence.mapper
+Mapper XML 위치
+src/main/resources/mapper/{업무코드소문자}
+Mapper 명명
+{업무Prefix}{업무대상}Mapper
+XML namespace
+Mapper Interface의 FQCN과 일치
+XML SQL id
+Mapper Interface Method명과 일치
+SQL 작성 위치
+Java 코드 금지, Mapper XML 기준
+파라미터
+DTO 또는 Query/Command 객체 사용
+결과 매핑
+resultMap 또는 DTO 매핑
+조회 SQL
+명시 컬럼 사용, SELECT * 금지
+목록 SQL
+Paging 필수
+Count SQL
+목록 SQL과 분리
+동적 SQL
+<if>, <choose>, <foreach> 사용
+바인딩
+#{} 사용
+문자열 치환
+${} 원칙 금지
+RDW SQL
+실시간 단건·소량 조회
+ADW SQL
+분석·집계·대량 조회
+Query Timeout
+RDW 3초, ADW 5초 기준
+MyBatis 2차 Cache
+운영 기본 비활성화
+테스트
+Mapper 단위 테스트 및 실행계획 확인
+핵심 문장은 다음이다.
+Mapper는 SQL을 숨기는 곳이 아니라, SQL을 표준화해서 관리하는 곳이다.Mapper XML은 업무별·기능별로 분리하고, SQL ID는 장애 추적이 가능하도록 일관되게 관리한다.
+
+28.3 Mapper 표준 위치
+SV 업무를 기준으로 Mapper 구조는 다음과 같다.
+sv-service
+└── src/main/java/com/nh/nsight/marketing/sv
+    └── persistence
+        ├── dao
+        │   └── SvCustomerDao.java
+        └── mapper
+            └── SvCustomerMapper.java
+
+sv-service
+└── src/main/resources
+    └── mapper
+        └── sv
+            └── SvCustomerMapper.xml
+
+업무코드, URL, WAR, Package, Mapper, SQL ID, 거래코드, 에러코드는 하나의 기준으로 연결되어야 한다. NSIGHT 업무코드 기준에서도 Mapper Interface, Mapper XML, SQL ID를 표준 정의 대상으로 두고 있으며, 예시로 SvSingleViewCustomerMapper, mapper/sv/SvSingleViewCustomerMapper.xml, SV.Customer.selectSummary를 제시한다.
+
+28.4 Mapper Interface 개발 기준
+28.4.1 기본 규칙
+항목
+기준
+Interface명
+{업무Prefix}{업무대상}Mapper
+Annotation
+@Mapper 사용
+Method명
+XML SQL id와 동일
+파라미터
+단일 DTO 권장
+반환값
+단건 DTO, List<DTO>, int, Optional은 DAO에서 처리
+업무 로직
+작성 금지
+SQL 문자열
+작성 금지
+
+28.4.2 Mapper Interface 예시
+package com.nh.nsight.marketing.sv.persistence.mapper;
+
+import com.nh.nsight.marketing.sv.dto.SvCustomerQuery;
+import com.nh.nsight.marketing.sv.dto.SvCustomerSummaryRow;
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface SvCustomerMapper {
+
+    SvCustomerSummaryRow selectCustomerSummary(SvCustomerQuery query);
+
+    List<SvCustomerSummaryRow> selectCustomerList(SvCustomerQuery query);
+
+    int countCustomerList(SvCustomerQuery query);
+
+    int insertCustomerMemo(SvCustomerQuery query);
+
+    int updateCustomerMemo(SvCustomerQuery query);
+}
+
+Mapper Interface는 SQL을 실행하기 위한 Java 계약이다.실제 SQL은 반드시 XML에 작성한다.
+
+28.5 Mapper XML 개발 기준
+28.5.1 XML 기본 구조
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nh.nsight.marketing.sv.persistence.mapper.SvCustomerMapper">
+
+    <!-- SQL 정의 -->
+
+</mapper>
+
+항목
+기준
+XML Encoding
+UTF-8
+namespace
+Mapper Interface FQCN
+파일명
+Mapper Interface명과 동일
+SQL id
+Mapper Interface Method명과 동일
+SQL 주석
+업무 SQL ID, ServiceId, 거래코드 기록 권장
+
+28.6 SQL ID 기준
+MyBatis에서는 두 가지 식별자를 구분해서 관리한다.
+구분
+의미
+예시
+MyBatis Statement ID
+namespace + XML id
+com.nh...SvCustomerMapper.selectCustomerSummary
+NSIGHT 업무 SQL ID
+로그·성능·장애 추적용 업무 SQL 식별자
+SV.Customer.selectSummary
+따라서 XML의 id는 Java Method명과 맞추고, NSIGHT 업무 SQL ID는 SQL 주석 또는 로그 메타정보로 남기는 방식을 권장한다.
+<select id="selectCustomerSummary"
+        parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerQuery"
+        resultMap="SvCustomerSummaryRowMap">
+    /* SQL_ID: SV.Customer.selectSummary */
+    SELECT
+          C.CUSTOMER_NO
+        , C.CUSTOMER_NAME
+        , C.BRANCH_CODE
+        , C.TOTAL_BALANCE
+    FROM RDW_CUSTOMER_SUMMARY C
+    WHERE C.CUSTOMER_NO = #{customerNo}
+</select>
+
+이렇게 하면 Java Method, Mapper XML, 업무 SQL ID, 거래로그를 모두 추적할 수 있다.
+
+28.7 resultMap 작성 기준
+28.7.1 resultMap을 사용하는 경우
+경우
+기준
+컬럼명과 필드명이 다름
+resultMap 사용
+조인 결과를 DTO로 매핑
+resultMap 사용
+중첩 객체 매핑
+association, collection 검토
+단순 컬럼 매핑
+map-underscore-to-camel-case 적용 시 resultType 가능
+운영 표준에서는 map-underscore-to-camel-case 설정을 사용해 CUSTOMER_ID → customerId 매핑을 지원하되, 명명 규칙 일관성이 필요하다고 정리되어 있다.
+
+28.7.2 resultMap 예시
+<resultMap id="SvCustomerSummaryRowMap"
+           type="com.nh.nsight.marketing.sv.dto.SvCustomerSummaryRow">
+    <id     property="customerNo"    column="CUSTOMER_NO"/>
+    <result property="customerName"  column="CUSTOMER_NAME"/>
+    <result property="branchCode"    column="BRANCH_CODE"/>
+    <result property="customerGrade" column="CUSTOMER_GRADE"/>
+    <result property="totalBalance"  column="TOTAL_BALANCE"/>
+</resultMap>
+
+권장 기준은 다음과 같다.
+항목
+기준
+PK성 컬럼
+<id> 사용
+일반 컬럼
+<result> 사용
+컬럼 Alias
+DTO 필드명과 맞추기
+Null 처리
+DTO 타입과 DB Null 가능성 확인
+숫자
+BigDecimal, Long, Integer 구분
+날짜
+LocalDate, LocalDateTime 기준 검토
+
+28.8 단건 조회 Mapper 예시
+<select id="selectCustomerSummary"
+        parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerQuery"
+        resultMap="SvCustomerSummaryRowMap">
+    /* SQL_ID: SV.Customer.selectSummary */
+    SELECT
+          C.CUSTOMER_NO
+        , C.CUSTOMER_NAME
+        , C.BRANCH_CODE
+        , C.CUSTOMER_GRADE
+        , C.TOTAL_BALANCE
+    FROM RDW_CUSTOMER_SUMMARY C
+    WHERE C.CUSTOMER_NO = #{customerNo}
+</select>
+
+단건 조회 기준은 다음과 같다.
+항목
+기준
+조회 DB
+RDW 우선
+조회 조건
+PK 또는 인덱스 조건 권장
+결과 건수
+0건 또는 1건
+반환 처리
+DAO에서 Optional 변환 가능
+Timeout
+RDW Query Timeout 기준
+금지
+Full Scan, 대량 Join, 통계 집계
+RDW는 실시간 조회, 고객 조회, Single View, 거래 조회에 사용하며, Full Scan, 대량 집계, 통계 SQL은 금지한다.
+
+28.9 목록 조회 Mapper 예시
+목록 조회는 반드시 Paging을 적용한다.
+<select id="selectCustomerList"
+        parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerQuery"
+        resultMap="SvCustomerSummaryRowMap">
+    /* SQL_ID: SV.Customer.selectList */
+    SELECT
+          C.CUSTOMER_NO
+        , C.CUSTOMER_NAME
+        , C.BRANCH_CODE
+        , C.CUSTOMER_GRADE
+        , C.TOTAL_BALANCE
+    FROM RDW_CUSTOMER_SUMMARY C
+    WHERE 1 = 1
+    <if test="customerNo != null and customerNo != ''">
+        AND C.CUSTOMER_NO = #{customerNo}
+    </if>
+    <if test="branchCode != null and branchCode != ''">
+        AND C.BRANCH_CODE = #{branchCode}
+    </if>
+    ORDER BY C.CUSTOMER_NO
+    OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+</select>
+
+목록 조회 기준은 다음과 같다.
+항목
+기준
+pageNo
+기본 1
+pageSize
+기본 100
+최대 pageSize
+일반 조회 500 또는 업무별 기준
+offset
+서버에서 계산
+정렬
+고정 정렬 또는 whitelist 검증
+Count
+별도 SQL
+대량 다운로드
+목록 조회와 분리
+NSIGHT 운영 기준에서도 목록 조회는 Paging을 필수로 적용하고, default-fetch-size, max-page-size, default-page-size를 기준으로 통제하도록 정리되어 있다.
+
+28.10 Count SQL 예시
+<select id="countCustomerList"
+        parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerQuery"
+        resultType="int">
+    /* SQL_ID: SV.Customer.countList */
+    SELECT COUNT(1)
+    FROM RDW_CUSTOMER_SUMMARY C
+    WHERE 1 = 1
+    <if test="customerNo != null and customerNo != ''">
+        AND C.CUSTOMER_NO = #{customerNo}
+    </if>
+    <if test="branchCode != null and branchCode != ''">
+        AND C.BRANCH_CODE = #{branchCode}
+    </if>
+</select>
+
+Count SQL은 목록 SQL과 별도로 작성한다.단, Count가 너무 무거운 경우에는 다음 중 하나로 조정한다.
+상황
+처리 기준
+일반 목록
+Count 수행
+대량 테이블
+Count 생략 또는 제한 Count
+분석성 조회
+ADW 또는 배치성 조회로 분리
+화면 요건상 총건수 불필요
+hasNext 방식 검토
+Count가 3초 초과
+SQL 개선 또는 요건 재검토
+
+28.11 등록 Mapper 예시
+<insert id="insertCustomerMemo"
+        parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerMemoCommand">
+    /* SQL_ID: SV.Customer.insertMemo */
+    INSERT INTO SV_CUSTOMER_MEMO
+    (
+          CUSTOMER_NO
+        , MEMO_SEQ
+        , MEMO_CONTENT
+        , CREATED_BY
+        , CREATED_AT
+    )
+    VALUES
+    (
+          #{customerNo}
+        , #{memoSeq}
+        , #{memoContent}
+        , #{createdBy}
+        , SYSTIMESTAMP
+    )
+</insert>
+
+등록 SQL 기준은 다음과 같다.
+항목
+기준
+등록자
+createdBy 필수
+등록시각
+DB 기준시각 권장
+Key 생성
+Sequence 또는 업무 채번 기준
+업무 검증
+Mapper가 아니라 Rule/Service에서 수행
+트랜잭션
+Facade에서 제어
+감사
+필요 시 감사로그와 연계
+
+28.12 수정 Mapper 예시
+<update id="updateCustomerMemo"
+        parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerMemoCommand">
+    /* SQL_ID: SV.Customer.updateMemo */
+    UPDATE SV_CUSTOMER_MEMO
+       SET MEMO_CONTENT = #{memoContent}
+         , UPDATED_BY   = #{updatedBy}
+         , UPDATED_AT   = SYSTIMESTAMP
+     WHERE CUSTOMER_NO  = #{customerNo}
+       AND MEMO_SEQ     = #{memoSeq}
+</update>
+
+수정 SQL 기준은 다음과 같다.
+항목
+기준
+조건
+PK 또는 유니크 조건 필수
+수정자
+updatedBy 필수
+수정시각
+DB 기준시각 권장
+영향 건수
+DAO 또는 Service에서 확인
+0건 수정
+업무 예외 처리
+대량 Update
+온라인 거래 금지 또는 별도 승인
+
+28.13 삭제 Mapper 기준
+온라인 업무에서는 물리 삭제보다 논리 삭제를 우선한다.
+<update id="deleteCustomerMemo"
+        parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerMemoCommand">
+    /* SQL_ID: SV.Customer.deleteMemo */
+    UPDATE SV_CUSTOMER_MEMO
+       SET USE_YN     = 'N'
+         , UPDATED_BY = #{updatedBy}
+         , UPDATED_AT = SYSTIMESTAMP
+     WHERE CUSTOMER_NO = #{customerNo}
+       AND MEMO_SEQ    = #{memoSeq}
+</update>
+
+삭제 방식
+기준
+논리 삭제
+기본 권장
+물리 삭제
+운영·감사·보관 정책 검토 후 제한 허용
+대량 삭제
+배치 처리
+감사 대상 삭제
+감사로그 필수
+
+28.14 동적 SQL 작성 기준
+동적 SQL은 필요한 경우만 사용한다.
+태그
+사용 기준
+<if>
+선택 조건
+<choose>
+조건 분기
+<where>
+동적 WHERE 조립
+<set>
+동적 UPDATE SET 조립
+<foreach>
+IN 조건
+<trim>
+prefix/suffix 제어
+예시는 다음과 같다.
+<select id="selectCustomerList"
+        parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerQuery"
+        resultMap="SvCustomerSummaryRowMap">
+    /* SQL_ID: SV.Customer.selectList */
+    SELECT
+          C.CUSTOMER_NO
+        , C.CUSTOMER_NAME
+        , C.BRANCH_CODE
+    FROM RDW_CUSTOMER_SUMMARY C
+    <where>
+        <if test="customerNo != null and customerNo != ''">
+            C.CUSTOMER_NO = #{customerNo}
+        </if>
+        <if test="branchCode != null and branchCode != ''">
+            AND C.BRANCH_CODE = #{branchCode}
+        </if>
+        <if test="gradeList != null and gradeList.size() > 0">
+            AND C.CUSTOMER_GRADE IN
+            <foreach collection="gradeList"
+                     item="grade"
+                     open="("
+                     separator=","
+                     close=")">
+                #{grade}
+            </foreach>
+        </if>
+    </where>
+    ORDER BY C.CUSTOMER_NO
+    OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+</select>
+
+
+28.15 #{}와 ${} 사용 기준
+구분
+의미
+사용 기준
+#{}
+PreparedStatement 바인딩
+기본 사용
+${}
+문자열 치환
+원칙 금지
+${} 예외
+정렬 컬럼, 테이블명 동적 선택 등
+whitelist 검증 후 제한 사용
+금지 예시는 다음과 같다.
+<!-- 금지: SQL Injection 위험 -->
+ORDER BY ${sortColumn}
+
+허용하려면 Rule 또는 Service에서 반드시 whitelist 검증 후 안전한 값만 전달해야 한다.
+public String resolveSortColumn(String sortKey) {
+    return switch (sortKey) {
+        case "customerNo" -> "C.CUSTOMER_NO";
+        case "customerName" -> "C.CUSTOMER_NAME";
+        default -> "C.CUSTOMER_NO";
+    };
+}
+
+그리고 Mapper에는 검증된 값만 넘긴다.
+ORDER BY ${sortColumn}
+
+이 경우에도 ${} 사용은 코드 리뷰 대상이다.
+
+28.16 RDW / ADW Mapper 분리 기준
+RDW와 ADW는 목적이 다르므로 Mapper도 분리한다.
+구분
+RDW Mapper
+ADW Mapper
+목적
+실시간 조회
+분석·집계 조회
+응답 목표
+짧은 응답
+상대적으로 긴 분석 조회
+SQL 유형
+단건, 소량 목록
+집계, 통계, 분석
+Timeout
+3초 기준
+5초 기준 또는 별도 정책
+금지
+Full Scan, 대량 집계
+실시간 거래 처리
+예시
+SvCustomerRdwMapper
+CmCampaignAdwMapper
+HikariCP 기준에서도 RDW는 실시간 조회와 Single View, ADW는 분석·집계·BI성 조회로 분리하며 Pool도 별도로 운영한다.
+
+28.17 Mapper XML 분리 기준
+분리 기준
+권장
+업무별 분리
+mapper/sv, mapper/om, mapper/cm
+기능별 분리
+고객, 캠페인, 상품, 거래로그
+DB별 분리
+RDW, ADW, LOGDB, SESSIONDB
+너무 큰 XML
+500~1,000라인 초과 시 분리 검토
+공통 SQL
+<sql id="...">로 중복 제거 가능
+임시 SQL
+운영 반영 금지
+예시는 다음과 같다.
+resources/mapper
+├── sv
+│   ├── SvCustomerRdwMapper.xml
+│   ├── SvAccountRdwMapper.xml
+│   └── SvTransactionRdwMapper.xml
+├── cm
+│   ├── CmCampaignRdwMapper.xml
+│   └── CmCampaignAdwMapper.xml
+└── om
+    ├── OmUserMapper.xml
+    ├── OmMenuMapper.xml
+    └── OmServiceCatalogMapper.xml
+
+
+28.18 MyBatis 설정 기준
+기본 설정은 다음과 같이 둔다.
+mybatis:
+  mapper-locations:
+    - classpath:/mapper/**/*.xml
+  type-aliases-package: com.nh.nsight
+  configuration:
+    map-underscore-to-camel-case: true
+    default-statement-timeout: 3
+    default-fetch-size: 500
+    jdbc-type-for-null: NULL
+    cache-enabled: false
+    safe-row-bounds-enabled: true
+    safe-result-handler-enabled: true
+
+설정
+기준
+설명
+mapper-locations
+classpath:/mapper/**/*.xml
+Mapper XML 위치
+map-underscore-to-camel-case
+true
+컬럼명과 Java 필드 매핑
+default-statement-timeout
+3
+기본 SQL Timeout
+default-fetch-size
+500
+Fetch Size 기준
+cache-enabled
+false
+운영 기본 2차 Cache 비활성
+jdbc-type-for-null
+NULL
+Null 바인딩 기준
+NSIGHT Spring 환경 설정 기준에서도 MyBatis는 Mapper 위치, Query Timeout, SQL 실행 기준을 통제하는 영역이며, Mapper XML 기준 SQL 작성, 업무별 Mapper 분리, RDW/ADW 구분, Paging 없는 대량 조회 금지를 운영 기준으로 둔다.
+
+28.19 Mapper 개발 순서
+순서
+작업
+산출물
+1
+ServiceId / 거래코드 확인
+SV.Customer.selectSummary, SV-INQ-0001
+2
+조회 대상 DB 결정
+RDW / ADW / OMDB / LOGDB
+3
+Query / Command DTO 정의
+SvCustomerQuery
+4
+Row DTO 정의
+SvCustomerSummaryRow
+5
+Mapper Interface 작성
+SvCustomerMapper.java
+6
+Mapper XML 작성
+SvCustomerMapper.xml
+7
+DAO에서 Mapper 호출
+SvCustomerDao.java
+8
+Service/Rule 연계
+업무 흐름 반영
+9
+단위 테스트 작성
+Mapper Test
+10
+실행계획 확인
+Index, Full Scan, Join 확인
+11
+Timeout 확인
+RDW 3초 / ADW 5초 기준
+12
+로그 추적 확인
+GUID, ServiceId, SQL ID
+
+28.20 금지 패턴
+금지 패턴
+사유
+Java 코드에 SQL 문자열 작성
+SQL 위치 표준 위반
+Mapper XML에 업무 판단 로직 작성
+Rule/Service 책임 침범
+SELECT * 사용
+성능 저하, 변경 영향 확대
+Paging 없는 목록 조회
+AP Thread / DB 부하 증가
+${} 직접 사용
+SQL Injection 위험
+동적 테이블명 남용
+SQL 관리 불가
+RDW에서 대량 집계
+실시간 조회 DB 보호 실패
+ADW에서 실시간 거래 처리
+분석 DB 목적 위반
+Mapper XML 하나에 모든 SQL 작성
+유지보수성 저하
+SQL ID 주석 누락
+장애 추적 어려움
+Count 없이 무한 스크롤 남용
+화면·DB 부하 예측 어려움
+MyBatis 2차 Cache 임의 사용
+RDW 현행성 훼손
+Mapper에서 사용자 메시지 작성
+오류코드 표준 위반
+Mapper에서 암복호화 직접 처리
+보안 책임 혼재
+
+28.21 Mapper 개발 체크리스트
+점검 항목
+확인
+Mapper Interface가 persistence.mapper에 위치하는가
+□
+Mapper XML이 resources/mapper/{업무코드} 아래에 있는가
+□
+XML namespace가 Mapper Interface FQCN과 일치하는가
+□
+XML id와 Mapper Method명이 일치하는가
+□
+NSIGHT 업무 SQL ID 주석이 있는가
+□
+SQL에 SELECT *가 없는가
+□
+목록 조회에 Paging이 적용되어 있는가
+□
+Count SQL을 별도로 작성했는가
+□
+RDW / ADW / LOGDB / SESSIONDB SQL이 목적별로 분리되어 있는가
+□
+#{} 바인딩을 사용했는가
+□
+${} 사용 시 whitelist 검증이 있는가
+□
+Full Scan 가능성이 없는가
+□
+Join 조건이 명확한가
+□
+Index 조건을 활용하는가
+□
+Query Timeout 기준 안에 수행 가능한가
+□
+대량 다운로드는 별도 거래로 분리했는가
+□
+개인정보 컬럼 조회 시 마스킹 정책이 반영되는가
+□
+단위 테스트 또는 SQL 검증을 수행했는가
+□
+실행계획을 확인했는가
+□
+
+28.22 마무리말
+MyBatis Mapper 개발의 핵심은 SQL을 빠르게 작성하는 것이 아니라, SQL을 운영 가능한 형태로 표준화하는 것이다.
+NSIGHT에서는 Mapper 하나가 다음 운영 요소와 연결된다.
+Mapper XML
+  ↓
+SQL ID
+  ↓
+ServiceId
+  ↓
+거래로그
+  ↓
+GUID / TraceId
+  ↓
+성능 분석
+  ↓
+장애 추적
+
+따라서 Mapper 개발자는 단순히 “조회 결과가 나오는지”만 확인하면 안 된다.해당 SQL이 어느 DB를 사용하는지, 몇 초 안에 끝나는지, 몇 건까지 조회 가능한지, Full Scan은 없는지, 장애 발생 시 어떤 SQL ID로 추적할 수 있는지까지 확인해야 한다.
+
+28.23 시사점
+NSIGHT에서 MyBatis Mapper는 개발 편의 기능이 아니라 DB 부하와 장애 확산을 통제하는 운영 표준 계층이다.
+특히 RDW, ADW, SESSIONDB, LOGDB가 분리된 구조에서는 Mapper 표준이 흐트러지면 실시간 조회 DB에 분석 SQL이 들어가거나, 온라인 거래에서 대량 조회가 실행되거나, Hikari Pool 고갈이 발생할 수 있다.
+따라서 MyBatis Mapper 개발 기준은 반드시 다음 세 가지로 요약되어야 한다.
+첫째, SQL은 Mapper XML에만 둔다.
+둘째, Mapper는 업무코드와 DB 목적별로 분리한다.
+셋째, 모든 목록 조회는 Paging과 Timeout을 전제로 작성한다.
+
+

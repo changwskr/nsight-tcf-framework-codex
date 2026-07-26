@@ -1,0 +1,42 @@
+name: HELP Export
+
+on:
+  push:
+    paths:
+      - 'tcf-help/**'
+      - 'tcf-ui/src/main/resources/static/**'
+      - '**/*.md'
+  pull_request:
+    paths:
+      - 'tcf-help/**'
+      - 'tcf-ui/src/main/resources/static/**'
+      - '**/*.md'
+
+jobs:
+  export-help:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verify HELP pipeline
+        run: ./gradlew :tcf-help:verifyHelp :tcf-ui:processResources --no-daemon
+
+      - name: Summary
+        run: |
+          echo "HELP export OK"
+          echo "  catalog: $(jq -r .total tcf-help/doc-catalog.json) docs"
+          echo "  native screens: $(jq -r '.screens | length' tcf-help/help-screen-map.json)"
+          echo "  business screens: $(jq -r .total tcf-help/help-business-map.json)"

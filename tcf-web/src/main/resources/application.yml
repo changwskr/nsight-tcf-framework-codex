@@ -1,0 +1,7 @@
+# TCF framework defaults (tcf-web.jar)
+spring:
+  profiles:
+    default: local
+    group:
+      prod:
+        - dev

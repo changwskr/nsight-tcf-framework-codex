@@ -1,0 +1,49 @@
+spring:
+  profiles:
+    default: local
+  task:
+    scheduling:
+      shutdown:
+        await-termination: true
+        await-termination-period: 10s
+  datasource:
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+    hikari:
+      maximum-pool-size: 5
+      connection-timeout: 3000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+nsight:
+  tcf:
+    transaction-log-enabled: false
+    runtime-monitor-enabled: true
+    runtime-slow-sql-threshold-ms: 1000
+    runtime:
+      business-code: BATCH
+  batch:
+    startup-collect:
+      enabled: true
+      initial-delay-ms: 0
+    ap-status:
+      job-id: BAT-BATCH-001
+      cron: "0 */5 * * * *"
+      connect-timeout-ms: 3000
+      read-timeout-ms: 5000
+    db-status:
+      job-id: BAT-BATCH-002
+      cron: "30 */5 * * * *"
+    session-status:
+      job-id: BAT-BATCH-003
+      cron: "45 */5 * * * *"
+      warn-active-threshold: 200
+    deploy-status:
+      job-id: BAT-BATCH-004
+      cron: "55 */5 * * * *"
+      default-version: 1.0.0-SNAPSHOT

@@ -1,0 +1,74 @@
+/* RTM-020 Tomcat 인스턴스 상세 */
+.rtm020-deadlock-banner {
+  border: 2px solid var(--fail);
+  background: rgba(248, 113, 113, 0.12);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.rtm020-deadlock-banner strong {
+  color: var(--fail);
+  font-size: 1rem;
+}
+
+.rtm020-header {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 12px;
+  font-family: ui-monospace, monospace;
+}
+
+.rtm020-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 20px;
+}
+
+.rtm020-metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: 0.9rem;
+}
+
+.rtm020-metric-row .label { color: var(--muted); min-width: 120px; }
+.rtm020-metric-row .value { font-family: ui-monospace, monospace; flex: 1; }
+.rtm020-metric-row .badge { font-size: 0.8rem; white-space: nowrap; }
+
+.rtm020-trends {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.rtm020-trend-row {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.rtm020-spark {
+  font-family: ui-monospace, monospace;
+  letter-spacing: 1px;
+  color: var(--accent);
+  overflow: hidden;
+}
+
+.rtm020-tab-panel { display: none; }
+.rtm020-tab-panel.active { display: block; }
+
+@media (max-width: 768px) {
+  .rtm020-metric-grid { grid-template-columns: 1fr; }
+}

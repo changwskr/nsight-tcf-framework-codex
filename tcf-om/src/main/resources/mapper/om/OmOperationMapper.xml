@@ -1,0 +1,1347 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nh.nsight.marketing.om.persistence.mapper.OmOperationMapper">
+
+    <select id="selectTxSummary" parameterType="map" resultType="map">
+        SELECT COUNT(*) AS "totalCount",
+               SUM(CASE WHEN RESULT_STATUS = 'FAIL' OR RESULT_STATUS = 'ERROR' THEN 1 ELSE 0 END) AS "errorCount",
+               SUM(CASE WHEN ELAPSED_TIME_MS &gt;= 5000 THEN 1 ELSE 0 END) AS "timeoutCount",
+               COALESCE(AVG(ELAPSED_TIME_MS), 0) AS "avgElapsedMs"
+          FROM TCF_TX_LOG
+         WHERE 1 = 1
+        <if test="baseDate != null and baseDate != ''">
+           AND TX_TIME LIKE #{baseDate} || '%'
+        </if>
+    </select>
+
+    <select id="selectErrorTop" parameterType="map" resultType="map">
+        SELECT SERVICE_ID AS "serviceId",
+               ERROR_CODE AS "errorCode",
+               COUNT(*) AS "errorCount"
+          FROM TCF_TX_LOG
+         WHERE (RESULT_STATUS = 'FAIL' OR RESULT_STATUS = 'ERROR')
+           AND TX_TIME &gt;= #{fromTime}
+           AND TX_TIME &lt;= #{toTime}
+         GROUP BY SERVICE_ID, ERROR_CODE
+         ORDER BY COUNT(*) DESC
+         FETCH FIRST #{limit} ROWS ONLY
+    </select>
+
+    <select id="selectSlowTransactionsTop" parameterType="map" resultType="map">
+        SELECT TX_TIME AS "txTime", BUSINESS_CODE AS "businessCode",
+               SERVICE_ID AS "serviceId", TRANSACTION_CODE AS "transactionCode",
+               GUID AS "guid", USER_ID AS "userId", RESULT_STATUS AS "resultStatus",
+               ELAPSED_TIME_MS AS "elapsedTimeMs"
+          FROM TCF_TX_LOG
+         WHERE TX_TIME &gt;= #{fromTime}
+           AND TX_TIME &lt;= #{toTime}
+         ORDER BY ELAPSED_TIME_MS DESC, TX_TIME DESC
+         FETCH FIRST #{limit} ROWS ONLY
+    </select>
+
+    <select id="selectApStatus" resultType="map">
+        SELECT AP_ID AS "apId", AP_NAME AS "apName", HEALTH_STATUS AS "healthStatus",
+               CPU_USAGE_PCT AS "cpuUsagePct", HEAP_USAGE_PCT AS "heapUsagePct",
+               THREAD_COUNT AS "threadCount", CHECKED_AT AS "checkedAt"
+          FROM OM_AP_STATUS
+         WHERE AP_ID NOT IN ('ap01', 'ap02', 'om-local')
+         ORDER BY AP_ID
+    </select>
+
+    <select id="selectDbStatus" resultType="map">
+        SELECT DB_ID AS "dbId", DB_NAME AS "dbName", HEALTH_STATUS AS "healthStatus",
+               POOL_USAGE_PCT AS "poolUsagePct", CHECKED_AT AS "checkedAt"
+          FROM OM_DB_STATUS
+         WHERE DB_ID NOT IN ('RDW', 'ADW', 'SESSIONDB')
+         ORDER BY DB_ID
+    </select>
+
+    <select id="selectSessionStatus" resultType="map">
+        SELECT SCOPE_ID AS "scopeId", SCOPE_NAME AS "scopeName",
+               ACTIVE_COUNT AS "activeCount", EXPIRED_COUNT AS "expiredCount",
+               TOTAL_COUNT AS "totalCount", UNIQUE_USER_COUNT AS "uniqueUserCount",
+               HEALTH_STATUS AS "healthStatus", CHECKED_AT AS "checkedAt"
+          FROM OM_SESSION_STATUS
+         ORDER BY SCOPE_ID
+    </select>
+
+    <sql id="sessionStatusWithMetricsWhere">
+        WHERE NOT (
+               HEALTH_STATUS IN ('FAIL', 'DOWN')
+               AND COALESCE(ACTIVE_COUNT, 0) = 0
+               AND COALESCE(EXPIRED_COUNT, 0) = 0
+               AND COALESCE(TOTAL_COUNT, 0) = 0
+               AND COALESCE(UNIQUE_USER_COUNT, 0) = 0
+           )
+    </sql>
+
+    <select id="sumSessionStatusActiveCount" resultType="int">
+        SELECT COALESCE(SUM(ACTIVE_COUNT), 0) FROM OM_SESSION_STATUS
+        <include refid="sessionStatusWithMetricsWhere"/>
+    </select>
+
+    <select id="sumSessionStatusExpiredCount" resultType="int">
+        SELECT COALESCE(SUM(EXPIRED_COUNT), 0) FROM OM_SESSION_STATUS
+        <include refid="sessionStatusWithMetricsWhere"/>
+    </select>
+
+    <select id="sumSessionStatusUniqueUsers" resultType="int">
+        SELECT COALESCE(SUM(UNIQUE_USER_COUNT), 0) FROM OM_SESSION_STATUS
+        <include refid="sessionStatusWithMetricsWhere"/>
+    </select>
+
+    <select id="selectDeployStatus" resultType="map">
+        SELECT BUSINESS_CODE AS "businessCode", WAR_NAME AS "warName", WAR_VERSION AS "warVersion",
+               DEPLOYED_AT AS "deployedAt", HEALTH_STATUS AS "healthStatus"
+          FROM OM_DEPLOY_STATUS
+         WHERE BUSINESS_CODE &lt;&gt; 'ET'
+         ORDER BY BUSINESS_CODE
+    </select>
+
+    <delete id="deleteAllApStatus">
+        DELETE FROM OM_AP_STATUS
+    </delete>
+
+    <delete id="deleteAllDbStatus">
+        DELETE FROM OM_DB_STATUS
+    </delete>
+
+    <delete id="deleteAllSessionStatus">
+        DELETE FROM OM_SESSION_STATUS
+    </delete>
+
+    <delete id="deleteAllDeployStatus">
+        DELETE FROM OM_DEPLOY_STATUS
+    </delete>
+
+    <select id="selectActiveSessionCount" resultType="int">
+        SELECT COUNT(*) FROM SPRING_SESSION
+    </select>
+
+    <sql id="txLogSearchWhere">
+        <if test="businessCode != null and businessCode != ''">
+            AND BUSINESS_CODE = #{businessCode}
+        </if>
+        <if test="guid != null and guid != ''">
+            AND GUID = #{guid}
+        </if>
+        <if test="traceId != null and traceId != ''">
+            AND TRACE_ID = #{traceId}
+        </if>
+        <if test="serviceId != null and serviceId != ''">
+            AND SERVICE_ID LIKE '%' || #{serviceId} || '%'
+        </if>
+        <if test="transactionCode != null and transactionCode != ''">
+            AND TRANSACTION_CODE = #{transactionCode}
+        </if>
+        <if test="userId != null and userId != ''">
+            AND USER_ID = #{userId}
+        </if>
+        <if test="branchId != null and branchId != ''">
+            AND BRANCH_ID = #{branchId}
+        </if>
+        <if test="resultStatus != null and resultStatus != ''">
+            AND RESULT_STATUS = #{resultStatus}
+        </if>
+        <if test="errorCode != null and errorCode != ''">
+            AND ERROR_CODE = #{errorCode}
+        </if>
+        <if test="fromDate != null and fromDate != ''">
+            AND TX_TIME &gt;= #{fromDate}
+        </if>
+        <if test="toDate != null and toDate != ''">
+            AND TX_TIME &lt;= #{toDate}
+        </if>
+    </sql>
+
+    <select id="searchTransactionLogs" parameterType="map" resultType="map">
+        SELECT LOG_ID AS "logId", TX_TIME AS "txTime", BUSINESS_CODE AS "businessCode",
+               SERVICE_ID AS "serviceId", TRANSACTION_CODE AS "transactionCode",
+               GUID AS "guid", TRACE_ID AS "traceId", USER_ID AS "userId", BRANCH_ID AS "branchId",
+               RESULT_STATUS AS "resultStatus", RESULT_CODE AS "resultCode", ERROR_CODE AS "errorCode",
+               ELAPSED_TIME_MS AS "elapsedTimeMs"
+          FROM TCF_TX_LOG
+         WHERE 1 = 1
+        <include refid="txLogSearchWhere"/>
+         ORDER BY TX_TIME DESC
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+
+    <select id="countTransactionLogs" parameterType="map" resultType="int">
+        SELECT COUNT(*) FROM TCF_TX_LOG WHERE 1 = 1
+        <include refid="txLogSearchWhere"/>
+    </select>
+
+    <select id="summarizeTransactionLogs" parameterType="map" resultType="map">
+        SELECT COUNT(*) AS "totalCount",
+               SUM(CASE WHEN RESULT_STATUS = 'SUCCESS' THEN 1 ELSE 0 END) AS "successCount",
+               SUM(CASE WHEN RESULT_STATUS = 'FAIL' OR RESULT_STATUS = 'ERROR' THEN 1 ELSE 0 END) AS "errorCount",
+               SUM(CASE WHEN ELAPSED_TIME_MS &gt;= 5000 THEN 1 ELSE 0 END) AS "timeoutCount",
+               COALESCE(AVG(ELAPSED_TIME_MS), 0) AS "avgElapsedMs"
+          FROM TCF_TX_LOG
+         WHERE 1 = 1
+        <include refid="txLogSearchWhere"/>
+    </select>
+
+    <delete id="deleteAllTransactionLogs">
+        DELETE FROM TCF_TX_LOG
+    </delete>
+
+    <sql id="serviceCatalogSearchWhere">
+        <if test="businessCode != null and businessCode != ''">
+            AND BUSINESS_CODE = #{businessCode}
+        </if>
+        <if test="serviceId != null and serviceId != ''">
+            AND SERVICE_ID LIKE '%' || #{serviceId} || '%'
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND USE_YN = #{useYn}
+        </if>
+    </sql>
+
+    <select id="searchServiceCatalog" parameterType="map" resultType="map">
+        SELECT CATALOG_ID AS "catalogId", BUSINESS_CODE AS "businessCode", SERVICE_ID AS "serviceId",
+               TRANSACTION_CODE AS "transactionCode", PROCESSING_TYPE AS "processingType",
+               HANDLER_CLASS AS "handlerClass", AUTH_CODE AS "authCode", AUDIT_YN AS "auditYn",
+               TIMEOUT_SEC AS "timeoutSec", USE_YN AS "useYn", DESCRIPTION AS "description"
+          FROM OM_SERVICE_CATALOG
+         WHERE 1 = 1
+        <include refid="serviceCatalogSearchWhere"/>
+         ORDER BY BUSINESS_CODE, SERVICE_ID
+        <if test="pageSize != null">
+            OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+        </if>
+    </select>
+
+    <select id="countServiceCatalog" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+          FROM OM_SERVICE_CATALOG
+         WHERE 1 = 1
+        <include refid="serviceCatalogSearchWhere"/>
+    </select>
+
+    <select id="selectServiceCatalogByKey" parameterType="map" resultType="map">
+        SELECT CATALOG_ID AS "catalogId", BUSINESS_CODE AS "businessCode", SERVICE_ID AS "serviceId",
+               TRANSACTION_CODE AS "transactionCode", PROCESSING_TYPE AS "processingType",
+               HANDLER_CLASS AS "handlerClass", AUTH_CODE AS "authCode", AUDIT_YN AS "auditYn",
+               TIMEOUT_SEC AS "timeoutSec", USE_YN AS "useYn", DESCRIPTION AS "description"
+          FROM OM_SERVICE_CATALOG
+         WHERE CATALOG_ID = #{catalogId}
+    </select>
+
+    <select id="selectServiceCatalogByServiceId" parameterType="string" resultType="map">
+        SELECT CATALOG_ID AS "catalogId", BUSINESS_CODE AS "businessCode", SERVICE_ID AS "serviceId",
+               TRANSACTION_CODE AS "transactionCode", PROCESSING_TYPE AS "processingType",
+               HANDLER_CLASS AS "handlerClass", AUTH_CODE AS "authCode", AUDIT_YN AS "auditYn",
+               TIMEOUT_SEC AS "timeoutSec", USE_YN AS "useYn", DESCRIPTION AS "description"
+          FROM OM_SERVICE_CATALOG
+         WHERE SERVICE_ID = #{serviceId}
+    </select>
+
+    <insert id="insertServiceCatalog" parameterType="map">
+        INSERT INTO OM_SERVICE_CATALOG (
+            CATALOG_ID, BUSINESS_CODE, SERVICE_ID, TRANSACTION_CODE, PROCESSING_TYPE,
+            HANDLER_CLASS, AUTH_CODE, AUDIT_YN, TIMEOUT_SEC, USE_YN, DESCRIPTION
+        ) VALUES (
+            #{catalogId}, #{businessCode}, #{serviceId}, #{transactionCode}, #{processingType},
+            #{handlerClass}, #{authCode}, #{auditYn}, #{timeoutSec}, #{useYn}, #{description}
+        )
+    </insert>
+
+    <update id="updateServiceCatalog" parameterType="map">
+        UPDATE OM_SERVICE_CATALOG
+           SET BUSINESS_CODE = #{businessCode},
+               SERVICE_ID = #{serviceId},
+               TRANSACTION_CODE = #{transactionCode},
+               PROCESSING_TYPE = #{processingType},
+               HANDLER_CLASS = #{handlerClass},
+               AUTH_CODE = #{authCode},
+               AUDIT_YN = #{auditYn},
+               TIMEOUT_SEC = #{timeoutSec},
+               USE_YN = #{useYn},
+               DESCRIPTION = #{description}
+         WHERE CATALOG_ID = #{catalogId}
+    </update>
+
+    <update id="disableServiceCatalog" parameterType="map">
+        UPDATE OM_SERVICE_CATALOG
+           SET USE_YN = 'N'
+         WHERE CATALOG_ID = #{catalogId}
+    </update>
+
+    <select id="searchUsers" parameterType="map" resultType="map">
+        SELECT U.USER_ID AS "userId", U.USER_NAME AS "userName", U.BRANCH_ID AS "branchId",
+               U.AUTH_GROUP_ID AS "authGroupId", G.AUTH_GROUP_NAME AS "authGroupName",
+               U.USE_YN AS "useYn", U.LAST_LOGIN_TIME AS "lastLoginTime"
+          FROM OM_USER U
+          LEFT JOIN OM_AUTH_GROUP G ON U.AUTH_GROUP_ID = G.AUTH_GROUP_ID
+         WHERE 1 = 1
+        <if test="userId != null and userId != ''">
+            AND U.USER_ID LIKE '%' || #{userId} || '%'
+        </if>
+        <if test="userName != null and userName != ''">
+            AND U.USER_NAME LIKE '%' || #{userName} || '%'
+        </if>
+        <if test="branchId != null and branchId != ''">
+            AND U.BRANCH_ID = #{branchId}
+        </if>
+        <if test="authGroupId != null and authGroupId != ''">
+            AND U.AUTH_GROUP_ID = #{authGroupId}
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND U.USE_YN = #{useYn}
+        </if>
+         ORDER BY U.USER_ID
+        <if test="offset != null and pageSize != null">
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+        </if>
+    </select>
+
+    <select id="countUsers" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+          FROM OM_USER U
+         WHERE 1 = 1
+        <if test="userId != null and userId != ''">
+            AND U.USER_ID LIKE '%' || #{userId} || '%'
+        </if>
+        <if test="userName != null and userName != ''">
+            AND U.USER_NAME LIKE '%' || #{userName} || '%'
+        </if>
+        <if test="branchId != null and branchId != ''">
+            AND U.BRANCH_ID = #{branchId}
+        </if>
+        <if test="authGroupId != null and authGroupId != ''">
+            AND U.AUTH_GROUP_ID = #{authGroupId}
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND U.USE_YN = #{useYn}
+        </if>
+    </select>
+
+    <select id="selectUserById" parameterType="string" resultType="map">
+        SELECT U.USER_ID AS "userId", U.USER_NAME AS "userName", U.BRANCH_ID AS "branchId",
+               U.AUTH_GROUP_ID AS "authGroupId", G.AUTH_GROUP_NAME AS "authGroupName",
+               U.USE_YN AS "useYn", U.LAST_LOGIN_TIME AS "lastLoginTime"
+          FROM OM_USER U
+          LEFT JOIN OM_AUTH_GROUP G ON U.AUTH_GROUP_ID = G.AUTH_GROUP_ID
+         WHERE U.USER_ID = #{userId}
+    </select>
+
+    <insert id="insertUser" parameterType="map">
+        INSERT INTO OM_USER (USER_ID, USER_NAME, PASSWORD_HASH, BRANCH_ID, AUTH_GROUP_ID, USE_YN, LAST_LOGIN_TIME)
+        VALUES (#{userId}, #{userName}, #{passwordHash}, #{branchId}, #{authGroupId}, #{useYn}, #{lastLoginTime})
+    </insert>
+
+    <update id="updateUser" parameterType="map">
+        UPDATE OM_USER
+           SET USER_NAME = #{userName},
+               BRANCH_ID = #{branchId},
+               AUTH_GROUP_ID = #{authGroupId},
+               USE_YN = #{useYn}
+         WHERE USER_ID = #{userId}
+    </update>
+
+    <update id="updateUserWithPassword" parameterType="map">
+        UPDATE OM_USER
+           SET USER_NAME = #{userName},
+               BRANCH_ID = #{branchId},
+               AUTH_GROUP_ID = #{authGroupId},
+               USE_YN = #{useYn},
+               PASSWORD_HASH = #{passwordHash}
+         WHERE USER_ID = #{userId}
+    </update>
+
+    <update id="disableUser" parameterType="map">
+        UPDATE OM_USER SET USE_YN = 'N' WHERE USER_ID = #{userId}
+    </update>
+
+    <select id="selectUserForLogin" parameterType="string" resultType="map">
+        SELECT U.USER_ID AS "userId", U.USER_NAME AS "userName", U.PASSWORD_HASH AS "passwordHash",
+               U.BRANCH_ID AS "branchId", U.AUTH_GROUP_ID AS "authGroupId",
+               G.AUTH_GROUP_NAME AS "authGroupName", U.USE_YN AS "useYn", U.LAST_LOGIN_TIME AS "lastLoginTime"
+          FROM OM_USER U
+          LEFT JOIN OM_AUTH_GROUP G ON U.AUTH_GROUP_ID = G.AUTH_GROUP_ID
+         WHERE U.USER_ID = #{userId}
+    </select>
+
+    <update id="updateUserLastLoginTime" parameterType="map">
+        UPDATE OM_USER
+           SET LAST_LOGIN_TIME = #{lastLoginTime}
+         WHERE USER_ID = #{userId}
+    </update>
+
+    <select id="selectUsersWithoutPasswordHash" resultType="map">
+        SELECT USER_ID AS "userId"
+          FROM OM_USER
+         WHERE PASSWORD_HASH IS NULL OR TRIM(PASSWORD_HASH) = ''
+    </select>
+
+    <update id="updateUserPasswordHash" parameterType="map">
+        UPDATE OM_USER
+           SET PASSWORD_HASH = #{passwordHash}
+         WHERE USER_ID = #{userId}
+    </update>
+
+    <select id="searchMenus" parameterType="map" resultType="map">
+        SELECT M.MENU_ID AS "menuId", M.MENU_NAME AS "menuName",
+               COALESCE(M.MENU_URL, '') AS "menuUrl",
+               COALESCE(M.PARENT_MENU_ID, '') AS "parentMenuId",
+               COALESCE(P.MENU_NAME, '') AS "parentMenuName",
+               M.SORT_ORDER AS "sortOrder", M.USE_YN AS "useYn"
+          FROM OM_MENU M
+          LEFT JOIN OM_MENU P ON P.MENU_ID = M.PARENT_MENU_ID
+         WHERE 1 = 1
+        <if test="menuId != null and menuId != ''">
+            AND M.MENU_ID = #{menuId}
+        </if>
+        <if test="menuName != null and menuName != ''">
+            AND M.MENU_NAME LIKE '%' || #{menuName} || '%'
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND M.USE_YN = #{useYn}
+        </if>
+         ORDER BY M.SORT_ORDER, M.MENU_ID
+    </select>
+
+    <select id="selectMenuById" parameterType="string" resultType="map">
+        SELECT M.MENU_ID AS "menuId", M.MENU_NAME AS "menuName",
+               COALESCE(M.MENU_URL, '') AS "menuUrl",
+               COALESCE(M.PARENT_MENU_ID, '') AS "parentMenuId",
+               COALESCE(P.MENU_NAME, '') AS "parentMenuName",
+               M.SORT_ORDER AS "sortOrder", M.USE_YN AS "useYn"
+          FROM OM_MENU M
+          LEFT JOIN OM_MENU P ON P.MENU_ID = M.PARENT_MENU_ID
+         WHERE M.MENU_ID = #{menuId}
+    </select>
+
+    <select id="countChildMenus" parameterType="string" resultType="int">
+        SELECT COUNT(*) FROM OM_MENU
+         WHERE PARENT_MENU_ID = #{menuId}
+           AND USE_YN = 'Y'
+    </select>
+
+    <insert id="insertMenu" parameterType="map">
+        INSERT INTO OM_MENU (MENU_ID, MENU_NAME, MENU_URL, PARENT_MENU_ID, SORT_ORDER, USE_YN)
+        VALUES (#{menuId}, #{menuName}, #{menuUrl}, #{parentMenuId}, #{sortOrder}, #{useYn})
+    </insert>
+
+    <update id="updateMenu" parameterType="map">
+        UPDATE OM_MENU
+           SET MENU_NAME = #{menuName},
+               MENU_URL = #{menuUrl},
+               PARENT_MENU_ID = #{parentMenuId},
+               SORT_ORDER = #{sortOrder},
+               USE_YN = #{useYn}
+         WHERE MENU_ID = #{menuId}
+    </update>
+
+    <update id="disableMenu" parameterType="map">
+        UPDATE OM_MENU SET USE_YN = 'N' WHERE MENU_ID = #{menuId}
+    </update>
+
+    <select id="searchAuthGroups" parameterType="map" resultType="map">
+        SELECT AUTH_GROUP_ID AS "authGroupId", AUTH_GROUP_NAME AS "authGroupName",
+               DESCRIPTION AS "description", USE_YN AS "useYn"
+          FROM OM_AUTH_GROUP
+         WHERE 1 = 1
+        <if test="authGroupId != null and authGroupId != ''">
+            AND AUTH_GROUP_ID = #{authGroupId}
+        </if>
+        <if test="authGroupName != null and authGroupName != ''">
+            AND AUTH_GROUP_NAME LIKE '%' || #{authGroupName} || '%'
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND USE_YN = #{useYn}
+        </if>
+         ORDER BY AUTH_GROUP_ID
+    </select>
+
+    <select id="selectAuthGroupById" parameterType="string" resultType="map">
+        SELECT AUTH_GROUP_ID AS "authGroupId", AUTH_GROUP_NAME AS "authGroupName",
+               DESCRIPTION AS "description", USE_YN AS "useYn"
+          FROM OM_AUTH_GROUP
+         WHERE AUTH_GROUP_ID = #{authGroupId}
+    </select>
+
+    <select id="countFunctionAuthByGroup" parameterType="string" resultType="int">
+        SELECT COUNT(*) FROM OM_FUNCTION_AUTH WHERE AUTH_GROUP_ID = #{authGroupId}
+    </select>
+
+    <select id="countDataAuthByGroup" parameterType="string" resultType="int">
+        SELECT COUNT(*) FROM OM_DATA_AUTH WHERE AUTH_GROUP_ID = #{authGroupId}
+    </select>
+
+    <insert id="insertAuthGroup" parameterType="map">
+        INSERT INTO OM_AUTH_GROUP (AUTH_GROUP_ID, AUTH_GROUP_NAME, DESCRIPTION, USE_YN)
+        VALUES (#{authGroupId}, #{authGroupName}, #{description}, #{useYn})
+    </insert>
+
+    <update id="updateAuthGroup" parameterType="map">
+        UPDATE OM_AUTH_GROUP
+           SET AUTH_GROUP_NAME = #{authGroupName},
+               DESCRIPTION = #{description},
+               USE_YN = #{useYn}
+         WHERE AUTH_GROUP_ID = #{authGroupId}
+    </update>
+
+    <update id="disableAuthGroup" parameterType="map">
+        UPDATE OM_AUTH_GROUP SET USE_YN = 'N' WHERE AUTH_GROUP_ID = #{authGroupId}
+    </update>
+
+    <sql id="auditLogSearchWhere">
+        <if test="userId != null and userId != ''">
+            AND USER_ID = #{userId}
+        </if>
+        <if test="branchId != null and branchId != ''">
+            AND BRANCH_ID = #{branchId}
+        </if>
+        <if test="customerNo != null and customerNo != ''">
+            AND CUSTOMER_NO = #{customerNo}
+        </if>
+        <if test="functionId != null and functionId != ''">
+            AND FUNCTION_ID = #{functionId}
+        </if>
+        <if test="resultStatus != null and resultStatus != ''">
+            AND RESULT_STATUS = #{resultStatus}
+        </if>
+        <if test="fromDate != null and fromDate != ''">
+            AND AUDIT_TIME &gt;= #{fromDate}
+        </if>
+        <if test="toDate != null and toDate != ''">
+            AND AUDIT_TIME &lt;= #{toDate}
+        </if>
+    </sql>
+
+    <select id="searchAuditLogs" parameterType="map" resultType="map">
+        SELECT AUDIT_ID AS "auditId", AUDIT_TIME AS "auditTime", USER_ID AS "userId",
+               BRANCH_ID AS "branchId", CUSTOMER_NO AS "customerNo", FUNCTION_ID AS "functionId",
+               FUNCTION_NAME AS "functionName", INQUIRY_REASON AS "inquiryReason",
+               RESULT_STATUS AS "resultStatus", CLIENT_IP AS "clientIp"
+          FROM OM_AUDIT_LOG
+         WHERE 1 = 1
+        <include refid="auditLogSearchWhere"/>
+         ORDER BY AUDIT_TIME DESC
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+
+    <select id="countAuditLogs" parameterType="map" resultType="int">
+        SELECT COUNT(*) FROM OM_AUDIT_LOG WHERE 1 = 1
+        <include refid="auditLogSearchWhere"/>
+    </select>
+
+    <delete id="deleteAllAuditLogs">
+        DELETE FROM OM_AUDIT_LOG
+    </delete>
+
+    <select id="searchErrorCodes" parameterType="map" resultType="map">
+        SELECT ERROR_CODE AS "errorCode", ERROR_CATEGORY AS "errorCategory",
+               USER_MESSAGE AS "userMessage", OPERATOR_MESSAGE AS "operatorMessage",
+               ACTION_GUIDE AS "actionGuide", NOTIFY_TARGET AS "notifyTarget", USE_YN AS "useYn"
+          FROM OM_ERROR_CODE
+         WHERE 1 = 1
+        <if test="errorCode != null and errorCode != ''">
+            AND ERROR_CODE LIKE '%' || #{errorCode} || '%'
+        </if>
+        <if test="errorCategory != null and errorCategory != ''">
+            AND ERROR_CATEGORY = #{errorCategory}
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND USE_YN = #{useYn}
+        </if>
+         ORDER BY ERROR_CODE
+        <if test="pageSize != null">
+            OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+        </if>
+    </select>
+
+    <select id="countErrorCodes" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+          FROM OM_ERROR_CODE
+         WHERE 1 = 1
+        <if test="errorCode != null and errorCode != ''">
+            AND ERROR_CODE LIKE '%' || #{errorCode} || '%'
+        </if>
+        <if test="errorCategory != null and errorCategory != ''">
+            AND ERROR_CATEGORY = #{errorCategory}
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND USE_YN = #{useYn}
+        </if>
+    </select>
+
+    <select id="searchBatchJobs" parameterType="map" resultType="map">
+        SELECT JOB_ID AS "jobId", JOB_NAME AS "jobName", BUSINESS_CODE AS "businessCode",
+               CRON_EXPR AS "cronExpr", USE_YN AS "useYn", DESCRIPTION AS "description"
+          FROM OM_BATCH_JOB
+         WHERE 1 = 1
+        <if test="businessCode != null and businessCode != ''">
+            AND BUSINESS_CODE = #{businessCode}
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND USE_YN = #{useYn}
+        </if>
+         ORDER BY JOB_ID
+    </select>
+
+    <sql id="batchHistorySearchWhere">
+        <if test="jobId != null and jobId != ''">
+            AND JOB_ID = #{jobId}
+        </if>
+        <if test="runStatus != null and runStatus != ''">
+            AND RUN_STATUS = #{runStatus}
+        </if>
+    </sql>
+
+    <select id="searchBatchHistories" parameterType="map" resultType="map">
+        SELECT HISTORY_ID AS "historyId", JOB_ID AS "jobId", RUN_TIME AS "runTime",
+               RUN_STATUS AS "runStatus", DURATION_MS AS "durationMs", RESULT_MESSAGE AS "resultMessage"
+          FROM OM_BATCH_HISTORY
+         WHERE 1 = 1
+        <include refid="batchHistorySearchWhere"/>
+         ORDER BY RUN_TIME DESC
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+
+    <select id="countBatchHistories" parameterType="map" resultType="int">
+        SELECT COUNT(*) FROM OM_BATCH_HISTORY WHERE 1 = 1
+        <include refid="batchHistorySearchWhere"/>
+    </select>
+
+    <delete id="deleteAllBatchHistories">
+        DELETE FROM OM_BATCH_HISTORY
+    </delete>
+
+    <select id="searchSystemConfigs" parameterType="map" resultType="map">
+        SELECT CONFIG_KEY AS "configKey", CONFIG_CATEGORY AS "configCategory",
+               CONFIG_VALUE AS "configValue", EDITABLE_YN AS "editableYn", DESCRIPTION AS "description"
+          FROM OM_SYSTEM_CONFIG
+         WHERE 1 = 1
+        <if test="configCategory != null and configCategory != ''">
+            AND CONFIG_CATEGORY = #{configCategory}
+        </if>
+         ORDER BY CONFIG_CATEGORY, CONFIG_KEY
+    </select>
+
+    <sql id="fileDownloadSearchWhere">
+        <if test="userId != null and userId != ''">
+            AND USER_ID = #{userId}
+        </if>
+        <if test="businessCode != null and businessCode != ''">
+            AND BUSINESS_CODE = #{businessCode}
+        </if>
+        <if test="resultStatus != null and resultStatus != ''">
+            AND RESULT_STATUS = #{resultStatus}
+        </if>
+        <if test="fileName != null and fileName != ''">
+            AND FILE_NAME LIKE '%' || #{fileName} || '%'
+        </if>
+    </sql>
+
+    <select id="searchFileDownloadLogs" parameterType="map" resultType="map">
+        SELECT LOG_ID AS "logId", DOWNLOAD_TIME AS "downloadTime", USER_ID AS "userId",
+               FILE_NAME AS "fileName", FILE_SIZE AS "fileSize", BUSINESS_CODE AS "businessCode",
+               RESULT_STATUS AS "resultStatus", CLIENT_IP AS "clientIp"
+          FROM OM_FILE_DOWNLOAD_LOG
+         WHERE 1 = 1
+        <include refid="fileDownloadSearchWhere"/>
+         ORDER BY DOWNLOAD_TIME DESC
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+
+    <select id="countFileDownloadLogs" parameterType="map" resultType="int">
+        SELECT COUNT(*) FROM OM_FILE_DOWNLOAD_LOG WHERE 1 = 1
+        <include refid="fileDownloadSearchWhere"/>
+    </select>
+
+    <insert id="insertFileDownloadLog" parameterType="map">
+        INSERT INTO OM_FILE_DOWNLOAD_LOG (LOG_ID, DOWNLOAD_TIME, USER_ID, FILE_NAME, FILE_SIZE,
+                                          BUSINESS_CODE, RESULT_STATUS, CLIENT_IP)
+        VALUES (#{logId}, #{downloadTime}, #{userId}, #{fileName}, #{fileSize},
+                #{businessCode}, #{resultStatus}, #{clientIp})
+    </insert>
+
+    <sql id="commonCodeSearchWhere">
+        <if test="codeGroup != null and codeGroup != ''">
+            AND CODE_GROUP = #{codeGroup}
+        </if>
+        <if test="code != null and code != ''">
+            AND CODE LIKE '%' || #{code} || '%'
+        </if>
+        <if test="codeName != null and codeName != ''">
+            AND CODE_NAME LIKE '%' || #{codeName} || '%'
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND USE_YN = #{useYn}
+        </if>
+    </sql>
+
+    <select id="searchCommonCodes" parameterType="map" resultType="map">
+        SELECT CODE_GROUP AS "codeGroup", CODE AS "code", CODE_NAME AS "codeName",
+               SORT_ORDER AS "sortOrder", USE_YN AS "useYn", DESCRIPTION AS "description",
+               CREATED_AT AS "createdAt", UPDATED_AT AS "updatedAt"
+          FROM OM_COMMON_CODE
+         WHERE 1 = 1
+        <include refid="commonCodeSearchWhere"/>
+         ORDER BY CODE_GROUP, SORT_ORDER, CODE
+        <if test="pageSize != null">
+            OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+        </if>
+    </select>
+
+    <select id="countCommonCodes" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+          FROM OM_COMMON_CODE
+         WHERE 1 = 1
+        <include refid="commonCodeSearchWhere"/>
+    </select>
+
+    <select id="selectDistinctCodeGroups" resultType="string">
+        SELECT DISTINCT CODE_GROUP
+          FROM OM_COMMON_CODE
+         ORDER BY CODE_GROUP
+    </select>
+
+    <select id="selectCommonCodeByKey" parameterType="map" resultType="map">
+        SELECT CODE_GROUP AS "codeGroup", CODE AS "code", CODE_NAME AS "codeName",
+               SORT_ORDER AS "sortOrder", USE_YN AS "useYn", DESCRIPTION AS "description",
+               CREATED_AT AS "createdAt", UPDATED_AT AS "updatedAt"
+          FROM OM_COMMON_CODE
+         WHERE CODE_GROUP = #{codeGroup}
+           AND CODE = #{code}
+    </select>
+
+    <insert id="insertCommonCode" parameterType="map">
+        INSERT INTO OM_COMMON_CODE (
+            CODE_GROUP, CODE, CODE_NAME, SORT_ORDER, USE_YN, DESCRIPTION, CREATED_AT, UPDATED_AT
+        ) VALUES (
+            #{codeGroup}, #{code}, #{codeName}, #{sortOrder}, #{useYn}, #{description},
+            #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateCommonCode" parameterType="map">
+        UPDATE OM_COMMON_CODE
+           SET CODE_NAME = #{codeName},
+               SORT_ORDER = #{sortOrder},
+               USE_YN = #{useYn},
+               DESCRIPTION = #{description},
+               UPDATED_AT = #{updatedAt}
+         WHERE CODE_GROUP = #{codeGroup}
+           AND CODE = #{code}
+    </update>
+
+    <update id="disableCommonCode" parameterType="map">
+        UPDATE OM_COMMON_CODE
+           SET USE_YN = 'N',
+               UPDATED_AT = #{updatedAt}
+         WHERE CODE_GROUP = #{codeGroup}
+           AND CODE = #{code}
+    </update>
+
+    <select id="searchFunctionAuths" parameterType="map" resultType="map">
+        SELECT F.AUTH_ID AS "authId", F.AUTH_GROUP_ID AS "authGroupId", G.AUTH_GROUP_NAME AS "authGroupName",
+               F.MENU_ID AS "menuId", M.MENU_NAME AS "menuName",
+               F.CAN_INQUIRY AS "canInquiry", F.CAN_REGISTER AS "canRegister",
+               F.CAN_UPDATE AS "canUpdate", F.CAN_DELETE AS "canDelete", F.CAN_DOWNLOAD AS "canDownload"
+          FROM OM_FUNCTION_AUTH F
+          LEFT JOIN OM_AUTH_GROUP G ON F.AUTH_GROUP_ID = G.AUTH_GROUP_ID
+          LEFT JOIN OM_MENU M ON F.MENU_ID = M.MENU_ID
+         WHERE 1 = 1
+        <if test="authGroupId != null and authGroupId != ''">
+            AND F.AUTH_GROUP_ID = #{authGroupId}
+        </if>
+        <if test="menuId != null and menuId != ''">
+            AND F.MENU_ID = #{menuId}
+        </if>
+         ORDER BY F.AUTH_GROUP_ID, F.MENU_ID
+    </select>
+
+    <select id="selectFunctionAuthById" parameterType="string" resultType="map">
+        SELECT F.AUTH_ID AS "authId", F.AUTH_GROUP_ID AS "authGroupId", G.AUTH_GROUP_NAME AS "authGroupName",
+               F.MENU_ID AS "menuId", M.MENU_NAME AS "menuName",
+               F.CAN_INQUIRY AS "canInquiry", F.CAN_REGISTER AS "canRegister",
+               F.CAN_UPDATE AS "canUpdate", F.CAN_DELETE AS "canDelete", F.CAN_DOWNLOAD AS "canDownload"
+          FROM OM_FUNCTION_AUTH F
+          LEFT JOIN OM_AUTH_GROUP G ON F.AUTH_GROUP_ID = G.AUTH_GROUP_ID
+          LEFT JOIN OM_MENU M ON F.MENU_ID = M.MENU_ID
+         WHERE F.AUTH_ID = #{authId}
+    </select>
+
+    <select id="countFunctionAuthByGroupAndMenu" parameterType="map" resultType="int">
+        SELECT COUNT(*) FROM OM_FUNCTION_AUTH
+         WHERE AUTH_GROUP_ID = #{authGroupId}
+           AND MENU_ID = #{menuId}
+        <if test="excludeAuthId != null and excludeAuthId != ''">
+            AND AUTH_ID != #{excludeAuthId}
+        </if>
+    </select>
+
+    <insert id="insertFunctionAuth" parameterType="map">
+        INSERT INTO OM_FUNCTION_AUTH (
+            AUTH_ID, AUTH_GROUP_ID, MENU_ID,
+            CAN_INQUIRY, CAN_REGISTER, CAN_UPDATE, CAN_DELETE, CAN_DOWNLOAD
+        ) VALUES (
+            #{authId}, #{authGroupId}, #{menuId},
+            #{canInquiry}, #{canRegister}, #{canUpdate}, #{canDelete}, #{canDownload}
+        )
+    </insert>
+
+    <update id="updateFunctionAuth" parameterType="map">
+        UPDATE OM_FUNCTION_AUTH
+           SET AUTH_GROUP_ID = #{authGroupId},
+               MENU_ID = #{menuId},
+               CAN_INQUIRY = #{canInquiry},
+               CAN_REGISTER = #{canRegister},
+               CAN_UPDATE = #{canUpdate},
+               CAN_DELETE = #{canDelete},
+               CAN_DOWNLOAD = #{canDownload}
+         WHERE AUTH_ID = #{authId}
+    </update>
+
+    <delete id="deleteFunctionAuthById" parameterType="string">
+        DELETE FROM OM_FUNCTION_AUTH WHERE AUTH_ID = #{authId}
+    </delete>
+
+    <select id="searchDataAuths" parameterType="map" resultType="map">
+        SELECT D.AUTH_ID AS "authId", D.AUTH_GROUP_ID AS "authGroupId", G.AUTH_GROUP_NAME AS "authGroupName",
+               D.BRANCH_SCOPE AS "branchScope", D.CUSTOMER_ACCESS_LEVEL AS "customerAccessLevel",
+               D.DESCRIPTION AS "description"
+          FROM OM_DATA_AUTH D
+          LEFT JOIN OM_AUTH_GROUP G ON D.AUTH_GROUP_ID = G.AUTH_GROUP_ID
+         WHERE 1 = 1
+        <if test="authGroupId != null and authGroupId != ''">
+            AND D.AUTH_GROUP_ID = #{authGroupId}
+        </if>
+         ORDER BY D.AUTH_GROUP_ID
+    </select>
+
+    <sql id="authHistorySearchWhere">
+        <if test="targetType != null and targetType != ''">
+            AND TARGET_TYPE = #{targetType}
+        </if>
+        <if test="changedBy != null and changedBy != ''">
+            AND CHANGED_BY = #{changedBy}
+        </if>
+    </sql>
+
+    <select id="searchAuthHistories" parameterType="map" resultType="map">
+        SELECT HISTORY_ID AS "historyId", CHANGED_AT AS "changedAt", CHANGED_BY AS "changedBy",
+               TARGET_TYPE AS "targetType", TARGET_ID AS "targetId",
+               BEFORE_VALUE AS "beforeValue", AFTER_VALUE AS "afterValue", CHANGE_REASON AS "changeReason"
+          FROM OM_AUTH_HISTORY
+         WHERE 1 = 1
+        <include refid="authHistorySearchWhere"/>
+         ORDER BY CHANGED_AT DESC
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+
+    <select id="countAuthHistories" parameterType="map" resultType="int">
+        SELECT COUNT(*) FROM OM_AUTH_HISTORY WHERE 1 = 1
+        <include refid="authHistorySearchWhere"/>
+    </select>
+
+    <insert id="insertAuthHistory" parameterType="map">
+        INSERT INTO OM_AUTH_HISTORY (HISTORY_ID, CHANGED_AT, CHANGED_BY, TARGET_TYPE, TARGET_ID,
+                                     BEFORE_VALUE, AFTER_VALUE, CHANGE_REASON)
+        VALUES (#{historyId}, #{changedAt}, #{changedBy}, #{targetType}, #{targetId},
+                #{beforeValue}, #{afterValue}, #{changeReason})
+    </insert>
+
+    <delete id="deleteAllAuthHistories">
+        DELETE FROM OM_AUTH_HISTORY
+    </delete>
+
+    <select id="selectErrorCodeByCode" parameterType="string" resultType="map">
+        SELECT ERROR_CODE AS "errorCode", ERROR_CATEGORY AS "errorCategory",
+               USER_MESSAGE AS "userMessage", OPERATOR_MESSAGE AS "operatorMessage",
+               ACTION_GUIDE AS "actionGuide", NOTIFY_TARGET AS "notifyTarget", USE_YN AS "useYn"
+          FROM OM_ERROR_CODE
+         WHERE ERROR_CODE = #{errorCode}
+    </select>
+
+    <insert id="mergeErrorCode" parameterType="map">
+        MERGE INTO OM_ERROR_CODE (ERROR_CODE, ERROR_CATEGORY, USER_MESSAGE, OPERATOR_MESSAGE,
+                                  ACTION_GUIDE, NOTIFY_TARGET, USE_YN)
+        KEY (ERROR_CODE)
+        VALUES (#{errorCode}, #{errorCategory}, #{userMessage}, #{operatorMessage},
+                #{actionGuide}, #{notifyTarget}, #{useYn})
+    </insert>
+
+    <insert id="insertErrorCode" parameterType="map">
+        INSERT INTO OM_ERROR_CODE (ERROR_CODE, ERROR_CATEGORY, USER_MESSAGE, OPERATOR_MESSAGE,
+                                   ACTION_GUIDE, NOTIFY_TARGET, USE_YN)
+        VALUES (#{errorCode}, #{errorCategory}, #{userMessage}, #{operatorMessage},
+                #{actionGuide}, #{notifyTarget}, #{useYn})
+    </insert>
+
+    <update id="updateErrorCode" parameterType="map">
+        UPDATE OM_ERROR_CODE
+           SET ERROR_CATEGORY = #{errorCategory},
+               USER_MESSAGE = #{userMessage},
+               OPERATOR_MESSAGE = #{operatorMessage},
+               ACTION_GUIDE = #{actionGuide},
+               NOTIFY_TARGET = #{notifyTarget},
+               USE_YN = #{useYn}
+         WHERE ERROR_CODE = #{errorCode}
+    </update>
+
+    <update id="disableErrorCode" parameterType="map">
+        UPDATE OM_ERROR_CODE
+           SET USE_YN = 'N'
+         WHERE ERROR_CODE = #{errorCode}
+    </update>
+
+    <select id="searchTransactionControls" parameterType="map" resultType="map">
+        SELECT SERVICE_ID AS "serviceId", TRANSACTION_CODE AS "transactionCode",
+               BUSINESS_CODE AS "businessCode", SERVICE_NAME AS "serviceName",
+               USER_ID AS "userId", CHANNEL_ID AS "channelId", BRANCH_ID AS "branchId",
+               CONTROL_TYPE AS "controlType", BLOCK_YN AS "blockYn"
+          FROM TCF_TRANSACTION_CONTROL
+         WHERE 1 = 1
+        <if test="serviceId != null and serviceId != ''">
+            AND SERVICE_ID LIKE '%' || #{serviceId} || '%'
+        </if>
+        <if test="transactionCode != null and transactionCode != ''">
+            AND TRANSACTION_CODE LIKE '%' || #{transactionCode} || '%'
+        </if>
+        <if test="businessCode != null and businessCode != ''">
+            AND BUSINESS_CODE = #{businessCode}
+        </if>
+        <if test="serviceName != null and serviceName != ''">
+            AND SERVICE_NAME LIKE '%' || #{serviceName} || '%'
+        </if>
+        <if test="userId != null and userId != ''">
+            AND USER_ID LIKE '%' || #{userId} || '%'
+        </if>
+        <if test="channelId != null and channelId != ''">
+            AND CHANNEL_ID = #{channelId}
+        </if>
+        <if test="branchId != null and branchId != ''">
+            AND BRANCH_ID = #{branchId}
+        </if>
+        <if test="controlType != null and controlType != ''">
+            AND CONTROL_TYPE = #{controlType}
+        </if>
+        <if test="blockYn != null and blockYn != ''">
+            AND BLOCK_YN = #{blockYn}
+        </if>
+        <if test="targetKeyword != null and targetKeyword != ''">
+            AND (
+                SERVICE_ID LIKE '%' || #{targetKeyword} || '%'
+                OR BUSINESS_CODE LIKE '%' || #{targetKeyword} || '%'
+                OR USER_ID LIKE '%' || #{targetKeyword} || '%'
+                OR CHANNEL_ID LIKE '%' || #{targetKeyword} || '%'
+                OR BRANCH_ID LIKE '%' || #{targetKeyword} || '%'
+                OR SERVICE_NAME LIKE '%' || #{targetKeyword} || '%'
+            )
+        </if>
+         ORDER BY CONTROL_TYPE, BUSINESS_CODE, SERVICE_ID, USER_ID
+        <if test="pageSize != null">
+            OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+        </if>
+    </select>
+
+    <select id="countTransactionControls" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+          FROM TCF_TRANSACTION_CONTROL
+         WHERE 1 = 1
+        <if test="serviceId != null and serviceId != ''">
+            AND SERVICE_ID LIKE '%' || #{serviceId} || '%'
+        </if>
+        <if test="transactionCode != null and transactionCode != ''">
+            AND TRANSACTION_CODE LIKE '%' || #{transactionCode} || '%'
+        </if>
+        <if test="businessCode != null and businessCode != ''">
+            AND BUSINESS_CODE = #{businessCode}
+        </if>
+        <if test="serviceName != null and serviceName != ''">
+            AND SERVICE_NAME LIKE '%' || #{serviceName} || '%'
+        </if>
+        <if test="userId != null and userId != ''">
+            AND USER_ID LIKE '%' || #{userId} || '%'
+        </if>
+        <if test="channelId != null and channelId != ''">
+            AND CHANNEL_ID = #{channelId}
+        </if>
+        <if test="branchId != null and branchId != ''">
+            AND BRANCH_ID = #{branchId}
+        </if>
+        <if test="controlType != null and controlType != ''">
+            AND CONTROL_TYPE = #{controlType}
+        </if>
+        <if test="blockYn != null and blockYn != ''">
+            AND BLOCK_YN = #{blockYn}
+        </if>
+        <if test="targetKeyword != null and targetKeyword != ''">
+            AND (
+                SERVICE_ID LIKE '%' || #{targetKeyword} || '%'
+                OR BUSINESS_CODE LIKE '%' || #{targetKeyword} || '%'
+                OR USER_ID LIKE '%' || #{targetKeyword} || '%'
+                OR CHANNEL_ID LIKE '%' || #{targetKeyword} || '%'
+                OR BRANCH_ID LIKE '%' || #{targetKeyword} || '%'
+                OR SERVICE_NAME LIKE '%' || #{targetKeyword} || '%'
+            )
+        </if>
+    </select>
+
+    <select id="selectTransactionControlByKey" parameterType="map" resultType="map">
+        SELECT SERVICE_ID AS "serviceId", TRANSACTION_CODE AS "transactionCode",
+               BUSINESS_CODE AS "businessCode", SERVICE_NAME AS "serviceName",
+               USER_ID AS "userId", CHANNEL_ID AS "channelId", BRANCH_ID AS "branchId",
+               CONTROL_TYPE AS "controlType", BLOCK_YN AS "blockYn"
+          FROM TCF_TRANSACTION_CONTROL
+         WHERE SERVICE_ID = #{serviceId}
+           AND TRANSACTION_CODE = #{transactionCode}
+           AND BUSINESS_CODE = #{businessCode}
+           AND SERVICE_NAME = #{serviceName}
+           AND USER_ID = #{userId}
+           AND CHANNEL_ID = #{channelId}
+           AND BRANCH_ID = #{branchId}
+    </select>
+
+    <insert id="insertTransactionControl" parameterType="map">
+        INSERT INTO TCF_TRANSACTION_CONTROL (
+            SERVICE_ID, TRANSACTION_CODE, BUSINESS_CODE, SERVICE_NAME,
+            USER_ID, CHANNEL_ID, BRANCH_ID, CONTROL_TYPE, BLOCK_YN
+        ) VALUES (
+            #{serviceId}, #{transactionCode}, #{businessCode}, #{serviceName},
+            #{userId}, #{channelId}, #{branchId},
+            #{controlType}, #{blockYn}
+        )
+    </insert>
+
+    <update id="updateTransactionControl" parameterType="map">
+        UPDATE TCF_TRANSACTION_CONTROL
+           SET CONTROL_TYPE = #{controlType},
+               BLOCK_YN = #{blockYn}
+         WHERE SERVICE_ID = #{serviceId}
+           AND TRANSACTION_CODE = #{transactionCode}
+           AND BUSINESS_CODE = #{businessCode}
+           AND SERVICE_NAME = #{serviceName}
+           AND USER_ID = #{userId}
+           AND CHANNEL_ID = #{channelId}
+           AND BRANCH_ID = #{branchId}
+    </update>
+
+    <delete id="deleteTransactionControl" parameterType="map">
+        DELETE FROM TCF_TRANSACTION_CONTROL
+         WHERE SERVICE_ID = #{serviceId}
+           AND TRANSACTION_CODE = #{transactionCode}
+           AND BUSINESS_CODE = #{businessCode}
+           AND SERVICE_NAME = #{serviceName}
+           AND USER_ID = #{userId}
+           AND CHANNEL_ID = #{channelId}
+           AND BRANCH_ID = #{branchId}
+    </delete>
+
+    <select id="searchTimeoutPolicies" parameterType="map" resultType="map">
+        SELECT SERVICE_ID AS "serviceId", TRANSACTION_CODE AS "transactionCode",
+               BUSINESS_CODE AS "businessCode", SERVICE_NAME AS "serviceName",
+               ONLINE_TIMEOUT_SEC AS "onlineTimeoutSec", TX_TIMEOUT_SEC AS "txTimeoutSec",
+               DB_QUERY_TIMEOUT_SEC AS "dbQueryTimeoutSec",
+               EXTERNAL_CONNECT_TIMEOUT_MS AS "externalConnectTimeoutMs",
+               EXTERNAL_READ_TIMEOUT_MS AS "externalReadTimeoutMs",
+               TIMEOUT_ACTION AS "timeoutAction", USE_YN AS "useYn", DESCRIPTION AS "description"
+          FROM TCF_SERVICE_TIMEOUT_POLICY
+         WHERE 1 = 1
+        <if test="serviceId != null and serviceId != ''">
+            AND SERVICE_ID LIKE '%' || #{serviceId} || '%'
+        </if>
+        <if test="transactionCode != null and transactionCode != ''">
+            AND TRANSACTION_CODE LIKE '%' || #{transactionCode} || '%'
+        </if>
+        <if test="businessCode != null and businessCode != ''">
+            AND BUSINESS_CODE = #{businessCode}
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND USE_YN = #{useYn}
+        </if>
+         ORDER BY BUSINESS_CODE, SERVICE_ID, TRANSACTION_CODE
+        <if test="pageSize != null and pageNo != null">
+            OFFSET (#{pageNo} - 1) * #{pageSize} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+        </if>
+    </select>
+
+    <select id="countTimeoutPolicies" parameterType="map" resultType="int">
+        SELECT COUNT(*) FROM TCF_SERVICE_TIMEOUT_POLICY WHERE 1 = 1
+        <if test="serviceId != null and serviceId != ''">
+            AND SERVICE_ID LIKE '%' || #{serviceId} || '%'
+        </if>
+        <if test="transactionCode != null and transactionCode != ''">
+            AND TRANSACTION_CODE LIKE '%' || #{transactionCode} || '%'
+        </if>
+        <if test="businessCode != null and businessCode != ''">
+            AND BUSINESS_CODE = #{businessCode}
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND USE_YN = #{useYn}
+        </if>
+    </select>
+
+    <select id="selectTimeoutPolicyByKey" parameterType="map" resultType="map">
+        SELECT SERVICE_ID AS "serviceId", TRANSACTION_CODE AS "transactionCode",
+               BUSINESS_CODE AS "businessCode", SERVICE_NAME AS "serviceName",
+               ONLINE_TIMEOUT_SEC AS "onlineTimeoutSec", TX_TIMEOUT_SEC AS "txTimeoutSec",
+               DB_QUERY_TIMEOUT_SEC AS "dbQueryTimeoutSec",
+               EXTERNAL_CONNECT_TIMEOUT_MS AS "externalConnectTimeoutMs",
+               EXTERNAL_READ_TIMEOUT_MS AS "externalReadTimeoutMs",
+               TIMEOUT_ACTION AS "timeoutAction", USE_YN AS "useYn", DESCRIPTION AS "description"
+          FROM TCF_SERVICE_TIMEOUT_POLICY
+         WHERE SERVICE_ID = #{serviceId}
+           AND TRANSACTION_CODE = #{transactionCode}
+           AND BUSINESS_CODE = #{businessCode}
+    </select>
+
+    <insert id="insertTimeoutPolicy" parameterType="map">
+        INSERT INTO TCF_SERVICE_TIMEOUT_POLICY (
+            SERVICE_ID, TRANSACTION_CODE, BUSINESS_CODE, SERVICE_NAME,
+            ONLINE_TIMEOUT_SEC, TX_TIMEOUT_SEC, DB_QUERY_TIMEOUT_SEC,
+            EXTERNAL_CONNECT_TIMEOUT_MS, EXTERNAL_READ_TIMEOUT_MS,
+            TIMEOUT_ACTION, USE_YN, DESCRIPTION, CREATED_AT
+        ) VALUES (
+            #{serviceId}, #{transactionCode}, #{businessCode}, #{serviceName},
+            #{onlineTimeoutSec}, #{txTimeoutSec}, #{dbQueryTimeoutSec},
+            #{externalConnectTimeoutMs}, #{externalReadTimeoutMs},
+            #{timeoutAction}, #{useYn}, #{description}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <update id="updateTimeoutPolicy" parameterType="map">
+        UPDATE TCF_SERVICE_TIMEOUT_POLICY
+           SET SERVICE_NAME = #{serviceName},
+               ONLINE_TIMEOUT_SEC = #{onlineTimeoutSec},
+               TX_TIMEOUT_SEC = #{txTimeoutSec},
+               DB_QUERY_TIMEOUT_SEC = #{dbQueryTimeoutSec},
+               EXTERNAL_CONNECT_TIMEOUT_MS = #{externalConnectTimeoutMs},
+               EXTERNAL_READ_TIMEOUT_MS = #{externalReadTimeoutMs},
+               TIMEOUT_ACTION = #{timeoutAction},
+               USE_YN = #{useYn},
+               DESCRIPTION = #{description},
+               UPDATED_AT = CURRENT_TIMESTAMP
+         WHERE SERVICE_ID = #{serviceId}
+           AND TRANSACTION_CODE = #{transactionCode}
+           AND BUSINESS_CODE = #{businessCode}
+    </update>
+
+    <delete id="deleteTimeoutPolicy" parameterType="map">
+        DELETE FROM TCF_SERVICE_TIMEOUT_POLICY
+         WHERE SERVICE_ID = #{serviceId}
+           AND TRANSACTION_CODE = #{transactionCode}
+           AND BUSINESS_CODE = #{businessCode}
+    </delete>
+
+    <select id="selectBatchJobById" parameterType="string" resultType="map">
+        SELECT JOB_ID AS "jobId", JOB_NAME AS "jobName", BUSINESS_CODE AS "businessCode",
+               CRON_EXPR AS "cronExpr", USE_YN AS "useYn", DESCRIPTION AS "description"
+          FROM OM_BATCH_JOB
+         WHERE JOB_ID = #{jobId}
+    </select>
+
+    <insert id="insertBatchHistory" parameterType="map">
+        INSERT INTO OM_BATCH_HISTORY (HISTORY_ID, JOB_ID, RUN_TIME, RUN_STATUS, DURATION_MS, RESULT_MESSAGE)
+        VALUES (#{historyId}, #{jobId}, #{runTime}, #{runStatus}, #{durationMs}, #{resultMessage})
+    </insert>
+
+    <select id="searchCacheStatus" parameterType="map" resultType="map">
+        SELECT CACHE_NAME AS "cacheName", CACHE_KEY AS "cacheKey", ENTRY_COUNT AS "entryCount",
+               LAST_UPDATED AS "lastUpdated", TTL_SEC AS "ttlSec"
+          FROM OM_CACHE_STATUS
+         WHERE 1 = 1
+        <if test="cacheName != null and cacheName != ''">
+            AND CACHE_NAME LIKE '%' || #{cacheName} || '%'
+        </if>
+        <if test="cacheKey != null and cacheKey != ''">
+            AND CACHE_KEY = #{cacheKey}
+        </if>
+         ORDER BY CACHE_NAME, CACHE_KEY
+    </select>
+
+    <delete id="deleteCache" parameterType="map">
+        DELETE FROM OM_CACHE_STATUS
+         WHERE CACHE_NAME = #{cacheName}
+        <if test="cacheKey != null and cacheKey != ''">
+            AND CACHE_KEY = #{cacheKey}
+        </if>
+    </delete>
+
+    <insert id="insertAuditLog" parameterType="map">
+        INSERT INTO OM_AUDIT_LOG (AUDIT_ID, AUDIT_TIME, USER_ID, BRANCH_ID, CUSTOMER_NO,
+                                  FUNCTION_ID, FUNCTION_NAME, INQUIRY_REASON, RESULT_STATUS, CLIENT_IP)
+        VALUES (#{auditId}, #{auditTime}, #{userId}, #{branchId}, #{customerNo},
+                #{functionId}, #{functionName}, #{inquiryReason}, #{resultStatus}, #{clientIp})
+    </insert>
+
+    <sql id="springSessionWhere">
+        <if test="userId != null and userId != ''">
+            AND S.PRINCIPAL_NAME = #{userId}
+        </if>
+        <if test="activeOnly != null and activeOnly">
+            AND S.EXPIRY_TIME &gt; #{now}
+        </if>
+    </sql>
+
+    <select id="searchSpringSessions" parameterType="map" resultType="map">
+        SELECT S.SESSION_ID AS "sessionId", S.PRINCIPAL_NAME AS "userId",
+               S.CREATION_TIME AS "creationTime", S.LAST_ACCESS_TIME AS "lastAccessTime",
+               S.MAX_INACTIVE_INTERVAL AS "maxInactiveInterval", S.EXPIRY_TIME AS "expiryTime",
+               U.USER_NAME AS "userName", U.BRANCH_ID AS "branchId",
+               U.AUTH_GROUP_ID AS "authGroupId", G.AUTH_GROUP_NAME AS "authGroupName",
+               CASE WHEN S.EXPIRY_TIME &gt; #{now} THEN 'Y' ELSE 'N' END AS "activeYn"
+          FROM SPRING_SESSION S
+          LEFT JOIN OM_USER U ON S.PRINCIPAL_NAME = U.USER_ID
+          LEFT JOIN OM_AUTH_GROUP G ON U.AUTH_GROUP_ID = G.AUTH_GROUP_ID
+         WHERE 1 = 1
+        <include refid="springSessionWhere"/>
+         ORDER BY S.LAST_ACCESS_TIME DESC
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+
+    <select id="countSpringSessions" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+          FROM SPRING_SESSION S
+         WHERE 1 = 1
+        <include refid="springSessionWhere"/>
+    </select>
+
+    <select id="countActiveSpringSessions" parameterType="long" resultType="int">
+        SELECT COUNT(*) FROM SPRING_SESSION WHERE EXPIRY_TIME &gt; #{value}
+    </select>
+
+    <select id="selectSpringSessionById" parameterType="string" resultType="map">
+        SELECT S.SESSION_ID AS "sessionId", S.PRINCIPAL_NAME AS "userId",
+               S.CREATION_TIME AS "creationTime", S.LAST_ACCESS_TIME AS "lastAccessTime",
+               S.MAX_INACTIVE_INTERVAL AS "maxInactiveInterval", S.EXPIRY_TIME AS "expiryTime"
+          FROM SPRING_SESSION S
+         WHERE S.SESSION_ID = #{sessionId}
+    </select>
+
+    <delete id="deleteSpringSession" parameterType="string">
+        DELETE FROM SPRING_SESSION WHERE SESSION_ID = #{sessionId}
+    </delete>
+
+    <select id="countExpiredSpringSessions" parameterType="long" resultType="int">
+        SELECT COUNT(*) FROM SPRING_SESSION WHERE EXPIRY_TIME &lt;= #{value}
+    </select>
+
+    <delete id="deleteExpiredSpringSessions" parameterType="long">
+        DELETE FROM SPRING_SESSION WHERE EXPIRY_TIME &lt;= #{value}
+    </delete>
+
+    <sql id="messageStructSearchWhere">
+        <if test="structCode != null and structCode != ''">
+            AND STRUCT_CODE LIKE '%' || #{structCode} || '%'
+        </if>
+        <if test="businessCode != null and businessCode != ''">
+            AND BUSINESS_CODE = #{businessCode}
+        </if>
+        <if test="serviceId != null and serviceId != ''">
+            AND SERVICE_ID LIKE '%' || #{serviceId} || '%'
+        </if>
+        <if test="messageType != null and messageType != ''">
+            AND MESSAGE_TYPE = #{messageType}
+        </if>
+        <if test="segmentType != null and segmentType != ''">
+            AND SEGMENT_TYPE = #{segmentType}
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND USE_YN = #{useYn}
+        </if>
+    </sql>
+
+    <select id="searchMessageStructs" parameterType="map" resultType="map">
+        SELECT STRUCT_ID AS "structId", STRUCT_CODE AS "structCode",
+               BUSINESS_CODE AS "businessCode", SERVICE_ID AS "serviceId",
+               TRANSACTION_CODE AS "transactionCode", MESSAGE_TYPE AS "messageType",
+               SEGMENT_TYPE AS "segmentType", STRUCT_NAME AS "structName",
+               DESCRIPTION AS "description", USE_YN AS "useYn"
+          FROM OM_MESSAGE_STRUCT
+         WHERE 1 = 1
+        <include refid="messageStructSearchWhere"/>
+         ORDER BY STRUCT_CODE
+        <if test="pageSize != null">
+            OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+        </if>
+    </select>
+
+    <select id="countMessageStructs" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+          FROM OM_MESSAGE_STRUCT
+         WHERE 1 = 1
+        <include refid="messageStructSearchWhere"/>
+    </select>
+
+    <select id="selectMessageStructById" parameterType="string" resultType="map">
+        SELECT STRUCT_ID AS "structId", STRUCT_CODE AS "structCode",
+               BUSINESS_CODE AS "businessCode", SERVICE_ID AS "serviceId",
+               TRANSACTION_CODE AS "transactionCode", MESSAGE_TYPE AS "messageType",
+               SEGMENT_TYPE AS "segmentType", STRUCT_NAME AS "structName",
+               DESCRIPTION AS "description", CAST(SAMPLE_JSON AS VARCHAR(4000)) AS "sampleJson", USE_YN AS "useYn"
+          FROM OM_MESSAGE_STRUCT
+         WHERE STRUCT_ID = #{structId}
+    </select>
+
+    <select id="selectMessageStructByCode" parameterType="string" resultType="map">
+        SELECT STRUCT_ID AS "structId", STRUCT_CODE AS "structCode",
+               BUSINESS_CODE AS "businessCode", SERVICE_ID AS "serviceId",
+               TRANSACTION_CODE AS "transactionCode", MESSAGE_TYPE AS "messageType",
+               SEGMENT_TYPE AS "segmentType", STRUCT_NAME AS "structName",
+               DESCRIPTION AS "description", CAST(SAMPLE_JSON AS VARCHAR(4000)) AS "sampleJson", USE_YN AS "useYn"
+          FROM OM_MESSAGE_STRUCT
+         WHERE STRUCT_CODE = #{structCode}
+    </select>
+
+    <select id="searchMessageFieldsByStructId" parameterType="string" resultType="map">
+        SELECT FIELD_ID AS "fieldId", STRUCT_ID AS "structId", FIELD_KEY AS "fieldKey",
+               FIELD_LABEL AS "fieldLabel", DATA_TYPE AS "dataType", REQUIRED_YN AS "requiredYn",
+               MAX_LENGTH AS "maxLength", DEFAULT_VALUE AS "defaultValue",
+               SAMPLE_VALUE AS "sampleValue", VALIDATION_RULE AS "validationRule",
+               DESCRIPTION AS "description", SORT_ORDER AS "sortOrder"
+          FROM OM_MESSAGE_FIELD
+         WHERE STRUCT_ID = #{structId}
+         ORDER BY SORT_ORDER, FIELD_KEY
+    </select>
+
+    <insert id="insertMessageStruct" parameterType="map">
+        INSERT INTO OM_MESSAGE_STRUCT (
+            STRUCT_ID, STRUCT_CODE, BUSINESS_CODE, SERVICE_ID, TRANSACTION_CODE,
+            MESSAGE_TYPE, SEGMENT_TYPE, STRUCT_NAME, DESCRIPTION, SAMPLE_JSON, USE_YN
+        ) VALUES (
+            #{structId}, #{structCode}, #{businessCode}, #{serviceId}, #{transactionCode},
+            #{messageType}, #{segmentType}, #{structName}, #{description}, #{sampleJson}, #{useYn}
+        )
+    </insert>
+
+    <update id="updateMessageStruct" parameterType="map">
+        UPDATE OM_MESSAGE_STRUCT
+           SET BUSINESS_CODE = #{businessCode},
+               SERVICE_ID = #{serviceId},
+               TRANSACTION_CODE = #{transactionCode},
+               MESSAGE_TYPE = #{messageType},
+               SEGMENT_TYPE = #{segmentType},
+               STRUCT_NAME = #{structName},
+               DESCRIPTION = #{description},
+               SAMPLE_JSON = #{sampleJson},
+               USE_YN = #{useYn}
+         WHERE STRUCT_ID = #{structId}
+    </update>
+
+    <update id="disableMessageStruct" parameterType="map">
+        UPDATE OM_MESSAGE_STRUCT
+           SET USE_YN = 'N'
+         WHERE STRUCT_ID = #{structId}
+    </update>
+
+    <delete id="deleteMessageFieldsByStructId" parameterType="string">
+        DELETE FROM OM_MESSAGE_FIELD WHERE STRUCT_ID = #{structId}
+    </delete>
+
+    <insert id="insertMessageField" parameterType="map">
+        INSERT INTO OM_MESSAGE_FIELD (
+            FIELD_ID, STRUCT_ID, FIELD_KEY, FIELD_LABEL, DATA_TYPE, REQUIRED_YN,
+            MAX_LENGTH, DEFAULT_VALUE, SAMPLE_VALUE, VALIDATION_RULE, DESCRIPTION, SORT_ORDER
+        ) VALUES (
+            #{fieldId}, #{structId}, #{fieldKey}, #{fieldLabel}, #{dataType}, #{requiredYn},
+            #{maxLength}, #{defaultValue}, #{sampleValue}, #{validationRule}, #{description}, #{sortOrder}
+        )
+    </insert>
+</mapper>

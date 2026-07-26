@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JWT 로그인 이력</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+  <link rel="stylesheet" href="/_shared/jwt-admin.css">
+</head>
+<body>
+  <script src="/_shared/jwt-admin.js?v=20260628b"></script>
+  <script>
+    const PAGE_SIZE = 20;
+    let pageNo = 1;
+
+    function readFilters() {
+      const v = id => document.getElementById(id).value.trim();
+      const f = {};
+      if (v('filterUserId')) f.userId = v('filterUserId');
+      if (v('filterLoginResult')) f.loginResult = v('filterLoginResult');
+      return f;
+    }
+
+    async function loadList(el) {
+      const tbody = document.getElementById('historyBody');
+      tbody.innerHTML = '<tr><td colspan="6" class="om-empty">조회 중...</td></tr>';
+      const { body, relay } = await JwtAdmin.inquiry('loginHistory', {
+        ...readFilters(),
+        pageNo,
+        pageSize: PAGE_SIZE
+      });
+      document.getElementById('listStatus').textContent = `${relay.elapsedMs}ms · 총 ${body.totalCount ?? 0}건`;
+      const rows = body.rows || [];
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="om-empty">로그인 이력이 없습니다.</td></tr>';
+      } else {
+        tbody.innerHTML = rows.map(r => `
+          <tr>
+            <td>${JwtAdmin.formatTs(JwtAdmin.field(r, 'loginTime'))}</td>
+            <td>${JwtAdmin.field(r, 'userId')}</td>
+            <td>${JwtAdmin.field(r, 'userName')}</td>
+            <td>${JwtAdmin.chipForResult(JwtAdmin.field(r, 'loginResult'))}</td>
+            <td>${JwtAdmin.field(r, 'failReason', '-')}</td>
+            <td>${JwtAdmin.field(r, 'clientIp')}</td>
+          </tr>`).join('');
+      }
+      JwtAdmin.renderPagination(
+        document.getElementById('pagination'),
+        body.pageNo || pageNo,
+        body.pageSize || PAGE_SIZE,
+        body.totalCount || 0,
+        p => { pageNo = p; loadList(el).catch(e => JwtAdmin.showError(el, e.message)); }
+      );
+    }
+
+    JwtAdmin.initPage('login-history', '로그인 이력', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">JWT 로그인 성공·실패 이력을 조회합니다.</div>
+        <section class="om-filter-bar">
+          <div class="field"><label for="filterUserId">사용자 ID</label><input id="filterUserId" type="text"></div>
+          <div class="field"><label for="filterLoginResult">결과</label>
+            <select id="filterLoginResult">
+              <option value="">전체</option>
+              <option value="SUCCESS">SUCCESS</option>
+              <option value="FAIL">FAIL</option>
+            </select>
+          </div>
+          <button class="btn-primary" id="searchBtn" type="button">조회</button>
+        </section>
+        <div style="margin-bottom:10px;color:var(--muted);font-size:0.85rem" id="listStatus">-</div>
+        <div class="om-card">
+          <div class="om-card-head">로그인 이력</div>
+          <div class="om-card-body om-table-wrap">
+            <table class="om-table">
+              <thead><tr>
+                <th>일시</th><th>사용자 ID</th><th>이름</th><th>결과</th><th>실패 사유</th><th>IP</th>
+              </tr></thead>
+              <tbody id="historyBody"></tbody>
+            </table>
+            <div class="om-pagination" id="pagination" hidden></div>
+          </div>
+        </div>`;
+      document.getElementById('searchBtn').addEventListener('click', () => {
+        pageNo = 1;
+        loadList(el).catch(e => JwtAdmin.showError(el, e.message));
+      });
+      await loadList(el);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 배포 관리</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260627c"></script>
+  <script>
+    const PAGE_SIZE = 10;
+    let currentPage = 1;
+    let selectedRequestId = '';
+
+    const MODULE_OPTIONS = [
+      { code: 'SV', label: 'sv-service' },
+      { code: 'IC', label: 'ic-service' },
+      { code: 'PC', label: 'pc-service' },
+      { code: 'OM', label: 'tcf-om' },
+      { code: 'UI', label: 'tcf-uj' }
+    ];
+
+    function statusChip(status) {
+      const s = (status || '').toUpperCase();
+      if (s === 'SUCCESS' || s === 'APPROVED') return '<span class="om-chip ok">' + s + '</span>';
+      if (s === 'FAIL') return '<span class="om-chip err">' + s + '</span>';
+      if (s === 'RUNNING') return '<span class="om-chip warn">' + s + '</span>';
+      return '<span class="om-chip muted">' + (s || '-') + '</span>';
+    }
+
+    function formatTime(value) {
+      const s = String(value || '');
+      if (!s || s === '-') return '-';
+      return s.length >= 19 ? s.substring(0, 19).replace('T', ' ') : s;
+    }
+
+    async function load(page, el) {
+      currentPage = page;
+      const body = {
+        pageNo: page,
+        pageSize: PAGE_SIZE,
+        envCode: document.getElementById('filterEnv').value,
+        status: document.getElementById('filterStatus').value,
+        businessCode: document.getElementById('filterBusiness').value
+      };
+      const { body: data, relay } = await OmAdmin.inquiry('deployHistory', body);
+      document.getElementById('listStatus').textContent =
+        `${relay.elapsedMs}ms · 요청 ${data.requestTotalCount ?? 0}건 · 이력 ${data.historyTotalCount ?? 0}건`;
+
+      const requests = data.requests || [];
+      document.getElementById('reqBody').innerHTML = requests.length ? requests.map(r => {
+        const id = OmAdmin.field(r, 'deployRequestId');
+        return `<tr data-req-id="${id}" style="cursor:pointer">
+          <td class="om-mono">${id}</td>
+          <td>${OmAdmin.field(r, 'requestType')}</td>
+          <td>${OmAdmin.field(r, 'envCode')}</td>
+          <td>${OmAdmin.field(r, 'businessCode')}</td>
+          <td>${OmAdmin.field(r, 'moduleName')}</td>
+          <td>${statusChip(OmAdmin.field(r, 'status'))}</td>
+          <td>${OmAdmin.field(r, 'requestUserId')}</td>
+          <td>${formatTime(OmAdmin.field(r, 'requestTime'))}</td>
+          <td>${OmAdmin.field(r, 'approveUserId')}</td>
+          <td>${formatTime(OmAdmin.field(r, 'approveTime'))}</td>
+        </tr>`;
+      }).join('') : '<tr><td colspan="10" class="om-empty">배포 요청 없음</td></tr>';
+
+      document.getElementById('reqBody').querySelectorAll('tr[data-req-id]').forEach(tr => {
+        tr.addEventListener('click', () => {
+          selectedRequestId = tr.getAttribute('data-req-id');
+          document.getElementById('selectedRequestId').value = selectedRequestId;
+          document.getElementById('reqBody').querySelectorAll('tr[data-req-id]').forEach(row => {
+            row.classList.toggle('om-row-selected', row.getAttribute('data-req-id') === selectedRequestId);
+          });
+          loadLog(selectedRequestId, el).catch(e => OmAdmin.showError(el, e.message));
+        });
+      });
+
+      const histories = data.histories || [];
+      document.getElementById('histBody').innerHTML = histories.length ? histories.map(r => `
+        <tr>
+          <td>${OmAdmin.field(r, 'createdTime')}</td>
+          <td class="om-mono">${OmAdmin.field(r, 'deployRequestId')}</td>
+          <td>${OmAdmin.field(r, 'contextPath')}</td>
+          <td>${OmAdmin.chipForResult(OmAdmin.field(r, 'resultCode'))}</td>
+          <td>${OmAdmin.field(r, 'healthCheckResult') || '-'}</td>
+          <td>${OmAdmin.field(r, 'resultMessage')}</td>
+        </tr>`).join('') : '<tr><td colspan="6" class="om-empty">배포 이력 없음</td></tr>';
+
+      const ds = data.deployStatus;
+      document.getElementById('deployStatusBox').innerHTML = ds ? `
+        <div><strong>${OmAdmin.field(ds, 'businessCode')}</strong> · ${OmAdmin.field(ds, 'warName')}
+        · ${OmAdmin.field(ds, 'warVersion') || '-'} · ${OmAdmin.chipForHealth(OmAdmin.field(ds, 'healthStatus'))}</div>`
+        : '<span class="om-muted">선택 업무의 수집 배포현황 없음 (tcf-batch BAT-BATCH-004)</span>';
+
+      restoreSelection(selectedRequestId);
+      if (selectedRequestId && el) {
+        loadLog(selectedRequestId, el).catch(() => updateWorkflowBanner());
+      } else {
+        updateWorkflowBanner();
+      }
+
+      OmAdmin.renderPagination(document.getElementById('pagination'), data.pageNo || page, PAGE_SIZE,
+        data.requestTotalCount || 0, p => load(p, el).catch(e => OmAdmin.showError(el, e.message)));
+    }
+
+    async function loadLog(requestId, el) {
+      if (!requestId) return;
+      const { body } = await OmAdmin.inquiry('deployLog', { deployRequestId: requestId });
+      const req = body.request || {};
+      const lines = [
+        `[요청] ${OmAdmin.field(req, 'deployRequestId')} · ${OmAdmin.field(req, 'requestType')} · ${OmAdmin.field(req, 'status')}`,
+        `환경/업무/모듈: ${OmAdmin.field(req, 'envCode')} / ${OmAdmin.field(req, 'businessCode')} / ${OmAdmin.field(req, 'moduleName')}`,
+        `요청: ${OmAdmin.field(req, 'requestUserId')} @ ${formatTime(OmAdmin.field(req, 'requestTime'))}`,
+        `승인: ${OmAdmin.field(req, 'approveUserId')} @ ${formatTime(OmAdmin.field(req, 'approveTime'))}`,
+        `실행: ${formatTime(OmAdmin.field(req, 'startTime'))} ~ ${formatTime(OmAdmin.field(req, 'endTime'))}`
+      ];
+      const log = body.logText;
+      if (log && log !== '-') {
+        lines.push('', '[빌드/배포 로그]', log);
+      }
+      document.getElementById('logBox').textContent = lines.join('\n');
+      updateWorkflowBanner(req);
+    }
+
+    function restoreSelection(requestId) {
+      if (!requestId) return;
+      selectedRequestId = requestId;
+      document.getElementById('selectedRequestId').value = requestId;
+      document.getElementById('reqBody').querySelectorAll('tr[data-req-id]').forEach(row => {
+        row.classList.toggle('om-row-selected', row.getAttribute('data-req-id') === requestId);
+      });
+    }
+
+    function updateWorkflowBanner(request) {
+      const box = document.getElementById('workflowBanner');
+      if (!box) return;
+      const id = document.getElementById('selectedRequestId').value.trim();
+      if (!id) {
+        box.innerHTML = '요청을 선택하거나 빌드/배포 요청 후 <strong>승인 → 실행</strong> 순서로 진행합니다. 승인 후에는 <strong>재요청 없이 실행</strong>만 하면 됩니다.';
+        return;
+      }
+      const status = request ? OmAdmin.field(request, 'status') : '-';
+      const type = request ? OmAdmin.field(request, 'requestType') : '-';
+      let next = '승인 버튼을 누르세요.';
+      if (status === 'REQUESTED') next = '승인 버튼을 누르세요.';
+      else if (status === 'APPROVED') next = '실행 버튼으로 빌드/배포를 진행하세요. (재요청 불필요)';
+      else if (status === 'FAIL') next = '실행 버튼으로 같은 요청을 다시 시도할 수 있습니다. (재요청 불필요)';
+      else if (status === 'SUCCESS') next = '처리가 완료되었습니다.';
+      else if (status === 'RUNNING') next = '실행 중입니다. 잠시 후 조회하세요.';
+      box.innerHTML = `선택 <code class="om-mono">${id}</code> · ${type} · ${statusChip(status)} ? ${next}`;
+    }
+
+    function clearFormFields() {
+      selectedRequestId = '';
+      document.getElementById('filterEnv').value = '';
+      document.getElementById('filterStatus').value = '';
+      document.getElementById('filterBusiness').value = '';
+      document.getElementById('formEnv').value = 'LOCAL';
+      document.getElementById('formBusiness').selectedIndex = 0;
+      document.getElementById('requestReason').value = '';
+      document.getElementById('selectedRequestId').value = '';
+      document.getElementById('approveReason').value = '';
+      document.getElementById('logBox').textContent = '요청을 선택하세요.';
+    }
+
+    OmAdmin.initPage('deploy', '배포 관리', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">흐름: 빌드/배포 요청 → 승인 → 실행(Gradle/Tomcat) → 이력·로그 저장. <strong>승인 후에는 같은 요청 ID로 실행</strong>합니다. 로컬은 ztomcat webapps 대상입니다.</div>
+        <div id="workflowBanner" class="om-alert" style="margin-bottom:12px">-</div>
+        <section class="om-filter-bar">
+          <div class="field"><label for="filterEnv">환경</label>
+            <select id="filterEnv"><option value="">전체</option><option value="LOCAL">LOCAL</option><option value="DEV">DEV</option><option value="STG">STG</option><option value="PRD">PRD</option></select>
+          </div>
+          <div class="field"><label for="filterStatus">상태</label>
+            <select id="filterStatus"><option value="">전체</option><option>REQUESTED</option><option>APPROVED</option><option>RUNNING</option><option>SUCCESS</option><option>FAIL</option></select>
+          </div>
+          <div class="field"><label for="filterBusiness">업무코드</label>
+            <select id="filterBusiness"><option value="">전체</option>${MODULE_OPTIONS.map(m => `<option value="${m.code}">${m.code}</option>`).join('')}</select>
+          </div>
+          <div class="field"><label for="formEnv">요청 환경</label>
+            <select id="formEnv"><option value="LOCAL">LOCAL</option><option value="DEV">DEV</option></select>
+          </div>
+          <div class="field"><label for="formBusiness">요청 업무</label>
+            <select id="formBusiness">${MODULE_OPTIONS.map(m => `<option value="${m.code}">${m.code} (${m.label})</option>`).join('')}</select>
+          </div>
+          <div class="field field-wide"><label for="requestReason">요청 사유 (5자+)</label><input id="requestReason" type="text" placeholder="정기 배포 / 장애 복구"></div>
+          <div class="field field-wide"><label for="selectedRequestId">선택 요청 ID</label><input id="selectedRequestId" type="text" placeholder="목록 클릭"></div>
+          <div class="field field-wide"><label for="approveReason">승인/실행 사유</label><input id="approveReason" type="text" placeholder="승인 및 실행 사유"></div>
+          <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end">
+            <button class="btn-primary" id="searchBtn" type="button">조회</button>
+            <button class="btn-secondary" id="resetBtn" type="button">초기화</button>
+            <button class="btn-secondary" id="buildBtn" type="button">빌드 요청</button>
+            <button class="btn-secondary" id="deployBtn" type="button">배포 요청</button>
+            <button class="btn-secondary" id="approveBtn" type="button">승인</button>
+            <button class="btn-secondary" id="executeBtn" type="button">실행</button>
+            <button class="btn-secondary" id="rollbackBtn" type="button">롤백 요청</button>
+            <button class="btn-secondary" id="healthBtn" type="button">Health Check</button>
+          </div>
+        </section>
+        <div style="margin-bottom:10px;color:var(--muted);font-size:0.85rem" id="listStatus">-</div>
+        <div id="deployStatusBox" class="om-alert" style="margin-bottom:12px">-</div>
+        <div class="om-grid-2">
+          <div class="om-card">
+            <div class="om-card-head">배포 요청 (OM_DEPLOY_REQUEST)</div>
+            <div class="om-card-body om-table-wrap">
+              <table class="om-table">
+                <thead><tr><th>요청ID</th><th>유형</th><th>환경</th><th>업무</th><th>모듈</th><th>상태</th><th>요청자</th><th>요청시각</th><th>승인자</th><th>승인시각</th></tr></thead>
+                <tbody id="reqBody"></tbody>
+              </table>
+              <div class="om-pagination" id="pagination" hidden></div>
+            </div>
+          </div>
+          <div class="om-card">
+            <div class="om-card-head">배포 이력 (OM_DEPLOY_HISTORY)</div>
+            <div class="om-card-body om-table-wrap">
+              <table class="om-table">
+                <thead><tr><th>일시</th><th>요청ID</th><th>Context</th><th>결과</th><th>Health</th><th>메시지</th></tr></thead>
+                <tbody id="histBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="om-card" style="margin-top:12px">
+          <div class="om-card-head">빌드/배포 로그</div>
+          <div class="om-card-body"><pre id="logBox" class="om-mono" style="white-space:pre-wrap;max-height:240px;overflow:auto">요청을 선택하세요.</pre></div>
+        </div>`;
+
+      document.getElementById('searchBtn').addEventListener('click', () => load(1, el).catch(e => OmAdmin.showError(el, e.message)));
+      document.getElementById('resetBtn').addEventListener('click', async () => {
+        if (!confirm(
+          'OM_DEPLOY_REQUEST, OM_DEPLOY_HISTORY 테이블의 배포 요청·이력 데이터를 모두 삭제합니다.\n'
+          + '되돌릴 수 없습니다. 계속하시겠습니까?'
+        )) {
+          return;
+        }
+        const resetReason = prompt('초기화 사유 (5자 이상, 감사로그에 기록됩니다):');
+        if (!resetReason || resetReason.trim().length < 5) {
+          alert('초기화 사유를 5자 이상 입력해야 합니다.');
+          return;
+        }
+        const btn = document.getElementById('resetBtn');
+        btn.disabled = true;
+        try {
+          const { body } = await OmAdmin.mutate('deployDeleteAll', {
+            confirmCode: 'DELETE_ALL',
+            resetReason: resetReason.trim()
+          }, 'DELETE');
+          alert(`${body.message || '초기화 완료'}\n요청 ${body.deletedRequestCount ?? 0}건 · 이력 ${body.deletedHistoryCount ?? 0}건 삭제`);
+          clearFormFields();
+          await load(1, el);
+        } catch (e) {
+          OmAdmin.showError(el, e.message);
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      document.getElementById('buildBtn').addEventListener('click', async () => {
+        const payload = {
+          envCode: document.getElementById('formEnv').value,
+          businessCode: document.getElementById('formBusiness').value,
+          requestReason: document.getElementById('requestReason').value.trim()
+        };
+        try {
+          const { body } = await OmAdmin.mutate('deployBuildRequest', payload, 'UPDATE');
+          alert('빌드 요청 등록: ' + body.deployRequestId);
+          document.getElementById('selectedRequestId').value = body.deployRequestId;
+          selectedRequestId = body.deployRequestId;
+          document.getElementById('filterStatus').value = '';
+          await load(1, el);
+          restoreSelection(body.deployRequestId);
+          await loadLog(body.deployRequestId, el);
+        } catch (e) { alert(e.message); }
+      });
+
+      document.getElementById('deployBtn').addEventListener('click', async () => {
+        const payload = {
+          envCode: document.getElementById('formEnv').value,
+          businessCode: document.getElementById('formBusiness').value,
+          requestReason: document.getElementById('requestReason').value.trim()
+        };
+        try {
+          const { body } = await OmAdmin.mutate('deployDeployRequest', payload, 'UPDATE');
+          alert('배포 요청 등록: ' + body.deployRequestId);
+          document.getElementById('selectedRequestId').value = body.deployRequestId;
+          await load(1, el);
+        } catch (e) { alert(e.message); }
+      });
+
+      document.getElementById('approveBtn').addEventListener('click', async () => {
+        const deployRequestId = document.getElementById('selectedRequestId').value.trim();
+        if (!deployRequestId) { alert('요청 ID를 선택하세요.'); return; }
+        try {
+          const { body } = await OmAdmin.mutate('deployApprove', {
+            deployRequestId,
+            approveReason: document.getElementById('approveReason').value.trim()
+          }, 'UPDATE');
+          alert(`승인 완료: ${body.status}\n승인자: ${body.approveUserId || '-'}\n승인시각: ${formatTime(body.approveTime)}\n\n이제 실행 버튼을 누르세요. (재요청 불필요)`);
+          selectedRequestId = deployRequestId;
+          document.getElementById('selectedRequestId').value = deployRequestId;
+          document.getElementById('filterStatus').value = '';
+          await load(currentPage, el);
+          restoreSelection(deployRequestId);
+          await loadLog(deployRequestId, el);
+        } catch (e) { alert(e.message); }
+      });
+
+      document.getElementById('executeBtn').addEventListener('click', async () => {
+        const deployRequestId = document.getElementById('selectedRequestId').value.trim();
+        if (!deployRequestId) { alert('요청 ID를 선택하세요.'); return; }
+        if (!confirm('승인된 요청을 실행합니다. Gradle/Tomcat 작업이 수 분 걸릴 수 있습니다.')) return;
+        try {
+          const { body } = await OmAdmin.mutate('deployExecute', {
+            deployRequestId,
+            executeReason: document.getElementById('approveReason').value.trim()
+          }, 'EXECUTE');
+          alert('실행 완료: ' + body.status);
+          document.getElementById('filterStatus').value = '';
+          await loadLog(deployRequestId, el);
+          await load(1, el);
+          restoreSelection(deployRequestId);
+        } catch (e) { alert(e.message); }
+      });
+
+      document.getElementById('rollbackBtn').addEventListener('click', async () => {
+        const deployRequestId = document.getElementById('selectedRequestId').value.trim();
+        if (!deployRequestId) { alert('원본 요청 ID를 선택하세요.'); return; }
+        try {
+          const { body } = await OmAdmin.mutate('deployRollback', {
+            deployRequestId,
+            requestReason: document.getElementById('requestReason').value.trim()
+          }, 'UPDATE');
+          alert('롤백 요청 등록: ' + body.deployRequestId);
+          await load(1, el);
+        } catch (e) { alert(e.message); }
+      });
+
+      document.getElementById('healthBtn').addEventListener('click', async () => {
+        const businessCode = document.getElementById('formBusiness').value;
+        try {
+          const { body } = await OmAdmin.inquiry('deployHealthCheck', { businessCode });
+          alert('Health: ' + (body.healthCheckResult || '-') + '\n' + (body.healthCheckUrl || ''));
+        } catch (e) { alert(e.message); }
+      });
+
+      await load(1, el);
+    });
+  </script>
+</body>
+</html>

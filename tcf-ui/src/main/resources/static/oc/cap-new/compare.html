@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NSIGHT OC · NEW 용량산정 비교</title>
+  <script src="/_shared/ui-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/oc-cap-new.css?v=20260712b">
+</head>
+<body class="tcf-home oc-capnew-page">
+  <div class="tcf-main">
+    <header class="tcf-topbar">
+      <div class="tcf-topbar__brand">
+        <h1>NSIGHT OC · 시나리오 비교</h1>
+        <p>COMPLETED 시나리오 2개 이상 선택 → 핵심 지표 비교</p>
+      </div>
+      <nav class="tcf-topbar__nav" aria-label="OC 화면">
+        <a class="tcf-topbar__link" href="/index.html#moduleSection">TCF UI</a>
+        <a class="tcf-topbar__link" href="/oc/index.html">OC 포털</a>
+        <a class="tcf-topbar__link" href="/oc/capacity.html">용량 산정</a>
+        <a class="tcf-topbar__link" href="/oc/cap-new/index.html">NEW 용량산정</a>
+        <a class="tcf-topbar__link tcf-topbar__link--active" href="/oc/cap-new/compare.html">시나리오 비교</a>
+        <a class="tcf-topbar__link" href="/help.html">HELP</a>
+        <span class="badge">CAP-NEW</span>
+      </nav>
+    </header>
+
+    <section class="tcf-section">
+      <div id="capNewMsg" class="oc-capnew-msg" hidden></div>
+      <div class="oc-capnew-panel">
+        <h2>비교 대상 선택</h2>
+        <p>8단계 Wizard를 완료한(COMPLETED) 시나리오만 비교할 수 있습니다.</p>
+        <div id="pickList" class="oc-capnew-list"><p>목록 로딩 중…</p></div>
+        <p style="margin-top:1rem;">
+          <label>기준 시나리오
+            <select id="baselineSelect" style="margin-left:0.5rem;padding:0.35rem 0.5rem;"></select>
+          </label>
+          <button type="button" id="btnCompare" class="tcf-btn" style="margin-left:0.75rem;">비교 실행</button>
+          <a href="/oc/cap-new/index.html" class="tcf-btn tcf-btn--ghost" style="margin-left:0.5rem;">목록으로</a>
+        </p>
+      </div>
+
+      <div id="compareResult" class="oc-capnew-panel" style="margin-top:1rem;display:none;">
+        <h2>비교 결과</h2>
+        <p id="compareSummary"></p>
+        <p id="compareRecommendation" class="oc-capnew-msg oc-capnew-msg--ok"></p>
+        <p id="compareExportBar" style="margin:0.5rem 0;"></p>
+        <div id="diffHighlights" style="margin:0.75rem 0;"></div>
+        <div class="oc-capnew-compare-wrap">
+          <table id="compareTable" class="oc-capnew-table oc-capnew-compare-table"></table>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script src="/_shared/oc-cap-new-api.js"></script>
+  <script src="/_shared/oc-cap-new-export.js"></script>
+  <script src="/_shared/oc-cap-new-compare.js"></script>
+</body>
+</html>

@@ -1,0 +1,681 @@
+오류코드 명명규칙 설계기준
+1. 도입 전 안내말
+오류코드는 단순히 실패를 표시하는 코드가 아니다. NSIGHT TCF에서는 사용자 응답, 운영자 조치, 거래로그, 감사로그, 장애 분석, OM 오류코드 관리를 연결하는 핵심 식별자다.
+기존 금융권 에러코드 표준도 에러를 업무 에러, 시스템 에러, DB I/O 에러로 구분하고, Framework를 통해 에러처리와 Rollback/Commit을 통제하는 것을 원칙으로 둔다. 또한 기존 8자리 체계는 에러구분, 에러유형구분, 일련번호 조합으로 관리했다.NSIGHT TCF에서는 이 원칙을 유지하되, 운영자가 코드를 보고 즉시 영역과 원인을 알 수 있도록 가독성 있는 도메인 기반 오류코드 체계를 사용한다.
+
+2. 오류코드 명명 최상위 원칙
+원칙
+설계 기준
+업무코드 기반
+업무 오류는 SV, CM, MG, OM 등 업무코드를 포함한다
+공통영역 분리
+TCF, Gateway, JWT, 파일, 배치 등 공통영역은 별도 DOMAIN을 사용한다
+오류분류 명확화
+Header, Validation, 인증, 권한, DB, Timeout 등 오류 유형을 CATEGORY로 구분한다
+일련번호 고정
+오류별 상세 식별을 위해 4자리 일련번호를 사용한다
+사용자/운영자 메시지 분리
+화면 사용자 메시지와 운영자 조치 메시지를 분리한다
+결과코드와 오류코드 분리
+resultCode는 응답 결과, errorCode는 상세 오류 원인으로 사용한다
+OM 관리
+오류코드는 OM_ERROR_CODE 기준정보로 등록·조회·변경 관리한다
+ETF 일원화
+모든 예외는 TCF 후처리 ETF에서 표준 오류코드로 변환한다
+NSIGHT 오류코드 설계도 오류 발생 후 Exception을 TCF/ETF에서 표준 오류코드로 변환하고, OM_ERROR_CODE에서 사용자 메시지와 운영자 메시지를 조회한 뒤 StandardResponse로 조립하는 구조를 권장한다.
+
+3. 표준 오류코드 형식
+E-{DOMAIN}-{CATEGORY}-{NNNN}
+
+구성요소
+의미
+자리수/형식
+예시
+E
+Error 식별자
+고정 1자리
+E
+DOMAIN
+오류 발생 영역
+2~5자 대문자
+TCF, SV, OM
+CATEGORY
+오류 분류
+2~6자 대문자
+HDR, VAL, DB
+NNNN
+일련번호
+4자리 숫자
+0001
+예시는 다음과 같다.
+오류코드
+의미
+E-TCF-HDR-0001
+TCF Header 오류
+E-TCF-SVC-0001
+ServiceId 오류
+E-TCF-CTL-0001
+거래통제 오류
+E-TCF-TIME-0001
+Timeout 오류
+E-SV-BIZ-0001
+SV 업무 오류
+E-OM-AUTHZ-0001
+OM 권한 오류
+E-GW-IF-0001
+Gateway 연계 오류
+E-UD-FILE-0001
+파일 업다운로드 오류
+E-JWT-AUTHN-0001
+JWT 인증 오류
+
+4. DOMAIN 표준
+DOMAIN
+의미
+적용 대상
+TCF
+Transaction Control Framework
+STF, Dispatcher, ETF, 거래통제
+COM
+공통
+공통 Validator, 공통 Utility, 공통 Message
+GW
+Gateway
+업무 라우팅, Downstream 호출
+JWT
+JWT 인증
+Access Token, Refresh Token, 토큰 검증
+OM
+Operation Management
+사용자, 권한, 메뉴, ServiceId, 오류코드 관리
+UD
+Upload / Download
+파일 업로드, 다운로드, 파일 메타
+BT
+Batch
+배치 실행, 스케줄러, 재처리
+CC
+Common 업무
+공통업무, 기준정보
+SV
+Single View
+고객요약, 고객상세, 통합조회
+CM
+Campaign
+캠페인 등록, 대상 추출, 캠페인 실행
+MG
+Message
+메시지 생성, 발송, 발송 이력
+IC
+Integration Customer
+고객 연계 업무
+PC
+Private Customer
+개인고객 업무
+PD
+Product
+상품 업무
+EB
+EBM
+이벤트 기반 마케팅 업무
+EP
+Event Processing
+이벤트 수집, 실시간 처리
+업무코드, Context, WAR, Package, ServiceId, Mapper, SQL ID, 거래로그, 오류코드는 하나의 기준으로 연결되어야 한다. NSIGHT 개발자 가이드의 명명규칙도 이름 하나가 업무코드부터 오류코드·감사로그까지 연결되어야 한다고 정의한다.
+
+5. CATEGORY 표준
+CATEGORY
+의미
+발생 예시
+HDR
+Header 오류
+serviceId, businessCode, channelId 누락
+VAL
+입력값 검증 오류
+필수값 누락, 날짜 형식 오류, 길이 초과
+SVC
+ServiceId 오류
+미등록 ServiceId, Handler 없음
+CTL
+거래통제 오류
+미등록 거래, 차단 거래
+SES
+세션 오류
+세션 만료, 세션 없음, 중복 로그인
+AUTHN
+인증 오류
+미인증 사용자, JWT 검증 실패
+AUTHZ
+권한 오류
+메뉴권한 없음, 기능권한 없음, 데이터권한 없음
+BIZ
+업무 오류
+업무 조건 불일치, 조회 결과 없음
+DB
+DB 오류
+SQL 오류, Connection 오류, DataAccessException
+IF
+외부연계 오류
+Downstream 서비스 오류, API 응답 오류
+TIME
+Timeout 오류
+온라인 거래 Timeout, DB Query Timeout, 외부연계 Timeout
+SYS
+시스템 오류
+NullPointer, 설정 오류, Bean 오류
+SEC
+보안 오류
+위변조 의심, 접근 차단, 마스킹 위반
+FILE
+파일 오류
+파일 크기 초과, 확장자 오류, 다운로드 실패
+CACHE
+캐시 오류
+캐시 조회 실패, 캐시 갱신 실패
+BAT
+배치 오류
+Job 실패, 재처리 실패, 스케줄 오류
+
+6. ResultCode / ErrorCode / MessageCode 분리
+오류코드 체계에서 가장 중요한 것은 결과코드와 오류코드를 섞지 않는 것이다.
+구분
+역할
+예시
+resultStatus
+처리 상태
+SUCCESS, FAIL, TIMEOUT, UNKNOWN
+resultCode
+응답 결과 코드
+S0000, E0001, T0001
+errorCode
+상세 오류 식별자
+E-TCF-HDR-0001
+messageCode
+메시지 식별자
+MSG-TCF-HDR-0001
+userMessage
+사용자 표시 메시지
+요청 정보가 올바르지 않습니다.
+operatorMessage
+운영자 상세 메시지
+Header.serviceId is blank
+actionGuide
+운영 조치 가이드
+요청 전문 Header를 확인하십시오.
+권장 결과코드는 다음과 같다.
+resultStatus
+resultCode
+의미
+SUCCESS
+S0000
+정상
+FAIL
+E0001
+일반 실패
+VALIDATION_FAIL
+E0002
+입력값 오류
+AUTH_FAIL
+E0003
+인증·권한 오류
+TIMEOUT
+T0001
+Timeout
+UNKNOWN
+U0001
+처리상태 불명확
+SYSTEM_ERROR
+E9999
+시스템 오류
+
+7. MessageCode 명명규칙
+오류코드와 메시지코드는 분리한다.오류코드는 원인을 식별하고, 메시지코드는 사용자·운영자에게 표시할 문구를 식별한다.
+MSG-{DOMAIN}-{CATEGORY}-{NNNN}
+
+메시지코드
+연결 오류코드
+설명
+MSG-TCF-HDR-0001
+E-TCF-HDR-0001
+Header 오류 메시지
+MSG-TCF-CTL-0001
+E-TCF-CTL-0001
+거래통제 차단 메시지
+MSG-SV-BIZ-0001
+E-SV-BIZ-0001
+SV 업무 오류 메시지
+MSG-OM-AUTHZ-0001
+E-OM-AUTHZ-0001
+OM 권한 오류 메시지
+
+8. 표준 오류코드 목록
+8.1 TCF Header 오류
+오류코드
+오류명
+발생 위치
+사용자 메시지
+운영자 메시지
+E-TCF-HDR-0001
+ServiceId 누락
+STF
+요청 정보가 올바르지 않습니다.
+Header.serviceId is blank
+E-TCF-HDR-0002
+TransactionCode 누락
+STF
+요청 정보가 올바르지 않습니다.
+Header.transactionCode is blank
+E-TCF-HDR-0003
+BusinessCode 누락
+STF
+요청 정보가 올바르지 않습니다.
+Header.businessCode is blank
+E-TCF-HDR-0004
+ChannelId 누락
+STF
+채널 정보가 없습니다.
+Header.channelId is blank
+E-TCF-HDR-0005
+UserId 누락
+STF
+사용자 정보가 없습니다.
+Header.userId is blank
+E-TCF-HDR-0006
+BranchId 누락
+STF
+지점 정보가 없습니다.
+Header.branchId is blank
+8.2 ServiceId / Dispatcher 오류
+오류코드
+오류명
+발생 위치
+사용자 메시지
+운영자 메시지
+E-TCF-SVC-0001
+ServiceId 미등록
+Dispatcher
+요청한 서비스를 찾을 수 없습니다.
+serviceId is not registered
+E-TCF-SVC-0002
+Handler 없음
+Dispatcher
+요청한 서비스를 처리할 수 없습니다.
+transactionHandler not found
+E-TCF-SVC-0003
+ServiceId 비활성
+Dispatcher
+현재 사용할 수 없는 서비스입니다.
+serviceId is inactive
+8.3 거래통제 오류
+오류코드
+오류명
+발생 위치
+사용자 메시지
+운영자 메시지
+E-TCF-CTL-0001
+거래통제 차단
+STF
+현재 실행할 수 없는 거래입니다.
+transaction is blocked
+E-TCF-CTL-0002
+거래통제 미등록
+STF
+현재 실행할 수 없는 거래입니다.
+transaction control not found
+E-TCF-CTL-0003
+채널 차단
+STF
+해당 채널에서는 실행할 수 없습니다.
+channel is not allowed
+E-TCF-CTL-0004
+지점 차단
+STF
+해당 지점에서는 실행할 수 없습니다.
+branch is not allowed
+8.4 인증 / 권한 오류
+오류코드
+오류명
+발생 위치
+사용자 메시지
+운영자 메시지
+E-TCF-AUTHN-0001
+미인증 사용자
+STF / Security
+로그인이 필요합니다.
+unauthenticated user
+E-TCF-AUTHN-0002
+JWT 만료
+JWT Filter
+인증 시간이 만료되었습니다.
+access token expired
+E-TCF-AUTHZ-0001
+권한 없음
+Authorization
+권한이 없습니다.
+function authorization denied
+E-OM-AUTHZ-0001
+OM 메뉴권한 없음
+OM
+관리화면 접근 권한이 없습니다.
+OM menu authorization denied
+8.5 업무 오류
+오류코드
+오류명
+발생 위치
+사용자 메시지
+운영자 메시지
+E-SV-BIZ-0001
+고객정보 없음
+SV Rule
+조회된 고객 정보가 없습니다.
+customer summary not found
+E-CM-BIZ-0001
+캠페인 기간 오류
+CM Rule
+캠페인 기간을 확인해 주십시오.
+invalid campaign period
+E-MG-BIZ-0001
+메시지 발송 불가
+MG Service
+메시지를 발송할 수 없습니다.
+message send condition invalid
+E-OM-BIZ-0001
+기준정보 중복
+OM Service
+이미 등록된 정보입니다.
+duplicated master data
+8.6 DB / SQL 오류
+오류코드
+오류명
+발생 위치
+사용자 메시지
+운영자 메시지
+E-TCF-DB-0001
+DB 연결 오류
+DAO / Mapper
+일시적으로 처리할 수 없습니다.
+DB connection failed
+E-TCF-DB-0002
+SQL 실행 오류
+DAO / Mapper
+일시적으로 처리할 수 없습니다.
+SQL execution failed
+E-TCF-DB-0003
+SQL 결과 오류
+DAO / Mapper
+처리 결과를 확인할 수 없습니다.
+unexpected SQL result
+E-TCF-DB-0004
+DB Pool 고갈
+HikariCP
+일시적으로 처리할 수 없습니다.
+HikariCP connection pool exhausted
+8.7 Timeout 오류
+오류코드
+오류명
+발생 위치
+사용자 메시지
+운영자 메시지
+E-TCF-TIME-0001
+온라인 거래 Timeout
+TCF Timeout Executor
+처리 시간이 초과되었습니다.
+online transaction timeout
+E-TCF-TIME-0002
+DB Query Timeout
+MyBatis
+조회 시간이 초과되었습니다.
+query timeout
+E-TCF-TIME-0003
+외부연계 Timeout
+Integration Client
+외부 시스템 응답이 지연되고 있습니다.
+external read timeout
+E-GW-TIME-0001
+Gateway Relay Timeout
+Gateway
+처리 시간이 초과되었습니다.
+downstream timeout
+8.8 시스템 오류
+오류코드
+오류명
+발생 위치
+사용자 메시지
+운영자 메시지
+E-COM-SYS-0001
+미처리 시스템 오류
+Global Handler
+일시적으로 처리할 수 없습니다.
+unhandled runtime exception
+E-COM-SYS-0002
+설정 오류
+Config
+일시적으로 처리할 수 없습니다.
+invalid system configuration
+E-TCF-SYS-0001
+TCF 내부 오류
+TCF
+일시적으로 처리할 수 없습니다.
+TCF internal error
+예외처리 기준에서도 모든 예외는 TCF 공통 후처리에서 표준 오류코드로 변환하고, StandardResponse로 조립하며, 거래로그·감사로그·모니터링 지표에 남기는 것을 원칙으로 둔다.
+
+9. 오류코드 채번 기준
+구분
+채번 범위
+설명
+공통 필수 오류
+0001~0099
+Header, ServiceId, 거래통제, 세션 등 공통 오류
+업무 기본 오류
+0100~0999
+업무별 기본 오류
+업무 상세 오류
+1000~4999
+업무 Rule, 조건, 상태 오류
+연계 오류
+5000~5999
+외부 API, Gateway, Interface 오류
+DB 오류
+6000~6999
+DB, SQL, Pool 오류
+Timeout 오류
+7000~7999
+온라인, SQL, 연계 Timeout
+보안 오류
+8000~8999
+인증, 권한, 위변조, 접근차단
+시스템 오류
+9000~9999
+미처리 예외, 인프라, 설정 오류
+채번 원칙은 다음과 같다.
+원칙
+기준
+재사용 금지
+한 번 사용한 오류코드는 폐기 후에도 재사용하지 않는다
+의미 변경 금지
+기존 코드의 의미를 바꾸지 않는다
+업무별 독립 채번
+E-SV-BIZ-0001과 E-CM-BIZ-0001은 서로 다른 업무 오류다
+공통 오류 우선 사용
+Header, 인증, 거래통제, Timeout 등은 TCF 공통 오류코드를 우선 사용한다
+신규 채번 전 검색
+OM 오류코드 관리 화면에서 중복 여부를 확인한다
+메시지와 함께 등록
+오류코드만 만들지 않고 사용자 메시지, 운영자 메시지, 조치가이드를 함께 등록한다
+
+10. 오류코드 사용 위치
+계층
+사용 기준
+예시
+STF 전처리
+Header, 세션, 인증, 권한, 거래통제 오류
+E-TCF-HDR-0001
+Dispatcher
+ServiceId, Handler 매핑 오류
+E-TCF-SVC-0001
+Handler
+요청 Body 변환, 기본 검증 오류
+E-SV-VAL-0001
+Facade
+트랜잭션 경계 오류
+E-TCF-TIME-0001
+Service
+업무 처리 오류
+E-SV-BIZ-0001
+Rule
+업무 규칙 오류
+E-CM-BIZ-0001
+DAO / Mapper
+DB, SQL, 결과 오류
+E-TCF-DB-0002
+Integration Client
+외부연계 오류
+E-GW-IF-0001
+ETF 후처리
+오류코드 매핑, 메시지 조립
+E-COM-SYS-0001
+Global Exception Handler
+미처리 예외 변환
+E-COM-SYS-0001
+
+11. 표준 응답 예시
+{
+  "header": {
+    "guid": "7f9c9d10-1111-2222-3333-111122223333",
+    "traceId": "TRC202607050001",
+    "transactionId": "TX202607050001",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "channelId": "WEBTOP",
+    "userId": "U123456",
+    "branchId": "001234",
+    "responseDateTime": "2026-07-05T11:30:00"
+  },
+  "body": null,
+  "error": {
+    "resultStatus": "FAIL",
+    "resultCode": "E0001",
+    "errorCode": "E-TCF-CTL-0001",
+    "messageCode": "MSG-TCF-CTL-0001",
+    "userMessage": "현재 실행할 수 없는 거래입니다.",
+    "operatorMessage": "거래통제 테이블에 허용 데이터가 없습니다.",
+    "actionGuide": "OM 거래통제 관리 화면에서 serviceId, 거래코드, 사용자, 채널, 지점 등록 여부를 확인하십시오.",
+    "errorSystemId": "NSIGHT-TCF",
+    "errorDateTime": "2026-07-05T11:30:00"
+  }
+}
+
+
+12. OM_ERROR_CODE 관리 기준
+컬럼
+설명
+예시
+ERROR_CODE
+표준 오류코드
+E-TCF-HDR-0001
+ERROR_NAME
+오류명
+ServiceId 누락
+ERROR_DOMAIN
+오류 발생 영역
+TCF
+ERROR_CATEGORY
+오류 분류
+HDR
+ERROR_LEVEL
+심각도
+WARN, ERROR, CRITICAL
+RESULT_CODE
+결과코드
+E0001
+MESSAGE_CODE
+메시지코드
+MSG-TCF-HDR-0001
+USER_MESSAGE
+사용자 메시지
+요청 정보가 올바르지 않습니다.
+OPERATOR_MESSAGE
+운영자 메시지
+Header.serviceId is blank
+ACTION_GUIDE
+조치 가이드
+요청 Header를 확인하십시오.
+RETRY_YN
+재시도 가능 여부
+Y, N
+AUDIT_YN
+감사로그 대상 여부
+Y, N
+NOTIFY_TARGET
+알림 대상
+AP운영팀, DBA, 개발팀
+USE_YN
+사용 여부
+Y, N
+
+13. 금지 규칙
+금지 항목
+잘못된 예
+사유
+의미 없는 코드
+ERR001
+영역과 원인을 알 수 없음
+업무코드 누락
+E-BIZ-0001
+어느 업무 오류인지 식별 불가
+분류 누락
+E-SV-0001
+Validation, 업무, DB 오류 구분 불가
+일련번호 가변
+E-SV-BIZ-1
+정렬·검색 기준 불일치
+사용자에게 기술정보 노출
+ORA-00001, NullPointerException
+보안 위험
+StackTrace 노출
+Java Exception 전체 표시
+내부 구조 노출
+SQL 전문 노출
+SELECT ...
+DB 구조·개인정보 노출 위험
+코드 의미 변경
+기존 E-SV-BIZ-0001 재정의
+운영 이력 추적 불가
+동일 오류 중복 채번
+같은 오류에 여러 코드 사용
+장애 통계 왜곡
+
+14. 오류코드 코드리뷰 체크리스트
+점검 항목
+확인
+오류코드 형식이 E-{DOMAIN}-{CATEGORY}-{NNNN}인가?
+□
+DOMAIN이 업무코드 또는 공통영역 표준에 맞는가?
+□
+CATEGORY가 오류 원인을 명확히 나타내는가?
+□
+공통 오류를 업무 오류로 중복 채번하지 않았는가?
+□
+사용자 메시지와 운영자 메시지를 분리했는가?
+□
+사용자 메시지에 SQL, StackTrace, 서버정보, 개인정보가 노출되지 않는가?
+□
+OM_ERROR_CODE에 오류코드, 메시지, 조치가이드가 등록되어 있는가?
+□
+거래로그에 guid, traceId, serviceId, errorCode가 남는가?
+□
+Timeout, DB, 연계 오류는 재시도 가능 여부가 정의되어 있는가?
+□
+감사 대상 오류는 AUDIT_YN = Y로 관리되는가?
+□
+
+15. 마무리말
+NSIGHT 오류코드 명명규칙의 핵심은 다음 한 문장으로 정리할 수 있다.
+오류코드는 사용자가 볼 메시지가 아니라,
+운영자가 장애 원인을 추적하고,
+개발자가 수정 위치를 찾고,
+PMO와 감사가 처리 이력을 확인할 수 있게 하는 표준 식별자다.
+
+따라서 NSIGHT TCF의 오류코드는 E-{DOMAIN}-{CATEGORY}-{NNNN} 형식을 사용하고, resultCode, messageCode, userMessage, operatorMessage, actionGuide와 분리해서 관리한다. 이 기준을 지켜야 오류 발생 시 어느 업무, 어느 계층, 어떤 원인, 어떤 조치가 필요한지를 즉시 판단할 수 있다.
+

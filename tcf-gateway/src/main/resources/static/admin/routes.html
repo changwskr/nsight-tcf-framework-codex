@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gateway 라우팅 테이블 관리</title>
+  <link rel="stylesheet" href="/admin/routes.css">
+</head>
+<body>
+  <nav class="admin-nav">
+    <a href="/admin/routes.html" class="active">라우팅 테이블</a>
+    <a href="/admin/transaction-log.html">거래로그</a>
+    <a href="/admin/sessions.html">세션</a>
+  </nav>
+
+  <header class="page-header">
+    <div>
+      <h1>Gateway 라우팅 테이블</h1>
+      <p class="subtitle">TCF_GATEWAY_ROUTE — 환경(LOCAL/DEV/운용)별 업무 Target 관리</p>
+    </div>
+    <div class="header-meta">
+      <span id="currentEnvBadge" class="badge">-</span>
+      <button type="button" id="btnRefresh" class="btn secondary">새로고침</button>
+    </div>
+  </header>
+
+  <section class="toolbar card">
+    <div class="field">
+      <label for="filterEnv">환경</label>
+      <select id="filterEnv">
+        <option value="LOCAL">LOCAL (로컬)</option>
+        <option value="DEV">DEV (개발)</option>
+        <option value="PRD">PRD (운용)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="filterGroup">업무그룹</label>
+      <select id="filterGroup">
+        <option value="">전체</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="filterBusiness">업무코드</label>
+      <select id="filterBusiness">
+        <option value="">전체</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="filterUseYn">사용</label>
+      <select id="filterUseYn">
+        <option value="">전체</option>
+        <option value="Y">Y</option>
+        <option value="N">N</option>
+      </select>
+    </div>
+    <div class="toolbar-actions">
+      <button type="button" id="btnSearch" class="btn primary">조회</button>
+      <button type="button" id="btnNew" class="btn">신규</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="table-wrap">
+      <table id="routeTable">
+        <thead>
+          <tr>
+            <th>라우팅 ID</th>
+            <th>환경</th>
+            <th>그룹</th>
+            <th>업무</th>
+            <th>Target URL</th>
+            <th>Timeout</th>
+            <th>사용</th>
+            <th>정렬</th>
+            <th>작업</th>
+          </tr>
+        </thead>
+        <tbody id="routeBody">
+          <tr><td colspan="9" class="empty">조회 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <dialog id="routeDialog">
+    <form id="routeForm" method="dialog">
+      <header class="dialog-header">
+        <h2 id="dialogTitle">라우팅 등록</h2>
+        <button type="button" id="btnCloseDialog" class="icon-btn" aria-label="닫기">&times;</button>
+      </header>
+      <div class="dialog-body">
+        <div class="form-grid">
+          <div class="field">
+            <label for="fRouteId">라우팅 ID *</label>
+            <input id="fRouteId" required maxlength="60">
+          </div>
+          <div class="field">
+            <label for="fEnvCode">환경 *</label>
+            <select id="fEnvCode" required>
+              <option value="LOCAL">LOCAL</option>
+              <option value="DEV">DEV</option>
+              <option value="PRD">PRD (운용)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fRouteGroupCode">업무그룹 *</label>
+            <select id="fRouteGroupCode" required></select>
+          </div>
+          <div class="field">
+            <label for="fRouteGroupName">업무그룹명</label>
+            <input id="fRouteGroupName" readonly maxlength="100">
+          </div>
+          <div class="field">
+            <label for="fBusinessCode">업무코드 *</label>
+            <select id="fBusinessCode" required></select>
+          </div>
+          <div class="field">
+            <label for="fBusinessName">업무명</label>
+            <input id="fBusinessName" readonly maxlength="100">
+          </div>
+          <div class="field span-2">
+            <label for="fTargetBaseUrl">Target Base URL *</label>
+            <input id="fTargetBaseUrl" required maxlength="300" placeholder="http://msa-b-service:9090">
+          </div>
+          <div class="field">
+            <label for="fContextPath">Context Path *</label>
+            <input id="fContextPath" required maxlength="100" placeholder="/sv">
+          </div>
+          <div class="field">
+            <label for="fOnlinePath">Online Path *</label>
+            <input id="fOnlinePath" required maxlength="100" value="/online">
+          </div>
+          <div class="field span-2">
+            <label for="fHealthCheckPath">Health Check Path</label>
+            <input id="fHealthCheckPath" maxlength="200" placeholder="/sv/actuator/health">
+          </div>
+          <div class="field">
+            <label for="fConnectTimeoutMs">Connect Timeout (ms)</label>
+            <input id="fConnectTimeoutMs" type="number" min="100" value="3000">
+          </div>
+          <div class="field">
+            <label for="fReadTimeoutMs">Read Timeout (ms)</label>
+            <input id="fReadTimeoutMs" type="number" min="100" value="5000">
+          </div>
+          <div class="field">
+            <label for="fUseYn">사용 여부</label>
+            <select id="fUseYn">
+              <option value="Y">Y</option>
+              <option value="N">N</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fSortOrder">정렬순서</label>
+            <input id="fSortOrder" type="number" min="0">
+          </div>
+          <div class="field span-2">
+            <label for="fDescription">설명</label>
+            <textarea id="fDescription" rows="2" maxlength="500"></textarea>
+          </div>
+          <div class="field span-2 preview-box">
+            <label>조립 Target URL</label>
+            <output id="fTargetUrlPreview">-</output>
+          </div>
+        </div>
+      </div>
+      <footer class="dialog-footer">
+        <button type="button" id="btnDelete" class="btn danger hidden">삭제</button>
+        <div class="spacer"></div>
+        <button type="button" id="btnCancel" class="btn secondary">취소</button>
+        <button type="submit" class="btn primary">저장</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/admin/routes.js"></script>
+</body>
+</html>

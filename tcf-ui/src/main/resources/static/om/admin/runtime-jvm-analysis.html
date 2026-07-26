@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM JVM 분석</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+  <style>
+    .om-row-warn td { background: rgba(251, 191, 36, 0.06); }
+    .om-screen-message {
+      white-space: pre-line;
+      line-height: 1.6;
+      padding: 12px 14px;
+      background: var(--panel-2);
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260711b"></script>
+  <script>
+    function formatPct(value) {
+      if (value == null || value === '') return '-';
+      return `${value}%`;
+    }
+
+    function formatNum(value) {
+      if (value == null || value === '') return '-';
+      return value;
+    }
+
+    function formatBool(value, trueLabel, falseLabel) {
+      return value ? trueLabel : falseLabel;
+    }
+
+    function formatUptime(ms) {
+      const value = Number(ms);
+      if (Number.isNaN(value) || value <= 0) return '-';
+      const sec = Math.floor(value / 1000);
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+      if (h > 0) return `${h}시간 ${m}분`;
+      if (m > 0) return `${m}분 ${s}초`;
+      return `${s}초`;
+    }
+
+    function formatElapsed(ms) {
+      const value = Number(ms);
+      if (Number.isNaN(value)) return '-';
+      if (value >= 1000) return `${(value / 1000).toFixed(1)}초`;
+      return `${value}ms`;
+    }
+
+    function formatGcTime(ms) {
+      const value = Number(ms);
+      if (Number.isNaN(value)) return '-';
+      if (value >= 1000) return `${(value / 1000).toFixed(1)}초`;
+      return `${value}ms`;
+    }
+
+    function renderRows(rows, columns, emptyText) {
+      if (!rows.length) {
+        return `<tr><td colspan="${columns}" class="om-empty">${emptyText}</td></tr>`;
+      }
+      return rows.join('');
+    }
+
+    async function load(el) {
+      const { body, relay } = await OmAdmin.inquiry('runtimeDiagnostics', { includeDetails: 'Y' });
+      const jvmAnalysis = body.jvmAnalysis || {};
+      const jvm = jvmAnalysis.sharedJvm || {};
+      const cpu = jvmAnalysis.cpuOverload || {};
+      const gc = jvmAnalysis.gcPressure || {};
+
+      document.getElementById('rtmStatus').textContent =
+        `${relay.elapsedMs}ms · 점검 ${body.checkedAt || '-'}`;
+
+      const cpuDetected = Boolean(cpu.detected);
+      const gcDetected = Boolean(gc.detected);
+      const bannerClass = gcDetected ? 'critical' : (cpuDetected ? 'warn' : 'normal');
+      document.getElementById('jvmBanner').className = `om-status-banner ${bannerClass}`;
+      document.getElementById('jvmMain').className = `om-status-main ${bannerClass}`;
+
+      if (gcDetected) {
+        document.getElementById('jvmMain').textContent = 'GC 압박: GC_PRESSURE';
+        document.getElementById('jvmMessage').textContent = gc.message || '-';
+      } else if (cpuDetected) {
+        document.getElementById('jvmMain').textContent = 'CPU 과부하: CPU_OVERLOAD';
+        document.getElementById('jvmMessage').textContent = cpu.message || '-';
+      } else {
+        document.getElementById('jvmMain').textContent = 'JVM 상태: 정상 범위';
+        document.getElementById('jvmMessage').textContent = 'CPU·GC 징후가 기준치를 초과하지 않았습니다.';
+      }
+
+      document.getElementById('cpuCriteria').textContent =
+        `8.2 CPU: ${cpu.criteria || '-'} · DB Pending ${formatNum(cpu.dbPending)} · ${cpu.note || ''}`;
+      document.getElementById('gcCriteria').textContent =
+        `8.3 GC: ${gc.criteria || '-'} · Heap ${formatPct(gc.heapRatio)} · GC ${formatGcTime(gc.gcTimeLastMinuteMs)}`;
+
+      document.getElementById('statProcessCpu').textContent = formatPct(jvm.processCpuRatio);
+      document.getElementById('statHeapUsed').textContent =
+        jvm.heapUsedMb != null ? `${jvm.heapUsedMb} MB` : '-';
+      document.getElementById('statHeapMax').textContent =
+        jvm.heapMaxMb != null ? `${jvm.heapMaxMb} MB` : '-';
+      document.getElementById('statHeapRatio').textContent = formatPct(jvm.heapRatio);
+      document.getElementById('statOldGen').textContent = formatPct(jvm.oldGenRatio);
+      document.getElementById('statMetaspace').textContent =
+        jvm.metaspaceMb != null ? `${jvm.metaspaceMb} MB` : '-';
+      document.getElementById('statGcCount').textContent = formatNum(jvm.gcCountLastMinute);
+      document.getElementById('statGcTime').textContent = formatGcTime(jvm.gcTimeLastMinuteMs);
+      document.getElementById('statLiveThread').textContent = formatNum(jvm.liveThreadCount);
+      document.getElementById('statDeadlock').textContent = formatBool(jvm.deadlock, '발견', '없음');
+      document.getElementById('statUptime').textContent = formatUptime(jvm.uptimeMs);
+      document.getElementById('jvmScopeNote').textContent =
+        'Tomcat 공유 JVM · WAR별 Process CPU/Heap 분리 불가 · 영향 업무는 ServiceId Thread CPU로 추정';
+
+      document.getElementById('gcScreenMessage').textContent =
+        gcDetected ? (gc.screenMessage || '-') : 'GC 압박 기준 미충족';
+
+      const cpuRows = (jvmAnalysis.serviceCpuUsage || []).map(r => `
+        <tr>
+          <td>${OmAdmin.field(r, 'businessCode')}</td>
+          <td class="om-mono">${OmAdmin.field(r, 'serviceId')}</td>
+          <td>${OmAdmin.field(r, 'threadCount')}</td>
+          <td>${formatPct(OmAdmin.field(r, 'cpuSharePct'))}</td>
+          <td>${formatElapsed(r.maxElapsedMs)}</td>
+        </tr>`);
+
+      document.getElementById('serviceCpuBody').innerHTML =
+        renderRows(cpuRows, 5, cpuDetected
+          ? 'ServiceId Thread CPU 데이터 없음 — Active TX가 없거나 CPU 시간 미지원'
+          : 'CPU 과부하가 아니면 ServiceId CPU 표는 참고용입니다.');
+    }
+
+    OmAdmin.initPage('runtime-jvm-analysis', 'JVM 분석', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">
+          설계 8장 JVM 분석 — Tomcat <strong>공유 JVM</strong> CPU·Heap·GC + ServiceId Thread CPU 추정.
+          <a href="/om/admin/runtime-diagnostics.html" style="margin-left:8px">← 런타임 진단 통합</a>
+          <a href="/om/admin/runtime-dbpool-analysis.html" style="margin-left:8px">DB Pool 분석</a>
+          <a href="/om/admin/runtime-sql-analysis.html" style="margin-left:8px">SQL 분석</a>
+          <a href="/om/admin/runtime-dominance-analysis.html" style="margin-left:8px">자원 독점 분석</a>
+          <a href="/om/admin/runtime-transaction-detail.html" style="margin-left:8px">거래·Thread 상세</a>
+        </div>
+        <section class="om-filter-bar">
+          <button class="btn-primary" id="refreshBtn" type="button">새로고침</button>
+          <span id="rtmStatus" style="color:var(--muted);font-size:0.85rem;align-self:center">조회 중...</span>
+        </section>
+
+        <section class="om-status-banner normal" id="jvmBanner" style="margin-bottom:16px">
+          <div>
+            <div class="om-status-main normal" id="jvmMain">JVM 상태: -</div>
+            <div id="jvmMessage" style="margin-top:8px">-</div>
+            <div id="cpuCriteria" style="margin-top:4px;color:var(--muted);font-size:0.85rem">-</div>
+            <div id="gcCriteria" style="margin-top:4px;color:var(--muted);font-size:0.85rem">-</div>
+          </div>
+        </section>
+
+        <div class="om-card" style="margin-bottom:16px">
+          <div class="om-card-head">8.1 JVM 상태 (공유 Tomcat)</div>
+          <div class="om-card-body">
+            <div class="om-stat-grid">
+              <div class="om-stat-card"><div class="label">Process CPU</div><div class="value" id="statProcessCpu">-</div></div>
+              <div class="om-stat-card"><div class="label">Heap Used</div><div class="value" id="statHeapUsed">-</div></div>
+              <div class="om-stat-card"><div class="label">Heap Max</div><div class="value" id="statHeapMax">-</div></div>
+              <div class="om-stat-card"><div class="label">Heap Ratio</div><div class="value" id="statHeapRatio">-</div></div>
+              <div class="om-stat-card"><div class="label">Old Gen</div><div class="value" id="statOldGen">-</div></div>
+              <div class="om-stat-card"><div class="label">Metaspace</div><div class="value" id="statMetaspace">-</div></div>
+              <div class="om-stat-card"><div class="label">GC Count</div><div class="value" id="statGcCount">-</div></div>
+              <div class="om-stat-card"><div class="label">GC Time</div><div class="value" id="statGcTime">-</div></div>
+              <div class="om-stat-card"><div class="label">Live Thread</div><div class="value" id="statLiveThread">-</div></div>
+              <div class="om-stat-card"><div class="label">Deadlock</div><div class="value" id="statDeadlock">-</div></div>
+              <div class="om-stat-card"><div class="label">Uptime</div><div class="value" id="statUptime">-</div></div>
+            </div>
+            <div id="jvmScopeNote" style="color:var(--muted);font-size:0.85rem;margin-top:8px">-</div>
+          </div>
+        </div>
+
+        <div class="om-grid-2" style="margin-bottom:16px">
+          <div class="om-card">
+            <div class="om-card-head">8.2 CPU 과부하 (CPU_OVERLOAD)</div>
+            <div class="om-card-body">
+              <p style="margin:0 0 8px;color:var(--muted);font-size:0.85rem">
+                Process CPU ≥ 90% AND DB Pending = 0 — Pool 대기 2차 결과와 구분
+              </p>
+            </div>
+          </div>
+          <div class="om-card">
+            <div class="om-card-head">8.3 GC 압박 (GC_PRESSURE)</div>
+            <div class="om-card-body">
+              <div class="om-screen-message" id="gcScreenMessage">-</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="om-card">
+          <div class="om-card-head">ServiceId Thread CPU — 영향 업무 추정</div>
+          <div class="om-card-body om-table-wrap">
+            <table class="om-table">
+              <thead>
+                <tr>
+                  <th>업무</th><th>ServiceId</th><th>실행 Thread</th>
+                  <th>누적 Thread CPU</th><th>실행시간</th>
+                </tr>
+              </thead>
+              <tbody id="serviceCpuBody"><tr><td colspan="5" class="om-empty">조회 중...</td></tr></tbody>
+            </table>
+          </div>
+        </div>`;
+
+      document.getElementById('refreshBtn').addEventListener('click', () => {
+        load(el).catch(err => OmAdmin.showErrorBanner(el, err.message));
+      });
+      await load(el);
+      window.setInterval(() => {
+        load(el).catch(() => {});
+      }, 30000);
+    });
+  </script>
+</body>
+</html>

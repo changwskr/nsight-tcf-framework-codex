@@ -1,0 +1,792 @@
+아래 내용을 NSIGHT TCF 개발자 가이드 3차 - 20장으로 이어 붙이면 됩니다.
+
+20. 표준 전문 구조
+20.1 도입 전 안내말
+NSIGHT TCF Framework에서 표준 전문은 화면, WebTopSuite, API, Gateway, 업무 WAR, OM 운영관리 모듈이 동일한 방식으로 요청과 응답을 주고받기 위한 공통 JSON 구조이다.
+NSIGHT는 일반 REST 방식처럼 URL마다 의미를 부여하지 않고, POST /{businessCode}/online 하나의 진입점으로 요청을 받은 뒤 JSON Header의 serviceId를 기준으로 실행할 Handler를 결정한다. 기존 표준 전문 구조에서도 요청 전문은 header + body, 응답 전문은 header + result + body 구조로 정의되어 있으며, URL은 업무 Context 식별 용도, 실제 실행 거래는 serviceId 기준으로 결정된다.
+즉, 표준 전문은 다음 역할을 가진다.
+표준 전문
+= 모든 온라인 거래의 공통 요청/응답 계약
++ ServiceId Dispatcher 실행 기준
++ Header 기반 거래통제 기준
++ GUID / TraceId 기반 추적 기준
++ 오류코드 / 거래로그 / 감사로그 연결 기준
+
+
+20.2 표준 전문 설계 결론
+NSIGHT 표준 전문은 다음 2개 구조로 정의한다.
+요청 전문 = StandardRequest
+응답 전문 = StandardResponse
+
+구분
+구조
+설명
+요청 전문
+header + body
+거래 실행에 필요한 공통 Header와 업무 Body
+응답 전문
+header + result + body + error
+처리 결과, 응답 데이터, 오류 정보
+실행 기준
+header.serviceId
+Dispatcher가 Handler를 선택하는 기준
+거래 기준
+header.transactionCode
+거래로그, 감사로그, 통계 기준
+업무 기준
+header.businessCode
+업무 WAR, Context, Gateway 라우팅 기준
+추적 기준
+guid, traceId, transactionId
+End-to-End 거래 추적 기준
+공통 처리
+STF / TCF / ETF
+전처리, Handler 실행, 후처리
+오류 처리
+result + error
+사용자 메시지와 오류코드 표준화
+핵심 원칙은 다음이다.
+Header는 공통 통제 정보이다.
+Body는 업무 데이터이다.
+Result는 처리 결과이다.
+Error는 실패 상세 정보이다.
+
+
+20.3 표준 요청 전문 구조
+표준 요청 전문은 다음 구조를 사용한다.
+{
+  "header": {
+    "guid": "G202607040001",
+    "traceId": "T202607040001",
+    "transactionId": "TX202607040001",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "serviceName": "고객요약조회",
+    "channelId": "WEBTOP",
+    "userId": "U123456",
+    "branchId": "001234",
+    "clientIp": "10.10.10.10",
+    "requestDateTime": "2026-07-04T18:30:00"
+  },
+  "body": {
+    "customerNo": "CUST00000001"
+  }
+}
+
+영역
+설명
+header
+모든 거래에 공통으로 필요한 통제·추적·식별 정보
+body
+업무별 요청 데이터
+serviceId
+실행할 Handler 식별
+transactionCode
+거래로그·감사로그 기준 거래코드
+businessCode
+업무 WAR / Context 식별
+userId
+거래 요청 사용자
+branchId
+지점 또는 조직 식별
+channelId
+호출 채널 식별
+
+20.4 표준 응답 전문 구조
+표준 응답 전문은 다음 구조를 사용한다.
+{
+  "header": {
+    "guid": "G202607040001",
+    "traceId": "T202607040001",
+    "transactionId": "TX202607040001",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "responseDateTime": "2026-07-04T18:30:01",
+    "elapsedTimeMs": 120
+  },
+  "result": {
+    "resultCode": "SUCCESS",
+    "message": "정상 처리되었습니다."
+  },
+  "body": {
+    "customerNo": "CUST00000001",
+    "customerName": "홍길동",
+    "customerGrade": "VIP",
+    "productCount": 5
+  },
+  "error": null
+}
+
+영역
+설명
+header
+요청 Header의 추적 정보를 유지하고 응답 시각·처리시간 추가
+result
+성공/실패 여부와 사용자 메시지
+body
+업무 응답 데이터
+error
+오류 발생 시 오류코드, 오류메시지, 필드 오류 정보
+응답 전문은 업무 Handler가 직접 조립하지 않는다.업무 Handler는 업무 결과 객체만 반환하고, 최종 응답 전문 조립은 ETF 후처리에서 수행한다.
+
+20.5 Header 표준 항목
+표준 Header는 다음 항목을 기본으로 한다.
+항목
+필수
+설명
+예시
+guid
+△
+End-to-End 거래 추적 ID. 없으면 서버 생성
+G202607040001
+traceId
+△
+내부 시스템 추적 ID. 없으면 서버 생성
+T202607040001
+transactionId
+△
+단위 거래 식별 ID
+TX202607040001
+serviceId
+Y
+실행할 ServiceId
+SV.Customer.selectSummary
+transactionCode
+Y
+거래코드
+SV-INQ-0001
+businessCode
+Y
+업무코드
+SV
+serviceName
+Y
+서비스명
+고객요약조회
+channelId
+Y
+호출 채널
+WEBTOP
+userId
+Y
+사용자 ID
+U123456
+branchId
+Y
+지점 코드
+001234
+clientIp
+△
+요청자 IP
+10.10.10.10
+requestDateTime
+△
+요청 시각
+2026-07-04T18:30:00
+idempotencyKey
+△
+중복요청 방지 키
+IDEMP-0001
+serviceId, transactionCode, businessCode, serviceName, user, channelId, branch는 거래통제의 핵심 Header 항목으로 사용된다. 거래통제 설계에서도 이 7개 항목을 기준으로 Allow-List 방식의 통제를 수행하도록 정의되어 있다.
+
+20.6 Body 작성 기준
+body는 업무별 요청 또는 응답 데이터를 담는다.
+기준
+설명
+업무 데이터만 포함
+Header 항목을 Body에 중복해서 넣지 않는다
+DTO와 1:1 매핑
+Request DTO / Response DTO와 구조를 맞춘다
+업무별 자유 확장
+업무 특성에 따라 필드 구성 가능
+공통 결과값 제외
+resultCode, message, errorCode는 Body에 넣지 않는다
+개인정보 주의
+응답 Body에는 마스킹 정책 적용
+대량 목록 주의
+목록 응답은 list + page 구조 사용
+좋은 예시는 다음과 같다.
+{
+  "body": {
+    "customerNo": "CUST00000001"
+  }
+}
+
+나쁜 예시는 다음과 같다.
+{
+  "body": {
+    "serviceId": "SV.Customer.selectSummary",
+    "businessCode": "SV",
+    "userId": "U123456",
+    "customerNo": "CUST00000001"
+  }
+}
+
+Header 항목은 반드시 header에 둔다.업무 DTO에는 업무 Body 값만 둔다.
+
+20.7 Result 구조
+result는 거래 처리 결과를 표현한다.
+{
+  "result": {
+    "resultCode": "SUCCESS",
+    "message": "정상 처리되었습니다."
+  }
+}
+
+항목
+설명
+예시
+resultCode
+처리 결과
+SUCCESS, FAIL, TIMEOUT
+message
+사용자 표시 메시지
+정상 처리되었습니다.
+detailMessage
+운영자 상세 메시지, 필요 시 내부 로그에만 사용
+ServiceId not found
+권장 결과코드는 다음과 같다.
+resultCode
+의미
+SUCCESS
+정상 처리
+FAIL
+업무 오류 또는 검증 오류
+ERROR
+시스템 오류
+TIMEOUT
+Timeout 발생
+UNKNOWN
+처리 결과 불명확
+
+20.8 Error 구조
+오류 발생 시 error 영역에 오류 정보를 담는다.
+{
+  "error": {
+    "errorCode": "E-SV-VAL-0001",
+    "errorMessage": "고객번호는 필수입니다.",
+    "fieldErrors": [
+      {
+        "field": "customerNo",
+        "reason": "필수값 누락"
+      }
+    ]
+  }
+}
+
+항목
+설명
+예시
+errorCode
+표준 오류코드
+E-SV-VAL-0001
+errorMessage
+사용자 또는 업무 오류 메시지
+고객번호는 필수입니다.
+fieldErrors
+필드 단위 Validation 오류
+customerNo
+errorType
+오류 유형
+VALIDATION, BUSINESS, SYSTEM
+오류 응답에는 SQL, 서버 IP, StackTrace, DB 정보, 내부 클래스명, 개인정보를 노출하지 않는다.
+
+20.9 표준 요청/응답 흐름
+표준 전문은 다음 순서로 처리된다.
+[화면 / WebTopSuite / API]
+        ↓
+StandardRequest JSON 생성
+        ↓
+POST /{businessCode}/online
+        ↓
+OnlineTransactionController
+        ↓
+STF.preProcess()
+ - Header 검증
+ - GUID / TraceId 생성
+ - 세션 / 인증 검증
+ - 권한 검증
+ - ServiceId / 거래코드 검증
+ - 거래통제 확인
+ - Timeout 정책 조회
+ - 거래 시작 로그 기록
+        ↓
+TransactionDispatcher
+ - serviceId 기준 Handler 선택
+        ↓
+Handler
+ - body를 Request DTO로 변환
+        ↓
+Facade → Service → Rule → DAO / Mapper
+        ↓
+ETF.postProcess()
+ - StandardResponse 조립
+ - 오류코드 매핑
+ - 거래 종료 로그 기록
+ - 감사로그 기록
+        ↓
+화면 응답
+
+전처리·후처리 요구사항에서도 모든 온라인 거래가 동일한 방식으로 수신·검증·추적·처리·응답되어야 하며, GUID, TraceId, TransactionId 기반 추적성과 오류코드·표준응답 일원화가 필요하다고 정의되어 있다.
+
+20.10 Java 표준 전문 객체 예시
+20.10.1 StandardRequest
+@Getter
+@Setter
+@NoArgsConstructor
+public class StandardRequest<T> {
+
+    @NotNull(message = "Header는 필수입니다.")
+    private StandardHeader header;
+
+    private T body;
+}
+
+20.10.2 StandardHeader
+@Getter
+@Setter
+@NoArgsConstructor
+public class StandardHeader {
+
+    private String guid;
+    private String traceId;
+    private String transactionId;
+
+    @NotBlank(message = "ServiceId는 필수입니다.")
+    private String serviceId;
+
+    @NotBlank(message = "거래코드는 필수입니다.")
+    private String transactionCode;
+
+    @NotBlank(message = "업무코드는 필수입니다.")
+    private String businessCode;
+
+    @NotBlank(message = "서비스명은 필수입니다.")
+    private String serviceName;
+
+    @NotBlank(message = "채널ID는 필수입니다.")
+    private String channelId;
+
+    @NotBlank(message = "사용자ID는 필수입니다.")
+    private String userId;
+
+    @NotBlank(message = "지점코드는 필수입니다.")
+    private String branchId;
+
+    private String clientIp;
+    private String requestDateTime;
+    private String idempotencyKey;
+}
+
+20.10.3 StandardResponse
+@Getter
+@Builder
+@AllArgsConstructor
+public class StandardResponse<T> {
+
+    private StandardHeader header;
+    private StandardResult result;
+    private T body;
+    private StandardError error;
+}
+
+20.10.4 StandardResult
+@Getter
+@Builder
+@AllArgsConstructor
+public class StandardResult {
+
+    private String resultCode;
+    private String message;
+
+    public static StandardResult success() {
+        return StandardResult.builder()
+                .resultCode("SUCCESS")
+                .message("정상 처리되었습니다.")
+                .build();
+    }
+
+    public static StandardResult fail(String message) {
+        return StandardResult.builder()
+                .resultCode("FAIL")
+                .message(message)
+                .build();
+    }
+}
+
+20.10.5 StandardError
+@Getter
+@Builder
+@AllArgsConstructor
+public class StandardError {
+
+    private String errorCode;
+    private String errorMessage;
+    private String errorType;
+    private List<FieldErrorDetail> fieldErrors;
+}
+
+
+20.11 성공 응답 예시
+SV 고객 요약 조회 성공 응답은 다음과 같다.
+{
+  "header": {
+    "guid": "G202607040001",
+    "traceId": "T202607040001",
+    "transactionId": "TX202607040001",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "responseDateTime": "2026-07-04T18:30:01",
+    "elapsedTimeMs": 120
+  },
+  "result": {
+    "resultCode": "SUCCESS",
+    "message": "정상 처리되었습니다."
+  },
+  "body": {
+    "customerNo": "CUST00000001",
+    "customerName": "홍길동",
+    "customerGrade": "VIP",
+    "totalBalance": 15000000,
+    "productCount": 5
+  },
+  "error": null
+}
+
+
+20.12 Validation 오류 응답 예시
+{
+  "header": {
+    "guid": "G202607040002",
+    "traceId": "T202607040002",
+    "transactionId": "TX202607040002",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "responseDateTime": "2026-07-04T18:31:00",
+    "elapsedTimeMs": 15
+  },
+  "result": {
+    "resultCode": "FAIL",
+    "message": "입력값을 확인해 주십시오."
+  },
+  "body": null,
+  "error": {
+    "errorCode": "E-SV-VAL-0001",
+    "errorMessage": "고객번호는 필수입니다.",
+    "errorType": "VALIDATION",
+    "fieldErrors": [
+      {
+        "field": "customerNo",
+        "reason": "필수값 누락"
+      }
+    ]
+  }
+}
+
+
+20.13 시스템 오류 응답 예시
+{
+  "header": {
+    "guid": "G202607040003",
+    "traceId": "T202607040003",
+    "transactionId": "TX202607040003",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "responseDateTime": "2026-07-04T18:32:00",
+    "elapsedTimeMs": 3000
+  },
+  "result": {
+    "resultCode": "ERROR",
+    "message": "처리 중 오류가 발생했습니다."
+  },
+  "body": null,
+  "error": {
+    "errorCode": "E-TCF-SYS-0001",
+    "errorMessage": "처리 중 오류가 발생했습니다.",
+    "errorType": "SYSTEM",
+    "fieldErrors": []
+  }
+}
+
+시스템 오류 응답에는 내부 예외명, SQL, StackTrace를 포함하지 않는다.상세 원인은 거래로그와 오류로그에서 GUID 기준으로 확인한다.
+
+20.14 목록 응답 전문 기준
+목록 조회 응답은 body.list와 body.page 구조를 사용한다.
+{
+  "header": {
+    "guid": "G202607040004",
+    "traceId": "T202607040004",
+    "serviceId": "SV.Customer.selectList",
+    "transactionCode": "SV-INQ-0002",
+    "businessCode": "SV"
+  },
+  "result": {
+    "resultCode": "SUCCESS",
+    "message": "정상 처리되었습니다."
+  },
+  "body": {
+    "list": [
+      {
+        "customerNo": "CUST00000001",
+        "customerName": "홍길동",
+        "customerGrade": "VIP"
+      },
+      {
+        "customerNo": "CUST00000002",
+        "customerName": "김철수",
+        "customerGrade": "GOLD"
+      }
+    ],
+    "page": {
+      "pageNo": 1,
+      "pageSize": 100,
+      "totalCount": 250,
+      "totalPage": 3
+    }
+  },
+  "error": null
+}
+
+목록 응답 기준은 다음과 같다.
+항목
+기준
+목록 데이터
+body.list
+페이징 정보
+body.page
+빈 목록
+list: []
+총 건수
+totalCount
+총 페이지
+totalPage
+대량 다운로드
+목록 조회와 별도 ServiceId로 분리
+
+20.15 파일 다운로드 응답 기준
+파일 다운로드는 일반 JSON 응답과 분리할 수 있다.다만 파일 메타와 감사로그는 표준 전문 기준을 따른다.
+구분
+기준
+파일 다운로드 요청
+표준 요청 전문 사용
+파일 권한 검증
+STF + File Rule
+파일 메타 조회
+OM / UD 파일관리 기준
+실제 파일 응답
+Stream 응답 가능
+다운로드 결과 로그
+거래로그 + 다운로드 감사로그
+다운로드 실패
+표준 오류 응답
+파일 업다운로드는 보안 통제, 감사 추적, WAS 보호, 개인정보 보호, 운영관리, 저장소 분리 기준이 필요하며, DB와 Session에는 파일 원본을 저장하지 않고 메타정보만 저장하는 구조가 적합하다.
+
+20.16 Header와 Body 분리 원칙
+Header와 Body는 반드시 분리한다.
+구분
+Header
+Body
+성격
+공통 통제 정보
+업무 데이터
+관리 주체
+TCF Framework
+업무 개발팀
+예시
+ServiceId, 거래코드, 사용자, 채널, 지점
+고객번호, 조회조건, 저장값
+검증 위치
+STF
+DTO / Rule
+로그 기준
+거래로그 필수 기록
+필요 시 마스킹 후 기록
+변경 영향
+전체 거래 영향
+해당 업무 영향
+금지 예시는 다음과 같다.
+{
+  "body": {
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "customerNo": "CUST00000001"
+  }
+}
+
+권장 예시는 다음과 같다.
+{
+  "header": {
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV"
+  },
+  "body": {
+    "customerNo": "CUST00000001"
+  }
+}
+
+
+20.17 표준 전문 Validation 기준
+표준 전문은 STF 단계에서 먼저 검증한다.
+검증 항목
+기준
+오류코드 예시
+header 존재 여부
+필수
+E-TCF-HDR-0001
+serviceId 필수
+필수
+E-TCF-HDR-0002
+transactionCode 필수
+필수
+E-TCF-HDR-0003
+businessCode 필수
+필수
+E-TCF-HDR-0004
+serviceId 형식
+{업무코드}.{도메인}.{행위}
+E-TCF-SVC-0001
+transactionCode 형식
+{업무코드}-{처리유형}-{일련번호}
+E-TCF-TX-0001
+업무코드 정합성
+URL, businessCode, serviceId, transactionCode 일치
+E-TCF-HDR-0005
+ServiceId 등록 여부
+Catalog 등록 필요
+E-TCF-SVC-0002
+거래통제 여부
+Allow-List 등록 필요
+E-TCF-CTL-0001
+세션 여부
+로그인 세션 필요
+E-TCF-AUTH-0001
+
+20.18 표준 전문과 거래로그 연계
+표준 전문의 Header 항목은 거래로그와 연결된다.
+전문 Header
+거래로그 컬럼
+설명
+guid
+GUID
+End-to-End 추적
+traceId
+TRACE_ID
+시스템 내부 추적
+transactionId
+TRANSACTION_ID
+거래 단위 식별
+serviceId
+SERVICE_ID
+실행 서비스
+transactionCode
+TRANSACTION_CODE
+거래코드
+businessCode
+BUSINESS_CODE
+업무코드
+userId
+USER_ID
+사용자
+branchId
+BRANCH_ID
+지점
+channelId
+CHANNEL_ID
+채널
+거래로그 설계 기준에서도 거래 시작 시 PROCESSING 로그를 생성하고, 종료 시 SUCCESS / FAIL / TIMEOUT / UNKNOWN 상태로 갱신하며, 운영 조회는 GUID, TraceId, ServiceId, 거래코드 기준으로 추적하도록 정의되어 있다.
+
+20.19 표준 전문 작성 시 금지 사항
+금지 사항
+사유
+ServiceId를 Body에 넣음
+Dispatcher 기준 훼손
+거래코드를 생략함
+거래로그·감사로그 추적 불가
+업무코드와 ServiceId Prefix 불일치
+라우팅 오류
+Header에 업무 데이터 포함
+공통 Header 오염
+Body에 사용자 권한 정보 포함
+위변조 위험
+오류 시 StackTrace를 응답
+보안 위반
+SQL 오류 내용을 사용자에게 노출
+보안 위반
+성공/실패 결과를 Body에 임의 구성
+응답 표준 위반
+목록 응답에서 page 정보 생략
+대량조회 관리 어려움
+파일 원본을 JSON Body에 Base64로 포함
+WAS Heap 부담 증가
+
+20.20 개발자 체크리스트
+점검 항목
+확인
+요청 전문이 header + body 구조인가?
+□
+응답 전문이 header + result + body + error 구조인가?
+□
+serviceId가 Header에 존재하는가?
+□
+transactionCode가 Header에 존재하는가?
+□
+businessCode가 Header에 존재하는가?
+□
+URL 업무코드와 Header businessCode가 일치하는가?
+□
+businessCode와 serviceId Prefix가 일치하는가?
+□
+businessCode와 transactionCode Prefix가 일치하는가?
+□
+Header 항목을 Body에 중복해서 넣지 않았는가?
+□
+Body가 Request DTO와 매핑되는가?
+□
+성공 응답은 resultCode = SUCCESS를 사용하는가?
+□
+실패 응답은 표준 오류코드를 사용하는가?
+□
+오류 응답에 내부 기술정보가 노출되지 않는가?
+□
+목록 응답은 list + page 구조인가?
+□
+거래로그에 GUID, ServiceId, 거래코드가 기록되는가?
+□
+ETF에서 최종 StandardResponse를 조립하는가?
+□
+
+20.21 마무리말
+표준 전문 구조는 NSIGHT TCF Framework의 가장 기본이 되는 약속이다.전문 구조가 흔들리면 ServiceId Dispatcher, 거래통제, 권한, Timeout, 거래로그, 감사로그, 오류코드 체계가 모두 흔들린다.
+따라서 개발자는 다음 원칙을 지켜야 한다.
+요청은 StandardRequest로 받는다.
+응답은 StandardResponse로 반환한다.
+Header는 공통 통제 정보로 사용한다.
+Body는 업무 데이터만 담는다.
+오류는 result와 error 구조로 표준화한다.
+
+
+20.22 시사점
+NSIGHT 표준 전문 구조를 지키면 다음 효과가 있다.
+효과
+설명
+개발 표준화
+모든 업무가 동일한 요청/응답 구조 사용
+운영 추적성
+GUID, TraceId, ServiceId, 거래코드 기준 추적
+보안 통제
+Header 기준 인증·권한·거래통제 가능
+장애 대응
+오류코드와 거래로그 기준 원인 분석 가능
+감사 대응
+사용자, 지점, 채널, 거래코드 기준 증적 확보
+확장성
+신규 업무 WAR도 동일 구조로 추가 가능
+최종 원칙은 다음이다.
+표준 전문은 단순 JSON 형식이 아니라 NSIGHT 온라인 거래의 공통 계약이다.개발자는 URL이 아니라 Header의 ServiceId와 거래코드를 기준으로 업무를 설계해야 한다.
+

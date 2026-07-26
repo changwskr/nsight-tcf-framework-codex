@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<included>
+    <!-- Windows Tomcat catalina.log: MS949(setenv.bat) · Linux/파일: UTF-8 -->
+    <springProperty name="CONSOLE_CHARSET" source="logging.charset.console" defaultValue="UTF-8"/>
+    <springProperty name="FILE_CHARSET" source="logging.charset.file" defaultValue="UTF-8"/>
+    <springProperty name="LOG_FILE" source="logging.file.name"
+                    defaultValue="${CATALINA_BASE:-.}/logs/nsight-app.log"/>
+
+    <property name="LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] guid=%X{guid} traceId=%X{traceId} serviceId=%X{serviceId} userId=%X{userId} branchId=%X{branchId} %logger{36} - %msg%n"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>${CONSOLE_CHARSET}</charset>
+        </encoder>
+    </appender>
+
+    <appender name="NSIGHT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_FILE}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>14</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>${FILE_CHARSET}</charset>
+        </encoder>
+    </appender>
+
+    <include resource="logback-tcf-console.xml"/>
+
+    <logger name="transaction.log" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="NSIGHT_FILE"/>
+    </logger>
+    <logger name="audit.log" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="NSIGHT_FILE"/>
+    </logger>
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="NSIGHT_FILE"/>
+    </root>
+</included>

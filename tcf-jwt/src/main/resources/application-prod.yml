@@ -1,0 +1,23 @@
+# prod
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true
+
+spring:
+  application:
+    name: nsight-jwt-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://auth.nsight.local
+          jwk-set-uri: https://auth.nsight.local/.well-known/jwks.json
+
+nsight:
+  security:
+    jwt:
+      issuer-uri: https://auth.nsight.local
+      jwk-set-uri: https://auth.nsight.local/.well-known/jwks.json
+      cookie-mode-enabled: true

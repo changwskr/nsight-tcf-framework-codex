@@ -1,0 +1,22 @@
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "SV",
+    "serviceId": "SV.Customer.selectSummary",
+    "serviceName": "고객 요약 조회",
+    "transactionCode": "SV-INQ-0002",
+    "processingType": "INQUIRY",
+    "guid": "",
+    "traceId": "",
+    "channelId": "WEBTOP",
+    "userId": "U123456",
+    "branchId": "012345",
+    "centerId": "DC1",
+    "requestTime": "2026-07-03T10:30:00+09:00",
+    "clientIp": "10.10.10.10"
+  },
+  "body": {
+    "customerNo": "CUST00000001",
+    "baseDate": "20260703"
+  }
+}

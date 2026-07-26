@@ -1,0 +1,107 @@
+# 화면별 HELP 수동 보강 (Phase 5)
+# key = tcf-ui URL 경로 (선행 /)
+# scan-ui-screens / help-screen-map 자동값을 덮어씁니다.
+
+entries:
+  /oc/capacity.html:
+    title: 용량 산정 마법사 (CAP)
+    docId: cap-steps
+    src: ztcf-book-capacity-md/zNSIGHT-용량산정-전체-흐름.md
+    priority: 100
+
+  /oc/env-004.html:
+    title: ENV-004 계층별 점검
+    docId: env-flow
+    src: ztcf-book-capacity-md/16-Timeout-계층-공통-설계.md
+    priority: 95
+
+  /oc/env-002.html:
+    title: ENV-002 산정 조건
+    docId: env-flow
+    src: tcf-oc/README.md
+    priority: 90
+
+  /oc/rule-check.html:
+    title: Rule 점검 (SC-007)
+    docId: rule-check
+    src: ztcf-book-capacity-md/50-장애-Timeout-자원고갈-흐름.md
+    priority: 90
+
+  /oc/check.html:
+    title: 종합 보고서
+    docId: env-flow
+    priority: 80
+
+  /sv/index.html:
+    title: SV 업무 테스트
+    docId: business-modules
+    src: zguide/sv-service-개발가이드.md
+    priority: 85
+
+  /sv/sample-list.html:
+    title: SV 샘플 목록 (페이징)
+    docId: business-modules
+    src: zguide/sv-service-개발가이드.md
+
+  /eb/index.html:
+    title: EB 업무 테스트
+    docId: business-modules
+    src: zguide/eb-service-개발가이드.md
+
+  /eb/user-management.html:
+    title: EB 사용자 관리
+    docId: business-modules
+    src: zguide/eb-service-개발가이드.md
+
+  /ic/index.html:
+    title: IC 업무 테스트
+    docId: business-modules
+    src: zguide/ic-service-개발가이드.md
+
+  /om/admin/dashboard.html:
+    title: OM 운영 대시보드
+    docId: om-admin
+    src: zguide/tcf-om-개발가이드.md
+    priority: 90
+
+  /om/admin/transaction-control.html:
+    title: OM 거래통제
+    docId: om-admin
+    src: zguide/tcf-om-개발가이드.md
+
+  /om/admin/service-catalog.html:
+    title: OM Catalog 관리
+    docId: om-admin
+    src: znsight-man/16-ServiceId-설계.md
+
+  /jwt/admin/token.html:
+    title: JWT 토큰 관리
+    docId: business-modules
+    src: zguide/tcf-jwt-개발가이드.md
+
+  /index.html:
+    title: TCF UI 홈
+    docId: tcf-ui-overview
+    priority: 100
+
+  /oc/cap-new/index.html:
+    title: NEW 용량산정 목록
+    docId: cap-new-wizard
+    src: tcf-oc/docs/cap-new-design.md
+    priority: 96
+
+  /oc/cap-new/wizard.html:
+    title: NEW 용량산정 Wizard
+    docId: cap-new-wizard
+    src: tcf-oc/docs/cap-new-design.md
+    priority: 96
+
+  /oc/cap-new/compare.html:
+    title: NEW 용량산정 시나리오 비교
+    docId: cap-new-wizard
+    priority: 95
+
+  /oc/cap-new/approved.html:
+    title: NEW 용량산정 승인 기준안
+    docId: cap-new-wizard
+    priority: 95

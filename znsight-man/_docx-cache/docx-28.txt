@@ -1,0 +1,1170 @@
+아래 내용을 NSIGHT TCF 개발자 가이드 3차 - 23장으로 이어 붙이면 됩니다.
+
+23. TransactionHandler 개발 기준
+23.1 도입 전 안내말
+NSIGHT TCF Framework에서 TransactionHandler는 serviceId로 식별되는 실제 업무 진입 클래스이다.
+화면 또는 WebTopSuite가 POST /{businessCode}/online으로 표준 전문을 호출하면, TCF Framework는 Header의 serviceId를 읽고 해당 serviceId에 매핑된 TransactionHandler를 찾아 실행한다.
+POST /sv/online
+   ↓
+StandardRequest.header.serviceId = SV.Customer.selectSummary
+   ↓
+TransactionDispatcher
+   ↓
+SvCustomerSummaryHandler
+   ↓
+Facade → Service → Rule → DAO / Mapper
+
+따라서 TransactionHandler는 Controller가 아니고, Service도 아니고, DAO도 아니다.TransactionHandler는 TCF 공통 처리 영역과 업무 계층 사이를 연결하는 업무 진입 Adapter이다.
+
+23.2 TransactionHandler 개발 결론
+TransactionHandler는 다음 기준으로 개발한다.
+구분
+기준
+역할
+serviceId 기준 업무 처리 진입점
+위치
+업무 WAR 내부 entry.handler 패키지
+실행 기준
+StandardRequest.header.serviceId
+호출 주체
+TransactionDispatcher
+호출 대상
+Facade
+DTO 처리
+StandardRequest.body → Request DTO 변환
+Validation
+Request DTO 형식 검증 호출
+업무 로직
+작성 금지
+DB 접근
+작성 금지
+응답 전문 조립
+작성 금지
+예외 처리
+직접 try-catch 남용 금지, 표준 예외 전파
+등록 방식
+Spring Bean + ServiceId Catalog 매핑
+원칙
+ServiceId 1개 = Handler 1개
+핵심 원칙은 다음이다.
+Handler는 업무 로직을 처리하는 곳이 아니다.
+Handler는 표준 전문을 업무 DTO로 변환하고 Facade를 호출하는 곳이다.
+
+
+23.3 TransactionHandler의 위치
+업무 WAR 기준 Handler는 entry.handler 패키지에 둔다.
+sv-service
+ └─ src/main/java
+    └─ com.nh.nsight.marketing.sv
+       ├─ entry
+       │  ├─ controller
+       │  │  └─ SvOnlineTransactionController.java
+       │  ├─ handler
+       │  │  ├─ SvCustomerSummaryHandler.java
+       │  │  ├─ SvCustomerDetailHandler.java
+       │  │  └─ SvCustomerProductListHandler.java
+       │  └─ dto
+       │     ├─ request
+       │     └─ response
+       │
+       ├─ application
+       │  ├─ facade
+       │  ├─ service
+       │  └─ rule
+       │
+       └─ persistence
+          ├─ dao
+          └─ mapper
+
+패키지
+역할
+entry.controller
+Online Endpoint 수신
+entry.handler
+ServiceId별 업무 진입 Handler
+entry.dto.request
+요청 Body DTO
+entry.dto.response
+응답 Body DTO
+application.facade
+유스케이스 단위 업무 흐름
+application.service
+업무 서비스 처리
+application.rule
+업무 규칙 검증
+persistence.dao
+DB 접근
+persistence.mapper
+MyBatis SQL 매핑
+
+23.4 TransactionHandler 기본 인터페이스
+TCF 표준 Handler 인터페이스는 다음 형태를 기준으로 한다.
+public interface TransactionHandler {
+
+    /**
+     * Handler가 처리할 ServiceId를 반환한다.
+     */
+    String serviceId();
+
+    /**
+     * 표준 요청 전문과 거래 Context를 받아 업무 처리를 수행한다.
+     */
+    Object handle(StandardRequest<?> request, TransactionContext context);
+}
+
+메서드
+설명
+serviceId()
+이 Handler가 담당하는 ServiceId 반환
+handle()
+표준 전문 Body를 업무 DTO로 변환하고 Facade 호출
+반환값
+업무 응답 DTO 또는 업무 결과 객체
+예외
+검증 오류, 업무 오류, 시스템 오류는 표준 예외로 전파
+
+23.5 TransactionHandler 기본 작성 예시
+SV 고객 요약 조회 Handler 예시는 다음과 같다.
+@Component
+@RequiredArgsConstructor
+public class SvCustomerSummaryHandler implements TransactionHandler {
+
+    private final SvCustomerFacade svCustomerFacade;
+    private final TcfRequestValidator tcfRequestValidator;
+    private final ObjectMapper objectMapper;
+
+    @Override
+    public String serviceId() {
+        return "SV.Customer.selectSummary";
+    }
+
+    @Override
+    public Object handle(
+            StandardRequest<?> request,
+            TransactionContext context
+    ) {
+        SvCustomerSummaryRequest body =
+                objectMapper.convertValue(
+                        request.getBody(),
+                        SvCustomerSummaryRequest.class
+                );
+
+        tcfRequestValidator.validate(body);
+
+        return svCustomerFacade.selectCustomerSummary(body, context);
+    }
+}
+
+이 Handler의 책임은 세 가지뿐이다.
+순서
+책임
+설명
+1
+Body 변환
+StandardRequest.body를 SvCustomerSummaryRequest로 변환
+2
+DTO 검증
+필수값, 형식, 길이 검증
+3
+Facade 호출
+업무 유스케이스 실행 요청
+
+23.6 ServiceId와 Handler 매핑 기준
+Handler는 반드시 하나의 ServiceId를 담당한다.
+ServiceId = SV.Customer.selectSummary
+Handler   = SvCustomerSummaryHandler
+
+ServiceId
+Handler
+SV.Customer.selectSummary
+SvCustomerSummaryHandler
+SV.Customer.selectDetail
+SvCustomerDetailHandler
+SV.Customer.selectProductList
+SvCustomerProductListHandler
+CM.Campaign.create
+CmCampaignCreateHandler
+OM.User.update
+OmUserUpdateHandler
+표준 원칙은 다음이다.
+ServiceId 1개 = Handler 1개
+Handler 1개 = Facade 1개 유스케이스 호출
+
+단, 내부적으로 같은 Facade 메서드를 재사용할 수는 있다.하지만 외부 실행 식별자인 ServiceId와 Handler는 명확히 분리해서 관리한다.
+
+23.7 Handler 명명 규칙
+Handler 이름은 다음 형식을 사용한다.
+{BusinessCode}{Domain}{Action}Handler
+
+예시는 다음과 같다.
+업무
+ServiceId
+Handler
+SV
+SV.Customer.selectSummary
+SvCustomerSummaryHandler
+SV
+SV.Customer.selectDetail
+SvCustomerDetailHandler
+CM
+CM.Campaign.create
+CmCampaignCreateHandler
+CM
+CM.Campaign.update
+CmCampaignUpdateHandler
+OM
+OM.User.selectList
+OmUserListHandler
+OM
+OM.User.update
+OmUserUpdateHandler
+MG
+MG.Message.send
+MgMessageSendHandler
+UD
+UD.File.download
+UdFileDownloadHandler
+금지 예시는 다음과 같다.
+금지 이름
+문제점
+권장 이름
+CustomerHandler
+어떤 거래인지 불명확
+SvCustomerSummaryHandler
+SvHandler
+업무 범위가 너무 넓음
+SvCustomerDetailHandler
+CommonHandler
+ServiceId 식별 어려움
+ServiceId별 Handler 분리
+ProcessHandler
+의미 없음
+업무 목적이 드러나는 이름
+TempHandler
+운영 반영 위험
+명확한 업무명 사용
+
+23.8 Handler 개발 흐름
+TransactionHandler 개발 순서는 다음과 같다.
+1. ServiceId 확정
+   ↓
+2. 거래코드 확정
+   ↓
+3. Request DTO 작성
+   ↓
+4. Response DTO 작성
+   ↓
+5. Facade 메서드 정의
+   ↓
+6. Handler 작성
+   ↓
+7. ServiceId Catalog 등록
+   ↓
+8. 거래통제 등록
+   ↓
+9. Timeout 정책 등록
+   ↓
+10. 단위 테스트 작성
+   ↓
+11. 표준 전문 테스트
+
+개발자 관점의 체크 흐름은 다음과 같다.
+순서
+작업
+예시
+1
+업무코드 확인
+SV
+2
+ServiceId 정의
+SV.Customer.selectSummary
+3
+거래코드 정의
+SV-INQ-0001
+4
+Handler 이름 정의
+SvCustomerSummaryHandler
+5
+Request DTO 작성
+SvCustomerSummaryRequest
+6
+Response DTO 작성
+SvCustomerSummaryResponse
+7
+Facade 작성
+SvCustomerFacade.selectCustomerSummary()
+8
+Handler에서 Facade 호출
+svCustomerFacade.selectCustomerSummary()
+9
+Catalog 등록
+ServiceId + Handler Bean
+10
+테스트 전문 작성
+POST /sv/online
+
+23.9 Handler에서 해야 하는 일
+Handler에서 수행해야 하는 일은 제한적이다.
+해야 하는 일
+설명
+ServiceId 반환
+serviceId()에서 담당 ServiceId 반환
+Body 변환
+request.getBody()를 Request DTO로 변환
+DTO Validation 호출
+필수값, 길이, 형식 검증
+TransactionContext 전달
+사용자, 지점, 채널, GUID 정보 전달
+Facade 호출
+업무 유스케이스 실행
+업무 결과 반환
+Response DTO 또는 결과 객체 반환
+예시는 다음과 같다.
+@Override
+public Object handle(StandardRequest<?> request, TransactionContext context) {
+
+    OmUserUpdateRequest body =
+            objectMapper.convertValue(
+                    request.getBody(),
+                    OmUserUpdateRequest.class
+            );
+
+    tcfRequestValidator.validate(body);
+
+    return omUserFacade.updateUser(body, context);
+}
+
+
+23.10 Handler에서 하지 말아야 하는 일
+Handler에는 업무 로직을 작성하지 않는다.
+금지 사항
+사유
+권장 위치
+DB 조회
+계층 책임 위반
+DAO / Mapper
+업무 규칙 판단
+Handler 비대화
+Rule
+중복 여부 확인
+업무 정합성 검증
+Service / Rule
+권한 검증
+공통 보안 책임
+STF / Security
+거래통제
+공통 전처리 책임
+STF
+Timeout 판단
+공통 정책 책임
+STF / TimeoutProcessor
+응답 전문 조립
+ETF 책임
+ETF
+오류코드 매핑
+공통 예외 처리 책임
+GlobalExceptionHandler
+여러 ServiceId 분기 처리
+Handler 책임 불명확
+ServiceId별 Handler 분리
+직접 HTTP 호출
+연동 모듈 사용 필요
+Integration Client
+나쁜 예시는 다음과 같다.
+@Component
+@RequiredArgsConstructor
+public class BadSvCustomerHandler implements TransactionHandler {
+
+    private final SvCustomerDao svCustomerDao;
+
+    @Override
+    public String serviceId() {
+        return "SV.Customer.selectSummary";
+    }
+
+    @Override
+    public Object handle(StandardRequest<?> request, TransactionContext context) {
+
+        Map<String, Object> body = (Map<String, Object>) request.getBody();
+        String customerNo = (String) body.get("customerNo");
+
+        // 금지: Handler에서 DB 직접 조회
+        SvCustomerSummaryResult result =
+                svCustomerDao.selectCustomerSummary(customerNo);
+
+        // 금지: Handler에서 응답 구조 직접 조립
+        Map<String, Object> response = new HashMap<>();
+        response.put("resultCode", "SUCCESS");
+        response.put("data", result);
+
+        return response;
+    }
+}
+
+권장 예시는 다음과 같다.
+@Component
+@RequiredArgsConstructor
+public class SvCustomerSummaryHandler implements TransactionHandler {
+
+    private final SvCustomerFacade svCustomerFacade;
+    private final TcfRequestValidator tcfRequestValidator;
+    private final ObjectMapper objectMapper;
+
+    @Override
+    public String serviceId() {
+        return "SV.Customer.selectSummary";
+    }
+
+    @Override
+    public Object handle(StandardRequest<?> request, TransactionContext context) {
+
+        SvCustomerSummaryRequest body =
+                objectMapper.convertValue(
+                        request.getBody(),
+                        SvCustomerSummaryRequest.class
+                );
+
+        tcfRequestValidator.validate(body);
+
+        return svCustomerFacade.selectCustomerSummary(body, context);
+    }
+}
+
+
+23.11 Handler와 Facade 관계
+Handler는 반드시 Facade를 호출한다.
+Handler
+   ↓
+Facade
+   ↓
+Service
+   ↓
+Rule
+   ↓
+DAO / Mapper
+
+계층
+책임
+Handler
+표준 전문과 업무 계층 연결
+Facade
+유스케이스 흐름 조정
+Service
+업무 처리
+Rule
+업무 규칙 검증
+DAO / Mapper
+DB 접근
+예시는 다음과 같다.
+@Component
+@RequiredArgsConstructor
+public class CmCampaignCreateHandler implements TransactionHandler {
+
+    private final CmCampaignFacade cmCampaignFacade;
+    private final TcfRequestValidator tcfRequestValidator;
+    private final ObjectMapper objectMapper;
+
+    @Override
+    public String serviceId() {
+        return "CM.Campaign.create";
+    }
+
+    @Override
+    public Object handle(StandardRequest<?> request, TransactionContext context) {
+
+        CmCampaignCreateRequest body =
+                objectMapper.convertValue(
+                        request.getBody(),
+                        CmCampaignCreateRequest.class
+                );
+
+        tcfRequestValidator.validate(body);
+
+        return cmCampaignFacade.createCampaign(body, context);
+    }
+}
+
+
+23.12 Handler와 DTO 변환 기준
+Handler는 StandardRequest.body를 업무 Request DTO로 변환한다.
+StandardRequest<Object>
+   ↓
+request.getBody()
+   ↓
+SvCustomerSummaryRequest
+   ↓
+Facade 호출
+
+변환 기준은 다음과 같다.
+기준
+설명
+Body만 DTO로 변환
+Header 항목은 DTO에 넣지 않음
+Header 정보는 Context 사용
+TransactionContext에서 읽음
+Request DTO는 업무별로 분리
+ServiceId별 또는 유스케이스별 작성
+Map 직접 사용 지양
+타입 안정성을 위해 DTO 사용
+변환 실패는 Validation 오류 처리
+표준 오류코드 반환
+예시는 다음과 같다.
+SvCustomerSummaryRequest body =
+        objectMapper.convertValue(
+                request.getBody(),
+                SvCustomerSummaryRequest.class
+        );
+
+Header 정보가 필요하면 다음처럼 Context에서 사용한다.
+String userId = context.getUserId();
+String branchId = context.getBranchId();
+String channelId = context.getChannelId();
+
+
+23.13 Handler와 Validation 기준
+Handler는 DTO 형식 검증만 호출한다.업무 규칙 검증은 Rule에서 수행한다.
+검증 유형
+위치
+예시
+Header 검증
+STF
+ServiceId, 거래코드, 업무코드
+DTO 형식 검증
+Handler 또는 공통 Validator
+고객번호 필수
+업무 규칙 검증
+Rule
+조회기간, 상태, 권한
+DB 정합성 검증
+Service / DAO
+고객 존재 여부
+거래통제
+STF
+Allow-List 여부
+Handler 예시는 다음과 같다.
+tcfRequestValidator.validate(body);
+
+DTO 예시는 다음과 같다.
+@Getter
+@Setter
+@NoArgsConstructor
+public class SvCustomerSummaryRequest {
+
+    @NotBlank(message = "고객번호는 필수입니다.")
+    @Size(max = 20, message = "고객번호는 20자를 초과할 수 없습니다.")
+    private String customerNo;
+}
+
+Rule 예시는 다음과 같다.
+@Component
+@RequiredArgsConstructor
+public class SvCustomerRule {
+
+    private final SvCustomerDao svCustomerDao;
+
+    public void validateCustomerExists(String customerNo) {
+        if (!svCustomerDao.existsCustomer(customerNo)) {
+            throw new BusinessException(
+                    "E-SV-VAL-0001",
+                    "고객정보가 존재하지 않습니다."
+            );
+        }
+    }
+}
+
+
+23.14 Handler와 TransactionContext 기준
+Handler는 Header를 직접 많이 사용하지 않고 TransactionContext를 업무 계층에 전달한다.
+public Object handle(
+        StandardRequest<?> request,
+        TransactionContext context
+) {
+    ...
+    return svCustomerFacade.selectCustomerSummary(body, context);
+}
+
+TransactionContext에는 다음 정보가 포함된다.
+항목
+설명
+guid
+End-to-End 추적 ID
+traceId
+내부 추적 ID
+transactionId
+거래 ID
+businessCode
+업무코드
+serviceId
+ServiceId
+transactionCode
+거래코드
+processingType
+처리유형
+userId
+사용자 ID
+branchId
+지점 코드
+channelId
+채널 ID
+clientIp
+요청 IP
+centerId
+센터 ID
+업무 계층에서는 다음처럼 사용한다.
+public SvCustomerSummaryResponse selectCustomerSummary(
+        SvCustomerSummaryRequest request,
+        TransactionContext context
+) {
+    String branchId = context.getBranchId();
+
+    return svCustomerService.selectCustomerSummary(request, branchId);
+}
+
+
+23.15 Handler 등록 기준
+Handler는 Spring Bean으로 등록한다.
+@Component
+@RequiredArgsConstructor
+public class SvCustomerSummaryHandler implements TransactionHandler {
+    ...
+}
+
+Dispatcher는 Spring Bean으로 등록된 TransactionHandler 목록을 수집하여 serviceId 기준 Map을 구성한다.
+@Component
+public class TransactionHandlerRegistry {
+
+    private final Map<String, TransactionHandler> handlerMap;
+
+    public TransactionHandlerRegistry(List<TransactionHandler> handlers) {
+        this.handlerMap = handlers.stream()
+                .collect(Collectors.toMap(
+                        TransactionHandler::serviceId,
+                        Function.identity()
+                ));
+    }
+
+    public TransactionHandler getHandler(String serviceId) {
+        TransactionHandler handler = handlerMap.get(serviceId);
+
+        if (handler == null) {
+            throw new BusinessException(
+                    "E-TCF-DSP-0004",
+                    "ServiceId에 해당하는 Handler가 없습니다."
+            );
+        }
+
+        return handler;
+    }
+}
+
+중복 ServiceId가 있으면 애플리케이션 기동 시점에 오류로 처리해야 한다.
+동일 ServiceId를 가진 Handler가 2개 이상이면 기동 실패 처리
+
+
+23.16 Handler와 Service Catalog 기준
+Handler는 코드에 존재하는 것만으로 실행되면 안 된다.OM 또는 Service Catalog에 등록되어 있어야 한다.
+항목
+예시
+SERVICE_ID
+SV.Customer.selectSummary
+TRANSACTION_CODE
+SV-INQ-0001
+BUSINESS_CODE
+SV
+SERVICE_NAME
+고객요약조회
+HANDLER_BEAN_NAME
+svCustomerSummaryHandler
+HANDLER_CLASS_NAME
+com.nh.nsight.marketing.sv.entry.handler.SvCustomerSummaryHandler
+USE_YN
+Y
+STATUS
+ACTIVE
+TIMEOUT_SECONDS
+3
+AUDIT_YN
+Y
+실행 전 검증 기준은 다음과 같다.
+1. serviceId가 Header에 존재하는가?
+2. Service Catalog에 등록되어 있는가?
+3. Catalog 상태가 ACTIVE인가?
+4. USE_YN = Y인가?
+5. ServiceId와 transactionCode가 매핑되어 있는가?
+6. Handler Bean이 존재하는가?
+7. 거래통제 Allow-List에 등록되어 있는가?
+
+
+23.17 Handler 실행 흐름
+Handler 실행 전체 흐름은 다음과 같다.
+[OnlineTransactionController]
+        ↓
+[TcfProcessor]
+        ↓
+[STF.preProcess]
+ - Header 검증
+ - 세션 / 인증 / 권한 검증
+ - ServiceId / 거래코드 검증
+ - 거래통제 확인
+ - Timeout 정책 조회
+ - 거래 시작 로그
+        ↓
+[TransactionDispatcher]
+ - serviceId 기준 Handler 조회
+        ↓
+[TransactionHandler]
+ - Body → Request DTO 변환
+ - DTO Validation
+ - Facade 호출
+        ↓
+[Facade]
+        ↓
+[Service]
+        ↓
+[Rule]
+        ↓
+[DAO / Mapper]
+        ↓
+[ETF.postProcess]
+ - StandardResponse 조립
+ - 거래 종료 로그
+ - 감사로그
+
+
+23.18 Handler 예외 처리 기준
+Handler에서는 예외를 임의로 삼키지 않는다.
+예외 유형
+발생 위치
+처리 기준
+Validation 오류
+Handler / Validator
+ValidationException
+업무 오류
+Rule / Service
+BusinessException
+권한 오류
+STF / Security / Rule
+AuthorizationException
+시스템 오류
+내부 처리
+SystemException 또는 공통 예외
+DB 오류
+DAO / Mapper
+공통 DB 예외로 변환
+Timeout
+TimeoutProcessor
+TimeoutException
+나쁜 예시는 다음과 같다.
+try {
+    return svCustomerFacade.selectCustomerSummary(body, context);
+} catch (Exception e) {
+    return Map.of("result", "fail");
+}
+
+권장 기준은 다음과 같다.
+return svCustomerFacade.selectCustomerSummary(body, context);
+
+예외는 GlobalExceptionHandler 또는 ETF 오류 처리에서 표준 응답으로 변환한다.
+Exception
+   ↓
+GlobalExceptionHandler
+   ↓
+StandardError
+   ↓
+StandardResponse
+   ↓
+거래로그 FAIL 기록
+
+
+23.19 Handler 응답 기준
+Handler는 StandardResponse를 직접 만들지 않는다.Handler는 업무 응답 DTO만 반환한다.
+좋은 예시는 다음과 같다.
+return svCustomerFacade.selectCustomerSummary(body, context);
+
+Facade 반환 예시는 다음과 같다.
+@Getter
+@Builder
+@AllArgsConstructor
+public class SvCustomerSummaryResponse {
+
+    private String customerNo;
+    private String customerName;
+    private String customerGrade;
+    private BigDecimal totalBalance;
+    private Integer productCount;
+}
+
+금지 예시는 다음과 같다.
+StandardResponse<SvCustomerSummaryResponse> response =
+        StandardResponse.success(result);
+
+return response;
+
+응답 전문 조립은 ETF 후처리 또는 공통 Response Builder에서 수행한다.
+
+23.20 Handler 테스트 기준
+Handler는 반드시 단위 테스트를 작성한다.
+테스트 항목
+설명
+ServiceId 반환 테스트
+serviceId() 값 확인
+Body 변환 테스트
+JSON Body가 Request DTO로 변환되는지 확인
+Validation 실패 테스트
+필수값 누락 시 오류 발생
+Facade 호출 테스트
+정상 요청 시 Facade 호출 여부
+Context 전달 테스트
+TransactionContext가 전달되는지 확인
+예외 전파 테스트
+Facade 오류가 표준 예외로 전파되는지 확인
+테스트 예시는 다음과 같다.
+@ExtendWith(MockitoExtension.class)
+class SvCustomerSummaryHandlerTest {
+
+    @Mock
+    private SvCustomerFacade svCustomerFacade;
+
+    @Mock
+    private TcfRequestValidator tcfRequestValidator;
+
+    private ObjectMapper objectMapper;
+    private SvCustomerSummaryHandler handler;
+
+    @BeforeEach
+    void setUp() {
+        objectMapper = new ObjectMapper();
+        handler = new SvCustomerSummaryHandler(
+                svCustomerFacade,
+                tcfRequestValidator,
+                objectMapper
+        );
+    }
+
+    @Test
+    void serviceId를_반환한다() {
+        assertThat(handler.serviceId())
+                .isEqualTo("SV.Customer.selectSummary");
+    }
+
+    @Test
+    void 정상요청이면_Facade를_호출한다() {
+        Map<String, Object> body = new HashMap<>();
+        body.put("customerNo", "CUST00000001");
+
+        StandardRequest<Object> request = new StandardRequest<>();
+        request.setBody(body);
+
+        TransactionContext context = TransactionContext.builder()
+                .serviceId("SV.Customer.selectSummary")
+                .transactionCode("SV-INQ-0001")
+                .businessCode("SV")
+                .userId("U123456")
+                .branchId("001234")
+                .build();
+
+        handler.handle(request, context);
+
+        verify(tcfRequestValidator).validate(any(SvCustomerSummaryRequest.class));
+        verify(svCustomerFacade).selectCustomerSummary(
+                any(SvCustomerSummaryRequest.class),
+                eq(context)
+        );
+    }
+}
+
+
+23.21 Handler 통합 테스트 기준
+표준 전문 기반 통합 테스트도 필요하다.
+POST /sv/online
+Content-Type: application/json
+
+{
+  "header": {
+    "businessCode": "SV",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "processingType": "INQUIRY",
+    "serviceName": "고객요약조회",
+    "channelId": "WEBTOP",
+    "userId": "U123456",
+    "branchId": "001234"
+  },
+  "body": {
+    "customerNo": "CUST00000001"
+  }
+}
+
+통합 테스트 확인 항목은 다음과 같다.
+확인 항목
+기준
+Endpoint
+POST /sv/online
+Header 검증
+업무코드, ServiceId, 거래코드 정합성
+Handler 선택
+SvCustomerSummaryHandler 실행
+DTO 변환
+SvCustomerSummaryRequest 변환
+Facade 호출
+정상 호출
+응답 구조
+StandardResponse
+거래로그
+GUID, ServiceId, 거래코드 기록
+오류 응답
+표준 오류코드 반환
+
+23.22 Handler 개발 예시: OM 사용자 수정
+23.22.1 ServiceId
+OM.User.update
+
+23.22.2 거래코드
+OM-UPD-0001
+
+23.22.3 Request DTO
+@Getter
+@Setter
+@NoArgsConstructor
+public class OmUserUpdateRequest {
+
+    @NotBlank(message = "수정 대상 사용자ID는 필수입니다.")
+    private String targetUserId;
+
+    @NotBlank(message = "사용자명은 필수입니다.")
+    private String userName;
+
+    @Pattern(regexp = "^[YN]$", message = "사용여부는 Y 또는 N만 가능합니다.")
+    private String useYn;
+}
+
+23.22.4 Handler
+@Component
+@RequiredArgsConstructor
+public class OmUserUpdateHandler implements TransactionHandler {
+
+    private final OmUserFacade omUserFacade;
+    private final TcfRequestValidator tcfRequestValidator;
+    private final ObjectMapper objectMapper;
+
+    @Override
+    public String serviceId() {
+        return "OM.User.update";
+    }
+
+    @Override
+    public Object handle(StandardRequest<?> request, TransactionContext context) {
+
+        OmUserUpdateRequest body =
+                objectMapper.convertValue(
+                        request.getBody(),
+                        OmUserUpdateRequest.class
+                );
+
+        tcfRequestValidator.validate(body);
+
+        return omUserFacade.updateUser(body, context);
+    }
+}
+
+23.22.5 Facade
+@Component
+@RequiredArgsConstructor
+public class OmUserFacade {
+
+    private final OmUserService omUserService;
+
+    public OmUserDetailResponse updateUser(
+            OmUserUpdateRequest request,
+            TransactionContext context
+    ) {
+        return omUserService.updateUser(request, context);
+    }
+}
+
+
+23.23 Handler 개발 예시: MG 메시지 발송
+@Component
+@RequiredArgsConstructor
+public class MgMessageSendHandler implements TransactionHandler {
+
+    private final MgMessageFacade mgMessageFacade;
+    private final TcfRequestValidator tcfRequestValidator;
+    private final ObjectMapper objectMapper;
+
+    @Override
+    public String serviceId() {
+        return "MG.Message.send";
+    }
+
+    @Override
+    public Object handle(StandardRequest<?> request, TransactionContext context) {
+
+        MgMessageSendRequest body =
+                objectMapper.convertValue(
+                        request.getBody(),
+                        MgMessageSendRequest.class
+                );
+
+        tcfRequestValidator.validate(body);
+
+        return mgMessageFacade.sendMessage(body, context);
+    }
+}
+
+메시지 발송 거래는 중복요청 방지 기준이 중요하다.따라서 Header의 idempotencyKey 적용을 권장한다.
+
+23.24 Handler 개발 예시: UD 파일 다운로드 준비
+@Component
+@RequiredArgsConstructor
+public class UdFilePrepareDownloadHandler implements TransactionHandler {
+
+    private final UdFileFacade udFileFacade;
+    private final TcfRequestValidator tcfRequestValidator;
+    private final ObjectMapper objectMapper;
+
+    @Override
+    public String serviceId() {
+        return "UD.File.prepareDownload";
+    }
+
+    @Override
+    public Object handle(StandardRequest<?> request, TransactionContext context) {
+
+        UdFilePrepareDownloadRequest body =
+                objectMapper.convertValue(
+                        request.getBody(),
+                        UdFilePrepareDownloadRequest.class
+                );
+
+        tcfRequestValidator.validate(body);
+
+        return udFileFacade.prepareDownload(body, context);
+    }
+}
+
+파일 다운로드 거래는 Handler에서 파일 Stream을 직접 처리하지 않는다.Handler는 다운로드 권한 검증과 다운로드 토큰 발급 유스케이스만 호출한다.
+
+23.25 Handler 오류코드 기준
+오류 상황
+오류코드
+설명
+Handler 없음
+E-TCF-DSP-0004
+ServiceId에 매핑된 Handler 없음
+Handler 중복
+E-TCF-DSP-0005
+동일 ServiceId Handler 중복
+Body 변환 실패
+E-TCF-DTO-0001
+Request Body를 DTO로 변환 실패
+DTO 검증 실패
+E-TCF-VAL-0001
+DTO Validation 실패
+Facade 호출 실패
+업무별 오류코드
+업무 오류 발생
+Handler 실행 오류
+E-TCF-HND-0001
+Handler 처리 중 예외
+지원하지 않는 ServiceId
+E-TCF-SVC-0001
+Catalog 미등록 또는 비활성
+
+23.26 Handler 작성 시 금지 사항
+금지 사항
+사유
+하나의 Handler에서 여러 ServiceId를 if문으로 분기
+ServiceId-Handler 매핑 불명확
+Handler에서 DB 직접 조회
+계층 구조 위반
+Handler에서 MyBatis Mapper 직접 호출
+DAO 계층 우회
+Handler에서 업무 규칙 검증
+Rule 계층 책임 침범
+Handler에서 StandardResponse 직접 생성
+ETF 후처리 책임 침범
+Handler에서 HTTP Client 직접 호출
+연동 표준 우회
+Handler에서 세션/JWT 직접 검증
+STF/Security 책임 침범
+Handler에서 거래로그 직접 생성
+공통 로그 처리 중복
+Handler 이름을 모호하게 작성
+운영 추적 어려움
+ServiceId와 Handler 이름 불일치
+유지보수성 저하
+Map<String,Object>로 업무 처리
+타입 안정성 저하
+예외를 catch 후 무시
+장애 원인 추적 불가
+
+23.27 개발자 체크리스트
+점검 항목
+확인
+Handler가 entry.handler 패키지에 위치하는가?
+□
+Handler 이름이 {업무코드}{도메인}{행위}Handler 형식인가?
+□
+TransactionHandler 인터페이스를 구현했는가?
+□
+serviceId()가 정확한 ServiceId를 반환하는가?
+□
+ServiceId와 Service Catalog 등록값이 일치하는가?
+□
+ServiceId와 거래코드가 매핑되어 있는가?
+□
+Handler가 Spring Bean으로 등록되어 있는가?
+□
+StandardRequest.body를 Request DTO로 변환하는가?
+□
+Request DTO Validation을 호출하는가?
+□
+Header 정보는 TransactionContext로 전달하는가?
+□
+Handler가 Facade만 호출하는가?
+□
+Handler에서 DB/Mapper를 직접 호출하지 않는가?
+□
+Handler에서 업무 규칙을 직접 판단하지 않는가?
+□
+Handler에서 StandardResponse를 직접 만들지 않는가?
+□
+Handler 단위 테스트가 있는가?
+□
+표준 전문 통합 테스트가 있는가?
+□
+거래로그에 ServiceId, 거래코드가 기록되는가?
+□
+
+23.28 마무리말
+TransactionHandler는 NSIGHT TCF Framework에서 ServiceId와 업무 계층을 연결하는 핵심 진입점이다.
+하지만 Handler가 핵심이라고 해서 모든 로직을 Handler에 넣으면 안 된다.Handler가 비대해지면 TCF Framework의 계층 구조가 무너지고, 테스트와 운영 추적이 어려워진다.
+따라서 Handler는 다음 원칙을 지켜야 한다.
+Handler는 얇게 만든다.
+Handler는 DTO 변환과 Validation 호출만 수행한다.
+Handler는 Facade를 호출한다.
+업무 판단은 Rule에서 한다.
+DB 접근은 DAO/Mapper에서 한다.
+응답 전문 조립은 ETF에서 한다.
+
+
+23.29 시사점
+TransactionHandler 개발 기준을 지키면 다음 효과가 있다.
+효과
+설명
+실행 구조 명확화
+ServiceId 기준 Handler 선택이 명확해짐
+유지보수성 향상
+Handler, Facade, Service, Rule 책임 분리
+테스트 용이성
+Handler 단위 테스트와 업무 테스트 분리 가능
+운영 추적성
+ServiceId, 거래코드, Handler 기준 장애 추적 가능
+표준 준수
+모든 업무가 동일한 TCF 실행 구조 사용
+확장성 확보
+신규 ServiceId 추가 시 Handler만 추가하면 됨
+최종 원칙은 다음이다.
+TransactionHandler는 업무 로직 클래스가 아니라 ServiceId 실행 Adapter이다.Handler는 얇게 만들고, 실제 업무 판단은 Facade 이하 계층에서 처리해야 한다.
+

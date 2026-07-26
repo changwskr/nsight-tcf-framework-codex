@@ -1,0 +1,40 @@
+# local - bootRun (port 8110, gateway :8100 과 분리)
+server:
+  port: 8110
+
+spring:
+  application:
+    name: nsight-jwt-service
+  datasource:
+    url: jdbc:h2:mem:nsight_jwt;MODE=Oracle;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false
+    hikari:
+      pool-name: nsight-jwt-hikari-local
+  h2:
+    console:
+      enabled: true
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+
+nsight:
+  security:
+    jwt:
+      issuer-uri: http://127.0.0.1:8110
+      jwk-set-uri: http://127.0.0.1:8110/.well-known/jwks.json
+      internal:
+        shared-secret: nsight-local-jwt-internal-secret
+        allowed-service: tcf-om
+        timestamp-skew-seconds: 180
+        allowed-ips:
+          - 127.0.0.1
+          - 0:0:0:0:0:0:0:1
+          - ::1
+  tcf:
+    transaction-log-schema-auto-init: true
+    transaction-log-datasource:
+      url: jdbc:h2:file:${nsight.txlog.path:./data/nsight-txlog}/nsight_om;MODE=Oracle;AUTO_SERVER=TRUE;DATABASE_TO_UPPER=false
+      username: sa
+      password:
+      driver-class-name: org.h2.Driver

@@ -1,0 +1,1407 @@
+F. 오류코드 표준표
+F.1 도입 전 안내말
+본 부록은 NSIGHT TCF Framework에서 사용하는 오류코드 표준표를 정의한다.
+오류코드는 단순한 메시지 번호가 아니다. NSIGHT에서는 오류코드가 표준 응답, 거래로그, 감사로그, 장애추적, 운영자 조치, 재처리 판단, 모니터링 알림의 기준이 된다.
+NSIGHT 오류코드 설계 기준은 모든 예외를 TCF/ETF에서 표준 오류코드로 변환하고, OM_ERROR_CODE에서 사용자 메시지와 운영자 메시지를 조회한 뒤, 표준 응답 전문으로 조립하는 구조를 권장한다.
+오류 발생
+  ↓
+Exception 발생
+  ↓
+TCF / ETF에서 표준 오류코드로 변환
+  ↓
+OM_ERROR_CODE 조회
+  ↓
+사용자 메시지 / 운영자 메시지 / 조치 가이드 매핑
+  ↓
+StandardResponse 조립
+  ↓
+거래로그 / 감사로그 / 모니터링 기록
+
+
+F.2 오류코드 기본 형식
+오류코드는 다음 형식을 사용한다.
+E-{DOMAIN}-{CATEGORY}-{NNNN}
+
+구성요소
+의미
+표기
+예시
+E
+Error
+고정값
+E
+DOMAIN
+오류 발생 영역
+대문자
+TCF, SV, OM, UD
+CATEGORY
+오류 분류
+대문자
+HDR, VAL, BIZ, DB, TIME
+NNNN
+일련번호
+4자리 숫자
+0001
+예시는 다음과 같다.
+E-TCF-HDR-0001
+E-TCF-SVC-0001
+E-TCF-CTL-0001
+E-SV-BIZ-0001
+E-OM-CODE-0001
+E-UD-FILE-0001
+E-BT-JOB-0001
+
+오류코드 표준 형식은 E-{DOMAIN}-{CATEGORY}-{NNNN}이며, DOMAIN은 오류 발생 영역, CATEGORY는 오류 분류, NNNN은 일련번호를 의미한다.
+
+F.3 DOMAIN 표준표
+DOMAIN
+의미
+적용 영역
+예시
+TCF
+Transaction Control Framework
+STF, TCF, ETF, Dispatcher
+E-TCF-HDR-0001
+COM
+Common
+공통 유틸, 공통 Validator, 공통 메시지
+E-COM-VAL-0001
+CC
+Common Code / Common 업무
+공통코드, 기준정보
+E-CC-BIZ-0001
+IC
+Integration Customer
+통합고객
+E-IC-BIZ-0001
+PC
+Private Customer
+개인고객
+E-PC-BIZ-0001
+BC
+Business Customer
+기업고객
+E-BC-BIZ-0001
+MS
+Mini Single View
+미니싱글뷰
+E-MS-BIZ-0001
+SV
+Single View
+고객 요약·상세 조회
+E-SV-BIZ-0001
+PD
+Product
+상품정보
+E-PD-BIZ-0001
+CM
+Campaign
+캠페인
+E-CM-BIZ-0001
+EB
+EBM
+이벤트 기반 마케팅
+E-EB-BIZ-0001
+EP
+Event Processing
+이벤트 처리
+E-EP-BIZ-0001
+BP
+Behavior Processing
+행동정보 처리
+E-BP-BIZ-0001
+BD
+Behavior Data
+행동 데이터
+E-BD-BIZ-0001
+SS
+Sales Support
+영업지원
+E-SS-BIZ-0001
+CS
+Common Service
+공통 서비스
+E-CS-BIZ-0001
+CT
+Contents
+콘텐츠
+E-CT-BIZ-0001
+MG
+Message
+메시지 발송·관리
+E-MG-SND-0001
+OM
+Operation Management
+운영관리
+E-OM-AUTHZ-0001
+UD
+Upload / Download
+파일 업로드·다운로드
+E-UD-FILE-0001
+BT
+Batch
+배치 Job, 스케줄
+E-BT-JOB-0001
+GW
+Gateway
+Gateway 라우팅·인증
+E-GW-ROUTE-0001
+JWT
+JWT
+토큰 발급·검증
+E-JWT-AUTHN-0001
+
+F.4 CATEGORY 표준표
+CATEGORY
+의미
+발생 위치
+예시
+HDR
+Header 오류
+STF, Gateway
+E-TCF-HDR-0001
+MSG
+전문 구조 오류
+TCF 전문 Parser
+E-TCF-MSG-0001
+VAL
+입력값 검증 오류
+STF, Handler, Rule
+E-TCF-VAL-0001
+SVC
+ServiceId 오류
+Dispatcher
+E-TCF-SVC-0001
+TRX
+거래코드 오류
+STF, 거래 Catalog
+E-TCF-TRX-0001
+CTL
+거래통제 오류
+Transaction Control
+E-TCF-CTL-0001
+SES
+세션 오류
+Session 관리
+E-TCF-SES-0001
+AUTHN
+인증 오류
+Login, SSO, JWT
+E-TCF-AUTHN-0001
+AUTHZ
+권한 오류
+메뉴, 기능, 데이터 권한
+E-TCF-AUTHZ-0001
+BIZ
+업무 오류
+Service, Rule
+E-SV-BIZ-0001
+DB
+DB 오류
+DAO, Mapper, HikariCP
+E-TCF-DB-0001
+IF
+연계 오류
+외부 API, 내부 서비스 연동
+E-TCF-IF-0001
+TIME
+Timeout 오류
+TCF, DB, 외부연계
+E-TCF-TIME-0001
+FILE
+파일 오류
+업로드, 다운로드, Storage
+E-UD-FILE-0001
+CACHE
+캐시 오류
+Cache 조회·갱신
+E-TCF-CACHE-0001
+JOB
+Batch Job 오류
+Batch Handler
+E-BT-JOB-0001
+SCH
+Scheduler 오류
+Scheduler
+E-BT-SCH-0001
+ROUTE
+라우팅 오류
+Gateway
+E-GW-ROUTE-0001
+SYS
+시스템 오류
+공통, 미처리 예외
+E-TCF-SYS-9999
+SEC
+보안 오류
+위변조, 차단 IP, 금지 요청
+E-TCF-SEC-0001
+예외처리 설계 기준에서도 Header, Validation, 인증, 권한, 거래통제, ServiceId, 업무, DB, Query Timeout, 외부연계, 파일, 시스템, 미처리 예외를 구분하고 각각 표준 오류코드로 변환하도록 정의한다.
+
+F.5 ResultCode와 ErrorCode 구분
+오류코드는 resultCode와 구분해서 사용한다.
+구분
+역할
+예시
+resultStatus
+처리 상태
+SUCCESS, FAIL, TIMEOUT, UNKNOWN
+resultCode
+응답 결과 코드
+S0000, E0001, T0001, U0001
+errorCode
+상세 오류 식별자
+E-TCF-HDR-0001
+messageCode
+메시지 식별자
+MSG-TCF-HDR-0001
+userMessage
+사용자 안내 메시지
+입력값을 확인해 주십시오.
+operatorMessage
+운영자 상세 메시지
+header.serviceId is blank
+actionGuide
+조치 가이드
+요청 전문 Header를 확인하십시오.
+resultStatus = 성공 / 실패 / Timeout / 불명확 상태
+resultCode   = 화면 또는 연계 응답용 결과 코드
+errorCode    = 운영·로그·조치 기준 상세 오류코드
+
+권장 결과코드는 다음과 같다.
+resultStatus
+resultCode
+의미
+SUCCESS
+S0000
+정상
+FAIL
+E0001
+일반 실패
+VALIDATION_FAIL
+E0002
+입력값 오류
+AUTH_FAIL
+E0003
+인증·권한 오류
+TIMEOUT
+T0001
+Timeout
+UNKNOWN
+U0001
+처리상태 불명확
+SYSTEM_ERROR
+E9999
+시스템 오류
+
+F.6 TCF 공통 오류코드 표준표
+F.6.1 Header 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+운영자 메시지
+E-TCF-HDR-0001
+ServiceId 누락
+header.serviceId 없음
+요청 정보가 올바르지 않습니다.
+header.serviceId is blank
+E-TCF-HDR-0002
+TransactionCode 누락
+header.transactionCode 없음
+요청 정보가 올바르지 않습니다.
+header.transactionCode is blank
+E-TCF-HDR-0003
+BusinessCode 누락
+header.businessCode 없음
+요청 정보가 올바르지 않습니다.
+header.businessCode is blank
+E-TCF-HDR-0004
+ChannelId 누락
+header.channelId 없음
+채널 정보가 없습니다.
+header.channelId is blank
+E-TCF-HDR-0005
+UserId 누락
+인증 필요 거래인데 사용자 없음
+사용자 정보가 없습니다.
+header.userId is blank
+E-TCF-HDR-0006
+BranchId 누락
+지점 정보 필요 거래인데 지점 없음
+지점 정보가 없습니다.
+header.branchId is blank
+E-TCF-HDR-0007
+Path/Header 업무코드 불일치
+/sv/online인데 businessCode=CM
+요청 정보가 올바르지 않습니다.
+path businessCode and header businessCode mismatch
+
+F.6.2 전문 구조 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+운영자 메시지
+E-TCF-MSG-0001
+JSON 파싱 오류
+JSON 형식 오류
+요청 전문 형식이 올바르지 않습니다.
+json parse error
+E-TCF-MSG-0002
+Header 없음
+header 객체 없음
+요청 Header가 없습니다.
+request.header is null
+E-TCF-MSG-0003
+Body 없음
+필수 Body 누락
+요청 Body가 없습니다.
+request.body is null
+E-TCF-MSG-0004
+지원하지 않는 Content-Type
+application/json 아님
+요청 형식이 올바르지 않습니다.
+unsupported content-type
+
+F.6.3 ServiceId / Dispatcher 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+운영자 메시지
+E-TCF-SVC-0001
+ServiceId 미등록
+Service Catalog에 없음
+요청한 서비스를 찾을 수 없습니다.
+serviceId is not registered
+E-TCF-SVC-0002
+Handler 없음
+Registry에 Handler 없음
+요청한 서비스를 처리할 수 없습니다.
+transactionHandler not found
+E-TCF-SVC-0003
+ServiceId 중복
+동일 ServiceId Handler 중복 등록
+서비스 등록 기준 오류입니다.
+duplicated serviceId handler
+E-TCF-SVC-0004
+사용중지 ServiceId
+USE_YN = N
+현재 사용할 수 없는 서비스입니다.
+serviceId is disabled
+E-TCF-SVC-0005
+ServiceId 업무코드 불일치
+Prefix와 businessCode 불일치
+요청 정보가 올바르지 않습니다.
+serviceId prefix mismatch
+
+F.6.4 거래코드 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+운영자 메시지
+E-TCF-TRX-0001
+거래코드 형식 오류
+{업무코드}-{유형}-{번호} 형식 아님
+거래 정보가 올바르지 않습니다.
+invalid transactionCode format
+E-TCF-TRX-0002
+거래코드 업무코드 불일치
+businessCode와 Prefix 불일치
+거래 정보가 올바르지 않습니다.
+transactionCode prefix mismatch
+E-TCF-TRX-0003
+ServiceId 매핑 불일치
+Catalog 매핑 불일치
+거래 정보가 올바르지 않습니다.
+serviceId and transactionCode mismatch
+E-TCF-TRX-0004
+처리유형 불일치
+processingType과 거래유형 불일치
+거래 정보가 올바르지 않습니다.
+processingType mismatch
+E-TCF-TRX-0005
+사용중지 거래
+거래 상태 비활성
+현재 사용할 수 없는 거래입니다.
+transaction is disabled
+
+F.6.5 거래통제 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+운영자 메시지
+E-TCF-CTL-0001
+미등록 거래
+거래통제 Allow-List 없음
+해당 거래를 수행할 수 없습니다.
+transaction control allow-list not found
+E-TCF-CTL-0002
+거래통제 중복
+동일 조합 중복
+거래통제 기준 오류입니다.
+duplicated transaction control rule
+E-TCF-CTL-0003
+차단 거래
+차단 상태
+현재 차단된 거래입니다.
+transaction is blocked
+E-TCF-CTL-0004
+거래시간 외
+허용 시간 아님
+현재 이용 가능한 시간이 아닙니다.
+transaction time not allowed
+E-TCF-CTL-0005
+채널 제한
+허용 채널 아님
+해당 채널에서는 사용할 수 없습니다.
+channel is not allowed
+거래통제는 요청 Header 기반 Allow-List 방식이며, 등록된 거래만 실행하고 등록되지 않은 거래는 기본 차단하는 구조가 기준이다.
+
+F.6.6 세션·인증·권한 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+운영자 메시지
+E-TCF-SES-0001
+세션 만료
+Session 없음/만료
+다시 로그인해 주십시오.
+session expired
+E-TCF-SES-0002
+중복 로그인 제한
+다른 세션 존재
+다른 위치에서 로그인되어 있습니다.
+duplicated login detected
+E-TCF-AUTHN-0001
+미인증 사용자
+인증정보 없음
+로그인이 필요합니다.
+authentication required
+E-TCF-AUTHN-0002
+인증 토큰 오류
+Token 검증 실패
+다시 로그인해 주십시오.
+invalid authentication token
+E-TCF-AUTHZ-0001
+메뉴권한 없음
+메뉴 접근 불가
+접근 권한이 없습니다.
+menu authorization failed
+E-TCF-AUTHZ-0002
+기능권한 없음
+등록·수정·삭제·다운로드 불가
+수행 권한이 없습니다.
+function authorization failed
+E-TCF-AUTHZ-0003
+데이터권한 없음
+타 지점·민감정보 접근
+조회 권한이 없습니다.
+data authorization failed
+권한 오류는 사용자에게 내부 권한 구조를 노출하지 않고, 감사로그에는 사용자, 메뉴, 기능, ServiceId, 실패 사유를 남긴다.
+
+F.6.7 Validation 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+운영자 메시지
+E-TCF-VAL-0001
+필수값 누락
+필수 항목 없음
+입력값을 확인해 주십시오.
+required field is blank
+E-TCF-VAL-0002
+형식 오류
+날짜·숫자·코드 형식 오류
+입력 형식이 올바르지 않습니다.
+invalid field format
+E-TCF-VAL-0003
+길이 오류
+최대 길이 초과
+입력값 길이가 올바르지 않습니다.
+field length exceeded
+E-TCF-VAL-0004
+허용되지 않은 코드값
+공통코드 미등록 값
+허용되지 않은 값입니다.
+invalid code value
+E-TCF-VAL-0005
+범위 오류
+날짜·금액·건수 범위 오류
+입력 범위를 확인해 주십시오.
+field range invalid
+E-TCF-VAL-0006
+금지문자 오류
+특수문자·제어문자 포함
+입력값에 사용할 수 없는 문자가 있습니다.
+forbidden characters detected
+
+F.6.8 DB 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+운영자 메시지
+E-TCF-DB-0001
+DB 처리 오류
+일반 DB 오류
+일시적으로 처리할 수 없습니다.
+database access error
+E-TCF-DB-0002
+Query Timeout
+SQL 제한시간 초과
+조회가 지연되고 있습니다.
+query timeout
+E-TCF-DB-0003
+Connection 획득 실패
+HikariCP Connection Timeout
+일시적으로 접속이 지연되고 있습니다.
+connection acquisition timeout
+E-TCF-DB-0004
+SQL 매핑 오류
+Mapper/ResultMap 오류
+시스템 처리 중 오류가 발생했습니다.
+mybatis mapping error
+E-TCF-DB-0005
+데이터 무결성 오류
+Constraint 위반
+저장할 수 없는 데이터입니다.
+data integrity violation
+E-TCF-DB-0006
+Deadlock
+DB Deadlock 발생
+일시적으로 처리할 수 없습니다.
+database deadlock
+
+F.6.9 연계 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+운영자 메시지
+E-TCF-IF-0001
+연계 Timeout
+외부 응답 지연
+연계 시스템 응답이 지연되고 있습니다.
+external interface timeout
+E-TCF-IF-0002
+연계 호출 실패
+HTTP 오류, 연결 실패
+연계 시스템 처리 중 오류가 발생했습니다.
+external interface call failed
+E-TCF-IF-0003
+연계 응답 오류
+응답 전문 오류
+연계 응답이 올바르지 않습니다.
+invalid external response
+E-TCF-IF-0004
+연계 시스템 오류
+대상 시스템 장애
+연계 시스템에서 오류가 발생했습니다.
+target system error
+E-TCF-IF-0005
+연계 인증 오류
+대상 API 인증 실패
+연계 시스템 인증에 실패했습니다.
+external authentication failed
+
+F.6.10 Timeout 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+운영자 메시지
+E-TCF-TIME-0001
+온라인 전체 Timeout
+거래 제한시간 초과
+처리 상태를 확인해 주십시오.
+online transaction timeout
+E-TCF-TIME-0002
+DB Query Timeout
+MyBatis SQL Timeout
+조회가 지연되고 있습니다.
+database query timeout
+E-TCF-TIME-0003
+DB Connection Timeout
+Pool 대기 초과
+일시적으로 접속이 지연되고 있습니다.
+db connection timeout
+E-TCF-TIME-0004
+외부 연결 Timeout
+Connect Timeout
+연계 시스템 연결이 지연되고 있습니다.
+external connect timeout
+E-TCF-TIME-0005
+외부 응답 Timeout
+Read Timeout
+연계 시스템 응답이 지연되고 있습니다.
+external read timeout
+E-TCF-TIME-0006
+Client 응답 Timeout
+Client/Proxy 응답 초과
+처리 상태를 확인해 주십시오.
+client response timeout
+Timeout은 FAIL로만 처리하지 않고, 처리 결과가 불명확한 경우 TIMEOUT 또는 UNKNOWN 상태로 거래로그에 남긴다.
+
+F.6.11 시스템 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+운영자 메시지
+E-TCF-SYS-0001
+공통 시스템 오류
+예상 가능한 시스템 오류
+시스템 처리 중 오류가 발생했습니다.
+system error
+E-TCF-SYS-0002
+설정 오류
+환경설정 누락·오류
+시스템 설정 오류가 발생했습니다.
+configuration error
+E-TCF-SYS-0003
+Bean 초기화 오류
+Handler, Bean 등록 오류
+시스템 초기화 오류가 발생했습니다.
+bean initialization error
+E-TCF-SYS-0004
+직렬화 오류
+JSON 변환 실패
+시스템 처리 중 오류가 발생했습니다.
+serialization error
+E-TCF-SYS-9999
+미처리 시스템 오류
+예상하지 못한 RuntimeException
+시스템 처리 중 오류가 발생했습니다.
+unhandled exception
+
+F.7 업무별 오류코드 표준표
+F.7.1 SV Single View 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+E-SV-VAL-0001
+고객번호 누락
+customerNo 없음
+고객번호를 입력해 주십시오.
+E-SV-VAL-0002
+기준일자 형식 오류
+baseDate 형식 오류
+기준일자를 확인해 주십시오.
+E-SV-BIZ-0001
+고객정보 없음
+고객 조회 결과 없음
+조회 결과가 없습니다.
+E-SV-BIZ-0002
+조회 대상 아님
+조회 불가 고객
+조회할 수 없는 고객입니다.
+E-SV-AUTHZ-0001
+타 지점 고객 조회 제한
+데이터권한 없음
+조회 권한이 없습니다.
+E-SV-DB-0001
+고객조회 DB 오류
+RDW 조회 오류
+일시적으로 조회할 수 없습니다.
+
+F.7.2 CM Campaign 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+E-CM-VAL-0001
+캠페인명 누락
+캠페인명 없음
+캠페인명을 입력해 주십시오.
+E-CM-VAL-0002
+캠페인 기간 오류
+시작일 > 종료일
+캠페인 기간을 확인해 주십시오.
+E-CM-BIZ-0001
+캠페인 없음
+캠페인 조회 결과 없음
+캠페인을 찾을 수 없습니다.
+E-CM-BIZ-0002
+실행 불가 상태
+상태가 DRAFT 아님
+현재 상태에서는 실행할 수 없습니다.
+E-CM-BIZ-0003
+중복 캠페인
+동일 조건 캠페인 존재
+동일한 캠페인이 존재합니다.
+E-CM-TIME-0001
+캠페인 실행 Timeout
+실행 제한시간 초과
+처리 상태를 확인해 주십시오.
+
+F.7.3 MG Message 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+E-MG-VAL-0001
+수신자 누락
+대상 고객 없음
+발송 대상을 확인해 주십시오.
+E-MG-VAL-0002
+메시지 내용 누락
+메시지 본문 없음
+메시지 내용을 입력해 주십시오.
+E-MG-BIZ-0001
+발송 대상 없음
+대상자 추출 결과 없음
+발송 대상이 없습니다.
+E-MG-SND-0001
+메시지 발송 실패
+발송 API 오류
+메시지 발송 중 오류가 발생했습니다.
+E-MG-SND-0002
+중복 발송 제한
+동일 메시지 중복 발송
+이미 발송된 메시지입니다.
+E-MG-IF-0001
+발송 연계 Timeout
+외부 발송 시스템 지연
+발송 시스템 응답이 지연되고 있습니다.
+
+F.7.4 OM Operation Management 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+E-OM-AUTHZ-0001
+관리자 권한 없음
+OM 기능권한 없음
+운영관리 권한이 없습니다.
+E-OM-USER-0001
+사용자 없음
+사용자 조회 결과 없음
+사용자를 찾을 수 없습니다.
+E-OM-USER-0002
+사용자 중복
+동일 사용자ID 존재
+이미 등록된 사용자입니다.
+E-OM-SVC-0001
+ServiceId 중복
+동일 ServiceId 등록
+이미 등록된 ServiceId입니다.
+E-OM-SVC-0002
+ServiceId 없음
+ServiceId 조회 결과 없음
+ServiceId를 찾을 수 없습니다.
+E-OM-CODE-0001
+코드그룹 중복
+동일 코드그룹 존재
+이미 등록된 코드그룹입니다.
+E-OM-CODE-0002
+코드 중복
+동일 코드 존재
+이미 등록된 코드입니다.
+E-OM-ERR-0001
+오류코드 중복
+동일 오류코드 존재
+이미 등록된 오류코드입니다.
+E-OM-ERR-0002
+오류코드 없음
+오류코드 조회 결과 없음
+오류코드를 찾을 수 없습니다.
+
+F.7.5 UD 파일 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+E-UD-FILE-0001
+파일 없음
+파일 메타 또는 원본 없음
+파일을 찾을 수 없습니다.
+E-UD-FILE-0002
+삭제된 파일
+DELETE_YN = Y
+삭제된 파일입니다.
+E-UD-FILE-0003
+사용 불가 파일
+USE_YN = N
+사용할 수 없는 파일입니다.
+E-UD-FILE-0004
+보관기간 만료
+만료일 초과
+보관기간이 만료된 파일입니다.
+E-UD-FILE-0005
+다운로드 오류
+Stream 처리 실패
+파일 다운로드 중 오류가 발생했습니다.
+E-UD-FILE-0006
+업로드 크기 초과
+제한 크기 초과
+파일 크기가 너무 큽니다.
+E-UD-AUTHZ-0001
+다운로드 권한 없음
+다운로드 권한 없음
+파일 다운로드 권한이 없습니다.
+E-UD-AUDIT-0001
+다운로드 사유 누락
+사유 필수 파일
+다운로드 사유를 입력해야 합니다.
+
+F.7.6 BT Batch 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+E-BT-JOB-0001
+Job 미등록
+Job Catalog 없음
+등록되지 않은 Batch Job입니다.
+E-BT-JOB-0002
+Job 사용중지
+USE_YN = N
+사용할 수 없는 Batch Job입니다.
+E-BT-LOCK-0001
+중복 실행
+동일 Job 실행 중
+이미 실행 중인 Batch Job입니다.
+E-BT-RUN-0001
+Job 실행 실패
+Handler 실행 오류
+Batch Job 실행 중 오류가 발생했습니다.
+E-BT-TIME-0001
+Job Timeout
+제한시간 초과
+Batch Job 처리 시간이 초과되었습니다.
+E-BT-SCH-0001
+스케줄 오류
+Cron/스케줄 설정 오류
+Batch 스케줄 설정 오류입니다.
+E-BT-HIST-0001
+실행이력 저장 실패
+Execution 기록 실패
+Batch 실행이력을 저장할 수 없습니다.
+
+F.7.7 Gateway 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+E-GW-HDR-0001
+Header 업무코드 누락
+businessCode 없음
+요청 정보가 올바르지 않습니다.
+E-GW-HDR-0002
+ServiceId 누락
+serviceId 없음
+요청 정보가 올바르지 않습니다.
+E-GW-ROUTE-0001
+Path 업무코드 오류
+URL 업무코드 오류
+요청 경로가 올바르지 않습니다.
+E-GW-ROUTE-0002
+Path/Header 불일치
+Path와 Header 업무코드 불일치
+요청 정보가 올바르지 않습니다.
+E-GW-ROUTE-0003
+라우팅 정보 없음
+Route Table 없음
+요청한 업무로 연결할 수 없습니다.
+E-GW-TARGET-0001
+Target 없음
+사용 가능한 대상 없음
+일시적으로 서비스를 사용할 수 없습니다.
+E-GW-TARGET-0002
+Target Health Down
+대상 서버 장애
+일시적으로 서비스를 사용할 수 없습니다.
+E-GW-TIME-0001
+Downstream Timeout
+업무 WAR 응답 지연
+처리 상태를 확인해 주십시오.
+E-GW-SYS-0001
+Gateway 시스템 오류
+Gateway 내부 오류
+시스템 처리 중 오류가 발생했습니다.
+Gateway 오류코드는 요청 차단, 인증 오류, 라우팅 오류, 대상 Health Down, Downstream Timeout 등을 표준 응답으로 변환하고 OM 오류코드 관리 기준으로 운영한다.
+
+F.7.8 JWT 오류
+오류코드
+오류명
+발생 조건
+사용자 메시지
+E-JWT-AUTHN-0001
+토큰 없음
+Authorization Header 없음
+다시 로그인해 주십시오.
+E-JWT-AUTHN-0002
+토큰 형식 오류
+Bearer 형식 아님
+다시 로그인해 주십시오.
+E-JWT-AUTHN-0003
+토큰 만료
+Access Token 만료
+다시 로그인해 주십시오.
+E-JWT-AUTHN-0004
+토큰 서명 오류
+Signature 검증 실패
+다시 로그인해 주십시오.
+E-JWT-AUTHN-0005
+Refresh Token 오류
+Refresh Token 없음/만료
+다시 로그인해 주십시오.
+E-JWT-SYS-0001
+토큰 발급 오류
+JWT 생성 실패
+인증 처리 중 오류가 발생했습니다.
+
+F.8 오류 심각도 기준
+ERROR_LEVEL
+의미
+운영 기준
+알림
+INFO
+정상적인 업무 실패
+조회 결과 없음, 중복 데이터
+알림 없음
+WARN
+사용자·입력·권한성 오류
+Validation, 권한 없음, 거래 차단
+필요 시 집계
+ERROR
+시스템 처리 오류
+DB 오류, 연계 오류, 파일 오류
+운영팀 알림
+CRITICAL
+서비스 영향 장애
+전체 Timeout, DB 장애, Gateway 장애
+즉시 알림
+FATAL
+시스템 중단 수준
+기동 실패, 설정 불능, 데이터 손상
+즉시 장애 전파
+
+F.9 Retry / Audit / Mask 기준
+오류 유형
+Retry
+Audit
+Mask
+기준
+Header 오류
+N
+N
+Y
+요청 오류
+Validation 오류
+N
+N
+Y
+사용자 입력 오류
+인증 오류
+N
+Y
+Y
+로그인·세션 관련
+권한 오류
+N
+Y
+Y
+권한 위반은 감사 대상
+거래통제 오류
+N
+Y
+Y
+미등록·차단 거래
+업무 오류
+N
+업무별
+Y
+정상 업무 실패
+DB Connection 오류
+Y
+N
+Y
+일시 장애 가능
+Query Timeout
+Y
+N
+Y
+상태 확인 필요
+외부연계 Timeout
+Y
+N
+Y
+일시 장애 가능
+파일 다운로드 오류
+N
+Y
+Y
+다운로드 이력 감사
+시스템 오류
+N
+Y
+Y
+원인 분석 필요
+보안 오류
+N
+Y
+Y
+반드시 감사 대상
+오류 메시지는 사용자 메시지와 운영자 메시지를 분리해야 하며, 사용자 응답에는 SQL, DB 계정, StackTrace, 서버 IP, Hostname, 개인정보를 노출하지 않는다.
+
+F.10 OM_ERROR_CODE 관리 항목
+오류코드는 OM_ERROR_CODE 기준으로 관리한다.
+컬럼
+설명
+예시
+ERROR_CODE
+표준 오류코드
+E-TCF-HDR-0001
+ERROR_NAME
+오류명
+ServiceId 누락
+ERROR_CATEGORY
+오류 분류
+HDR
+ERROR_LEVEL
+심각도
+WARN
+RESULT_CODE
+응답 결과코드
+E0002
+HTTP_STATUS
+HTTP 상태코드
+200
+USER_MESSAGE
+사용자 메시지
+입력값을 확인해 주십시오.
+OPERATOR_MESSAGE
+운영자 메시지
+header.serviceId is blank
+ACTION_GUIDE
+조치 가이드
+요청 Header의 serviceId를 확인하십시오.
+NOTIFY_TARGET
+알림 대상
+개발팀, 운영팀, DBA
+RETRY_YN
+재시도 가능 여부
+Y, N
+AUDIT_YN
+감사로그 대상 여부
+Y, N
+MASK_DETAIL_YN
+상세 오류 마스킹 여부
+Y, N
+USE_YN
+사용 여부
+Y, N
+CREATED_BY
+생성자
+admin
+CREATED_AT
+생성일시
+SYSDATE
+UPDATED_BY
+수정자
+admin
+UPDATED_AT
+수정일시
+SYSDATE
+OM_ERROR_CODE는 ERROR_CODE, ERROR_CATEGORY, USER_MESSAGE, OPERATOR_MESSAGE, ACTION_GUIDE, NOTIFY_TARGET, RETRY_YN, AUDIT_YN, MASK_DETAIL_YN, USE_YN 등을 포함하는 구조로 확장하는 것이 적합하다.
+
+F.11 OM_ERROR_CODE 등록 예시
+INSERT INTO OM_ERROR_CODE (
+      ERROR_CODE
+    , ERROR_NAME
+    , ERROR_CATEGORY
+    , ERROR_LEVEL
+    , RESULT_CODE
+    , HTTP_STATUS
+    , USER_MESSAGE
+    , OPERATOR_MESSAGE
+    , ACTION_GUIDE
+    , NOTIFY_TARGET
+    , RETRY_YN
+    , AUDIT_YN
+    , MASK_DETAIL_YN
+    , USE_YN
+    , CREATED_BY
+    , CREATED_AT
+) VALUES (
+      'E-TCF-HDR-0001'
+    , 'ServiceId 누락'
+    , 'HDR'
+    , 'WARN'
+    , 'E0002'
+    , 200
+    , '입력값을 확인해 주십시오.'
+    , 'header.serviceId is blank'
+    , '요청 전문 Header의 serviceId 값을 확인하십시오.'
+    , '개발팀'
+    , 'N'
+    , 'N'
+    , 'Y'
+    , 'Y'
+    , 'admin'
+    , SYSDATE
+);
+
+INSERT INTO OM_ERROR_CODE (
+      ERROR_CODE
+    , ERROR_NAME
+    , ERROR_CATEGORY
+    , ERROR_LEVEL
+    , RESULT_CODE
+    , HTTP_STATUS
+    , USER_MESSAGE
+    , OPERATOR_MESSAGE
+    , ACTION_GUIDE
+    , NOTIFY_TARGET
+    , RETRY_YN
+    , AUDIT_YN
+    , MASK_DETAIL_YN
+    , USE_YN
+    , CREATED_BY
+    , CREATED_AT
+) VALUES (
+      'E-TCF-CTL-0001'
+    , '미등록 거래'
+    , 'CTL'
+    , 'WARN'
+    , 'E0003'
+    , 200
+    , '해당 거래를 수행할 수 없습니다.'
+    , 'TCF_TRANSACTION_CONTROL allow-list not found'
+    , 'OM 거래통제 관리 화면에서 사용자, 채널, 지점, serviceId 등록 여부를 확인하십시오.'
+    , '운영팀'
+    , 'N'
+    , 'Y'
+    , 'Y'
+    , 'Y'
+    , 'admin'
+    , SYSDATE
+);
+
+
+F.12 Java 상수 정의 예시
+public final class TcfErrorCodes {
+
+    private TcfErrorCodes() {
+    }
+
+    public static final String HEADER_SERVICE_ID_REQUIRED = "E-TCF-HDR-0001";
+    public static final String HEADER_TRANSACTION_CODE_REQUIRED = "E-TCF-HDR-0002";
+    public static final String HEADER_BUSINESS_CODE_REQUIRED = "E-TCF-HDR-0003";
+
+    public static final String SERVICE_ID_NOT_REGISTERED = "E-TCF-SVC-0001";
+    public static final String HANDLER_NOT_FOUND = "E-TCF-SVC-0002";
+
+    public static final String TRANSACTION_CONTROL_DENIED = "E-TCF-CTL-0001";
+
+    public static final String VALIDATION_REQUIRED_FIELD = "E-TCF-VAL-0001";
+
+    public static final String DB_ERROR = "E-TCF-DB-0001";
+    public static final String QUERY_TIMEOUT = "E-TCF-DB-0002";
+
+    public static final String INTERFACE_TIMEOUT = "E-TCF-IF-0001";
+    public static final String ONLINE_TIMEOUT = "E-TCF-TIME-0001";
+
+    public static final String SYSTEM_ERROR = "E-TCF-SYS-9999";
+}
+
+업무별 오류코드는 업무 모듈에서 별도 상수로 분리한다.
+public final class SvErrorCodes {
+
+    private SvErrorCodes() {
+    }
+
+    public static final String CUSTOMER_NO_REQUIRED = "E-SV-VAL-0001";
+    public static final String CUSTOMER_NOT_FOUND = "E-SV-BIZ-0001";
+    public static final String CUSTOMER_ACCESS_DENIED = "E-SV-AUTHZ-0001";
+    public static final String CUSTOMER_DB_ERROR = "E-SV-DB-0001";
+}
+
+
+F.13 오류코드 사용 예시
+업무 오류
+if (customer == null) {
+    throw new BusinessException(
+            "E-SV-BIZ-0001",
+            "조회 결과가 없습니다.",
+            "SV 고객요약조회 결과 없음. customerNo=" + customerNo
+    );
+}
+
+Validation 오류
+if (request.getCustomerNo() == null || request.getCustomerNo().isBlank()) {
+    throw new ValidationException(
+            "E-SV-VAL-0001",
+            "고객번호를 입력해 주십시오.",
+            List.of(new FieldErrorDetail("customerNo", "고객번호는 필수입니다."))
+    );
+}
+
+권한 오류
+if (!permissionService.canViewCustomer(userId, customerNo)) {
+    throw new AuthorizationException(
+            "E-SV-AUTHZ-0001",
+            "조회 권한이 없습니다.",
+            "고객조회 데이터권한 없음. userId=" + userId + ", customerNo=" + customerNo
+    );
+}
+
+DB 오류
+try {
+    return mapper.selectCustomerSummary(request);
+} catch (QueryTimeoutException e) {
+    throw new DatabaseException(
+            "E-TCF-DB-0002",
+            "조회가 지연되고 있습니다.",
+            "SQL Timeout. sqlId=SvCustomerMapper.selectCustomerSummary",
+            e
+    );
+}
+
+
+F.14 오류코드 작성 금지 패턴
+금지 패턴
+문제
+표준 예시
+ERR001
+영역·분류 불명확
+E-TCF-SYS-0001
+SV-ERROR-1
+형식 불일치
+E-SV-BIZ-0001
+E-SV-0001
+CATEGORY 없음
+E-SV-BIZ-0001
+E-SV-BUSINESS-0001
+CATEGORY 길고 비표준
+E-SV-BIZ-0001
+E-sv-biz-0001
+소문자 사용
+E-SV-BIZ-0001
+E_SV_BIZ_0001
+구분자 위반
+E-SV-BIZ-0001
+E-SV-BIZ-1
+일련번호 자리수 위반
+E-SV-BIZ-0001
+E-SV-BIZ-0001A
+임의 Suffix
+신규 번호 발급
+RuntimeException("오류")
+운영 추적 불가
+표준 예외 + 오류코드 사용
+SQL 오류를 화면에 표시
+보안 위험
+사용자 메시지와 운영 메시지 분리
+
+F.15 오류코드 채번 기준
+구분
+기준
+채번 단위
+DOMAIN + CATEGORY
+일련번호
+4자리 숫자
+시작 번호
+0001
+공통 오류
+TCF, COM 영역에서 관리
+업무 오류
+각 업무코드 영역에서 관리
+Gateway 오류
+GW 영역에서 관리
+JWT 오류
+JWT 영역에서 관리
+파일 오류
+UD 영역에서 관리
+배치 오류
+BT 영역에서 관리
+폐기 오류코드
+삭제하지 않고 USE_YN = N 관리
+번호 재사용
+금지
+사용자 메시지 변경
+이력관리 필수
+
+F.16 개발 시 준수사항
+구분
+준수사항
+신규 오류 추가
+OM_ERROR_CODE에 먼저 등록한다.
+예외 발생
+BusinessException, SystemException 등 표준 예외를 사용한다.
+사용자 메시지
+기술정보 없이 짧고 명확하게 작성한다.
+운영자 메시지
+GUID, TraceId, ServiceId, SQL ID, Interface ID 기준으로 추적 가능하게 작성한다.
+StackTrace
+사용자 응답에 포함하지 않는다.
+SQL 정보
+사용자 응답에 노출하지 않는다.
+개인정보
+오류 메시지와 로그에 원문 노출하지 않는다.
+권한 오류
+감사로그 대상 여부를 Y로 관리한다.
+Timeout 오류
+TIMEOUT 또는 UNKNOWN 상태를 고려한다.
+미처리 예외
+E-TCF-SYS-9999로 변환한다.
+테스트
+오류코드, 사용자 메시지, 거래로그 상태를 함께 검증한다.
+
+F.17 최종 체크리스트
+점검 항목
+확인 기준
+형식
+E-{DOMAIN}-{CATEGORY}-{NNNN} 형식을 따르는가?
+DOMAIN
+업무코드 또는 공통 도메인과 일치하는가?
+CATEGORY
+표준 분류값을 사용하는가?
+메시지 분리
+사용자 메시지와 운영자 메시지가 분리되어 있는가?
+조치 가이드
+운영자가 확인할 위치가 명확한가?
+결과코드
+resultCode와 errorCode가 분리되어 있는가?
+감사 여부
+권한·다운로드·관리자 기능은 감사 대상으로 되어 있는가?
+재시도 여부
+DB·연계·Timeout 오류의 Retry 기준이 명확한가?
+마스킹
+상세 오류가 사용자에게 노출되지 않는가?
+OM 등록
+OM_ERROR_CODE에 등록되어 있는가?
+로그 연계
+GUID, TraceId, ServiceId, TransactionCode와 함께 기록되는가?
+
+F.18 최종 정리
+오류코드 표준표의 핵심은 다음이다.
+오류코드
+= 오류 발생 영역
++ 오류 분류
++ 일련번호
+
+운영 관점에서는 다음 기준이 더 중요하다.
+사용자 메시지
+= 사용자가 이해할 수 있는 안내
+
+운영자 메시지
+= 운영자가 원인을 찾을 수 있는 정보
+
+조치 가이드
+= 어디를 확인하고 무엇을 조치할지에 대한 기준
+
+거래로그 / 감사로그
+= GUID 기준 장애 추적과 감사 대응
+
+따라서 NSIGHT TCF Framework에서 오류코드는 다음 한 문장으로 정의할 수 있다.
+오류코드는 예외를 화면에 보여주기 위한 값이 아니라, 장애를 표준 응답·로그·감사·운영조치로 연결하는 운영 식별자이다.
+

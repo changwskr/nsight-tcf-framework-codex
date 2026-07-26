@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- BC - Business Customer -->
+<Context path="/bc"
+         docBase="/app/nsight/war/bc.war"
+         reloadable="false"
+         sessionCookieName="JSESSIONID">
+</Context>

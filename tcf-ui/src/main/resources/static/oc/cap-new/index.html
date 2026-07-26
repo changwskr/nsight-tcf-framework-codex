@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NSIGHT OC · NEW 용량산정</title>
+  <script src="/_shared/ui-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/oc-cap-new.css?v=20260712d">
+</head>
+<body class="tcf-home oc-capnew-page">
+  <div class="tcf-main">
+    <header class="tcf-topbar">
+      <div class="tcf-topbar__brand">
+        <h1>NSIGHT OC · NEW 용량산정</h1>
+        <p>8단계 Wizard · 시나리오 저장·비교·확정 (기존 CAP와 분리)</p>
+      </div>
+      <nav class="tcf-topbar__nav" aria-label="OC 화면">
+        <a class="tcf-topbar__link" href="/index.html#moduleSection">TCF UI</a>
+        <a class="tcf-topbar__link" href="/oc/index.html">OC 포털</a>
+        <a class="tcf-topbar__link" href="/oc/capacity.html">용량 산정</a>
+        <a class="tcf-topbar__link tcf-topbar__link--active" href="/oc/cap-new/index.html">NEW 용량산정</a>
+        <a class="tcf-topbar__link" href="/oc/env-001.html">ENV</a>
+        <a class="tcf-topbar__link" href="/help.html">HELP</a>
+        <span class="badge">CAP-NEW</span>
+      </nav>
+    </header>
+
+    <section class="tcf-section oc-capnew-hero">
+      <h2>시나리오 템플릿</h2>
+      <p>용도에 맞는 초기 템플릿을 선택하면 STEP 1~7이 미리 채워진 상태로 Wizard가 시작됩니다. 이후 수치만 조정하면 됩니다.</p>
+      <div id="capNewMsg" class="oc-capnew-msg" hidden></div>
+      <div id="templateGrid" class="oc-capnew-template-grid">
+        <p>템플릿을 불러오는 중…</p>
+      </div>
+    </section>
+
+    <section class="tcf-section oc-capnew-hero">
+      <h2>저장된 시나리오</h2>
+      <p>이전에 저장한 산정 시나리오를 이어서 편집합니다.</p>
+      <p>
+        <a href="/oc/cap-new/compare.html" class="tcf-btn tcf-btn--ghost">시나리오 비교</a>
+        <a href="/oc/cap-new/approved.html" class="tcf-btn tcf-btn--ghost" style="margin-left:0.5rem;">승인 기준안</a>
+      </p>
+      <div id="scenarioList" class="oc-capnew-list">
+        <p>목록을 불러오는 중…</p>
+      </div>
+    </section>
+  </div>
+  <script src="/_shared/oc-cap-new-api.js"></script>
+  <script src="/_shared/oc-cap-new-index.js"></script>
+</body>
+</html>

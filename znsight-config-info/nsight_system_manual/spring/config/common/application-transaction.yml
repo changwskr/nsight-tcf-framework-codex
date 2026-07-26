@@ -1,0 +1,18 @@
+spring:
+  transaction:
+    default-timeout: 5
+    rollback-on-commit-failure: true
+
+nsight:
+  transaction:
+    default-timeout-seconds: 5
+    read-only-timeout-seconds: 3
+    external-call-timeout-seconds: 5
+    long-running-threshold-seconds: 10
+    retry:
+      enabled: false
+      max-attempts: 1
+    idempotency:
+      enabled: true
+      header-name: Idempotency-Key
+      ttl-minutes: 60

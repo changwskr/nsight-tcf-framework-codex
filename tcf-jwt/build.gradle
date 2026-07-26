@@ -1,0 +1,32 @@
+// JWT 인증·토큰 발급 서비스
+// 빌드: gradle :tcf-jwt:bootWar
+// 실행: gradle :tcf-jwt:bootRun  (포트 8100)
+
+plugins {
+    id 'org.springframework.boot'
+    id 'war'
+}
+
+dependencies {
+    implementation project(':tcf-util')
+    implementation project(':tcf-core')
+    implementation project(':tcf-web')
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    implementation 'org.springframework.security:spring-security-crypto'
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
+    runtimeOnly 'com.h2database:h2'
+    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+}
+
+bootWar {
+    archiveFileName = 'jwt.war'
+}
+
+war {
+    archiveFileName = 'jwt.war'
+}

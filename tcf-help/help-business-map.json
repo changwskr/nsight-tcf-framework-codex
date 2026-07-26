@@ -1,0 +1,547 @@
+{
+  "version": "1.1",
+  "generatedAt": "2026-07-25T12:16:00.991Z",
+  "source": "tcf-ui/src/main/resources/static",
+  "total": 102,
+  "overrideCount": 19,
+  "screens": {
+    "/av/sample-list.html": {
+      "docId": "business-modules",
+      "title": "AV · sample list",
+      "module": "av"
+    },
+    "/bc/index-multi.html": {
+      "docId": "business-modules",
+      "title": "BC · 다중 서비스 테스트",
+      "module": "bc"
+    },
+    "/bc/index.html": {
+      "docId": "business-modules",
+      "title": "BC · 단일 서비스 테스트",
+      "module": "bc"
+    },
+    "/bd/index-multi.html": {
+      "docId": "business-modules",
+      "title": "BD · 다중 서비스 테스트",
+      "module": "bd"
+    },
+    "/bd/index.html": {
+      "docId": "business-modules",
+      "title": "BD · 단일 서비스 테스트",
+      "module": "bd"
+    },
+    "/cc/index-multi.html": {
+      "docId": "business-modules",
+      "title": "CC · 다중 서비스 테스트",
+      "module": "cc"
+    },
+    "/cc/index.html": {
+      "docId": "business-modules",
+      "title": "CC · 단일 서비스 테스트",
+      "module": "cc"
+    },
+    "/cm/index-multi.html": {
+      "docId": "business-modules",
+      "title": "CM · 다중 서비스 테스트",
+      "module": "cm"
+    },
+    "/cm/index.html": {
+      "docId": "business-modules",
+      "title": "CM · 단일 서비스 테스트",
+      "module": "cm"
+    },
+    "/cs/index-multi.html": {
+      "docId": "business-modules",
+      "title": "CS · 다중 서비스 테스트",
+      "module": "cs"
+    },
+    "/cs/index.html": {
+      "docId": "business-modules",
+      "title": "CS · 단일 서비스 테스트",
+      "module": "cs"
+    },
+    "/ct/index-multi.html": {
+      "docId": "business-modules",
+      "title": "CT · 다중 서비스 테스트",
+      "module": "ct"
+    },
+    "/ct/index.html": {
+      "docId": "business-modules",
+      "title": "CT · 단일 서비스 테스트",
+      "module": "ct"
+    },
+    "/eb/event-monitor.html": {
+      "docId": "business-modules",
+      "title": "EB 개발 가이드",
+      "module": "eb",
+      "src": "zguide/eb-service-개발가이드.md"
+    },
+    "/eb/index-multi.html": {
+      "docId": "business-modules",
+      "title": "EB 개발 가이드",
+      "module": "eb",
+      "src": "zguide/eb-service-개발가이드.md"
+    },
+    "/eb/index.html": {
+      "docId": "business-modules",
+      "title": "EB 업무 테스트",
+      "module": "eb",
+      "src": "zguide/eb-service-개발가이드.md",
+      "manual": true
+    },
+    "/eb/user-management.html": {
+      "docId": "business-modules",
+      "title": "EB 사용자 관리",
+      "module": "eb",
+      "src": "zguide/eb-service-개발가이드.md",
+      "manual": true
+    },
+    "/ep/index-multi.html": {
+      "docId": "business-modules",
+      "title": "EP 개발 가이드",
+      "module": "ep",
+      "src": "zguide/ep-service-개발가이드.md"
+    },
+    "/ep/index.html": {
+      "docId": "business-modules",
+      "title": "EP 개발 가이드",
+      "module": "ep",
+      "src": "zguide/ep-service-개발가이드.md"
+    },
+    "/et/index-multi.html": {
+      "docId": "business-modules",
+      "title": "ET · 다중 서비스 테스트",
+      "module": "et"
+    },
+    "/et/index.html": {
+      "docId": "business-modules",
+      "title": "ET · 단일 서비스 테스트",
+      "module": "et"
+    },
+    "/ic/index-multi.html": {
+      "docId": "business-modules",
+      "title": "IC 개발 가이드",
+      "module": "ic",
+      "src": "zguide/ic-service-개발가이드.md"
+    },
+    "/ic/index.html": {
+      "docId": "business-modules",
+      "title": "IC 업무 테스트",
+      "module": "ic",
+      "src": "zguide/ic-service-개발가이드.md",
+      "manual": true
+    },
+    "/index-multi.html": {
+      "docId": "business-modules",
+      "title": "다중 업무 테스트"
+    },
+    "/jwt/admin/jwks.html": {
+      "docId": "business-modules",
+      "title": "JWT Admin · jwks",
+      "src": "zguide/tcf-jwt-개발가이드.md"
+    },
+    "/jwt/admin/login-history.html": {
+      "docId": "business-modules",
+      "title": "JWT Admin · login history",
+      "src": "zguide/tcf-jwt-개발가이드.md"
+    },
+    "/jwt/admin/login.html": {
+      "docId": "business-modules",
+      "title": "JWT Admin · login",
+      "src": "zguide/tcf-jwt-개발가이드.md"
+    },
+    "/jwt/admin/refresh-token.html": {
+      "docId": "business-modules",
+      "title": "JWT Admin · refresh token",
+      "src": "zguide/tcf-jwt-개발가이드.md"
+    },
+    "/jwt/admin/security-policy.html": {
+      "docId": "business-modules",
+      "title": "JWT Admin · security policy",
+      "src": "zguide/tcf-jwt-개발가이드.md"
+    },
+    "/jwt/admin/token.html": {
+      "docId": "business-modules",
+      "title": "JWT 토큰 관리",
+      "src": "zguide/tcf-jwt-개발가이드.md",
+      "manual": true
+    },
+    "/mg/index-multi.html": {
+      "docId": "business-modules",
+      "title": "MG 개발 가이드",
+      "module": "mg",
+      "src": "zguide/mg-service-개발가이드.md"
+    },
+    "/mg/index.html": {
+      "docId": "business-modules",
+      "title": "MG 개발 가이드",
+      "module": "mg",
+      "src": "zguide/mg-service-개발가이드.md"
+    },
+    "/ms/index-multi.html": {
+      "docId": "business-modules",
+      "title": "MS 개발 가이드",
+      "module": "ms",
+      "src": "zguide/ms-service-개발가이드.md"
+    },
+    "/ms/index.html": {
+      "docId": "business-modules",
+      "title": "MS 개발 가이드",
+      "module": "ms",
+      "src": "zguide/ms-service-개발가이드.md"
+    },
+    "/oc/index.html": {
+      "docId": "business-modules",
+      "title": "OC · 단일 서비스 테스트",
+      "module": "oc"
+    },
+    "/om/admin/audit-log.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · audit log"
+    },
+    "/om/admin/auth-history.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · auth history"
+    },
+    "/om/admin/batch.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · batch"
+    },
+    "/om/admin/cache.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · cache"
+    },
+    "/om/admin/common-code.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · common code"
+    },
+    "/om/admin/dashboard.html": {
+      "docId": "om-admin",
+      "title": "OM 운영 대시보드",
+      "src": "zguide/tcf-om-개발가이드.md",
+      "priority": 90,
+      "manual": true
+    },
+    "/om/admin/data-auth.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · data auth"
+    },
+    "/om/admin/deploy.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · deploy"
+    },
+    "/om/admin/error-code.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · error code"
+    },
+    "/om/admin/file-download.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · file download"
+    },
+    "/om/admin/file-management.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · file management"
+    },
+    "/om/admin/function-auth.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · function auth"
+    },
+    "/om/admin/health-check.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · health check"
+    },
+    "/om/admin/index.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · 단일 서비스 테스트"
+    },
+    "/om/admin/login.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · login"
+    },
+    "/om/admin/message-composer.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · message composer"
+    },
+    "/om/admin/message-structure.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · message structure"
+    },
+    "/om/admin/runtime-active-transactions.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime active transactions"
+    },
+    "/om/admin/runtime-business-occupancy.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime business occupancy"
+    },
+    "/om/admin/runtime-cause-analysis.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime cause analysis"
+    },
+    "/om/admin/runtime-dbpool-analysis.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime dbpool analysis"
+    },
+    "/om/admin/runtime-diagnosis-guide.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime diagnosis guide"
+    },
+    "/om/admin/runtime-diagnostics.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime diagnostics"
+    },
+    "/om/admin/runtime-dominance-analysis.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime dominance analysis"
+    },
+    "/om/admin/runtime-incident-flow.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime incident flow"
+    },
+    "/om/admin/runtime-incident-history.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime incident history"
+    },
+    "/om/admin/runtime-instance-detail.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime instance detail"
+    },
+    "/om/admin/runtime-integrated-dashboard.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime integrated dashboard"
+    },
+    "/om/admin/runtime-jvm-analysis.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime jvm analysis"
+    },
+    "/om/admin/runtime-sql-analysis.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime sql analysis"
+    },
+    "/om/admin/runtime-status-cards.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime status cards"
+    },
+    "/om/admin/runtime-thread-analysis.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime thread analysis"
+    },
+    "/om/admin/runtime-threshold-policy.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime threshold policy"
+    },
+    "/om/admin/runtime-transaction-detail.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime transaction detail"
+    },
+    "/om/admin/runtime-workspace.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · runtime workspace"
+    },
+    "/om/admin/service-catalog.html": {
+      "docId": "om-admin",
+      "title": "OM Catalog 관리",
+      "src": "znsight-man/16-ServiceId-설계.md",
+      "manual": true
+    },
+    "/om/admin/session.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · session"
+    },
+    "/om/admin/system-config.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · system config"
+    },
+    "/om/admin/timeout-policy.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · timeout policy"
+    },
+    "/om/admin/transaction-control.html": {
+      "docId": "om-admin",
+      "title": "OM 거래통제",
+      "src": "zguide/tcf-om-개발가이드.md",
+      "manual": true
+    },
+    "/om/admin/transaction-log.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · transaction log"
+    },
+    "/om/admin/user-auth.html": {
+      "docId": "om-admin",
+      "title": "OM Admin · user auth"
+    },
+    "/om/index-multi.html": {
+      "docId": "business-modules",
+      "title": "OM 개발 가이드",
+      "module": "om",
+      "src": "zguide/om-service-개발가이드.md"
+    },
+    "/om/index.html": {
+      "docId": "business-modules",
+      "title": "OM 개발 가이드",
+      "module": "om",
+      "src": "zguide/om-service-개발가이드.md"
+    },
+    "/pc/index-multi.html": {
+      "docId": "business-modules",
+      "title": "PC 개발 가이드",
+      "module": "pc",
+      "src": "zguide/pc-service-개발가이드.md"
+    },
+    "/pc/index.html": {
+      "docId": "business-modules",
+      "title": "PC 개발 가이드",
+      "module": "pc",
+      "src": "zguide/pc-service-개발가이드.md"
+    },
+    "/pd/index-multi.html": {
+      "docId": "business-modules",
+      "title": "PD 개발 가이드",
+      "module": "pd",
+      "src": "zguide/pd-service-개발가이드.md"
+    },
+    "/pd/index.html": {
+      "docId": "business-modules",
+      "title": "PD 개발 가이드",
+      "module": "pd",
+      "src": "zguide/pd-service-개발가이드.md"
+    },
+    "/ss/index-multi.html": {
+      "docId": "business-modules",
+      "title": "SS 개발 가이드",
+      "module": "ss",
+      "src": "zguide/ss-service-개발가이드.md"
+    },
+    "/ss/index.html": {
+      "docId": "business-modules",
+      "title": "SS 개발 가이드",
+      "module": "ss",
+      "src": "zguide/ss-service-개발가이드.md"
+    },
+    "/sv/index-multi.html": {
+      "docId": "business-modules",
+      "title": "SV 개발 가이드",
+      "module": "sv",
+      "src": "zguide/sv-service-개발가이드.md"
+    },
+    "/sv/index.html": {
+      "docId": "business-modules",
+      "title": "SV 업무 테스트",
+      "module": "sv",
+      "src": "zguide/sv-service-개발가이드.md",
+      "priority": 85,
+      "manual": true
+    },
+    "/sv/sample-list.html": {
+      "docId": "business-modules",
+      "title": "SV 샘플 목록 (페이징)",
+      "module": "sv",
+      "src": "zguide/sv-service-개발가이드.md",
+      "manual": true
+    },
+    "/ud/index-multi.html": {
+      "docId": "business-modules",
+      "title": "UD · 다중 서비스 테스트",
+      "module": "ud"
+    },
+    "/ud/index.html": {
+      "docId": "business-modules",
+      "title": "UD · 단일 서비스 테스트",
+      "module": "ud"
+    },
+    "/ud/updownload.html": {
+      "docId": "business-modules",
+      "title": "UD · updownload",
+      "module": "ud"
+    },
+    "/updownload.html": {
+      "docId": "business-modules",
+      "title": "파일 업·다운로드"
+    },
+    "/oc/capacity.html": {
+      "title": "용량 산정 마법사 (CAP)",
+      "docId": "cap-steps",
+      "src": "ztcf-book-capacity-md/zNSIGHT-용량산정-전체-흐름.md",
+      "priority": 100,
+      "manual": true
+    },
+    "/oc/env-004.html": {
+      "title": "ENV-004 계층별 점검",
+      "docId": "env-flow",
+      "src": "ztcf-book-capacity-md/16-Timeout-계층-공통-설계.md",
+      "priority": 95,
+      "manual": true
+    },
+    "/oc/env-002.html": {
+      "title": "ENV-002 산정 조건",
+      "docId": "env-flow",
+      "src": "tcf-oc/README.md",
+      "priority": 90,
+      "manual": true
+    },
+    "/oc/rule-check.html": {
+      "title": "Rule 점검 (SC-007)",
+      "docId": "rule-check",
+      "src": "ztcf-book-capacity-md/50-장애-Timeout-자원고갈-흐름.md",
+      "priority": 90,
+      "manual": true
+    },
+    "/oc/check.html": {
+      "title": "종합 보고서",
+      "docId": "env-flow",
+      "priority": 80,
+      "manual": true
+    },
+    "/index.html": {
+      "title": "TCF UI 홈",
+      "docId": "tcf-ui-overview",
+      "priority": 100,
+      "manual": true
+    },
+    "/oc/cap-new/index.html": {
+      "title": "NEW 용량산정 목록",
+      "docId": "cap-new-wizard",
+      "src": "tcf-oc/docs/cap-new-design.md",
+      "priority": 96,
+      "manual": true
+    },
+    "/oc/cap-new/wizard.html": {
+      "title": "NEW 용량산정 Wizard",
+      "docId": "cap-new-wizard",
+      "src": "tcf-oc/docs/cap-new-design.md",
+      "priority": 96,
+      "manual": true
+    },
+    "/oc/cap-new/compare.html": {
+      "title": "NEW 용량산정 시나리오 비교",
+      "docId": "cap-new-wizard",
+      "priority": 95,
+      "manual": true
+    },
+    "/oc/cap-new/approved.html": {
+      "title": "NEW 용량산정 승인 기준안",
+      "docId": "cap-new-wizard",
+      "priority": 95,
+      "manual": true
+    }
+  },
+  "patterns": [
+    {
+      "match": "^/([a-z]{2})/index(-multi)?\\.html$",
+      "docId": "business-modules",
+      "title": "업무 모듈 테스트 (패턴)",
+      "note": "코드별 zguide는 screens 항목 우선"
+    },
+    {
+      "match": "^/om/admin/.+\\.html$",
+      "docId": "om-admin",
+      "title": "OM 운영관리 (패턴)"
+    },
+    {
+      "match": "^/jwt/admin/.+\\.html$",
+      "docId": "business-modules",
+      "title": "JWT Admin (패턴)",
+      "src": "zguide/tcf-jwt-개발가이드.md"
+    }
+  ]
+}

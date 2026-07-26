@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 권한이력</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260627d"></script>
+  <script>
+    const PAGE = 20;
+    async function load(page, el) {
+      const targetType = document.getElementById('filterType').value;
+      const body = { pageNo: page, pageSize: PAGE };
+      if (targetType) body.targetType = targetType;
+      const { body: data } = await OmAdmin.inquiry('authHistory', body);
+      const rows = data.rows || [];
+      document.getElementById('ahBody').innerHTML = rows.length ? rows.map(r => `
+        <tr>
+          <td>${OmAdmin.field(r,'changedAt')}</td><td>${OmAdmin.field(r,'changedBy')}</td>
+          <td>${OmAdmin.field(r,'targetType')}</td><td class="om-mono">${OmAdmin.field(r,'targetId')}</td>
+          <td>${OmAdmin.field(r,'beforeValue')}</td><td>${OmAdmin.field(r,'afterValue')}</td>
+          <td>${OmAdmin.field(r,'changeReason')}</td>
+        </tr>`).join('') : '<tr><td colspan="7" class="om-empty">없음</td></tr>';
+      OmAdmin.renderPagination(document.getElementById('pagination'), data.pageNo || page, PAGE, data.totalCount || 0,
+        p => load(p, el).catch(e => OmAdmin.showError(el, e.message)));
+    }
+
+    OmAdmin.initPage('auth-history', '권한이력 조회', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">권한·오류코드·배치·Cache 등 관리자 변경 이력을 조회합니다.</div>
+        <section class="om-filter-bar">
+          <div class="field"><label for="filterType">대상유형</label>
+            <select id="filterType"><option value="">전체</option><option>USER_AUTH</option><option>ERROR_CODE</option><option>COMMON_CODE</option><option>BATCH</option><option>CACHE</option></select>
+          </div>
+          <button class="btn-primary" id="searchBtn" type="button">조회</button>
+          <button class="btn-secondary" id="resetBtn" type="button">DB 초기화</button>
+        </section>
+        <div class="om-card"><div class="om-card-head">권한 변경 이력</div><div class="om-card-body om-table-wrap">
+          <table class="om-table"><thead><tr><th>일시</th><th>변경자</th><th>유형</th><th>대상</th><th>변경 전</th><th>변경 후</th><th>사유</th></tr></thead>
+          <tbody id="ahBody"></tbody></table>
+          <div class="om-pagination" id="pagination" hidden></div>
+        </div></div>`;
+      document.getElementById('searchBtn').addEventListener('click', () => load(1, el).catch(e => OmAdmin.showError(el, e.message)));
+      document.getElementById('resetBtn').addEventListener('click', async () => {
+        if (!confirm('OM_AUTH_HISTORY 테이블의 권한 변경 이력을 전부 삭제합니다.\n되돌릴 수 없습니다. 계속하시겠습니까?')) {
+          return;
+        }
+        const deleteReason = prompt('초기화 사유 (5자 이상, 감사로그에 기록됩니다):');
+        if (!deleteReason || deleteReason.trim().length < 5) {
+          alert('초기화 사유를 5자 이상 입력해야 합니다.');
+          return;
+        }
+        try {
+          const { body } = await OmAdmin.mutate('authHistoryDeleteAll', {
+            confirmCode: 'DELETE_ALL',
+            deleteReason: deleteReason.trim()
+          }, 'DELETE');
+          alert(`${body.message || '초기화 완료'}\n삭제 건수: ${body.deletedCount ?? 0}건`);
+          await load(1, el);
+        } catch (e) {
+          OmAdmin.showErrorBanner(el, e.message);
+        }
+      });
+      await load(1, el);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+server:
+  port: ${NSIGHT_CRUD_MEOY_PORT:8788}
+  address: ${NSIGHT_CRUD_MEOY_HOST:127.0.0.1}
+
+spring:
+  application:
+    name: tcf-ai-crud-meoy
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+  datasource:
+    url: ${NSIGHT_CRUD_MEOY_DB_URL:jdbc:h2:file:${user.home}/nsight-crud-meoy/sessions-db;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE}
+    driver-class-name: org.h2.Driver
+    username: ${NSIGHT_CRUD_MEOY_DB_USER:sa}
+    password: ${NSIGHT_CRUD_MEOY_DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: Asia/Seoul
+  h2:
+    console:
+      enabled: ${NSIGHT_CRUD_MEOY_H2_CONSOLE:true}
+      path: /h2-console
+
+nsight:
+  crud-meoy:
+    version: 0.1.0
+    catalog-resource: classpath:prompts/catalog.json
+    prompt-location: classpath:prompts/
+    domain-ledger-resource: classpath:data/domain-ledger.json
+    # 관련 소스 조회 루트. 비어 있으면 settings.gradle 위치를 자동 탐지
+    repo-root: ${NSIGHT_CRUD_MEOY_REPO_ROOT:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+
+logging:
+  level:
+    com.nh.nsight.aicrudmeoy: INFO

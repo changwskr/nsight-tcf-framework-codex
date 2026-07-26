@@ -1,0 +1,24 @@
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "OC",
+    "serviceId": "OC.Hello.inquiry",
+    "transactionCode": "OC-HEL-0001",
+    "processingType": "INQUIRY",
+    "guid": "",
+    "traceId": "",
+    "channelId": "WEBTOP",
+    "userId": "U123456",
+    "branchId": "001234",
+    "centerId": "DC1",
+    "requestTime": "2026-07-11T10:30:00+09:00",
+    "transactionIntime": "2026-07-11T10:30:00+09:00",
+    "transactionOuttime": "",
+    "systemDate": "20260711",
+    "bizDate": "20260711",
+    "clientIp": "10.10.10.10"
+  },
+  "body": {
+    "name": "NSIGHT"
+  }
+}

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ENV-002 조건 · NSIGHT OC</title>
+  <script src="/_shared/ui-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css"/>
+  <link rel="stylesheet" href="/_shared/oc-capacity.css"/>
+  <link rel="stylesheet" href="/_shared/oc-env.css"/>
+</head>
+<body class="tcf-env-page" data-env-page="env002" data-env-title="ENV-002 조건 · NSIGHT OC" data-env-subtitle="ENV-002 — 산정 조건 입력">
+<div id="envPageShell"></div>
+<div id="statusBar" class="status-bar hidden" role="status"></div>
+
+<main class="env-layout">
+    <section class="card env-screen" id="env002Section">
+        <div class="card-title">
+            <h2>ENV-002 산정 조건 입력</h2>
+            <p>VM · 사용자 · 동시요청률 · Timeout · Session · TPMC/Core TPS · A-A/DR 옵션</p>
+        </div>
+        <form id="capacityDesignForm" class="env-capacity-form grid-form">
+            <fieldset class="env-fieldset env-capacity-form__wide">
+                <legend>1. 사용자 조건</legend>
+                <div class="env-fieldset-grid">
+                    <label>지점 수 <input type="number" id="capBranchCount" min="1" value="3600"/></label>
+                    <label>지점당 사용자 <input type="number" id="capUsersPerBranch" min="1" value="6"/></label>
+                    <label>전체 사용자 <input type="number" id="capTotalUsers" min="1" value="21600"/>
+                        <span class="env-inline-hint" id="capUsersAutoHint">자동계산</span></label>
+                </div>
+            </fieldset>
+            <fieldset class="env-fieldset env-fieldset--vm env-capacity-form__wide">
+                <legend>2. VM 조건</legend>
+                <p class="env-fieldset-desc">VM 사양과 업무 복잡도(TPMC)에 따라 Core당 TPS·VM 처리량이 결정됩니다.</p>
+
+                <div class="env-option-section">
+                    <h4 class="env-option-section__title">VM 프로파일</h4>
+                    <div class="env-vm-card-grid" role="radiogroup" aria-label="VM 프로파일 선택">
+                        <label class="env-vm-card">
+                            <input type="radio" class="env-vm-card__input" name="capVm" value="8CORE-32GB" checked/>
+                            <span class="env-vm-card__body">
+                                <strong class="env-vm-card__title">8CORE-32GB</strong>
+                                <span class="env-vm-card__spec">8 vCPU · 32 GB · Scale-Out 표준</span>
+                                <span class="env-vm-card__tps" data-vm-tps-for="8CORE-32GB">VM TPS —</span>
+                            </span>
+                        </label>
+                        <label class="env-vm-card">
+                            <input type="radio" class="env-vm-card__input" name="capVm" value="8CORE-64GB"/>
+                            <span class="env-vm-card__body">
+                                <strong class="env-vm-card__title">8CORE-64GB</strong>
+                                <span class="env-vm-card__spec">8 vCPU · 64 GB · 8GB/Core</span>
+                                <span class="env-vm-card__tps" data-vm-tps-for="8CORE-64GB">VM TPS —</span>
+                            </span>
+                        </label>
+                        <label class="env-vm-card">
+                            <input type="radio" class="env-vm-card__input" name="capVm" value="16CORE-64GB"/>
+                            <span class="env-vm-card__body">
+                                <strong class="env-vm-card__title">16CORE-64GB</strong>
+                                <span class="env-vm-card__spec">16 vCPU · 64 GB · 8GB/Core</span>
+                                <span class="env-vm-card__tps" data-vm-tps-for="16CORE-64GB">VM TPS —</span>
+                            </span>
+                        </label>
+                        <label class="env-vm-card">
+                            <input type="radio" class="env-vm-card__input" name="capVm" value="16CORE-128GB"/>
+                            <span class="env-vm-card__body">
+                                <strong class="env-vm-card__title">16CORE-128GB</strong>
+                                <span class="env-vm-card__spec">16 vCPU · 128 GB</span>
+                                <span class="env-vm-card__tps" data-vm-tps-for="16CORE-128GB">VM TPS —</span>
+                            </span>
+                        </label>
+                        <label class="env-vm-card">
+                            <input type="radio" class="env-vm-card__input" name="capVm" value="32CORE-256GB"/>
+                            <span class="env-vm-card__body">
+                                <strong class="env-vm-card__title">32CORE-256GB</strong>
+                                <span class="env-vm-card__spec">32 vCPU · 256 GB</span>
+                                <span class="env-vm-card__tps" data-vm-tps-for="32CORE-256GB">VM TPS — · 특수 AP</span>
+                            </span>
+                        </label>
+                        <label class="env-vm-card env-vm-card--custom">
+                            <input type="radio" class="env-vm-card__input" name="capVm" value="CUSTOM"/>
+                            <span class="env-vm-card__body">
+                                <strong class="env-vm-card__title">직접 입력</strong>
+                                <span class="env-vm-card__spec">Core · Memory 지정</span>
+                                <span class="env-vm-card__tps" id="capCustomVmTps" data-vm-tps-for="CUSTOM">VM TPS —</span>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="env-vm-custom-panel hidden" id="capCustomVmFields">
+                        <span class="env-vm-custom-panel__label">직접 입력 사양</span>
+                        <div class="env-input-card-grid env-input-card-grid--compact">
+                            <label class="env-input-card">
+                                <span class="env-input-card__label">Core</span>
+                                <input type="number" class="env-input-card__control" id="capCustomCore" min="1" value="8"/>
+                            </label>
+                            <label class="env-input-card">
+                                <span class="env-input-card__label">Memory (GB)</span>
+                                <input type="number" class="env-input-card__control" id="capCustomMemory" min="1" value="64"/>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="env-option-section env-vm-tpmc-block">
+                    <h4 class="env-option-section__title">TPMC · Core TPS (연동)</h4>
+                    <div class="env-vm-formula-banner" role="note">
+                        <span class="env-vm-formula-banner__eq">Core TPMC/초</span>
+                        <span class="env-vm-formula-banner__op">=</span>
+                        <span class="env-vm-formula-banner__part">TPS / Core</span>
+                        <span class="env-vm-formula-banner__op">×</span>
+                        <span class="env-vm-formula-banner__part">TPMC / TPS</span>
+                        <span class="env-vm-formula-banner__note">업무가 무거우면 TPMC/TPS↑ → Core TPS↓</span>
+                    </div>
+                    <div class="env-input-card-grid">
+                        <label class="env-input-card env-input-card--primary">
+                            <span class="env-input-card__label">1 TPS당 TPMC</span>
+                            <span class="env-input-card__hint">업무 복잡도 · 기본 3,000</span>
+                            <input type="number" class="env-input-card__control" id="capTpmcPerTps" min="1" value="3000"/>
+                        </label>
+                        <label class="env-input-card env-input-card--derived">
+                            <span class="env-input-card__label">Core TPMC/초</span>
+                            <span class="env-input-card__hint">자동 산출</span>
+                            <input type="text" class="env-input-card__control" id="capCoreTpmcPerSec" readonly value="105,000"/>
+                        </label>
+                        <label class="env-input-card env-input-card--derived">
+                            <span class="env-input-card__label">Core당 TPS (min)</span>
+                            <span class="env-input-card__hint">보수</span>
+                            <input type="number" class="env-input-card__control" id="capTpsPerCoreMin" value="30" readonly/>
+                        </label>
+                        <label class="env-input-card env-input-card--derived">
+                            <span class="env-input-card__label">Core당 TPS (기준)</span>
+                            <span class="env-input-card__hint">산정 기준 35 @ 3K</span>
+                            <input type="number" class="env-input-card__control" id="capTpsPerCoreBase" value="35" readonly/>
+                        </label>
+                        <label class="env-input-card env-input-card--derived">
+                            <span class="env-input-card__label">Core당 TPS (max)</span>
+                            <span class="env-input-card__hint">낙관</span>
+                            <input type="number" class="env-input-card__control" id="capTpsPerCoreMax" value="40" readonly/>
+                        </label>
+                    </div>
+                    <label class="env-option-card env-option-card--inline">
+                        <input type="checkbox" class="env-option-card__input" id="capManualCoreTps"/>
+                        <span class="env-option-card__check" aria-hidden="true"></span>
+                        <span class="env-option-card__body">
+                            <strong class="env-option-card__title">Core당 TPS 직접 조정</strong>
+                            <span class="env-option-card__hint">체크 시 TPMC 연동 해제 · min/기준/max 직접 입력</span>
+                        </span>
+                    </label>
+                    <p id="capTpmcCoreFormula" class="env-vm-formula-detail">
+                        기준 35 TPS × 3,000 TPMC = 105,000 TPMC/Core·초 → 현재 Core TPS = 105,000 ÷ TPMC/TPS
+                    </p>
+                </div>
+            </fieldset>
+            <fieldset class="env-fieldset env-capacity-form__wide">
+                <legend>3. 시나리오 (요청률 · Timeout · Session)</legend>
+                <span class="env-chip-group">
+                    <span class="env-chip-label">동시요청률</span>
+                    <label class="env-chip"><input type="checkbox" name="capPercent" value="3" checked/> 3%</label>
+                    <label class="env-chip"><input type="checkbox" name="capPercent" value="5" checked/> 5%</label>
+                    <label class="env-chip"><input type="checkbox" name="capPercent" value="10" checked/> 10%</label>
+                    <label class="env-chip"><input type="checkbox" name="capPercent" value="15" checked/> 15%</label>
+                </span>
+                <span class="env-chip-group">
+                    <span class="env-chip-label">Timeout</span>
+                    <label class="env-chip"><input type="checkbox" name="capTimeout" value="3" checked/> 3초</label>
+                    <label class="env-chip"><input type="checkbox" name="capTimeout" value="4" checked/> 4초</label>
+                    <label class="env-chip"><input type="checkbox" name="capTimeout" value="5" checked/> 5초</label>
+                </span>
+                <span class="env-chip-group">
+                    <span class="env-chip-label">Session</span>
+                    <label class="env-chip"><input type="checkbox" name="capSession" value="60" checked/> 60분</label>
+                    <label class="env-chip"><input type="checkbox" name="capSession" value="90" checked/> 90분</label>
+                </span>
+            </fieldset>
+            <fieldset class="env-fieldset env-fieldset--options env-capacity-form__wide">
+                <legend>4. 산정 옵션</legend>
+                <p class="env-fieldset-desc">산정·점검 시 함께 적용할 규칙입니다. 필요한 항목만 켜 두세요.</p>
+                <div class="env-option-section">
+                    <h4 class="env-option-section__title">인프라 · 용량 검증</h4>
+                    <div class="env-option-grid">
+                        <label class="env-option-card">
+                            <input type="checkbox" class="env-option-card__input" id="capActiveActive" checked/>
+                            <span class="env-option-card__check" aria-hidden="true"></span>
+                            <span class="env-option-card__body">
+                                <strong class="env-option-card__title">2센터 Active-Active</strong>
+                                <span class="env-option-card__hint">권장 VM 수 = 단일센터 필요 대수 × 2</span>
+                            </span>
+                        </label>
+                        <label class="env-option-card">
+                            <input type="checkbox" class="env-option-card__input" id="capDrValidation" checked/>
+                            <span class="env-option-card__check" aria-hidden="true"></span>
+                            <span class="env-option-card__body">
+                                <strong class="env-option-card__title">DR · 잔여 TPS 검증</strong>
+                                <span class="env-option-card__hint">1센터 장애 시 남은 센터가 목표 TPS를 감당하는지 판정</span>
+                            </span>
+                        </label>
+                        <label class="env-option-card">
+                            <input type="checkbox" class="env-option-card__input" id="capValidateDbPool" checked/>
+                            <span class="env-option-card__check" aria-hidden="true"></span>
+                            <span class="env-option-card__body">
+                                <strong class="env-option-card__title">DB Pool 총량 검증</strong>
+                                <span class="env-option-card__hint">(VM 수 × Hikari Pool) ≤ DB Session 한도</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="env-option-section">
+                    <h4 class="env-option-section__title">점검 결과 표시</h4>
+                    <div class="env-option-grid env-option-grid--single">
+                        <label class="env-option-card">
+                            <input type="checkbox" class="env-option-card__input" id="capIncludeExamples" checked/>
+                            <span class="env-option-card__check" aria-hidden="true"></span>
+                            <span class="env-option-card__body">
+                                <strong class="env-option-card__title">설정 위치 · 예시 출력</strong>
+                                <span class="env-option-card__hint">ENV-004 Grid에 파일 경로·설정 예시·조치 가이드 컬럼 포함</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </fieldset>
+            <div class="actions wide">
+                <button type="button" class="secondary" id="capResetBtn">초기화</button>
+                <button type="submit" id="capAnalyzeBtn">산정 실행</button>
+            </div>
+        </form>
+        <div id="capSummaryFormula" class="env-cap-summary env-cap-summary--empty" role="region" aria-label="산정 조건 요약">
+            <p class="env-cap-summary__placeholder">「산정 실행」을 누르면 위에서 입력한 조건이 여기에 요약됩니다.</p>
+        </div>
+    </section>
+    <p class="env-screen-footer-hint"><a href="/oc/env-001.html">ENV-001 대시</a> · <a href="/oc/env-003.html">산정 후 ENV-003 결과 →</a></p>
+</main>
+
+<script src="/_shared/oc-env-layout.js"></script>
+  <script src="/_shared/oc-env-planner.js"></script>
+</body>
+</html>

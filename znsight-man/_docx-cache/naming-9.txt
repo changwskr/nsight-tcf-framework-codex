@@ -1,0 +1,719 @@
+Java Class 명명규칙 설계기준
+1. 도입 전 안내말
+Java Class 명명규칙은 단순히 클래스 이름을 보기 좋게 만드는 기준이 아니다.NSIGHT TCF Framework에서는 Class 이름이 업무코드, ServiceId, 계층 책임, Mapper, SQL ID, 거래로그, 오류코드와 연결되어야 한다.
+NSIGHT 명명규칙은 이름 하나가 업무코드 → Context Path → WAR → Package → ServiceId → Handler → Facade / Service / Rule / DAO / Mapper → Mapper XML → SQL ID → 거래로그 / 오류코드 / 감사로그까지 이어져야 한다고 정의한다.
+따라서 Java Class 명명규칙의 핵심은 다음이다.
+클래스명만 보고 어느 업무의 어떤 계층이며, 어떤 책임을 수행하는지 알 수 있어야 한다.
+
+2. Java Class 설계 결론
+Java Class는 다음 형식을 표준으로 한다.
+{업무Prefix}{업무대상}{행위/세부명}{역할}
+
+구성요소
+설명
+예시
+업무Prefix
+업무코드 PascalCase
+Sv, Cm, Om, Mg
+업무대상
+업무 도메인 / 처리 대상
+Customer, Campaign, User, Message
+행위/세부명
+필요 시 처리 행위 또는 세부 목적
+Summary, Detail, List, Create
+역할
+계층 또는 기술 역할
+Handler, Facade, Service, Rule, Dao, Mapper
+예시는 다음과 같다.
+SvCustomerSummaryHandler
+SvCustomerFacade
+SvCustomerService
+SvCustomerEligibilityRule
+SvCustomerDao
+SvCustomerMapper
+SvCustomerSummaryRequest
+SvCustomerSummaryResponse
+
+개발자 가이드에서도 Java Class는 PascalCase를 사용하고, 업무 클래스는 원칙적으로 업무 Prefix를 붙이며, Handler·Facade·Service·Rule·DAO·Mapper·Client·Config·Properties·Validator·Exception·Constants별 명명규칙을 분리해서 제시한다.
+
+3. Java Class 최상위 원칙
+No
+원칙
+기준
+1
+PascalCase 사용
+Java Class는 첫 글자 대문자, 단어마다 대문자
+2
+업무 Prefix 사용
+업무 클래스는 Sv, Cm, Om처럼 업무 Prefix로 시작
+3
+역할 접미어 사용
+클래스 끝에 Handler, Facade, Service, Rule, Dao, Mapper 등 역할 표시
+4
+ServiceId와 연결
+Handler명은 ServiceId 의미와 연결되어야 함
+5
+계층 책임 명확화
+이름만 보고 해당 계층 책임을 알 수 있어야 함
+6
+약어 남용 금지
+Svc, Mgr, Proc, Impl 남용 금지
+7
+공통과 업무 분리
+공통 Class는 tcf-* Package, 업무 Class는 업무 Package에 위치
+8
+DTO 성격 분리
+Request, Response, Command, Result, Criteria, Entity를 구분
+9
+기술 역할 명확화
+Config, Properties, Client, Validator, Exception 이름을 명확히 사용
+10
+운영 추적 가능
+Handler, Mapper, SQL ID, ServiceId가 추적 가능해야 함
+
+4. 계층별 Java Class 명명규칙
+계층 / 역할
+표준 형식
+예시
+Handler
+{업무Prefix}{업무대상}{행위}Handler
+SvCustomerSummaryHandler
+Facade
+{업무Prefix}{업무대상}Facade
+SvCustomerFacade
+Service
+{업무Prefix}{업무대상}Service
+SvCustomerService
+Rule
+{업무Prefix}{업무대상}{규칙명}Rule
+SvCustomerEligibilityRule
+DAO
+{업무Prefix}{업무대상}Dao
+SvCustomerDao
+Mapper
+{업무Prefix}{업무대상}Mapper
+SvCustomerMapper
+Client
+{업무Prefix}{대상}Client
+SvIntegrationClient
+Config
+{업무Prefix}{대상}Config
+SvMyBatisConfig
+Properties
+{업무Prefix}{대상}Properties
+SvTimeoutProperties
+Validator
+{업무Prefix}{대상}Validator
+SvCustomerValidator
+Exception
+{업무Prefix}{대상}Exception
+SvBusinessException
+Constants
+{업무Prefix}Constants
+SvConstants
+
+5. Handler Class 명명규칙
+Handler는 ServiceId별 업무 진입점이다.따라서 Handler Class 이름은 ServiceId와 의미가 연결되어야 한다.
+{업무Prefix}{업무대상}{행위}Handler
+
+ServiceId
+Handler Class
+설명
+SV.Customer.selectSummary
+SvCustomerSummaryHandler
+고객 요약 조회
+SV.Customer.selectDetail
+SvCustomerDetailHandler
+고객 상세 조회
+SV.Customer.selectList
+SvCustomerListHandler
+고객 목록 조회
+CM.Campaign.create
+CmCampaignCreateHandler
+캠페인 등록
+CM.Campaign.update
+CmCampaignUpdateHandler
+캠페인 수정
+MG.Message.send
+MgMessageSendHandler
+메시지 발송
+OM.User.selectList
+OmUserListHandler
+사용자 목록 조회
+OM.ServiceCatalog.save
+OmServiceCatalogSaveHandler
+ServiceId 저장
+Handler는 TCF Dispatcher가 직접 호출하는 업무 진입점이며, StandardRequest Body를 업무 DTO로 변환하고 Facade를 호출하는 역할로 제한한다. SQL 호출, 복잡한 업무 로직, 트랜잭션 직접 처리는 금지한다.
+5.1 Handler 명명 세부 기준
+기준
+설명
+ServiceId와 의미 일치
+SV.Customer.selectSummary이면 SvCustomerSummaryHandler
+업무 Prefix 필수
+업무 WAR Handler는 반드시 Sv, Cm, Om 등 Prefix 사용
+행위명 포함
+조회/등록/수정/삭제/발송 등 구분 필요
+하나의 Handler가 하나의 ServiceId 담당
+기본 권장
+다중 ServiceId Handler
+도메인 응집도가 높을 때만 제한 허용
+다중 ServiceId Handler는 도메인 단위로 묶을 수 있지만, switch가 길어지면 Handler를 분리하는 것이 좋다.
+
+6. Facade Class 명명규칙
+Facade는 유스케이스 조립과 트랜잭션 경계를 담당한다.
+{업무Prefix}{업무대상}Facade
+
+업무
+Facade Class
+설명
+SV 고객
+SvCustomerFacade
+고객 조회 유스케이스 조립
+SV 상품
+SvProductFacade
+상품 보유/추천 조회 조립
+CM 캠페인
+CmCampaignFacade
+캠페인 등록/수정/대상자 조립
+OM 사용자
+OmUserFacade
+사용자 관리 유스케이스 조립
+OM 권한
+OmAuthorityFacade
+권한 관리 유스케이스 조립
+Facade는 Service를 조합하고 트랜잭션 경계를 잡는다.단건 거래별로 Facade를 과도하게 만들지 말고, 업무대상 단위로 묶는 것을 기본으로 한다.
+권장
+비권장
+SvCustomerFacade
+SvCustomerSummaryFacade
+CmCampaignFacade
+CmCampaignCreateFacade
+OmUserFacade
+OmUserSelectListFacade
+
+7. Service Class 명명규칙
+Service는 업무 처리 절차를 수행하고 Rule과 DAO 호출을 조정한다.
+{업무Prefix}{업무대상}Service
+
+업무
+Service Class
+설명
+SV 고객
+SvCustomerService
+고객 조회 처리 흐름
+SV 상품
+SvProductService
+상품 보유/추천 처리 흐름
+CM 캠페인
+CmCampaignService
+캠페인 처리 흐름
+MG 메시지
+MgMessageService
+메시지 발송 처리 흐름
+OM 사용자
+OmUserService
+사용자 관리 처리 흐름
+Service는 업무 처리 절차를 담당하지만, SQL을 직접 작성하거나 HTTP/표준 전문에 직접 의존하면 안 된다. 샘플 설계에서도 Service는 업무 처리 절차를 수행하고 Rule/DAO를 조정하며, HTTP/전문 의존을 금지한다.
+
+8. Rule Class 명명규칙
+Rule은 업무 규칙, 검증, 판단 로직을 담당한다.
+{업무Prefix}{업무대상}{규칙명}Rule
+
+유형
+Rule Class
+설명
+일반 규칙
+SvCustomerRule
+고객 조회 기본 규칙
+적격성 판단
+SvCustomerEligibilityRule
+고객 적격성 판단
+캠페인 대상 검증
+CmCampaignTargetRule
+캠페인 대상자 조건 검증
+메시지 발송 검증
+MgMessageSendRule
+발송 가능 여부 검증
+사용자 권한 검증
+OmUserAuthorityRule
+사용자 권한 판단
+간단한 업무는 {업무Prefix}{업무대상}Rule로 시작하고, 규칙이 많아지면 세부 Rule로 분리한다.
+상황
+기준
+규칙이 1~3개 수준
+SvCustomerRule
+규칙이 독립 도메인으로 커짐
+SvCustomerEligibilityRule
+여러 Service에서 재사용
+공통 Rule 또는 Policy로 분리
+DB 조회 필요
+Rule이 직접 DB 접근하지 말고 Service/DAO를 통해 처리
+Rule은 입력값 검증과 업무 규칙 판단을 담당하며, DB 직접 접근은 금지한다.
+
+9. DAO / Mapper Class 명명규칙
+DAO와 Mapper는 DB 접근 계층이다.
+DAO     = {업무Prefix}{업무대상}Dao
+Mapper  = {업무Prefix}{업무대상}Mapper
+
+업무
+DAO
+Mapper
+SV 고객
+SvCustomerDao
+SvCustomerMapper
+SV 상품
+SvProductDao
+SvProductMapper
+CM 캠페인
+CmCampaignDao
+CmCampaignMapper
+OM 사용자
+OmUserDao
+OmUserMapper
+OM ServiceId
+OmServiceCatalogDao
+OmServiceCatalogMapper
+DAO는 Mapper 호출을 캡슐화하고, Mapper는 MyBatis Method 정의만 담당한다. MyBatis 표준에서도 DAO/Mapper는 업무 로직을 수행하는 곳이 아니라 SQL 실행 책임만 갖는다고 정리한다.
+9.1 DB 목적별 Mapper 명명
+RDW, ADW, SESSIONDB, LOGDB를 분리해야 하는 경우 Mapper명에 DB 목적을 포함한다.
+DB 구분
+표준 형식
+예시
+RDW
+{업무Prefix}{대상}RdwMapper
+SvCustomerRdwMapper
+ADW
+{업무Prefix}{대상}AdwMapper
+SvCustomerAdwMapper
+SESSIONDB
+{업무Prefix}{대상}SessionMapper
+OmSessionMapper
+LOGDB
+{업무Prefix}{대상}LogMapper
+OmTransactionLogMapper
+OMDB
+{업무Prefix}{대상}Mapper
+OmUserMapper
+
+10. DTO Class 명명규칙
+DTO는 외부 요청, 외부 응답, 내부 처리 요청, 내부 처리 결과를 분리한다.
+{업무대상}{행위}{DTO유형}
+
+DTO 유형
+표준 형식
+예시
+사용 위치
+Request
+{업무대상}{행위}Request
+CustomerSummaryRequest
+외부 요청 Body
+Response
+{업무대상}{행위}Response
+CustomerSummaryResponse
+외부 응답 Body
+Command
+{업무대상}{행위}Command
+CustomerSummaryCommand
+내부 처리 명령
+Result
+{업무대상}{행위}Result
+CustomerSummaryResult
+내부 처리 결과
+Criteria
+{업무대상}SearchCriteria
+CustomerSearchCriteria
+검색 조건
+Query
+{업무대상}{행위}Query
+CustomerSummaryQuery
+DAO 조회 조건
+Entity
+{업무대상}Entity
+CustomerEntity
+DB Row 매핑
+Item
+{업무대상}Item
+CustomerProductItem
+목록 Row
+개발자 가이드에서도 DTO는 Request, Response, Command, Result, Criteria, Entity, Item으로 분리하고, 외부 요청/응답과 내부 처리 객체를 구분하도록 정의한다.
+10.1 DTO 업무 Prefix 사용 기준
+구분
+권장 방식
+예시
+업무 내부 전용 DTO
+업무 Prefix 생략 가능
+CustomerSummaryRequest
+여러 업무와 공유 가능성 있음
+업무 Prefix 사용
+SvCustomerSummaryRequest
+OM / JWT / Gateway DTO
+모듈 Prefix 사용
+OmUserRequest, JwtTokenResponse
+TCF 공통 DTO
+업무 Prefix 금지
+StandardRequest, StandardResponse
+
+11. Client / Adapter Class 명명규칙
+Client는 외부 시스템 또는 타 업무 서비스를 호출하는 클래스이다.
+{업무Prefix}{대상}Client
+또는
+{대상}IntegrationClient
+
+유형
+예시
+설명
+타 업무 호출
+SvIntegrationClient
+SV 업무 호출 Client
+전체 업무 공통 호출
+NsightIntegrationClient
+모든 업무 서비스 호출 공통 Client
+외부 API 호출
+CmExternalCampaignClient
+외부 캠페인 API 호출
+EAI 호출
+EpEaiClient
+EAI 연계 호출
+JWT 호출
+JwtTokenClient
+JWT 발급/검증 호출
+업무 WAR 간 Java 직접 참조는 금지하고, HTTP/JSON 표준 전문 호출 Client를 사용한다.
+
+12. Config / Properties Class 명명규칙
+설정 클래스는 기술 설정 책임이 드러나야 한다.
+유형
+표준 형식
+예시
+Spring 설정
+{업무Prefix}{대상}Config
+SvServiceConfig
+MyBatis 설정
+{업무Prefix}MyBatisConfig
+SvMyBatisConfig
+Hikari 설정
+{업무Prefix}DataSourceConfig
+SvDataSourceConfig
+Cache 설정
+{업무Prefix}CacheConfig
+SvCacheConfig
+환경 Properties
+{업무Prefix}{대상}Properties
+SvTimeoutProperties
+TCF 공통 설정
+Tcf{대상}Config
+TcfWebConfig
+Gateway 설정
+Gateway{대상}Config
+GatewayRouteConfig
+Config Class에는 업무 로직을 넣지 않는다.Properties Class는 @ConfigurationProperties 기준으로 설정값을 바인딩하는 역할만 수행한다.
+
+13. Exception / Error Class 명명규칙
+예외 클래스는 업무 예외와 시스템 예외를 구분한다.
+구분
+표준 형식
+예시
+업무 예외
+{업무Prefix}BusinessException
+SvBusinessException
+검증 예외
+{업무Prefix}ValidationException
+SvValidationException
+시스템 예외
+{업무Prefix}SystemException
+SvSystemException
+공통 업무 예외
+BusinessException
+BusinessException
+공통 시스템 예외
+SystemException
+SystemException
+인증 예외
+AuthenticationException
+JwtAuthenticationException
+권한 예외
+AuthorizationException
+TcfAuthorizationException
+권장 기준은 다음이다.
+상황
+기준
+업무별 특수 예외가 필요 없음
+공통 BusinessException 사용
+업무별 오류코드 보강 필요
+SvBusinessException 허용
+시스템 공통 예외
+SystemException 사용
+Java 기본 Exception 직접 노출
+금지
+
+14. Constant / Enum Class 명명규칙
+상수와 Enum은 의미 범위를 명확히 해야 한다.
+유형
+표준 형식
+예시
+업무 상수
+{업무Prefix}Constants
+SvConstants
+도메인 상수
+{업무Prefix}{대상}Constants
+SvCustomerConstants
+공통 상수
+TcfConstants
+TcfConstants
+거래상태 Enum
+{대상}Status
+TransactionStatus
+처리유형 Enum
+{대상}Type
+TransactionType
+오류구분 Enum
+{대상}Category
+ErrorCategory
+업무 Enum
+{업무Prefix}{대상}Type
+CmCampaignType
+상수명은 UPPER_SNAKE_CASE를 사용한다.
+public final class SvConstants {
+    public static final String BUSINESS_CODE = "SV";
+    public static final int MAX_PAGE_SIZE = 500;
+}
+
+
+15. Annotation / AOP Class 명명규칙
+공통 Annotation과 Aspect는 기능 목적이 명확해야 한다.
+유형
+표준 형식
+예시
+Annotation
+{기능명}
+TransactionLog, Masking, RequireAuth
+Aspect
+{기능명}Aspect
+TransactionLogAspect, MaskingAspect
+Interceptor
+{기능명}Interceptor
+GuidInterceptor
+Filter
+{기능명}Filter
+GuidMdcCleanupFilter
+Resolver
+{기능명}Resolver
+CurrentUserResolver
+Provider
+{기능명}Provider
+TraceIdProvider
+AOP는 모든 공통처리를 대체하는 구조가 아니라, TCF 파이프라인을 보완하는 용도로만 사용한다.
+
+16. 17개 업무 Prefix 기준
+업무코드
+Java Prefix
+예시 Class
+CC
+Cc
+CcCodeService
+IC
+Ic
+IcCustomerService
+PC
+Pc
+PcCustomerService
+BC
+Bc
+BcCustomerService
+MS
+Ms
+MsCustomerService
+SV
+Sv
+SvCustomerService
+PD
+Pd
+PdProductService
+CM
+Cm
+CmCampaignService
+EB
+Eb
+EbEventService
+EP
+Ep
+EpEventService
+BP
+Bp
+BpBehaviorService
+BD
+Bd
+BdBehaviorDataService
+SS
+Ss
+SsSalesSupportService
+CS
+Cs
+CsCommonService
+CT
+Ct
+CtContentService
+MG
+Mg
+MgMessageService
+OM
+Om
+OmUserService
+
+17. SV 업무 Class 전체 예시
+ServiceId        : SV.Customer.selectSummary
+거래코드         : SV-INQ-0001
+Package Root     : com.nh.nsight.marketing.sv
+
+Handler          : SvCustomerSummaryHandler
+Facade           : SvCustomerFacade
+Service          : SvCustomerService
+Rule             : SvCustomerRule
+DAO              : SvCustomerDao
+Mapper           : SvCustomerMapper
+Request DTO      : CustomerSummaryRequest
+Response DTO     : CustomerSummaryResponse
+Command DTO      : CustomerSummaryCommand
+Result DTO       : CustomerSummaryResult
+Mapper XML       : SvCustomerMapper.xml
+
+흐름은 다음과 같다.
+SV.Customer.selectSummary
+   ↓
+SvCustomerSummaryHandler
+   ↓
+SvCustomerFacade
+   ↓
+SvCustomerService
+   ↓
+SvCustomerRule
+   ↓
+SvCustomerDao
+   ↓
+SvCustomerMapper
+   ↓
+SvCustomerMapper.xml
+
+
+18. 금지 명명 사례
+잘못된 Class
+문제
+표준
+CustomerService
+업무 Prefix 없음
+SvCustomerService
+SvCustSvc
+약어 남용
+SvCustomerService
+SvCustomerManager
+계층 책임 불명확
+SvCustomerFacade 또는 SvCustomerService
+SvCustomerProcessor
+역할 모호
+SvCustomerHandler 또는 SvCustomerService
+SvCustomerBiz
+의미 불명확
+SvCustomerRule
+SvCustomerImpl
+구현체 의미만 있고 업무 책임 불명확
+SvCustomerService
+SvCustomerUtil
+업무 로직 은닉 위험
+SvCustomerSupport 또는 Rule
+SvCommon
+공통 범위 불명확
+SvCustomerSupport
+SvCustomerMapperImpl
+MyBatis Mapper 구현체 불필요
+SvCustomerMapper
+SvCustomerDAO
+약어 대문자 혼용
+SvCustomerDao
+
+19. Java Class 정합성 검증 기준
+검증 항목
+정상 기준
+Class 표기
+PascalCase
+업무 Prefix
+업무 Class는 Sv, Cm, Om 등 Prefix 사용
+계층 접미어
+Handler, Facade, Service, Rule, Dao, Mapper 사용
+Package와 Prefix 일치
+com.nh.nsight.marketing.sv의 Class는 Sv Prefix
+Handler와 ServiceId 일치
+SV.Customer.selectSummary ↔ SvCustomerSummaryHandler
+Facade 단위
+거래 1건이 아니라 업무대상 단위
+Service 단위
+업무대상 또는 도메인 단위
+Rule 책임
+업무 규칙과 검증만 담당
+DAO 책임
+Mapper 호출만 담당
+Mapper 책임
+MyBatis Interface만 담당
+DTO 성격
+Request/Response/Command/Result 구분
+약어
+Svc, Mgr, Proc, Tmp, Test 운영 반영 금지
+공통 Class
+com.nh.nsight.tcf.*에 위치
+업무 Class
+com.nh.nsight.marketing.{업무}에 위치
+
+20. Java Class 설계 체크리스트
+점검 항목
+확인
+Class명이 PascalCase인가
+□
+업무 Class가 업무 Prefix로 시작하는가
+□
+Class명이 계층 역할을 명확히 표현하는가
+□
+Handler명이 ServiceId 의미와 연결되는가
+□
+Handler가 SQL 또는 트랜잭션을 직접 처리하지 않는가
+□
+Facade가 유스케이스 조립과 트랜잭션 경계를 담당하는가
+□
+Service가 Rule과 DAO 호출을 조정하는가
+□
+Rule이 DB에 직접 접근하지 않는가
+□
+DAO가 Mapper 호출만 담당하는가
+□
+Mapper가 MyBatis Interface 역할만 수행하는가
+□
+DTO가 Request/Response/Command/Result로 분리되어 있는가
+□
+Config Class에 업무 로직이 없는가
+□
+Client Class가 타 업무 Java Class를 직접 참조하지 않는가
+□
+약어, 임시명, 개인식 명칭이 없는가
+□
+Class명과 Package 업무코드가 일치하는가
+□
+
+21. 마무리말
+Java Class 명명규칙은 NSIGHT TCF Framework의 계층 책임을 코드 수준에서 고정하는 기준이다.
+ServiceId
+   ↓
+Handler Class
+   ↓
+Facade Class
+   ↓
+Service Class
+   ↓
+Rule Class
+   ↓
+DAO Class
+   ↓
+Mapper Class
+   ↓
+Mapper XML / SQL ID
+
+따라서 NSIGHT에서는 다음 원칙을 고정한다.
+업무 Class는 {업무Prefix}{업무대상}{역할}로 명명하고, Handler는 ServiceId와 직접 연결되도록 작성한다.
+이 기준을 지키면 개발자는 어느 계층에 무엇을 구현해야 하는지 알 수 있고, 운영자는 ServiceId와 거래로그만으로 Handler, Service, Mapper, SQL까지 일관되게 추적할 수 있다.
+

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 오류코드 관리</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260627c"></script>
+  <script>
+    const PAGE_SIZE = 10;
+    let currentPage = 1;
+    let editMode = false;
+
+    const CATEGORIES = ['BIZ', 'SYS', 'DB', 'AUTH', 'VALIDATION'];
+
+    function readFilters() {
+      const v = id => document.getElementById(id).value.trim();
+      const f = { pageNo: currentPage, pageSize: PAGE_SIZE };
+      if (v('filterErrorCode')) f.errorCode = v('filterErrorCode');
+      if (v('filterCategory')) f.errorCategory = v('filterCategory');
+      if (v('filterUseYn')) f.useYn = v('filterUseYn');
+      return f;
+    }
+
+    function clearForm() {
+      editMode = false;
+      document.getElementById('fCode').readOnly = false;
+      ['fCode', 'fUser', 'fOp', 'fGuide', 'fNotify', 'fReason'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      document.getElementById('fCat').value = 'BIZ';
+      document.getElementById('fUse').value = 'Y';
+      document.getElementById('formMode').textContent = '신규 등록';
+    }
+
+    function fillForm(row) {
+      editMode = true;
+      document.getElementById('fCode').value = OmAdmin.field(row, 'errorCode', '');
+      document.getElementById('fCat').value = OmAdmin.field(row, 'errorCategory', 'BIZ');
+      document.getElementById('fUser').value = OmAdmin.field(row, 'userMessage', '');
+      document.getElementById('fOp').value = OmAdmin.field(row, 'operatorMessage', '');
+      document.getElementById('fGuide').value = OmAdmin.field(row, 'actionGuide', '');
+      document.getElementById('fNotify').value = OmAdmin.field(row, 'notifyTarget', '');
+      document.getElementById('fUse').value = OmAdmin.field(row, 'useYn', 'Y');
+      document.getElementById('fCode').readOnly = true;
+      document.getElementById('formMode').textContent = '수정 / 삭제';
+    }
+
+    function formPayload() {
+      return {
+        errorCode: document.getElementById('fCode').value.trim(),
+        errorCategory: document.getElementById('fCat').value,
+        userMessage: document.getElementById('fUser').value.trim(),
+        operatorMessage: document.getElementById('fOp').value.trim(),
+        actionGuide: document.getElementById('fGuide').value.trim(),
+        notifyTarget: document.getElementById('fNotify').value.trim(),
+        useYn: document.getElementById('fUse').value,
+        changeReason: document.getElementById('fReason').value.trim()
+      };
+    }
+
+    function categoryOptions(selected) {
+      return CATEGORIES.map(c =>
+        `<option value="${c}"${c === selected ? ' selected' : ''}>${c}</option>`).join('');
+    }
+
+    async function loadList(page, el) {
+      currentPage = page;
+      const statusEl = document.getElementById('listStatus');
+      const tbody = document.getElementById('errorBody');
+      tbody.innerHTML = '<tr><td colspan="7" class="om-empty">조회 중...</td></tr>';
+      statusEl.textContent = '조회 중...';
+
+      const { body, relay } = await OmAdmin.inquiry('errorCode', readFilters());
+      const rows = body.rows || [];
+      const pageSize = body.pageSize || PAGE_SIZE;
+      const totalCount = body.totalCount ?? 0;
+      const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+      statusEl.textContent = `${relay.elapsedMs}ms · 페이지 ${body.pageNo || page} / ${totalPages} · 총 ${totalCount}건 · 페이지당 ${pageSize}건`;
+
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="om-empty">조건에 맞는 오류코드가 없습니다.</td></tr>';
+      } else {
+        tbody.innerHTML = rows.map(r => `
+          <tr class="om-row-selectable" data-code="${OmAdmin.field(r, 'errorCode')}">
+            <td class="om-mono">${OmAdmin.field(r, 'errorCode')}</td>
+            <td>${OmAdmin.field(r, 'errorCategory')}</td>
+            <td>${OmAdmin.field(r, 'userMessage')}</td>
+            <td>${OmAdmin.field(r, 'operatorMessage')}</td>
+            <td>${OmAdmin.field(r, 'actionGuide')}</td>
+            <td>${OmAdmin.field(r, 'notifyTarget')}</td>
+            <td>${OmAdmin.field(r, 'useYn') === 'Y' ? '<span class="om-chip ok">Y</span>' : '<span class="om-chip muted">N</span>'}</td>
+          </tr>`).join('');
+        tbody.querySelectorAll('tr.om-row-selectable').forEach(tr => {
+          tr.addEventListener('click', async () => {
+            tbody.querySelectorAll('tr.om-row-selected').forEach(r => r.classList.remove('om-row-selected'));
+            tr.classList.add('om-row-selected');
+            try {
+              const { body: detail } = await OmAdmin.inquiry('errorCodeDetail', {
+                errorCode: tr.dataset.code
+              });
+              fillForm(detail.row || {});
+            } catch (e) {
+              OmAdmin.showErrorBanner(el, e.message);
+            }
+          });
+        });
+      }
+
+      OmAdmin.renderPagination(
+        document.getElementById('pagination'),
+        body.pageNo || page,
+        pageSize,
+        totalCount,
+        p => loadList(p, el).catch(e => OmAdmin.showErrorBanner(el, e.message)),
+        true
+      );
+    }
+
+    OmAdmin.initPage('error-code', '오류코드 / 메시지 관리', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">표준 응답의 errorCode·메시지를 관리합니다. 행을 클릭하면 단건 조회 후 수정/삭제할 수 있습니다. 삭제는 USE_YN=N 처리이며 권한이력에 기록됩니다.</div>
+        <section class="om-filter-bar">
+          <div class="field"><label for="filterErrorCode">오류코드</label><input id="filterErrorCode" type="text" placeholder="부분 검색"></div>
+          <div class="field"><label for="filterCategory">분류</label>
+            <select id="filterCategory"><option value="">전체</option>${categoryOptions('')}</select>
+          </div>
+          <div class="field"><label for="filterUseYn">사용</label>
+            <select id="filterUseYn"><option value="">전체</option><option value="Y" selected>Y</option><option value="N">N</option></select>
+          </div>
+          <div class="actions" style="display:flex;gap:8px;align-items:end">
+            <button class="btn-primary" id="searchBtn" type="button">조회</button>
+            <button class="btn-secondary" id="resetFilterBtn" type="button">초기화</button>
+          </div>
+        </section>
+
+        <div class="om-form-panel">
+          <h3 id="formMode">신규 등록</h3>
+          <div class="om-form-grid">
+            <div class="field"><label for="fCode">오류코드</label><input id="fCode" type="text" placeholder="E-OM-BIZ-0001"></div>
+            <div class="field"><label for="fCat">분류</label><select id="fCat">${categoryOptions('BIZ')}</select></div>
+            <div class="field"><label for="fUse">사용</label><select id="fUse"><option>Y</option><option>N</option></select></div>
+            <div class="field field-wide"><label for="fUser">사용자 메시지</label><input id="fUser" type="text"></div>
+            <div class="field field-wide"><label for="fOp">운영자 메시지</label><input id="fOp" type="text"></div>
+            <div class="field field-wide"><label for="fGuide">조치방법</label><input id="fGuide" type="text"></div>
+            <div class="field"><label for="fNotify">알림대상</label><input id="fNotify" type="text" placeholder="운영팀"></div>
+            <div class="field field-wide"><label for="fReason">변경 사유 (5자+)</label><input id="fReason" type="text" placeholder="승인 후 반영"></div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-secondary" id="newBtn" type="button">신규</button>
+            <button class="btn-primary" id="saveBtn" type="button">등록</button>
+            <button class="btn-primary" id="updateBtn" type="button">수정</button>
+            <button class="btn-secondary" id="deleteBtn" type="button">삭제(USE_YN=N)</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:10px;color:var(--muted);font-size:0.85rem" id="listStatus">-</div>
+        <div class="om-card">
+          <div class="om-card-head">오류코드 목록</div>
+          <div class="om-card-body om-table-wrap">
+            <table class="om-table">
+              <thead><tr><th>오류코드</th><th>분류</th><th>사용자 메시지</th><th>운영자 메시지</th><th>조치방법</th><th>알림대상</th><th>사용</th></tr></thead>
+              <tbody id="errorBody"><tr><td colspan="7" class="om-empty">조회 버튼을 누르세요.</td></tr></tbody>
+            </table>
+            <div class="om-pagination" id="pagination" hidden></div>
+          </div>
+        </div>`;
+
+      document.getElementById('searchBtn').addEventListener('click', () =>
+        loadList(1, el).catch(e => OmAdmin.showErrorBanner(el, e.message)));
+      document.getElementById('resetFilterBtn').addEventListener('click', () => {
+        document.getElementById('filterErrorCode').value = '';
+        document.getElementById('filterCategory').value = '';
+        document.getElementById('filterUseYn').value = '';
+      });
+      document.getElementById('newBtn').addEventListener('click', clearForm);
+      document.getElementById('saveBtn').addEventListener('click', async () => {
+        try {
+          const { body } = await OmAdmin.mutate('errorCodeSave', formPayload(), 'UPDATE');
+          alert(`등록 완료: ${body.errorCode}`);
+          clearForm();
+          await loadList(currentPage, el);
+        } catch (e) { alert(e.message); }
+      });
+      document.getElementById('updateBtn').addEventListener('click', async () => {
+        if (!editMode) { alert('수정할 행을 선택하거나 오류코드를 입력하세요.'); return; }
+        try {
+          const { body } = await OmAdmin.mutate('errorCodeUpdate', formPayload(), 'UPDATE');
+          alert(`수정 완료: ${body.errorCode}`);
+          await loadList(currentPage, el);
+        } catch (e) { alert(e.message); }
+      });
+      document.getElementById('deleteBtn').addEventListener('click', async () => {
+        const payload = formPayload();
+        if (!payload.errorCode) { alert('삭제할 오류코드를 입력하세요.'); return; }
+        if (!confirm(`${payload.errorCode} 를 미사용(USE_YN=N) 처리하시겠습니까?`)) return;
+        try {
+          await OmAdmin.mutate('errorCodeDelete', payload, 'DELETE');
+          alert('삭제(미사용) 처리 완료');
+          clearForm();
+          await loadList(currentPage, el);
+        } catch (e) { alert(e.message); }
+      });
+
+      await loadList(1, el).catch(e => OmAdmin.showErrorBanner(el, e.message));
+    });
+  </script>
+</body>
+</html>

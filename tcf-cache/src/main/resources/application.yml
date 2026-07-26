@@ -1,0 +1,4 @@
+# TCF framework cache (tcf-cache.jar)
+spring:
+  profiles:
+    default: local

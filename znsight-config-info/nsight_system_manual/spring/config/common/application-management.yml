@@ -1,0 +1,41 @@
+management:
+  server:
+    port: 8080
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include:
+          - health
+          - info
+          - metrics
+          - prometheus
+          - threaddump
+          - loggers
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+  health:
+    db:
+      enabled: true
+    diskspace:
+      enabled: true
+    redis:
+      enabled: false
+  metrics:
+    tags:
+      system: NSIGHT
+      platform: MARKETING
+      service: ${spring.application.name}
+
+nsight:
+  monitoring:
+    response-warning-ms: 2000
+    response-critical-ms: 3000
+    error-rate-warning-percent: 1
+    error-rate-critical-percent: 3
+    hikari-usage-warning-percent: 70
+    hikari-usage-critical-percent: 80
+    sessiondb-usage-warning-percent: 70

@@ -1,0 +1,10 @@
+spring:
+  cache:
+    type: jcache
+    jcache:
+      config: classpath:ehcache.xml
+
+nsight:
+  tcf:
+    cache:
+      enabled: true

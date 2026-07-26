@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://www.ehcache.org/v3"
+        xmlns:jsr107="http://www.ehcache.org/v3/jsr107"
+        xsi:schemaLocation="
+            http://www.ehcache.org/v3 https://www.ehcache.org/schema/ehcache-core-3.10.xsd
+            http://www.ehcache.org/v3/jsr107 https://www.ehcache.org/schema/ehcache-107-ext-3.10.xsd">
+
+    <service>
+        <jsr107:defaults enable-management="true" enable-statistics="true"/>
+    </service>
+
+    <cache-template name="tcf-default">
+        <expiry>
+            <ttl unit="minutes">30</ttl>
+        </expiry>
+        <heap unit="entries">500</heap>
+    </cache-template>
+
+    <!-- OM 공통코드 -->
+    <cache alias="commonCode" uses-template="tcf-default">
+        <expiry><ttl unit="minutes">30</ttl></expiry>
+        <heap unit="entries">200</heap>
+    </cache>
+
+    <!-- ServiceId 카탈로그 -->
+    <cache alias="serviceCatalog" uses-template="tcf-default">
+        <expiry><ttl unit="minutes">60</ttl></expiry>
+        <heap unit="entries">100</heap>
+    </cache>
+
+    <!-- 세션/리전 -->
+    <cache alias="sessionRegion" uses-template="tcf-default">
+        <expiry><ttl unit="minutes">10</ttl></expiry>
+        <heap unit="entries">100</heap>
+    </cache>
+</config>

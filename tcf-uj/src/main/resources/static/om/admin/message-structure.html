@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 전문구조 관리</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+  <style>
+    .msg-fields-table input, .msg-fields-table select { width: 100%; min-width: 60px; font-size: 0.85rem; }
+    .msg-fields-table td { vertical-align: middle; }
+    .template-panel { margin-top: 12px; padding: 12px; border: 1px dashed var(--border); border-radius: 8px; background: var(--surface-alt, #f8f9fb); }
+    .template-panel h4 { margin: 0 0 8px; font-size: 0.95rem; }
+    .template-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+    .template-list button { font-size: 0.85rem; }
+    textarea#fSampleJson { min-height: 72px; font-family: ui-monospace, monospace; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260627catalog"></script>
+  <script>
+    const PAGE_SIZE = 10;
+    let currentPage = 1;
+    let editMode = false;
+    let currentStructId = '';
+    let frameworkTemplates = [];
+
+    const MESSAGE_TYPES = ['REQUEST', 'RESPONSE'];
+    const SEGMENT_TYPES = ['HEADER', 'BODY', 'RESULT'];
+    const DATA_TYPES = ['STRING', 'NUMBER', 'BOOLEAN', 'OBJECT', 'ARRAY'];
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function readFilters() {
+      const v = id => document.getElementById(id).value.trim();
+      const f = { pageNo: currentPage, pageSize: PAGE_SIZE };
+      if (v('filterStructCode')) f.structCode = v('filterStructCode');
+      if (v('filterBusinessCode')) f.businessCode = v('filterBusinessCode');
+      if (v('filterServiceId')) f.serviceId = v('filterServiceId');
+      if (v('filterMessageType')) f.messageType = v('filterMessageType');
+      if (v('filterSegmentType')) f.segmentType = v('filterSegmentType');
+      if (v('filterUseYn')) f.useYn = v('filterUseYn');
+      return f;
+    }
+
+    function optionHtml(values, selected) {
+      return values.map(v =>
+        `<option value="${v}"${v === selected ? ' selected' : ''}>${v}</option>`).join('');
+    }
+
+    function clearForm() {
+      editMode = false;
+      currentStructId = '';
+      document.getElementById('fStructCode').readOnly = false;
+      document.getElementById('fStructId').value = '';
+      ['fStructCode', 'fBusinessCode', 'fServiceId', 'fTransactionCode', 'fStructName',
+        'fDescription', 'fSampleJson', 'fReason'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      document.getElementById('fMessageType').value = 'REQUEST';
+      document.getElementById('fSegmentType').value = 'HEADER';
+      document.getElementById('fUse').value = 'Y';
+      document.getElementById('formMode').textContent = '신규 등록';
+      renderFieldRows([]);
+    }
+
+    function fillForm(row, fields) {
+      editMode = true;
+      currentStructId = OmAdmin.field(row, 'structId', '');
+      document.getElementById('fStructId').value = currentStructId;
+      document.getElementById('fStructCode').value = OmAdmin.field(row, 'structCode', '');
+      document.getElementById('fBusinessCode').value = OmAdmin.field(row, 'businessCode', '');
+      document.getElementById('fServiceId').value = OmAdmin.field(row, 'serviceId', '');
+      document.getElementById('fTransactionCode').value = OmAdmin.field(row, 'transactionCode', '');
+      document.getElementById('fMessageType').value = OmAdmin.field(row, 'messageType', 'REQUEST');
+      document.getElementById('fSegmentType').value = OmAdmin.field(row, 'segmentType', 'HEADER');
+      document.getElementById('fStructName').value = OmAdmin.field(row, 'structName', '');
+      document.getElementById('fDescription').value = OmAdmin.field(row, 'description', '');
+      document.getElementById('fSampleJson').value = OmAdmin.field(row, 'sampleJson', '');
+      document.getElementById('fUse').value = OmAdmin.field(row, 'useYn', 'Y');
+      document.getElementById('fStructCode').readOnly = true;
+      document.getElementById('formMode').textContent = '수정 / 삭제';
+      renderFieldRows(fields || []);
+    }
+
+    function readFieldRows() {
+      const rows = [];
+      document.querySelectorAll('#fieldBody tr[data-field-row]').forEach((tr, idx) => {
+        const val = name => tr.querySelector(`[data-f="${name}"]`)?.value?.trim() ?? '';
+        const fieldKey = val('fieldKey');
+        if (!fieldKey) return;
+        rows.push({
+          fieldKey,
+          fieldLabel: val('fieldLabel'),
+          dataType: tr.querySelector('[data-f="dataType"]')?.value || 'STRING',
+          requiredYn: tr.querySelector('[data-f="requiredYn"]')?.value || 'N',
+          maxLength: val('maxLength') ? Number(val('maxLength')) : null,
+          defaultValue: val('defaultValue'),
+          sampleValue: val('sampleValue'),
+          validationRule: val('validationRule'),
+          description: val('description'),
+          sortOrder: idx + 1
+        });
+      });
+      return rows;
+    }
+
+    function fieldRowHtml(field, idx) {
+      const f = field || {};
+      return `<tr data-field-row="${idx}">
+        <td><input data-f="fieldKey" type="text" value="${escapeHtml(OmAdmin.field(f, 'fieldKey', ''))}" placeholder="fieldKey"></td>
+        <td><input data-f="fieldLabel" type="text" value="${escapeHtml(OmAdmin.field(f, 'fieldLabel', ''))}"></td>
+        <td><select data-f="dataType">${optionHtml(DATA_TYPES, OmAdmin.field(f, 'dataType', 'STRING'))}</select></td>
+        <td><select data-f="requiredYn"><option value="Y"${OmAdmin.field(f, 'requiredYn') === 'Y' ? ' selected' : ''}>Y</option><option value="N"${OmAdmin.field(f, 'requiredYn', 'N') !== 'Y' ? ' selected' : ''}>N</option></select></td>
+        <td><input data-f="maxLength" type="number" min="0" value="${OmAdmin.field(f, 'maxLength', '')}"></td>
+        <td><input data-f="sampleValue" type="text" value="${escapeHtml(OmAdmin.field(f, 'sampleValue', ''))}"></td>
+        <td><input data-f="validationRule" type="text" value="${escapeHtml(OmAdmin.field(f, 'validationRule', ''))}"></td>
+        <td><input data-f="description" type="text" value="${escapeHtml(OmAdmin.field(f, 'description', ''))}"></td>
+        <td><button type="button" class="btn-secondary btn-sm row-del">삭제</button></td>
+      </tr>`;
+    }
+
+    function renderFieldRows(fields) {
+      const tbody = document.getElementById('fieldBody');
+      const list = fields && fields.length ? fields : [];
+      if (!list.length) {
+        tbody.innerHTML = fieldRowHtml({}, 0);
+      } else {
+        tbody.innerHTML = list.map((f, i) => fieldRowHtml(f, i)).join('');
+      }
+      bindFieldRowEvents();
+    }
+
+    function bindFieldRowEvents() {
+      document.querySelectorAll('#fieldBody .row-del').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const tr = e.target.closest('tr');
+          if (document.querySelectorAll('#fieldBody tr[data-field-row]').length <= 1) {
+            tr.querySelectorAll('input').forEach(inp => { inp.value = ''; });
+            tr.querySelector('[data-f="dataType"]').value = 'STRING';
+            tr.querySelector('[data-f="requiredYn"]').value = 'N';
+            return;
+          }
+          tr.remove();
+        });
+      });
+    }
+
+    function formPayload() {
+      return {
+        structId: document.getElementById('fStructId').value.trim() || undefined,
+        structCode: document.getElementById('fStructCode').value.trim(),
+        businessCode: document.getElementById('fBusinessCode').value.trim() || null,
+        serviceId: document.getElementById('fServiceId').value.trim() || null,
+        transactionCode: document.getElementById('fTransactionCode').value.trim() || null,
+        messageType: document.getElementById('fMessageType').value,
+        segmentType: document.getElementById('fSegmentType').value,
+        structName: document.getElementById('fStructName').value.trim(),
+        description: document.getElementById('fDescription').value.trim(),
+        sampleJson: document.getElementById('fSampleJson').value.trim() || null,
+        useYn: document.getElementById('fUse').value,
+        changeReason: document.getElementById('fReason').value.trim(),
+        fields: readFieldRows()
+      };
+    }
+
+    function applyTemplate(tpl) {
+      if (!tpl) return;
+      if (!editMode && !document.getElementById('fStructCode').value.trim()) {
+        document.getElementById('fStructCode').value = OmAdmin.field(tpl, 'structCode', '');
+      }
+      document.getElementById('fBusinessCode').value = OmAdmin.field(tpl, 'businessCode', '');
+      document.getElementById('fServiceId').value = OmAdmin.field(tpl, 'serviceId', '');
+      document.getElementById('fTransactionCode').value = OmAdmin.field(tpl, 'transactionCode', '');
+      document.getElementById('fMessageType').value = OmAdmin.field(tpl, 'messageType', 'REQUEST');
+      document.getElementById('fSegmentType').value = OmAdmin.field(tpl, 'segmentType', 'HEADER');
+      document.getElementById('fStructName').value = OmAdmin.field(tpl, 'structName', '');
+      document.getElementById('fDescription').value = OmAdmin.field(tpl, 'description', '');
+      renderFieldRows(tpl.fields || []);
+    }
+
+    async function loadFrameworkTemplates() {
+      const { body } = await OmAdmin.inquiry('messageStructureFramework', {});
+      frameworkTemplates = body.templates || [];
+      const host = document.getElementById('templateButtons');
+      host.innerHTML = frameworkTemplates.map((t, i) =>
+        `<button type="button" class="btn-secondary" data-tpl-idx="${i}">${OmAdmin.field(t, 'structCode')} · ${OmAdmin.field(t, 'segmentType')}</button>`
+      ).join('');
+      host.querySelectorAll('[data-tpl-idx]').forEach(btn => {
+        btn.addEventListener('click', () => applyTemplate(frameworkTemplates[Number(btn.dataset.tplIdx)]));
+      });
+    }
+
+    async function loadList(page, el) {
+      currentPage = page;
+      const statusEl = document.getElementById('listStatus');
+      const tbody = document.getElementById('structBody');
+      tbody.innerHTML = '<tr><td colspan="9" class="om-empty">조회 중...</td></tr>';
+      statusEl.textContent = '조회 중...';
+
+      const { body, relay } = await OmAdmin.inquiry('messageStructure', readFilters());
+      const rows = body.rows || [];
+      const pageSize = body.pageSize || PAGE_SIZE;
+      const totalCount = body.totalCount ?? 0;
+      const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+      statusEl.textContent = `${relay.elapsedMs}ms · 페이지 ${body.pageNo || page} / ${totalPages} · 총 ${totalCount}건`;
+
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="om-empty">조건에 맞는 전문구조가 없습니다.</td></tr>';
+      } else {
+        tbody.innerHTML = rows.map(r => `
+          <tr class="om-row-selectable" data-id="${OmAdmin.field(r, 'structId')}">
+            <td class="om-mono">${OmAdmin.field(r, 'structCode')}</td>
+            <td>${OmAdmin.field(r, 'structName')}</td>
+            <td>${OmAdmin.field(r, 'messageType')}</td>
+            <td>${OmAdmin.field(r, 'segmentType')}</td>
+            <td>${OmAdmin.field(r, 'businessCode') || '-'}</td>
+            <td class="om-mono">${OmAdmin.field(r, 'serviceId') || '-'}</td>
+            <td>${OmAdmin.field(r, 'transactionCode') || '-'}</td>
+            <td>${OmAdmin.field(r, 'useYn') === 'Y' ? '<span class="om-chip ok">Y</span>' : '<span class="om-chip muted">N</span>'}</td>
+            <td>${OmAdmin.field(r, 'description') || '-'}</td>
+          </tr>`).join('');
+        tbody.querySelectorAll('tr.om-row-selectable').forEach(tr => {
+          tr.addEventListener('click', async () => {
+            tbody.querySelectorAll('tr.om-row-selected').forEach(r => r.classList.remove('om-row-selected'));
+            tr.classList.add('om-row-selected');
+            try {
+              const { body: detail } = await OmAdmin.inquiry('messageStructureDetail', { structId: tr.dataset.id });
+              fillForm(detail.row || {}, detail.fields || []);
+            } catch (e) {
+              OmAdmin.showErrorBanner(el, e.message);
+            }
+          });
+        });
+      }
+
+      OmAdmin.renderPagination(
+        document.getElementById('pagination'),
+        body.pageNo || page,
+        pageSize,
+        totalCount,
+        p => loadList(p, el).catch(e => OmAdmin.showErrorBanner(el, e.message)),
+        true
+      );
+    }
+
+    OmAdmin.initPage('message-structure', '전문구조 관리', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">표준 JSON 전문(준문)의 <strong>Header / Body / Result</strong> 필드 정의를 관리합니다.
+          ServiceId·거래코드와 연계하거나 TCF 프레임워크 공통 템플릿을 복사해 등록할 수 있습니다.</div>
+
+        <section class="om-filter-bar">
+          <div class="field"><label for="filterStructCode">구조코드</label><input id="filterStructCode" type="text" placeholder="부분 검색"></div>
+          <div class="field"><label for="filterBusinessCode">업무코드</label><input id="filterBusinessCode" type="text" placeholder="SV"></div>
+          <div class="field"><label for="filterServiceId">ServiceId</label><input id="filterServiceId" type="text"></div>
+          <div class="field"><label for="filterMessageType">메시지</label>
+            <select id="filterMessageType"><option value="">전체</option>${optionHtml(MESSAGE_TYPES, '')}</select></div>
+          <div class="field"><label for="filterSegmentType">세그먼트</label>
+            <select id="filterSegmentType"><option value="">전체</option>${optionHtml(SEGMENT_TYPES, '')}</select></div>
+          <div class="field"><label for="filterUseYn">사용</label>
+            <select id="filterUseYn"><option value="">전체</option><option value="Y" selected>Y</option><option value="N">N</option></select></div>
+          <div class="actions" style="display:flex;gap:8px;align-items:end">
+            <button class="btn-primary" id="searchBtn" type="button">조회</button>
+            <button class="btn-secondary" id="resetFilterBtn" type="button">초기화</button>
+          </div>
+        </section>
+
+        <div class="template-panel">
+          <h4>TCF 표준 전문 템플릿 (tcf-core catalog)</h4>
+          <div class="template-list" id="templateButtons">로딩 중...</div>
+          <div style="font-size:0.85rem;color:var(--muted)">StandardHeader·Result·Body 정의는 tcf-core <code>TcfStandardMessageCatalog</code>와 동기화됩니다. 템플릿 버튼 클릭 시 아래 등록 폼에 필드가 채워집니다.</div>
+        </div>
+
+        <div class="om-form-panel">
+          <h3 id="formMode">신규 등록</h3>
+          <input type="hidden" id="fStructId">
+          <div class="om-form-grid">
+            <div class="field"><label for="fStructCode">구조코드 *</label><input id="fStructCode" type="text" placeholder="SV-SAMPLE-REQ-BODY"></div>
+            <div class="field"><label for="fStructName">구조명 *</label><input id="fStructName" type="text"></div>
+            <div class="field"><label for="fMessageType">메시지유형 *</label><select id="fMessageType">${optionHtml(MESSAGE_TYPES, 'REQUEST')}</select></div>
+            <div class="field"><label for="fSegmentType">세그먼트 *</label><select id="fSegmentType">${optionHtml(SEGMENT_TYPES, 'HEADER')}</select></div>
+            <div class="field"><label for="fBusinessCode">업무코드</label><input id="fBusinessCode" type="text" placeholder="공통이면 비움"></div>
+            <div class="field"><label for="fServiceId">ServiceId</label><input id="fServiceId" type="text"></div>
+            <div class="field"><label for="fTransactionCode">거래코드</label><input id="fTransactionCode" type="text"></div>
+            <div class="field"><label for="fUse">사용</label><select id="fUse"><option>Y</option><option>N</option></select></div>
+            <div class="field field-wide"><label for="fDescription">설명</label><input id="fDescription" type="text"></div>
+            <div class="field field-wide"><label for="fSampleJson">샘플 JSON</label><textarea id="fSampleJson" placeholder='{"sampleKey":"SV-SAMPLE"}'></textarea></div>
+            <div class="field field-wide"><label for="fReason">변경 사유 (5자+) *</label><input id="fReason" type="text" placeholder="승인 후 반영"></div>
+          </div>
+
+          <div class="om-card" style="margin-top:12px">
+            <div class="om-card-head" style="display:flex;justify-content:space-between;align-items:center">
+              <span>필드 정의</span>
+              <button type="button" class="btn-secondary btn-sm" id="addFieldBtn">필드 행 추가</button>
+            </div>
+            <div class="om-card-body om-table-wrap">
+              <table class="om-table msg-fields-table">
+                <thead><tr>
+                  <th>필드키</th><th>라벨</th><th>타입</th><th>필수</th><th>최대길이</th><th>샘플값</th><th>검증규칙</th><th>설명</th><th></th>
+                </tr></thead>
+                <tbody id="fieldBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-secondary" id="newBtn" type="button">신규</button>
+            <button class="btn-primary" id="saveBtn" type="button">등록</button>
+            <button class="btn-primary" id="updateBtn" type="button">수정</button>
+            <button class="btn-secondary" id="deleteBtn" type="button">삭제(USE_YN=N)</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:10px;color:var(--muted);font-size:0.85rem" id="listStatus">-</div>
+        <div class="om-card">
+          <div class="om-card-head">전문구조 목록</div>
+          <div class="om-card-body om-table-wrap">
+            <table class="om-table">
+              <thead><tr>
+                <th>구조코드</th><th>구조명</th><th>메시지</th><th>세그먼트</th><th>업무</th><th>ServiceId</th><th>거래코드</th><th>사용</th><th>설명</th>
+              </tr></thead>
+              <tbody id="structBody"><tr><td colspan="9" class="om-empty">조회 버튼을 누르세요.</td></tr></tbody>
+            </table>
+            <div class="om-pagination" id="pagination" hidden></div>
+          </div>
+        </div>`;
+
+      renderFieldRows([]);
+      await loadFrameworkTemplates().catch(e => {
+        document.getElementById('templateButtons').textContent = '템플릿 로드 실패: ' + e.message;
+      });
+
+      document.getElementById('searchBtn').addEventListener('click', () =>
+        loadList(1, el).catch(e => OmAdmin.showErrorBanner(el, e.message)));
+      document.getElementById('resetFilterBtn').addEventListener('click', () => {
+        ['filterStructCode', 'filterBusinessCode', 'filterServiceId'].forEach(id => {
+          document.getElementById(id).value = '';
+        });
+        document.getElementById('filterMessageType').value = '';
+        document.getElementById('filterSegmentType').value = '';
+        document.getElementById('filterUseYn').value = '';
+      });
+      document.getElementById('newBtn').addEventListener('click', clearForm);
+      document.getElementById('addFieldBtn').addEventListener('click', () => {
+        const tbody = document.getElementById('fieldBody');
+        const idx = tbody.querySelectorAll('tr[data-field-row]').length;
+        tbody.insertAdjacentHTML('beforeend', fieldRowHtml({}, idx));
+        bindFieldRowEvents();
+      });
+      document.getElementById('saveBtn').addEventListener('click', async () => {
+        try {
+          const { body } = await OmAdmin.mutate('messageStructureSave', formPayload(), 'UPDATE');
+          alert(`등록 완료: ${body.structCode}`);
+          clearForm();
+          await loadList(currentPage, el);
+        } catch (e) { alert(e.message); }
+      });
+      document.getElementById('updateBtn').addEventListener('click', async () => {
+        if (!editMode) { alert('수정할 행을 선택하세요.'); return; }
+        try {
+          const { body } = await OmAdmin.mutate('messageStructureUpdate', formPayload(), 'UPDATE');
+          alert(`수정 완료: ${body.structCode}`);
+          await loadList(currentPage, el);
+        } catch (e) { alert(e.message); }
+      });
+      document.getElementById('deleteBtn').addEventListener('click', async () => {
+        const payload = formPayload();
+        if (!payload.structId) { alert('삭제할 전문구조를 선택하세요.'); return; }
+        if (!confirm(`${payload.structCode} 를 미사용(USE_YN=N) 처리하시겠습니까?`)) return;
+        try {
+          await OmAdmin.mutate('messageStructureDelete', payload, 'DELETE');
+          alert('삭제(미사용) 처리되었습니다.');
+          clearForm();
+          await loadList(currentPage, el);
+        } catch (e) { alert(e.message); }
+      });
+
+      await loadList(1, el);
+    });
+  </script>
+</body>
+</html>

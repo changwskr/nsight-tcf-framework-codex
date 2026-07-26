@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nh.nsight.marketing.sv.persistence.mapper.SvSampleMapper">
+
+    <sql id="sampleColumns">
+        SAMPLE_KEY AS sampleKey,
+        SAMPLE_NAME AS sampleName,
+        CREATED_AT AS createdAt
+    </sql>
+
+    <sql id="sampleSearchWhere">
+        <where>
+            <if test="sampleKey != null and sampleKey != ''">
+                AND SAMPLE_KEY LIKE CONCAT('%', #{sampleKey}, '%')
+            </if>
+        </where>
+    </sql>
+
+    <select id="searchSamples"
+            parameterType="com.nh.nsight.marketing.sv.application.dto.sample.SampleSearchCriteria"
+            resultType="com.nh.nsight.marketing.sv.persistence.dto.sample.SampleRow">
+        SELECT <include refid="sampleColumns"/>
+          FROM SV_SAMPLE
+        <include refid="sampleSearchWhere"/>
+         ORDER BY SAMPLE_KEY
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+
+</mapper>

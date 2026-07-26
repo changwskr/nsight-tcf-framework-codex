@@ -1,0 +1,952 @@
+51. 오류코드 등록 절차
+51.1 도입 전 안내말
+오류코드는 NSIGHT TCF Framework에서 오류 발생 원인을 식별하고, 사용자에게 표준 메시지를 반환하며, 운영자가 장애 원인을 추적하기 위한 기준정보이다.
+NSIGHT에서는 개발자가 임의로 "오류가 발생했습니다" 같은 문자열을 직접 반환하지 않는다. 모든 예외는 TCF 공통 후처리 영역에서 표준 오류코드로 변환하고, OM_ERROR_CODE에 등록된 사용자 메시지·운영자 메시지·조치 가이드를 조회하여 StandardResponse로 조립한다. 기존 오류코드 설계에서도 오류코드와 메시지는 TCF 공통 후처리 ETF에서 일원화하고, 운영관리는 OM 오류코드 관리 화면에서 수행하는 구조가 적합하다고 정리되어 있다.
+핵심 문장은 다음이다.
+오류코드는 소스에 흩어진 문자열이 아니라 OM에서 관리되는 운영 기준정보이다.
+
+51.2 오류코드 등록 절차 결론
+구분
+기준
+등록 주체
+개발자 신청 → 업무 PL 검토 → OM 관리자 / 아키텍트 승인
+등록 위치
+OM 오류코드 관리 화면
+기준 테이블
+OM_ERROR_CODE
+적용 위치
+ETF.error() / GlobalExceptionHandler
+코드 형식
+E-{DOMAIN}-{CATEGORY}-{NNNN}
+메시지 구분
+사용자 메시지 / 운영자 메시지 / 조치 가이드 분리
+사용 주체
+TCF, 업무 WAR, OM, Gateway, JWT, Batch, File
+변경 이력
+등록·수정·중지 이력은 감사로그 기록
+삭제 원칙
+물리 삭제보다 비활성 처리
+Cache 적용
+오류코드 조회는 Cache 적용 가능
+보안 원칙
+사용자 메시지에 StackTrace, SQL, 서버정보, 개인정보 노출 금지
+예외처리 설계에서도 모든 예외는 TCF 공통 후처리에서 표준 오류코드로 변환하고, StandardResponse로 조립하며, 거래로그·감사로그·모니터링 지표에 남기는 구조를 기준으로 한다.
+
+51.3 오류코드 등록 전체 흐름
+[1. 오류 발생 가능 지점 식별]
+ Header / Validation / ServiceId / 거래통제 / Timeout / DB / 연계 / 업무오류
+        ↓
+[2. 오류코드 명명]
+ E-{DOMAIN}-{CATEGORY}-{NNNN}
+        ↓
+[3. 사용자 메시지 작성]
+ 화면 사용자에게 보여줄 쉬운 메시지 작성
+        ↓
+[4. 운영자 메시지 작성]
+ GUID, ServiceId, SQL ID, 원인 확인 가능한 메시지 작성
+        ↓
+[5. 조치 가이드 작성]
+ OM 화면, 로그, DB, 연계 시스템 확인 위치 작성
+        ↓
+[6. OM 오류코드 등록]
+ OM_ERROR_CODE 등록
+        ↓
+[7. 업무 소스 반영]
+ BusinessException / SystemException에서 errorCode 사용
+        ↓
+[8. 테스트]
+ 오류 발생 → ETF 변환 → 표준 응답 → 거래로그 확인
+        ↓
+[9. 운영 반영]
+ 승인 후 운영 OM 반영, Cache Evict / Reload
+        ↓
+[10. 운영 추적]
+ 거래로그 / 감사로그 / 알림 / 모니터링 연계
+
+
+51.4 오류코드 등록 단계별 절차
+단계
+작업
+담당
+산출물
+1
+오류 상황 식별
+개발자
+오류 발생 조건
+2
+오류 분류 결정
+개발자 / PL
+Header, Validation, DB, IF, Timeout 등
+3
+오류코드 채번
+개발자 / OM 관리자
+E-SV-BIZ-0001
+4
+사용자 메시지 작성
+개발자 / 업무 PL
+사용자 안내 문구
+5
+운영자 메시지 작성
+개발자
+원인 추적 문구
+6
+조치 가이드 작성
+개발자 / 운영자
+확인 위치와 조치 방법
+7
+심각도 결정
+PL / 운영자
+INFO, WARN, ERROR, CRITICAL
+8
+감사 여부 결정
+아키텍트 / 보안 담당
+AUDIT_YN
+9
+재시도 가능 여부 결정
+개발자 / 운영자
+RETRY_YN
+10
+OM 등록
+OM 관리자
+OM_ERROR_CODE
+11
+소스 적용
+개발자
+throw new BusinessException(errorCode)
+12
+테스트
+개발자 / QA
+오류 응답, 거래로그 확인
+13
+승인
+PL / 운영자 / 아키텍트
+승인 이력
+14
+운영 반영
+운영자
+운영 오류코드 등록
+15
+모니터링
+운영자
+오류 발생 현황 조회
+
+51.5 오류코드 명명 규칙
+오류코드는 다음 형식을 사용한다.
+E-{DOMAIN}-{CATEGORY}-{NNNN}
+
+구분
+의미
+예시
+E
+Error
+E
+DOMAIN
+오류 발생 영역
+TCF, COM, SV, OM, GW, JWT, UD
+CATEGORY
+오류 분류
+HDR, VAL, AUTHN, AUTHZ, CTL, TIME, DB, IF, SYS
+NNNN
+일련번호
+0001
+오류코드 설계 기준에서도 권장 형식은 E-{DOMAIN}-{CATEGORY}-{NNNN}이며, 예시는 E-TCF-HDR-0001, E-TCF-CTL-0001, E-SV-BIZ-0001, E-OM-CODE-0001, E-UD-FILE-0001처럼 정리되어 있다.
+
+51.6 DOMAIN 표준
+DOMAIN
+의미
+적용 대상
+예시
+TCF
+TCF 공통 프레임워크
+STF, TCF, ETF, Dispatcher
+E-TCF-HDR-0001
+COM
+공통 모듈
+Validator, 공통 유틸, 공통코드
+E-COM-VAL-0001
+GW
+Gateway
+라우팅, Target, Relay
+E-GW-ROUTE-0001
+JWT
+JWT 인증
+토큰 발급, 검증, 폐기
+E-JWT-AUTHN-0001
+OM
+운영관리
+사용자, 권한, 메뉴, 기준정보
+E-OM-USER-0001
+SV
+Single View 업무
+고객요약, 고객상세
+E-SV-BIZ-0001
+CM
+Campaign 업무
+캠페인 등록, 대상 추출
+E-CM-BIZ-0001
+MG
+Message 업무
+메시지 발송
+E-MG-IF-0001
+UD
+파일 업다운로드
+업로드, 다운로드, 파일메타
+E-UD-FILE-0001
+BAT
+Batch / Scheduler
+Job 실행, 스케줄
+E-BAT-JOB-0001
+
+51.7 CATEGORY 표준
+CATEGORY
+의미
+발생 위치
+예시
+HDR
+Header 오류
+STF
+ServiceId 누락
+VAL
+입력값 검증 오류
+Validator / Rule
+필수값 누락
+SVC
+ServiceId 오류
+Dispatcher
+Handler 없음
+CTL
+거래통제 오류
+STF
+미등록 거래
+TIME
+Timeout 오류
+TCF / MyBatis / 외부연계
+Query Timeout
+SES
+세션 오류
+STF
+세션 만료
+AUTHN
+인증 오류
+Security / JWT
+미인증
+AUTHZ
+권한 오류
+Authorization
+기능권한 없음
+BIZ
+업무 오류
+Rule / Service
+업무 조건 불일치
+DB
+DB 오류
+DAO / Mapper
+SQL 오류
+IF
+연계 오류
+Integration Client
+외부 시스템 오류
+SYS
+시스템 오류
+공통 모듈
+NullPointer, 설정 오류
+SEC
+보안 오류
+Security
+위변조, 접근차단
+FILE
+파일 오류
+UD / OM File
+파일 없음
+CACHE
+캐시 오류
+tcf-cache
+Cache Reload 실패
+
+51.8 오류코드 등록 항목
+OM_ERROR_CODE에는 최소한 다음 항목을 등록한다.
+항목
+필수
+설명
+예시
+ERROR_CODE
+Y
+표준 오류코드
+E-TCF-HDR-0001
+ERROR_NAME
+Y
+오류명
+ServiceId 누락
+ERROR_DOMAIN
+Y
+오류 영역
+TCF
+ERROR_CATEGORY
+Y
+오류 분류
+HDR
+ERROR_LEVEL
+Y
+심각도
+WARN, ERROR, CRITICAL
+RESULT_STATUS
+Y
+결과 상태
+FAIL, TIMEOUT, UNKNOWN
+RESULT_CODE
+Y
+결과코드
+E0001, E0002, T0001
+HTTP_STATUS
+Y
+HTTP 상태
+200, 400, 500
+USER_MESSAGE
+Y
+사용자 메시지
+입력값을 확인해 주십시오.
+OPERATOR_MESSAGE
+Y
+운영자 메시지
+header.serviceId is blank
+ACTION_GUIDE
+N
+조치 가이드
+요청 Header를 확인하십시오.
+NOTIFY_TARGET
+N
+알림 대상
+AP운영팀, DBA, 개발팀
+RETRY_YN
+Y
+재시도 가능 여부
+Y / N
+AUDIT_YN
+Y
+감사로그 대상 여부
+Y / N
+MASK_DETAIL_YN
+Y
+상세 오류 마스킹 여부
+Y
+USE_YN
+Y
+사용 여부
+Y
+APPROVAL_STATUS
+Y
+승인 상태
+APPROVED
+CREATED_BY
+Y
+등록자
+admin01
+CREATED_DTTM
+Y
+등록일시
+현재일시
+UPDATED_BY
+N
+수정자
+admin01
+UPDATED_DTTM
+N
+수정일시
+현재일시
+기존 오류코드 테이블 설계에서도 ERROR_CODE, ERROR_NAME, ERROR_CATEGORY, ERROR_LEVEL, RESULT_CODE, HTTP_STATUS, USER_MESSAGE, OPERATOR_MESSAGE, ACTION_GUIDE, NOTIFY_TARGET, RETRY_YN, AUDIT_YN, MASK_DETAIL_YN, USE_YN을 주요 컬럼으로 제시하고 있다.
+
+51.9 ResultCode와 ErrorCode 분리 기준
+오류코드 등록 시 resultCode와 errorCode를 혼동하면 안 된다.
+구분
+의미
+예시
+resultStatus
+처리 상태
+SUCCESS, FAIL, TIMEOUT, UNKNOWN
+resultCode
+응답 결과 요약
+S0000, E0001, E0002, T0001
+errorCode
+상세 오류 식별자
+E-TCF-HDR-0001
+messageCode
+메시지 식별자
+MSG-TCF-HDR-0001
+userMessage
+사용자 표시 메시지
+요청 정보를 확인해 주십시오.
+operatorMessage
+운영자 상세 메시지
+header.serviceId is blank
+actionGuide
+조치 가이드
+OM ServiceId 관리 화면을 확인하십시오.
+권장 결과코드는 다음과 같이 단순화한다.
+resultStatus
+resultCode
+의미
+SUCCESS
+S0000
+정상
+FAIL
+E0001
+일반 실패
+VALIDATION_FAIL
+E0002
+입력값 오류
+AUTH_FAIL
+E0003
+인증·권한 오류
+TIMEOUT
+T0001
+Timeout
+UNKNOWN
+U0001
+처리상태 불명확
+SYSTEM_ERROR
+E9999
+시스템 오류
+기존 오류코드 설계에서도 resultStatus, resultCode, errorCode, messageCode, userMessage, operatorMessage, actionGuide를 분리하는 것을 중요한 기준으로 정의하고 있다.
+
+51.10 메시지 작성 기준
+오류 메시지는 반드시 사용자 메시지와 운영자 메시지를 분리한다.
+메시지 구분
+대상
+작성 기준
+예시
+사용자 메시지
+화면 사용자
+쉽고 짧게, 기술정보 제거
+입력값을 확인해 주십시오.
+운영자 메시지
+운영자 / 개발자
+원인 추적 가능하게 작성
+header.serviceId is blank
+조치 가이드
+운영자
+확인 화면과 조치 방법 작성
+OM ServiceId 관리 화면에서 등록 여부 확인
+로그 상세
+로그 / APM
+SQL ID, Interface ID, Exception Type 포함
+sqlId=SvCustomerMapper.selectSummary
+사용자 메시지에는 다음 내용을 노출하지 않는다.
+노출 금지 항목
+이유
+StackTrace
+내부 구조 노출
+SQL 전문
+보안 위험
+DB 계정, DB URL
+시스템 정보 노출
+서버 IP, Hostname
+공격 표면 노출
+파일 경로
+내부 경로 노출
+개인정보
+보안·감사 위험
+Token, Secret
+인증정보 유출 위험
+
+51.11 오류코드 등록 예시
+51.11.1 Header 오류 예시
+항목
+값
+Error Code
+E-TCF-HDR-0001
+Error Name
+ServiceId 누락
+Domain
+TCF
+Category
+HDR
+Level
+WARN
+Result Status
+VALIDATION_FAIL
+Result Code
+E0002
+HTTP Status
+200
+User Message
+요청 정보를 확인해 주십시오.
+Operator Message
+Header.serviceId is blank
+Action Guide
+요청 전문 Header의 serviceId 값을 확인하십시오.
+Retry
+N
+Audit
+N
+Mask Detail
+Y
+
+51.11.2 거래통제 오류 예시
+항목
+값
+Error Code
+E-TCF-CTL-0001
+Error Name
+미등록 거래
+Domain
+TCF
+Category
+CTL
+Level
+WARN
+Result Status
+FAIL
+Result Code
+E0003
+HTTP Status
+200
+User Message
+해당 거래를 수행할 수 없습니다.
+Operator Message
+TCF_TRANSACTION_CONTROL allow-list not found
+Action Guide
+OM 거래통제 관리 화면에서 ServiceId, 사용자, 채널, 지점 등록 여부를 확인하십시오.
+Retry
+N
+Audit
+Y
+Mask Detail
+Y
+
+51.11.3 DB 오류 예시
+항목
+값
+Error Code
+E-COM-DB-0001
+Error Name
+DB 연결 오류
+Domain
+COM
+Category
+DB
+Level
+ERROR
+Result Status
+SYSTEM_ERROR
+Result Code
+E9999
+HTTP Status
+200 또는 500
+User Message
+일시적으로 처리가 지연되고 있습니다. 잠시 후 다시 시도해 주십시오.
+Operator Message
+Database connection acquisition failed
+Action Guide
+HikariCP Pool 사용률, DB Session, DB 상태를 확인하십시오.
+Notify Target
+DBA, AP운영팀
+Retry
+Y
+Audit
+N
+Mask Detail
+Y
+
+51.11.4 업무 오류 예시
+항목
+값
+Error Code
+E-SV-BIZ-0001
+Error Name
+고객정보 없음
+Domain
+SV
+Category
+BIZ
+Level
+INFO
+Result Status
+FAIL
+Result Code
+E0001
+HTTP Status
+200
+User Message
+조회된 고객 정보가 없습니다.
+Operator Message
+Customer summary not found
+Action Guide
+고객번호와 조회 조건을 확인하십시오.
+Retry
+N
+Audit
+N
+Mask Detail
+Y
+
+51.12 OM 오류코드 등록 요청 전문 예시
+{
+  "header": {
+    "serviceId": "OM.ErrorCode.save",
+    "transactionCode": "OM-REG-ERR-001",
+    "businessCode": "OM",
+    "serviceName": "오류코드 등록",
+    "user": "admin01",
+    "channelId": "OM",
+    "branch": "0000"
+  },
+  "body": {
+    "errorCode": "E-SV-BIZ-0001",
+    "errorName": "고객정보 없음",
+    "errorDomain": "SV",
+    "errorCategory": "BIZ",
+    "errorLevel": "INFO",
+    "resultStatus": "FAIL",
+    "resultCode": "E0001",
+    "httpStatus": 200,
+    "userMessage": "조회된 고객 정보가 없습니다.",
+    "operatorMessage": "Customer summary not found",
+    "actionGuide": "고객번호와 조회 조건을 확인하십시오.",
+    "notifyTarget": "SV개발팀",
+    "retryYn": "N",
+    "auditYn": "N",
+    "maskDetailYn": "Y",
+    "useYn": "Y",
+    "reason": "SV 고객요약조회 업무 오류 등록"
+  }
+}
+
+
+51.13 오류코드 사용 소스 예시
+51.13.1 BusinessException 사용 예시
+@Component
+public class SvCustomerRule {
+
+    public void validateCustomerExists(SvCustomer customer) {
+        if (customer == null) {
+            throw new BusinessException(
+                    "E-SV-BIZ-0001",
+                    "조회된 고객 정보가 없습니다.",
+                    "Customer summary not found"
+            );
+        }
+    }
+}
+
+업무적으로 예상 가능한 오류는 BusinessException을 사용한다.예를 들어 조회 결과 없음, 업무 조건 불일치, 입력값 오류, 권한 없음, 거래통제 차단 등이 여기에 해당한다.
+
+51.13.2 SystemException 사용 예시
+@Repository
+@RequiredArgsConstructor
+public class SvCustomerDao {
+
+    private final SvCustomerMapper svCustomerMapper;
+
+    public SvCustomer selectCustomerSummary(String customerNo) {
+        try {
+            return svCustomerMapper.selectCustomerSummary(customerNo);
+        } catch (DataAccessException e) {
+            throw new SystemException(
+                    "E-COM-DB-0002",
+                    "SQL execution failed. sqlId=SvCustomerMapper.selectCustomerSummary",
+                    e
+            );
+        }
+    }
+}
+
+DB, 외부연계, 시스템 설정, Timeout 같은 기술적 오류는 SystemException으로 변환한다.
+
+51.14 오류코드 처리 흐름
+[업무 Handler / Facade / Service / Rule / DAO]
+        ↓
+BusinessException / SystemException 발생
+        ↓
+[TCF.process()]
+        ↓
+catch
+        ↓
+[ETF.error()]
+        ↓
+ErrorCodeResolver
+        ↓
+OM_ERROR_CODE 조회 또는 Cache 조회
+        ↓
+ErrorResponseAssembler
+        ↓
+StandardResponse 조립
+        ↓
+TCF_TX_LOG 갱신
+  - RESULT_STATUS
+  - RESULT_CODE
+  - ERROR_CODE
+  - ELAPSED_TIME_MS
+        ↓
+OM_AUDIT_LOG 필요 시 기록
+        ↓
+APM / Metrics 전송
+        ↓
+사용자에게 표준 오류 응답 반환
+
+기존 오류코드 설계에서도 BusinessException / ValidationException / SystemException 발생 후 ETF.error()에서 ErrorCodeResolver가 OM_ERROR_CODE 또는 Cache를 조회하고, 표준 응답을 생성한 뒤 거래로그를 갱신하는 흐름으로 정리되어 있다.
+
+51.15 표준 오류 응답 예시
+{
+  "header": {
+    "guid": "7f9c9d10-1111-2222-3333-111122223333",
+    "traceId": "TRC202607040001",
+    "transactionId": "TX202607040001",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "channelId": "WEBTOP",
+    "user": "U123456",
+    "branch": "0012",
+    "responseDateTime": "2026-07-04T13:45:00"
+  },
+  "result": {
+    "resultStatus": "FAIL",
+    "resultCode": "E0001",
+    "resultMessage": "처리할 수 없습니다.",
+    "errorCode": "E-SV-BIZ-0001",
+    "messageCode": "MSG-SV-BIZ-0001"
+  },
+  "error": {
+    "userMessage": "조회된 고객 정보가 없습니다.",
+    "operatorMessage": "Customer summary not found",
+    "actionGuide": "고객번호와 조회 조건을 확인하십시오.",
+    "errorSystemId": "NSIGHT-MP",
+    "errorDateTime": "2026-07-04T13:45:00"
+  },
+  "body": null
+}
+
+표준 응답은 업무 데이터와 오류 정보를 분리해야 한다. 기존 설계에서도 header, body, error 영역을 두고 resultCode, errorCode, userMessage, operatorMessage, actionGuide를 포함하는 방식을 제시하고 있다.
+
+51.16 오류코드 등록 SQL 예시
+INSERT INTO OM_ERROR_CODE (
+    ERROR_CODE,
+    ERROR_NAME,
+    ERROR_DOMAIN,
+    ERROR_CATEGORY,
+    ERROR_LEVEL,
+    RESULT_STATUS,
+    RESULT_CODE,
+    HTTP_STATUS,
+    USER_MESSAGE,
+    OPERATOR_MESSAGE,
+    ACTION_GUIDE,
+    NOTIFY_TARGET,
+    RETRY_YN,
+    AUDIT_YN,
+    MASK_DETAIL_YN,
+    USE_YN,
+    APPROVAL_STATUS,
+    CREATED_BY,
+    CREATED_DTTM
+) VALUES (
+    'E-SV-BIZ-0001',
+    '고객정보 없음',
+    'SV',
+    'BIZ',
+    'INFO',
+    'FAIL',
+    'E0001',
+    200,
+    '조회된 고객 정보가 없습니다.',
+    'Customer summary not found',
+    '고객번호와 조회 조건을 확인하십시오.',
+    'SV개발팀',
+    'N',
+    'N',
+    'Y',
+    'Y',
+    'APPROVED',
+    'admin01',
+    CURRENT_TIMESTAMP
+);
+
+
+51.17 OM 오류코드 관리 화면 기준
+영역
+항목
+검색조건
+오류코드, 오류명, Domain, Category, 심각도, 사용여부
+목록
+오류코드, 오류명, 분류, 결과코드, 사용자 메시지, 사용여부
+상세
+사용자 메시지, 운영자 메시지, 조치 가이드, 알림 대상
+관리기능
+등록, 수정, 사용중지, 엑셀 다운로드
+이력관리
+변경자, 변경일시, 변경 전/후 내용
+Cache 관리
+오류코드 Cache Evict / Reload
+검증기능
+오류코드 형식 검증, 중복 검증, 메시지 누락 검증
+기존 OM 오류코드 관리 화면 기준도 검색조건, 목록, 상세, 관리기능, 이력관리를 포함하도록 정리되어 있다.
+
+51.18 오류코드 Cache 반영 절차
+OM 오류코드 등록 / 수정 / 사용중지
+        ↓
+변경 전 값 조회
+        ↓
+OM_ERROR_CODE 저장
+        ↓
+감사로그 기록
+        ↓
+ErrorCode Cache Evict
+        ↓
+ErrorCode Cache Reload
+        ↓
+업무 WAR / TCF / Gateway에서 변경 메시지 사용
+
+상황
+처리
+오류코드 조회
+Cache 우선 조회
+Cache Miss
+OM_ERROR_CODE 조회 후 Cache 적재
+오류코드 변경
+해당 오류코드 Evict
+대량 변경
+전체 오류코드 Reload
+비활성 코드
+오류 응답 생성 시 기본 시스템 오류로 대체
+Cache 장애
+DB 직접 조회 또는 기본 메시지 반환
+
+51.19 오류코드 변경 원칙
+변경 유형
+처리 기준
+신규 등록
+승인 후 USE_YN = Y
+사용자 메시지 변경
+업무 영향 검토 후 변경
+운영자 메시지 변경
+운영팀 검토 후 변경
+조치 가이드 변경
+운영 절차 변경 시 반영
+심각도 변경
+알림 정책 영향 검토
+코드값 변경
+원칙적으로 금지
+오류코드 삭제
+원칙적으로 금지
+사용 중지
+USE_YN = N 처리
+폐기
+RETIRED 상태 관리 권장
+오류코드 값 자체를 변경하면 과거 거래로그와 감사로그의 해석이 달라질 수 있다. 따라서 운영 중 오류코드 값은 변경하지 않고, 필요한 경우 신규 오류코드를 추가한 뒤 기존 코드를 비활성화한다.
+
+51.20 오류코드 테스트 기준
+테스트 유형
+확인 내용
+정상 등록
+OM_ERROR_CODE에 오류코드 정상 등록
+중복 등록
+동일 오류코드 중복 등록 차단
+형식 검증
+E-{DOMAIN}-{CATEGORY}-{NNNN} 형식 검증
+메시지 누락
+사용자 메시지, 운영자 메시지 누락 차단
+BusinessException
+오류코드 기준 표준 응답 변환
+SystemException
+시스템 오류코드 기준 표준 응답 변환
+미등록 오류코드
+기본 오류코드로 대체 처리
+비활성 오류코드
+사용 차단 또는 기본 메시지 반환
+사용자 메시지 보안
+StackTrace, SQL, 개인정보 미노출
+거래로그 연계
+TCF_TX_LOG.ERROR_CODE 기록
+감사로그 연계
+오류코드 등록·수정 이력 기록
+Cache 반영
+변경 후 즉시 응답 메시지 반영
+알림 연계
+CRITICAL 오류 발생 시 알림 대상 확인
+
+51.21 오류코드 금지 사항
+금지 사항
+사유
+소스에 사용자 메시지 하드코딩
+메시지 운영관리 불가
+Exception.getMessage()를 사용자에게 직접 노출
+기술정보 유출 위험
+StackTrace를 응답 전문에 포함
+보안 위험
+SQL 전문을 사용자 메시지에 포함
+DB 구조 노출
+오류코드 없이 RuntimeException 발생
+운영 추적 어려움
+같은 의미의 오류코드 중복 생성
+운영 기준 혼선
+운영 중 오류코드 값 변경
+과거 로그 해석 오류
+오류코드 물리 삭제
+거래로그 추적 불가
+모든 오류를 E9999로 처리
+원인 분석 불가
+
+51.22 개발자 체크리스트
+점검 항목
+확인
+오류코드가 E-{DOMAIN}-{CATEGORY}-{NNNN} 형식을 따르는가
+
+기존 오류코드와 중복되지 않는가
+
+사용자 메시지가 쉽고 기술정보를 노출하지 않는가
+
+운영자 메시지에 원인 추적 정보가 있는가
+
+조치 가이드가 실제 운영자가 따라 할 수 있는가
+
+심각도와 알림 대상이 적절한가
+
+감사로그 대상 여부가 정의되어 있는가
+
+재시도 가능 여부가 정의되어 있는가
+
+BusinessException / SystemException에서 해당 오류코드를 사용하는가
+
+ETF 후처리에서 표준 응답으로 변환되는가
+
+거래로그에 ERROR_CODE가 기록되는가
+
+Cache Evict / Reload가 정상 동작하는가
+
+미등록 오류코드 발생 시 기본 오류 처리 기준이 있는가
+
+운영환경 반영 전 승인이 완료되었는가
+
+
+51.23 마무리말
+오류코드 등록 절차의 핵심은 예외 처리의 운영관리화이다.
+오류코드는 개발자가 임의로 작성하는 문자열이 아니라, OM에서 관리하고 TCF 후처리에서 표준 응답으로 변환하는 기준정보이다. 오류코드가 표준화되어야 사용자는 일관된 메시지를 받고, 운영자는 GUID, TraceId, ServiceId, ErrorCode 기준으로 장애를 추적할 수 있다.
+정리하면 다음과 같다.
+오류 발생
+  ↓
+BusinessException / SystemException
+  ↓
+ETF 오류 변환
+  ↓
+OM_ERROR_CODE 메시지 조회
+  ↓
+StandardResponse 조립
+  ↓
+거래로그 / 감사로그 / 모니터링 기록
+
+
+51.24 시사점
+오류코드는 단순 개발 규칙이 아니라 운영·보안·감사 기준이다.
+관점
+시사점
+개발 관점
+신규 오류 상황이 생기면 오류코드를 먼저 정의하고 예외에 적용해야 한다
+운영 관점
+오류코드 기준으로 장애 원인, 조치 가이드, 알림 대상을 확인할 수 있어야 한다
+보안 관점
+사용자 응답에는 내부 기술정보가 노출되지 않아야 한다
+감사 관점
+오류코드 등록·수정·중지 이력이 남아야 한다
+아키텍처 관점
+오류코드는 ETF, 거래로그, 감사로그, OM 운영관리와 연결되는 공통 기준정보이다
+

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- BP - Behavior Processing -->
+<Context path="/bp"
+         docBase="/app/nsight/war/bp.war"
+         reloadable="false"
+         sessionCookieName="JSESSIONID">
+</Context>

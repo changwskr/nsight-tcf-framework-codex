@@ -1,0 +1,124 @@
+version: "1.0"
+title: NSIGHT TCF HELP
+description: TCF UI · Relay · OC · 전체 문서 라이브러리
+sections:
+  - id: library-map
+    title: 문서 지도
+    description: 저장소 전체 마크다운 카탈로그
+    items:
+      - id: doc-map
+        title: 전체 문서 지도
+        file: meta/00-문서-지도.md
+        tags: [library, catalog]
+      - id: library-link
+        title: 문서 라이브러리 (600+)
+        file: meta/00-문서-지도.md
+        tags: [library]
+        external: /help/library.html
+
+  - id: start
+    title: 시작하기
+    description: TCF UI 개요와 로컬 기동
+    items:
+      - id: tcf-ui-overview
+        title: TCF UI 개요
+        file: 00-시작하기/01-tcf-ui-개요.md
+        tags: [tcf-ui, relay]
+        screens: [/index.html]
+      - id: relay-usage
+        title: Relay 사용법
+        file: 00-시작하기/02-relay-사용법.md
+        tags: [relay, api]
+      - id: local-ports
+        title: 로컬 기동·포트
+        file: 00-시작하기/03-로컬-기동-포트.md
+        tags: [bootRun, port]
+
+  - id: modules
+    title: 업무·운영
+    description: 업무 모듈 테스트와 OM Admin
+    items:
+      - id: business-modules
+        title: 업무 모듈 테스트
+        file: 10-업무-모듈/01-업무-모듈-테스트.md
+        tags: [sv, ic, online]
+      - id: om-admin
+        title: OM 운영관리
+        file: 10-업무-모듈/02-om-admin.md
+        tags: [om, admin]
+
+  - id: oc
+    title: OC 용량·환경
+    description: 용량 산정과 ENV·Rule 점검 흐름
+    items:
+      - id: oc-portal-flow
+        title: OC 포털 흐름
+        file: 20-oc-용량-환경/01-oc-포털-흐름.md
+        tags: [oc, capacity, env]
+        screens: [/oc/index.html]
+      - id: cap-steps
+        title: 용량 산정 단계
+        file: 20-oc-용량-환경/02-cap-산정-단계.md
+        tags: [cap, tps]
+        screens: [/oc/capacity.html, /oc/plan.html]
+      - id: env-flow
+        title: ENV-002~004
+        file: 20-oc-용량-환경/03-env-002-004.md
+        tags: [env]
+        screens: [/oc/env-001.html, /oc/env-002.html, /oc/env-003.html, /oc/env-004.html, /oc/check.html]
+      - id: rule-check
+        title: Rule 점검
+        file: 20-oc-용량-환경/04-rule-check.md
+        tags: [rule, sc-007]
+        screens: [/oc/rule-check.html]
+      - id: cap-new-wizard
+        title: NEW 용량산정 Wizard
+        file: 20-oc-용량-환경/05-cap-new-wizard.md
+        tags: [cap-new, wizard, oc]
+        screens:
+          - /oc/cap-new/index.html
+          - /oc/cap-new/wizard.html
+          - /oc/cap-new/compare.html
+          - /oc/cap-new/approved.html
+
+  - id: errors
+    title: 오류 대응
+    description: 표준 오류 응답과 Relay 실패
+    items:
+      - id: error-response
+        title: 오류 응답 구조
+        file: 30-오류-대응/01-오류-응답-구조.md
+        tags: [error, result]
+      - id: relay-failure
+        title: Relay 실패 대응
+        file: 30-오류-대응/02-relay-실패.md
+        tags: [relay, error]
+
+  - id: corpus-meta
+    title: 코퍼스 안내
+    description: 저장소 문서 묶음별 개요
+    items:
+      - id: meta-zguide
+        title: zguide 개발 가이드
+        file: meta/zguide-개요.md
+      - id: meta-zman
+        title: zman 설계 대조
+        file: meta/zman-개요.md
+      - id: meta-zdoc
+        title: zdoc 기능 설명
+        file: meta/zdoc-개요.md
+      - id: meta-znsight-man
+        title: znsight-man 표준
+        file: meta/znsight-man-개요.md
+      - id: meta-capacity
+        title: 용량·환경설정
+        file: meta/capacity-개요.md
+      - id: meta-architecture
+        title: 아키텍처
+        file: meta/architecture-개요.md
+      - id: meta-ztcfbook
+        title: TCF 교재
+        file: meta/ztcfbook-개요.md
+      - id: meta-module-readme
+        title: 모듈 README
+        file: meta/module-readme-개요.md

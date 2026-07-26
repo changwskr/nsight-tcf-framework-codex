@@ -1,0 +1,550 @@
+6. 로컬 개발환경 구성
+6.1 도입 전 안내말
+본 장은 NSIGHT TCF Framework 개발자가 로컬 PC에서 소스를 내려받고, 빌드하고, 테스트하고, bootRun 방식으로 업무 서비스를 실행하기 위한 개발환경 구성 기준을 정의한다.
+NSIGHT TCF Framework는 일반적인 단일 Spring Boot 애플리케이션이 아니다.공통 TCF 모듈, 업무 서비스 WAR, OM 운영관리, Gateway, Batch, JWT, Cache, UI, CI/CD 설정이 함께 구성되는 멀티 모듈 구조이다. 따라서 개발자는 단순히 Controller 하나를 실행하는 방식이 아니라, 다음 흐름을 이해한 상태에서 개발해야 한다.
+Git Repository
+   ↓
+Gradle Multi Module
+   ↓
+tcf-core / tcf-web / tcf-cache / tcf-om / 업무 서비스
+   ↓
+bootRun
+   ↓
+POST /{businessCode}/online
+   ↓
+TCF.process()
+   ↓
+STF 전처리
+   ↓
+ServiceId Dispatcher
+   ↓
+Handler → Facade → Service → Rule → DAO/Mapper
+
+NSIGHT 구축·운영 표준은 Apache, Tomcat, Spring Boot, Spring Session JDBC, RDW/ADW, GitLab CI/CD를 적용 범위로 두고 있다. 또한 NSIGHT Java 코딩 스타일 가이드는 Spring Boot, MyBatis, 예외처리, 로그, 트랜잭션, 보안, 테스트 기준을 통합 개발 표준으로 정의하고 있다.
+
+6.2 로컬 개발환경 구성 목표
+로컬 개발환경의 목표는 다음과 같다.
+목표
+설명
+소스 실행 가능
+개발자가 업무 서비스를 로컬에서 직접 실행할 수 있어야 한다
+표준 구조 이해
+TCF 공통 파이프라인과 업무 Handler 구조를 확인할 수 있어야 한다
+단위 테스트 가능
+Rule, Service, DAO, Mapper 단위 테스트를 수행할 수 있어야 한다
+표준 전문 테스트 가능
+POST /{businessCode}/online 방식으로 표준 요청/응답을 검증할 수 있어야 한다
+환경 분리
+local, dev, stg, prd 설정이 명확히 분리되어야 한다
+운영 설정 보호
+운영 DB, 운영 Secret, 운영 Profile을 로컬에서 직접 사용하지 않아야 한다
+개발 생산성 확보
+IDE, Gradle, Git, DB, 로그 설정이 표준화되어야 한다
+
+6.3 표준 개발 도구
+구분
+표준 기준
+설명
+JDK
+Java 17 이상 권장
+Spring Boot 기반 개발 표준
+Build Tool
+Gradle Wrapper 사용
+로컬 Gradle 설치 차이를 줄이기 위해 gradlew 기준 사용
+IDE
+IntelliJ IDEA 또는 VS Code
+Gradle 프로젝트 Import 기준
+형상관리
+Git
+GitLab 저장소 기준
+DB
+Local H2 또는 개발 DB
+업무 개발 성격에 따라 선택
+SQL Tool
+DBeaver, DataGrip 등
+RDW/ADW/SESSIONDB 개발 확인용
+API 테스트
+Postman, curl, HTTP Client
+표준 전문 요청/응답 테스트
+Encoding
+UTF-8
+한글 전문, 로그, SQL 깨짐 방지
+Timezone
+Asia/Seoul
+운영 로그 시간과 일치
+Profile
+local
+로컬 개발 전용 Profile
+Test
+JUnit
+단위 테스트 및 통합 테스트 기준
+
+6.4 로컬 개발환경 기본 구조
+개발자는 다음 구조로 로컬 환경을 구성한다.
+개발자 PC
+ ├─ JDK
+ ├─ Git
+ ├─ IDE
+ ├─ Gradle Wrapper
+ ├─ 로컬 DB 또는 개발 DB 접속정보
+ ├─ nsight-tcf-framework 소스
+ │
+ ├─ tcf-util
+ ├─ tcf-core
+ ├─ tcf-web
+ ├─ tcf-cache
+ ├─ tcf-om
+ ├─ tcf-gateway
+ ├─ tcf-jwt
+ ├─ tcf-batch
+ ├─ sv-service
+ ├─ ic-service
+ └─ 기타 업무 서비스
+
+로컬 실행 시에는 운영 Tomcat에 WAR를 배포하지 않고, 각 업무 서비스 모듈을 bootRun으로 실행한다.
+로컬 개발 실행
+= Spring Boot bootRun
+
+운영 배포 실행
+= WAR 생성 후 Tomcat 배포
+
+bootRun과 Tomcat WAR 배포 차이는 뒤의 10장. bootRun / Tomcat WAR 배포 차이에서 상세히 설명한다.
+
+6.5 필수 설치 항목
+순서
+설치 항목
+확인 명령
+정상 예시
+1
+JDK
+java -version
+Java 17 이상
+2
+Git
+git --version
+Git 버전 출력
+3
+Gradle Wrapper
+./gradlew -v
+Gradle 정보 출력
+4
+IDE
+Gradle Project Import
+모듈 인식
+5
+DB 접속 도구
+접속 테스트
+Local 또는 Dev DB 접속
+6
+API 테스트 도구
+요청 테스트
+/sv/online 호출 가능
+Windows 환경에서는 gradlew.bat을 사용한다.
+gradlew.bat clean build
+
+Linux, macOS 환경에서는 다음을 사용한다.
+./gradlew clean build
+
+
+6.6 소스 Clone 기준
+개발자는 Git 저장소에서 기준 브랜치를 내려받는다.
+git clone <NSIGHT Git Repository URL>
+cd nsight-tcf-framework
+git checkout develop
+
+브랜치 사용 기준은 뒤의 7장. Git 저장소 및 브랜치 사용 기준에서 정의한다.
+로컬 개발자는 원칙적으로 develop 브랜치에 직접 Commit하지 않는다.신규 기능 개발은 feature/* 브랜치를 생성하여 작업한다.
+git checkout -b feature/sv-customer-summary
+
+
+6.7 Gradle 프로젝트 Import 기준
+IDE에서는 루트의 Gradle 설정을 기준으로 프로젝트를 Import한다.
+항목
+기준
+Import 방식
+Gradle Project
+Gradle 실행
+Gradle Wrapper
+JDK
+Project SDK = Java 17 이상
+Encoding
+UTF-8
+Test Runner
+Gradle 또는 IDE 선택 가능
+Annotation Processing
+Lombok 사용 시 Enable 필요
+Auto Import
+Gradle 변경 시 자동 반영 권장
+Gradle 멀티 모듈 구조에서는 특정 업무 서비스만 보는 것이 아니라, 공통 모듈과 업무 모듈의 의존관계를 함께 봐야 한다.
+업무 서비스
+   ↓
+tcf-web
+   ↓
+tcf-core
+   ↓
+tcf-util
+
+
+6.8 로컬 Profile 기준
+로컬 개발은 반드시 local Profile을 사용한다.
+-Dspring.profiles.active=local
+
+또는 IDE 실행 설정에 다음 값을 지정한다.
+VM Options:
+-Dspring.profiles.active=local
+-Dfile.encoding=UTF-8
+-Duser.timezone=Asia/Seoul
+
+Spring Boot 표준에서는 application.yml을 Port, Context Path, 세션, DB, HikariCP, MyBatis, Transaction, Security, Log, Actuator 설정을 통제하는 핵심 운영 기준 파일로 본다. 따라서 로컬에서도 운영 설정과 동일한 항목을 사용하되, 값은 로컬 기준으로 분리해야 한다.
+
+6.9 application-local.yml 구성 기준
+로컬 환경 설정은 application-local.yml에 둔다.
+spring:
+  profiles:
+    active: local
+
+server:
+  port: 8086
+  servlet:
+    context-path: /sv
+
+logging:
+  level:
+    root: INFO
+    com.nh.nsight: DEBUG
+
+nsight:
+  tcf:
+    timeout:
+      online-transaction-seconds: 5
+      db-query-seconds: 3
+    transaction-log:
+      enabled: true
+
+로컬 설정에서 주의할 점은 다음과 같다.
+항목
+로컬 기준
+주의사항
+Port
+업무별로 다르게 지정
+포트 충돌 방지
+Context Path
+업무코드와 일치
+/sv, /om, /ic
+DB URL
+Local 또는 Dev DB
+운영 DB 직접 연결 금지
+Password
+환경변수 또는 Secret
+Git Commit 금지
+Log Level
+DEBUG 허용
+운영에서는 INFO 이상
+Timeout
+운영 기준과 유사하게 유지
+무제한 Timeout 금지
+Session
+Local DB 또는 Mock 가능
+운영 SESSIONDB 직접 사용 금지
+
+6.10 업무 서비스별 로컬 Port 기준
+로컬에서 여러 업무 서비스를 동시에 실행할 경우 Port를 분리한다.
+업무
+Context
+로컬 Port 예시
+로컬 URL
+OM
+/om
+8081
+http://localhost:8081/om/online
+SV
+/sv
+8086
+http://localhost:8086/sv/online
+IC
+/ic
+8082
+http://localhost:8082/ic/online
+PC
+/pc
+8083
+http://localhost:8083/pc/online
+CM
+/cm
+8084
+http://localhost:8084/cm/online
+MG
+/mg
+8085
+http://localhost:8085/mg/online
+Gateway
+/gw 또는 /api/tcf
+8090
+http://localhost:8090/gw/sv/online
+업무 서비스의 Context Path는 업무코드와 일치해야 한다.예를 들어 SV 업무는 /sv, OM 업무는 /om을 사용한다.
+
+6.11 로컬 DB 구성 기준
+로컬 개발 DB는 다음 세 가지 방식 중 하나를 선택한다.
+방식
+설명
+사용 시점
+H2 Embedded
+로컬에서 간단히 실행
+단위 테스트, 샘플 개발
+Local Oracle XE
+Oracle 문법 검증 필요 시
+Mapper SQL 검증
+Dev DB
+실제 개발 DB 사용
+통합 테스트, 연계 테스트
+로컬 개발에서 운영 DB를 직접 바라보는 것은 금지한다.
+금지:
+local profile → 운영 RDW / ADW / SESSIONDB 직접 연결
+
+허용:
+local profile → H2 / Local Oracle / 개발 DB
+
+MyBatis는 DAO/Mapper 계층에 위치하고, RDW/ADW/SESSIONDB 접근과 SQL 표준화, Query Timeout, Mapper 표준, 관측성을 통제하는 메커니즘이다. 따라서 로컬에서도 Mapper XML 위치와 SQL ID 규칙을 운영 기준과 동일하게 유지해야 한다.
+
+6.12 로컬 실행 방법
+SV 업무 서비스를 예로 들면 다음과 같이 실행한다.
+./gradlew :sv-service:bootRun --args='--spring.profiles.active=local'
+
+Windows에서는 다음과 같이 실행한다.
+gradlew.bat :sv-service:bootRun --args="--spring.profiles.active=local"
+
+OM을 실행하는 경우는 다음과 같다.
+./gradlew :tcf-om:bootRun --args='--spring.profiles.active=local'
+
+Gateway를 실행하는 경우는 다음과 같다.
+./gradlew :tcf-gateway:bootRun --args='--spring.profiles.active=local'
+
+
+6.13 로컬 표준 전문 테스트
+업무 서비스가 실행되면 POST /{businessCode}/online으로 표준 전문을 호출한다.
+SV 고객 요약 조회 예시는 다음과 같다.
+POST http://localhost:8086/sv/online
+Content-Type: application/json
+
+{
+  "header": {
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "serviceName": "고객요약조회",
+    "user": "testuser",
+    "channelId": "WEB",
+    "branch": "0001"
+  },
+  "body": {
+    "customerNo": "1234567890"
+  }
+}
+
+정상 응답은 다음 구조를 따라야 한다.
+{
+  "header": {
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV"
+  },
+  "result": {
+    "code": "SUCCESS",
+    "message": "정상 처리되었습니다."
+  },
+  "body": {
+    "customerNo": "1234567890",
+    "customerName": "홍길동"
+  }
+}
+
+NSIGHT TCF는 REST Resource 방식이 아니라 HTTP/JSON 표준 전문과 ServiceId Dispatcher 방식을 기준으로 한다. 따라서 로컬 테스트도 URL별 Controller 테스트가 아니라, serviceId가 올바른 Handler로 매핑되는지 확인하는 방식으로 수행해야 한다.
+
+6.14 로컬 로그 확인 기준
+로컬 실행 시 개발자는 다음 로그를 반드시 확인한다.
+로그 항목
+확인 목적
+Application Start Log
+업무 서비스 정상 기동 여부
+Active Profile
+local Profile 적용 여부
+Port / Context Path
+업무별 URL 정상 여부
+DataSource Log
+DB 연결 정상 여부
+MyBatis Mapper Load Log
+Mapper XML 인식 여부
+TCF Header Validation Log
+표준 전문 Header 검증 여부
+ServiceId Dispatch Log
+Handler 매핑 여부
+Transaction Log
+PROCESSING / SUCCESS / FAIL 상태
+Error Log
+예외 발생 시 오류코드 매핑 여부
+로그에는 개인정보, 비밀번호, 토큰, 주민번호, 계좌번호 등 민감정보를 출력하면 안 된다.
+
+6.15 환경변수 관리 기준
+로컬에서도 DB 비밀번호, API Key, JWT Secret 등은 소스에 직접 작성하지 않는다.
+권장 방식은 환경변수 사용이다.
+export NSIGHT_DB_USERNAME=nsight
+export NSIGHT_DB_PASSWORD=local-password
+
+application-local.yml에서는 다음처럼 참조한다.
+spring:
+  datasource:
+    username: ${NSIGHT_DB_USERNAME}
+    password: ${NSIGHT_DB_PASSWORD}
+
+구분
+Git Commit 가능 여부
+설명
+application.yml
+가능
+공통 기본 설정
+application-local.yml
+가능
+민감정보 제외 시 가능
+DB Password
+금지
+환경변수 사용
+JWT Secret
+금지
+환경변수 또는 Secret 사용
+운영 DB URL
+금지
+운영 정보 노출 방지
+개인 테스트 설정
+금지
+.gitignore 처리
+
+6.16 로컬 단위 테스트 기준
+로컬 개발자는 최소 다음 단위 테스트를 수행해야 한다.
+테스트 대상
+테스트 내용
+Rule
+입력값 검증, 업무 규칙 판단
+Service
+Rule, DAO 호출 흐름
+Facade
+트랜잭션 경계, Service 조립
+DAO
+Mapper 호출 파라미터 확인
+Mapper
+SQL 실행, ResultMap 확인
+Handler
+Body 변환, Facade 호출
+TCF 거래
+표준 전문 요청/응답 확인
+테스트 실행 명령은 다음과 같다.
+./gradlew test
+
+특정 모듈만 테스트할 경우 다음과 같이 실행한다.
+./gradlew :sv-service:test
+
+
+6.17 로컬 빌드 기준
+전체 프로젝트 빌드는 다음 명령으로 수행한다.
+./gradlew clean build
+
+특정 업무 서비스만 빌드할 경우 다음과 같이 수행한다.
+./gradlew :sv-service:clean :sv-service:build
+
+WAR 생성은 다음 기준을 따른다.
+./gradlew :sv-service:bootWar
+
+빌드 산출물은 일반적으로 다음 위치에 생성된다.
+sv-service/build/libs/sv-service.war
+
+CI/CD 운영 매뉴얼도 GitLab, GitLab Runner, Gradle, 17 WAR 배포를 기준으로 빌드 자동화, 배포 자동화, 롤백 자동화, 운영 안정성 확보를 목표로 둔다. 따라서 로컬 빌드는 CI/CD에 올라가기 전 1차 품질 확인 단계로 본다.
+
+6.18 로컬 개발 시 금지사항
+금지사항
+사유
+운영 DB 직접 접속
+운영 데이터 오염 및 보안 위험
+운영 Secret 로컬 저장
+인증정보 유출 위험
+prd Profile 로컬 실행
+운영 설정 오사용 위험
+Mapper XML 임의 위치 사용
+SQL 관리 기준 붕괴
+ServiceId 미등록 상태 개발
+Dispatcher 및 OM 기준 불일치
+Controller 개별 URL 추가
+TCF 표준 진입점 우회
+Handler에서 SQL 직접 실행
+계층 책임 위반
+로그에 개인정보 출력
+보안 및 감사 위반
+Timeout 무제한 설정
+장애 재현 불가 및 Thread 고갈 위험
+테스트 없이 MR 생성
+품질 게이트 위반
+
+6.19 로컬 개발 완료 체크리스트
+점검 항목
+확인
+JDK 버전이 표준 기준에 맞는가
+□
+Gradle Wrapper로 빌드했는가
+□
+local Profile로 실행했는가
+□
+업무 Context Path가 업무코드와 일치하는가
+□
+POST /{businessCode}/online 호출이 가능한가
+□
+Header의 businessCode와 URL Path가 일치하는가
+□
+serviceId가 Handler로 정상 매핑되는가
+□
+Handler가 Facade만 호출하는가
+□
+Facade에서 트랜잭션 경계를 관리하는가
+□
+Service, Rule, DAO 책임이 분리되어 있는가
+□
+Mapper XML SQL ID가 표준을 따르는가
+□
+단위 테스트를 수행했는가
+□
+개인정보 로그 출력이 없는가
+□
+DB 비밀번호가 소스에 포함되지 않았는가
+□
+운영 Profile을 사용하지 않았는가
+□
+로컬 빌드가 성공했는가
+□
+
+6.20 마무리말
+로컬 개발환경은 단순히 개발자 개인 PC에서 프로그램을 실행하기 위한 환경이 아니다.NSIGHT TCF Framework에서는 로컬 개발환경도 운영 구조의 축소판이어야 한다.
+즉, 개발자는 로컬에서도 다음 기준을 지켜야 한다.
+POST /{businessCode}/online
+   ↓
+StandardRequest
+   ↓
+TCF.process()
+   ↓
+ServiceId Dispatcher
+   ↓
+Handler → Facade → Service → Rule → DAO/Mapper
+   ↓
+StandardResponse
+
+로컬에서 이 구조가 지켜지지 않으면 개발 단계에서는 동작하더라도, 운영 배포 시 Gateway, OM, 거래통제, Timeout, 거래로그, 감사로그, CI/CD 기준과 맞지 않게 된다.
+
+6.21 시사점
+로컬 개발환경 구성의 핵심은 “내 PC에서만 돌아가는 개발”이 아니라 “운영 표준과 같은 방식으로 작게 실행하는 개발”이다.
+따라서 NSIGHT 개발자는 로컬 개발 시점부터 다음 세 가지를 반드시 지켜야 한다.
+핵심 기준
+의미
+표준 전문으로 호출
+모든 거래는 StandardRequest로 테스트한다
+ServiceId로 실행
+URL이 아니라 serviceId가 실행 기준이다
+계층 책임 준수
+Handler, Facade, Service, Rule, DAO/Mapper 책임을 분리한다
+이 기준이 지켜져야 개발 산출물이 OM 등록, 거래통제, Timeout 정책, 거래로그, CI/CD, 운영 전환 체크리스트까지 자연스럽게 연결된다.
+

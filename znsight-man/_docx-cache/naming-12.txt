@@ -1,0 +1,912 @@
+MyBatis Mapper / XML / SQL ID 명명규칙 설계기준
+1. 도입 전 안내말
+MyBatis 명명규칙은 단순히 Mapper 파일명을 정하는 기준이 아니다.NSIGHT TCF Framework에서는 Mapper 이름이 업무코드, Package, DAO, Mapper XML, SQL ID, ServiceId, 거래로그, 성능분석과 연결되어야 한다.
+NSIGHT 명명규칙은 업무코드 → Context Path → WAR → Gradle Module → Java Package → ServiceId → Handler → Facade / Service / Rule / DAO / Mapper → Mapper XML → SQL ID → 거래로그 / 오류코드 / 감사로그가 하나로 이어지는 구조를 기준으로 한다.
+따라서 MyBatis 명명규칙의 핵심은 다음이다.
+Mapper는 테이블 단위가 아니라 업무코드 + 업무기능 단위로 관리하고, Mapper XML과 SQL ID는 운영 추적이 가능해야 한다.
+
+2. 설계 결론
+구분
+표준 형식
+예시
+Mapper Interface
+{업무Prefix}{업무대상}Mapper
+SvCustomerMapper
+DB 목적별 Mapper
+{업무Prefix}{업무대상}{Db목적}Mapper
+SvCustomerRdwMapper
+Mapper Package
+com.nh.nsight.marketing.{업무코드}.persistence.mapper
+com.nh.nsight.marketing.sv.persistence.mapper
+Mapper XML 위치
+src/main/resources/mapper/{업무코드소문자}
+mapper/sv
+Mapper XML 파일명
+{MapperInterface명}.xml
+SvCustomerMapper.xml
+XML Namespace
+Mapper Interface Full Package Name
+com.nh.nsight.marketing.sv.persistence.mapper.SvCustomerMapper
+Mapper Method
+동사 + 업무대상 + 목적
+selectCustomerSummary
+MyBatis SQL ID
+Mapper Method명과 동일
+selectCustomerSummary
+운영 추적 SQL ID
+{업무코드}.{업무대상}.{처리행위}
+SV.Customer.selectSummary
+
+3. MyBatis Mapper 최상위 원칙
+No
+원칙
+기준
+1
+업무코드 기준
+Mapper는 업무코드 기준으로 분리한다
+2
+업무기능 단위
+테이블명 기준이 아니라 업무대상/기능 기준으로 Mapper를 만든다
+3
+Package 일치
+Mapper Interface Package는 업무 Package와 일치해야 한다
+4
+XML 파일명 일치
+Mapper XML 파일명은 Mapper Interface명과 동일해야 한다
+5
+Namespace 일치
+XML namespace는 Mapper Interface FQCN과 동일해야 한다
+6
+SQL ID 일치
+XML의 SQL ID는 Mapper Method명과 동일해야 한다
+7
+DB 목적 분리
+RDW, ADW, SESSIONDB, LOGDB 목적이 다르면 Mapper를 분리한다
+8
+SQL 위치 통제
+SQL은 Java 코드가 아니라 Mapper XML에 둔다
+9
+Paging 필수
+목록 조회는 반드시 PageSize 제한과 DB Paging을 적용한다
+10
+운영 추적성
+ServiceId, Mapper, SQL ID, 거래로그가 연결되어야 한다
+DAO 설계 기준에서도 DAO는 persistence.dao, Mapper는 persistence.mapper, Mapper XML은 src/main/resources/mapper/{업무코드소문자}에 두고, SQL은 Java 코드가 아니라 Mapper XML 기준으로 관리하도록 정의한다.
+
+4. Mapper Interface 명명규칙
+4.1 기본 형식
+{업무Prefix}{업무대상}Mapper
+
+구성요소
+설명
+예시
+업무Prefix
+업무코드 PascalCase
+Sv, Cm, Om, Mg
+업무대상
+업무 도메인 / 기능 대상
+Customer, Campaign, User, Message
+Mapper
+MyBatis Mapper 역할 접미어
+Mapper
+4.2 예시
+업무
+Mapper Interface
+설명
+SV
+SvCustomerMapper
+고객 Single View 조회
+SV
+SvProductMapper
+고객 보유상품 조회
+CM
+CmCampaignMapper
+캠페인 관리
+CM
+CmCampaignTargetMapper
+캠페인 대상자 조회
+MG
+MgMessageMapper
+메시지 관리
+MG
+MgMessageSendMapper
+메시지 발송
+OM
+OmUserMapper
+사용자 관리
+OM
+OmServiceCatalogMapper
+ServiceId 기준정보 관리
+OM
+OmTransactionControlMapper
+거래통제 관리
+Mapper 관리 기준에서도 Mapper Interface는 {업무코드}{업무대상}Mapper 형식을 사용하고, 업무코드는 URL Context, Package, WAR, Mapper XML 경로의 기준 식별자로 사용하도록 정리하고 있다.
+
+5. DB 목적별 Mapper 분리 기준
+RDW, ADW, SESSIONDB, LOGDB는 성격과 Timeout 기준이 다르므로 필요하면 Mapper명에 DB 목적을 포함한다.
+DB 구분
+표준 형식
+예시
+사용 기준
+RDW
+{업무Prefix}{대상}RdwMapper
+SvCustomerRdwMapper
+온라인 현행성 조회
+ADW
+{업무Prefix}{대상}AdwMapper
+CmCampaignAdwMapper
+분석성 / 집계성 조회
+SESSIONDB
+{업무Prefix}{대상}SessionMapper
+OmSessionMapper
+세션 조회 / 정리
+LOGDB
+{업무Prefix}{대상}LogMapper
+OmTransactionLogMapper
+거래로그 / 감사로그 조회
+OMDB
+{업무Prefix}{대상}Mapper
+OmUserMapper
+운영 기준정보 CRUD
+5.1 분리 예시
+목적
+Mapper
+설명
+SV 고객 온라인 조회
+SvCustomerRdwMapper
+RDW 고객정보 조회
+SV 고객 분석 조회
+SvCustomerAdwMapper
+ADW 고객분석 집계 조회
+OM 사용자 관리
+OmUserMapper
+OM 기준정보 CRUD
+OM 세션 조회
+OmSessionMapper
+SESSIONDB 세션 조회
+OM 거래로그 조회
+OmTransactionLogMapper
+LOGDB 거래로그 조회
+
+6. Mapper Package 명명규칙
+Mapper Interface는 반드시 업무 Package 하위의 persistence.mapper에 둔다.
+com.nh.nsight.marketing.{업무코드소문자}.persistence.mapper
+
+업무
+Mapper Package
+SV
+com.nh.nsight.marketing.sv.persistence.mapper
+CM
+com.nh.nsight.marketing.cm.persistence.mapper
+MG
+com.nh.nsight.marketing.mg.persistence.mapper
+OM
+com.nh.nsight.marketing.om.persistence.mapper
+DAO와 Mapper는 다음처럼 분리한다.
+com.nh.nsight.marketing.sv
+│
+└── persistence
+    ├── dao
+    │   └── SvCustomerDao.java
+    │
+    └── mapper
+        └── SvCustomerMapper.java
+
+
+7. Mapper XML 위치 명명규칙
+Mapper XML은 업무코드별 디렉터리에 둔다.
+src/main/resources/mapper/{업무코드소문자}/{MapperInterface명}.xml
+
+7.1 예시
+src/main/resources/mapper
+├── sv
+│   ├── SvCustomerMapper.xml
+│   ├── SvCustomerRdwMapper.xml
+│   ├── SvCustomerAdwMapper.xml
+│   └── SvProductMapper.xml
+│
+├── cm
+│   ├── CmCampaignMapper.xml
+│   └── CmCampaignTargetMapper.xml
+│
+├── mg
+│   ├── MgMessageMapper.xml
+│   └── MgMessageSendMapper.xml
+│
+└── om
+    ├── OmUserMapper.xml
+    ├── OmServiceCatalogMapper.xml
+    └── OmTransactionControlMapper.xml
+
+7.2 Mapper XML 위치 기준
+항목
+기준
+최상위 위치
+src/main/resources/mapper
+업무별 디렉터리
+{업무코드소문자}
+XML 파일명
+Mapper Interface명과 동일
+임시 XML
+운영 반영 금지
+공통 SQL XML
+업무 공통은 mapper/common 또는 mapper/cc 기준으로 별도 관리
+대량 / 배치 SQL
+온라인 Mapper와 분리 권장
+
+8. Mapper XML Namespace 명명규칙
+Mapper XML의 namespace는 Mapper Interface의 Full Qualified Class Name과 반드시 일치시킨다.
+<mapper namespace="com.nh.nsight.marketing.sv.persistence.mapper.SvCustomerMapper">
+
+항목
+기준
+예시
+Namespace
+Mapper Interface FQCN
+com.nh.nsight.marketing.sv.persistence.mapper.SvCustomerMapper
+XML 파일명
+Interface명과 동일
+SvCustomerMapper.xml
+SQL ID
+Mapper Method명과 동일
+selectCustomerSummary
+금지 예시는 다음과 같다.
+잘못된 Namespace
+문제
+SvCustomerMapper
+Full Package가 없어 충돌 가능
+mapper.sv.SvCustomerMapper
+Java Interface 경로와 불일치
+com.nh.nsight.marketing.sv.SvCustomerMapper
+persistence.mapper 누락
+com.nh.nsight.marketing.cm.persistence.mapper.SvCustomerMapper
+업무코드 불일치
+
+9. SQL ID 명명규칙
+9.1 MyBatis SQL ID 기본 원칙
+MyBatis XML의 SQL ID는 Mapper Interface의 Method명과 동일하게 한다.
+@Mapper
+public interface SvCustomerMapper {
+    CustomerSummaryResult selectCustomerSummary(CustomerSummaryQuery query);
+    List<CustomerProductItem> selectCustomerProductList(CustomerProductQuery query);
+    int countCustomerProductList(CustomerProductQuery query);
+}
+
+<mapper namespace="com.nh.nsight.marketing.sv.persistence.mapper.SvCustomerMapper">
+
+    <select id="selectCustomerSummary">
+        ...
+    </select>
+
+    <select id="selectCustomerProductList">
+        ...
+    </select>
+
+    <select id="countCustomerProductList">
+        ...
+    </select>
+
+</mapper>
+
+9.2 SQL ID 표준 동사
+SQL 유형
+SQL ID 형식
+예시
+단건 조회
+select{대상}Detail
+selectCustomerDetail
+요약 조회
+select{대상}Summary
+selectCustomerSummary
+목록 조회
+select{대상}List
+selectCustomerProductList
+검색
+search{대상}
+searchCustomers
+건수 조회
+count{대상}List
+countCustomerProductList
+존재 확인
+existsBy{Key}
+existsByCustomerNo
+등록
+insert{대상}
+insertCampaign
+수정
+update{대상}
+updateCampaignStatus
+삭제
+delete{대상}
+deleteCampaign
+논리 삭제
+update{대상}DeleteYn
+updateUserDeleteYn
+병합
+merge{대상}
+mergeServiceCatalog
+프로시저 호출
+call{대상}Procedure
+callBatchCloseProcedure
+
+10. MyBatis SQL ID와 운영 추적 SQL ID 구분
+NSIGHT에서는 SQL ID를 두 관점으로 구분해서 정리하는 것이 좋다.
+구분
+의미
+예시
+MyBatis SQL ID
+XML 내부 Statement ID, Mapper Method명과 동일
+selectCustomerSummary
+MyBatis Statement ID
+Namespace + SQL ID
+com.nh.nsight.marketing.sv.persistence.mapper.SvCustomerMapper.selectCustomerSummary
+운영 추적 SQL ID
+ServiceId와 연결되는 업무 추적 ID
+SV.Customer.selectSummary
+10.1 권장 기준
+상황
+기준
+Mapper Interface 방식 사용
+XML ID는 Method명과 동일
+로그 / 성능분석
+ServiceId + Mapper Statement ID를 함께 기록
+대표 SQL 1개 거래
+운영 SQL ID는 ServiceId와 동일하게 관리 가능
+복합 조회 거래
+ServiceId는 대표 거래명, SQL ID는 세부 Mapper Method명 사용
+예를 들어 고객요약조회는 다음처럼 연결한다.
+ServiceId
+  = SV.Customer.selectSummary
+
+Mapper Statement ID
+  = com.nh.nsight.marketing.sv.persistence.mapper.SvCustomerMapper.selectCustomerSummary
+
+MyBatis SQL ID
+  = selectCustomerSummary
+
+거래코드
+  = SV-INQ-0001
+
+이렇게 구분하면 Java Mapper Interface와 MyBatis 실행 구조도 깨지지 않고, 운영 로그에서도 ServiceId 기준 추적이 가능하다.
+
+11. Mapper Method / SQL ID 상세 기준
+11.1 조회 SQL
+유형
+Method / SQL ID
+설명
+단건 조회
+selectCustomerDetail
+고객 상세 1건 조회
+요약 조회
+selectCustomerSummary
+고객 요약정보 조회
+목록 조회
+selectCustomerList
+고객 목록 조회
+상품 목록
+selectCustomerProductList
+고객 보유상품 목록
+캠페인 이력
+selectCustomerCampaignHistoryList
+고객 캠페인 이력 목록
+건수
+countCustomerList
+고객 목록 전체 건수
+존재 확인
+existsByCustomerNo
+고객번호 존재 여부
+11.2 등록 / 수정 / 삭제 SQL
+유형
+Method / SQL ID
+설명
+등록
+insertCampaign
+캠페인 신규 등록
+등록 이력
+insertCampaignHistory
+캠페인 이력 등록
+수정
+updateCampaignStatus
+캠페인 상태 수정
+수정
+updateMessageSendResult
+메시지 발송 결과 수정
+삭제
+deleteTempCampaignTarget
+임시 대상자 삭제
+논리 삭제
+updateUserDeleteYn
+사용자 삭제 여부 수정
+병합
+mergeServiceCatalog
+ServiceId 기준정보 병합
+
+12. Mapper XML 내부 요소 명명규칙
+Mapper XML 내부의 resultMap, sql, where, include ID도 표준화한다.
+XML 요소
+표준 형식
+예시
+resultMap
+{대상}ResultMap
+customerSummaryResultMap
+Entity resultMap
+{대상}EntityResultMap
+customerEntityResultMap
+Base Column SQL
+base{대상}ColumnList
+baseCustomerColumnList
+Join Column SQL
+{대상}JoinColumnList
+customerProductJoinColumnList
+Where 조건
+{대상}WhereClause
+customerSearchWhereClause
+Paging 구문
+pagingClause
+pagingClause
+Order By 구문
+{대상}OrderByClause
+customerOrderByClause
+Insert Column
+{대상}InsertColumnList
+campaignInsertColumnList
+Update Set
+{대상}UpdateSetClause
+campaignUpdateSetClause
+12.1 XML Fragment 예시
+<sql id="baseCustomerColumnList">
+      C.CUSTOMER_NO    AS customerNo
+    , C.CUSTOMER_NAME  AS customerName
+    , C.BRANCH_CODE    AS branchCode
+    , C.CUSTOMER_GRADE AS customerGrade
+</sql>
+
+<sql id="customerSearchWhereClause">
+    WHERE C.USE_YN = 'Y'
+    <if test="customerNo != null and customerNo != ''">
+        AND C.CUSTOMER_NO = #{customerNo}
+    </if>
+    <if test="branchCode != null and branchCode != ''">
+        AND C.BRANCH_CODE = #{branchCode}
+    </if>
+</sql>
+
+
+13. Mapper XML 작성 예시
+13.1 Mapper Interface
+package com.nh.nsight.marketing.sv.persistence.mapper;
+
+import com.nh.nsight.marketing.sv.dto.query.CustomerSummaryQuery;
+import com.nh.nsight.marketing.sv.dto.result.CustomerSummaryResult;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface SvCustomerMapper {
+
+    CustomerSummaryResult selectCustomerSummary(CustomerSummaryQuery query);
+
+    int countCustomerProductList(CustomerSummaryQuery query);
+}
+
+13.2 Mapper XML
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nh.nsight.marketing.sv.persistence.mapper.SvCustomerMapper">
+
+    <resultMap id="customerSummaryResultMap"
+               type="com.nh.nsight.marketing.sv.dto.result.CustomerSummaryResult">
+        <result property="customerNo" column="CUSTOMER_NO"/>
+        <result property="customerName" column="CUSTOMER_NAME"/>
+        <result property="branchCode" column="BRANCH_CODE"/>
+        <result property="customerGrade" column="CUSTOMER_GRADE"/>
+    </resultMap>
+
+    <sql id="baseCustomerColumnList">
+          C.CUSTOMER_NO
+        , C.CUSTOMER_NAME
+        , C.BRANCH_CODE
+        , C.CUSTOMER_GRADE
+    </sql>
+
+    <select id="selectCustomerSummary"
+            parameterType="com.nh.nsight.marketing.sv.dto.query.CustomerSummaryQuery"
+            resultMap="customerSummaryResultMap">
+        SELECT
+            <include refid="baseCustomerColumnList"/>
+        FROM RDW_CUSTOMER C
+        WHERE C.CUSTOMER_NO = #{customerNo}
+          AND C.USE_YN = 'Y'
+    </select>
+
+    <select id="countCustomerProductList"
+            parameterType="com.nh.nsight.marketing.sv.dto.query.CustomerSummaryQuery"
+            resultType="int">
+        SELECT COUNT(1)
+        FROM RDW_CUSTOMER_PRODUCT P
+        WHERE P.CUSTOMER_NO = #{customerNo}
+    </select>
+
+</mapper>
+
+
+14. Mapper와 DTO 연결 기준
+계층
+사용 DTO
+예시
+Handler
+Request / Response
+CustomerSummaryRequest
+Service
+Command / Result
+CustomerSummaryCommand, CustomerSummaryResult
+DAO
+Query / Result
+CustomerSummaryQuery, CustomerSummaryResult
+Mapper
+Query / Result 또는 Entity
+CustomerSummaryQuery, CustomerSummaryResult
+XML
+parameterType / resultMap
+CustomerSummaryQuery, customerSummaryResultMap
+기준은 다음이다.
+Command
+   ↓ Service에서 SQL 조건 추출
+Query
+   ↓ DAO
+Mapper Method
+   ↓ MyBatis XML
+Result / Entity
+
+
+15. Mapper와 DAO 연결 기준
+DAO는 Mapper 호출을 캡슐화한다.Service가 Mapper를 직접 호출하지 않는 것을 기본으로 한다.
+@Repository
+@RequiredArgsConstructor
+public class SvCustomerDao {
+
+    private final SvCustomerMapper svCustomerMapper;
+
+    public CustomerSummaryResult selectCustomerSummary(CustomerSummaryQuery query) {
+        return svCustomerMapper.selectCustomerSummary(query);
+    }
+}
+
+구분
+기준
+Service
+DAO 호출
+DAO
+Mapper 호출
+Mapper Interface
+XML SQL과 연결
+Mapper XML
+SQL 실행
+트랜잭션
+Facade 기준
+업무 판단
+Rule / Service 기준
+DB 예외 변환
+DAO 또는 공통 예외 처리 기준
+
+16. SQL 작성 명명 기준
+16.1 컬럼 Alias 기준
+DB 컬럼은 UPPER_SNAKE_CASE, Java Field는 lowerCamelCase를 사용한다.
+DB Column
+Java Field / Alias
+CUSTOMER_NO
+customerNo
+CUSTOMER_NAME
+customerName
+BRANCH_CODE
+branchCode
+SERVICE_ID
+serviceId
+TRANSACTION_CODE
+transactionCode
+CREATED_AT
+createdAt
+SQL에서는 Alias를 Java Field 기준으로 명확히 둔다.
+SELECT
+      C.CUSTOMER_NO   AS customerNo
+    , C.CUSTOMER_NAME AS customerName
+    , C.BRANCH_CODE   AS branchCode
+FROM RDW_CUSTOMER C
+
+16.2 Table Alias 기준
+테이블 성격
+Alias 예시
+고객
+C
+상품
+P
+캠페인
+CMP
+메시지
+M
+사용자
+U
+권한
+A
+거래로그
+TL
+감사로그
+AL
+Alias는 짧게 쓰되, SQL 안에서 의미가 유지되어야 한다.
+
+17. RDW / ADW / SESSIONDB / LOGDB Mapper 기준
+DB
+Mapper 기준
+Timeout 기준
+주의사항
+RDW
+RdwMapper 또는 업무 기본 Mapper
+3초 기준
+온라인 조회 중심, Paging 필수
+ADW
+AdwMapper
+5초 기준
+분석 / 집계 조회, 대량 조회 주의
+SESSIONDB
+SessionMapper
+3초 기준
+세션 조회 / 정리
+LOGDB
+LogMapper
+3~5초 기준
+거래로그 / 감사로그 조회
+OMDB
+일반 Mapper
+3초 기준
+기준정보 CRUD, 감사로그 필요
+MyBatis 운영 기준은 Mapper를 업무별로 분리하고, RDW/ADW Mapper를 구분하며, Query Timeout과 Paging 없는 대량 조회 금지를 운영 기준으로 둔다.
+
+18. 금지 명명 사례
+잘못된 명명
+문제
+표준
+CustomerMapper
+업무 Prefix 없음
+SvCustomerMapper
+SvCustomerSQLMapper
+SQL 접미어 불필요
+SvCustomerMapper
+SvCustMapper
+약어 남용
+SvCustomerMapper
+SvCustomerTblMapper
+테이블 중심 명명
+SvCustomerMapper
+TB_CUSTOMERMapper
+DB 테이블명 기반
+SvCustomerMapper
+SvCustomerMapper2
+임시/중복 명명
+기능 기준으로 분리
+SvCustomerMapper.xml이 mapper/common에 위치
+업무코드 경로 불일치
+mapper/sv/SvCustomerMapper.xml
+XML namespace가 Interface와 다름
+Runtime 오류 가능
+Interface FQCN과 일치
+SQL ID sql1
+의미 없음
+selectCustomerSummary
+SQL ID getData
+목적 불명확
+selectCustomerSummary
+SQL ID selectList
+대상 없음
+selectCustomerList
+SQL ID selectCustomer
+단건/목록/요약 불명확
+selectCustomerDetail
+
+19. Mapper XML 작성 금지 기준
+금지 기준
+설명
+Java 코드에 SQL 문자열 작성
+SQL 위치 통제 불가
+SELECT * 사용
+컬럼 변경 시 장애 / 불필요 데이터 조회
+Paging 없는 목록 조회
+AP Thread / DB 부하 증가
+${} 직접 사용
+SQL Injection 위험
+동적 Order By 무검증
+정렬 컬럼 Whitelist 필요
+Mapper에 업무 판단 구현
+업무 판단은 Rule / Service 책임
+Mapper에서 권한 판단
+권한은 STF / Authorization / Rule 책임
+Mapper에서 사용자 메시지 조립
+응답 조립은 ETF / Service 책임
+하나의 Mapper에 여러 업무 혼재
+유지보수 / 장애 추적 어려움
+RDW / ADW SQL 혼재
+Timeout / 성능 기준 충돌
+대량 다운로드 SQL을 온라인 Mapper에 혼재
+장애 영향 범위 증가
+
+20. 17개 업무별 Mapper 예시
+업무코드
+대표 Mapper
+Mapper XML 위치
+CC
+CcCodeMapper
+mapper/cc/CcCodeMapper.xml
+IC
+IcCustomerIntegrationMapper
+mapper/ic/IcCustomerIntegrationMapper.xml
+PC
+PcPrivateCustomerMapper
+mapper/pc/PcPrivateCustomerMapper.xml
+BC
+BcBusinessCustomerMapper
+mapper/bc/BcBusinessCustomerMapper.xml
+MS
+MsCustomerSummaryMapper
+mapper/ms/MsCustomerSummaryMapper.xml
+SV
+SvCustomerMapper
+mapper/sv/SvCustomerMapper.xml
+PD
+PdProductMapper
+mapper/pd/PdProductMapper.xml
+CM
+CmCampaignMapper
+mapper/cm/CmCampaignMapper.xml
+EB
+EbEbmRuleMapper
+mapper/eb/EbEbmRuleMapper.xml
+EP
+EpEventProcessingMapper
+mapper/ep/EpEventProcessingMapper.xml
+BP
+BpBehaviorProcessingMapper
+mapper/bp/BpBehaviorProcessingMapper.xml
+BD
+BdBehaviorDataMapper
+mapper/bd/BdBehaviorDataMapper.xml
+SS
+SsSalesSupportMapper
+mapper/ss/SsSalesSupportMapper.xml
+CS
+CsCommonServiceMapper
+mapper/cs/CsCommonServiceMapper.xml
+CT
+CtContentsMapper
+mapper/ct/CtContentsMapper.xml
+MG
+MgMessageMapper
+mapper/mg/MgMessageMapper.xml
+OM
+OmUserMapper
+mapper/om/OmUserMapper.xml
+
+21. MyBatis 설정 기준
+application.yml에서는 Mapper XML 위치와 기본 설정을 명확히 둔다.
+mybatis:
+  mapper-locations:
+    - classpath:/mapper/**/*.xml
+  type-aliases-package: com.nh.nsight.marketing
+  configuration:
+    map-underscore-to-camel-case: true
+    default-statement-timeout: 3
+    default-fetch-size: 500
+    cache-enabled: false
+    jdbc-type-for-null: NULL
+
+설정
+기준
+mapper-locations
+classpath:/mapper/**/*.xml
+type-aliases-package
+DTO / Entity Package Root
+map-underscore-to-camel-case
+true
+default-statement-timeout
+기본 3초
+default-fetch-size
+100~500 기준
+cache-enabled
+운영 기본 false
+jdbc-type-for-null
+NULL
+
+22. 운영 추적 기준
+운영 장애 분석 시 다음 순서로 추적 가능해야 한다.
+거래로그
+  serviceId = SV.Customer.selectSummary
+  transactionCode = SV-INQ-0001
+  guid = ...
+   ↓
+Handler
+  SvCustomerSummaryHandler
+   ↓
+DAO
+  SvCustomerDao
+   ↓
+Mapper
+  SvCustomerMapper
+   ↓
+Mapper Statement ID
+  com.nh.nsight.marketing.sv.persistence.mapper.SvCustomerMapper.selectCustomerSummary
+   ↓
+SQL
+  mapper/sv/SvCustomerMapper.xml
+
+로그에는 최소한 다음 값이 연결되어야 한다.
+로그 항목
+예시
+serviceId
+SV.Customer.selectSummary
+transactionCode
+SV-INQ-0001
+mapperName
+SvCustomerMapper
+sqlId
+selectCustomerSummary
+statementId
+com.nh.nsight.marketing.sv.persistence.mapper.SvCustomerMapper.selectCustomerSummary
+elapsedTime
+120ms
+rowCount
+1
+guid
+요청 추적 ID
+
+23. 설계 체크리스트
+점검 항목
+확인
+Mapper Interface명이 {업무Prefix}{업무대상}Mapper 형식인가
+□
+Mapper Package가 persistence.mapper 하위인가
+□
+Mapper XML이 resources/mapper/{업무코드} 하위에 있는가
+□
+XML 파일명이 Mapper Interface명과 동일한가
+□
+XML namespace가 Mapper Interface FQCN과 동일한가
+□
+SQL ID가 Mapper Method명과 동일한가
+□
+SQL ID가 select, count, exists, insert, update, delete, merge 등 표준 동사로 시작하는가
+□
+목록 조회 SQL에 Paging이 적용되어 있는가
+□
+Count SQL이 목록 SQL과 쌍으로 관리되는가
+□
+SELECT *를 사용하지 않는가
+□
+${} 사용 시 Whitelist 검증이 있는가
+□
+RDW / ADW / SESSIONDB / LOGDB Mapper가 필요 시 분리되어 있는가
+□
+Mapper가 업무 판단, 권한 판단, 메시지 조립을 하지 않는가
+□
+Query DTO와 Result / Entity DTO가 명확히 분리되어 있는가
+□
+ServiceId, Mapper, SQL ID, 거래로그가 추적 가능하게 연결되어 있는가
+□
+
+24. 마무리말
+MyBatis Mapper / XML / SQL ID 명명규칙은 DB 접근을 표준화하고 운영 추적성을 확보하기 위한 기준이다.
+업무코드
+   ↓
+Mapper Interface
+   ↓
+Mapper XML
+   ↓
+SQL ID
+   ↓
+Statement ID
+   ↓
+거래로그 / 성능로그 / 장애분석
+
+NSIGHT에서는 다음 기준을 고정한다.
+Mapper Interface는 {업무Prefix}{업무대상}Mapper, Mapper XML은 mapper/{업무코드}/{Mapper명}.xml, SQL ID는 Mapper Method명과 동일하게 작성한다.
+이 기준을 지키면 개발자는 SQL 위치를 쉽게 찾을 수 있고, 운영자는 ServiceId와 거래로그만으로 Mapper XML과 SQL ID까지 일관되게 추적할 수 있다.
+

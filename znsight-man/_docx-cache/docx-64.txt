@@ -1,0 +1,594 @@
+67. 롤백 절차
+67.1 도입 전 안내말
+롤백은 배포 후 신규 WAR 또는 설정 변경으로 장애가 발생했을 때 직전 정상 상태로 신속하게 되돌리는 표준 복구 절차이다.
+NSIGHT 배포 구조는 GitLab, GitLab Runner, Gradle, 17개 WAR, Tomcat, Health Check, Rollback 자동화를 기준으로 운영 안정성을 확보하도록 정의되어 있다. 또한 기존 배포관리 설계에서도 OM은 배포 요청·승인·이력·상태 조회·롤백 지시를 담당하고, CI/CD는 빌드·패키징·서버 배포·Health Check·Rollback 실행을 담당하는 구조로 정리되어 있다.
+따라서 롤백의 핵심은 다음이다.
+신규 배포본을 제거하고, 검증된 직전 WAR와 설정으로 되돌린 뒤, Health Check와 Smoke Test를 통과해야 롤백 완료로 본다.
+
+67.2 롤백 기본 원칙
+원칙
+기준
+즉시 판단
+장애 징후가 명확하면 장시간 원인 분석보다 서비스 복구를 우선한다
+직전 정상본 복구
+배포 직전 백업 WAR 또는 공식 Artifact 기준으로 복구한다
+WAS 단위 복구
+운영 중 전체 WAS를 동시에 롤백하지 않고 대상 WAS별로 순차 수행한다
+트래픽 제외 후 작업
+롤백 대상 WAS는 L4 또는 Apache에서 제외한 뒤 작업한다
+설정도 함께 복구
+WAR뿐 아니라 외부 설정, 환경변수, Gateway Route, DB 변경 여부도 확인한다
+Health Check 필수
+Liveness, Readiness, Deep, Smoke Check를 모두 수행한다
+이력 기록
+롤백 사유, 대상, 버전, 담당자, 결과를 OM 배포이력에 남긴다
+재배포 금지
+원인 분석 전 같은 Artifact를 반복 배포하지 않는다
+업무 확인 필수
+기술 Health Check 이후 업무 담당자의 대표 거래 확인을 받는다
+
+67.3 롤백 발생 조건
+구분
+롤백 조건
+판단 기준
+기동 실패
+Tomcat Context가 올라오지 않음
+/actuator/health 응답 없음
+Liveness 실패
+JVM 또는 Spring Boot 프로세스 비정상
+Liveness Check 실패
+Readiness 실패
+업무 요청 수신 불가
+Readiness Check 실패
+Deep Check 실패
+DB, SESSIONDB, Cache, 외부연계 오류
+Deep Check 실패
+Smoke Test 실패
+대표 ServiceId 거래 실패
+표준 응답 실패
+오류율 증가
+HTTP 5xx 또는 업무 오류 급증
+배포 전 대비 급증
+Timeout 증가
+온라인 거래 Timeout 지속 발생
+TIMEOUT, UNKNOWN 증가
+DB Pool 이상
+HikariCP Pool 고갈
+Active Connection 급증
+Thread 이상
+Tomcat Busy Thread 증가
+70% 초과 지속
+Heap 이상
+JVM Heap 사용률 급증
+70% 초과 지속
+업무 이상
+업무 담당자가 기능 오류 판단
+화면, 거래, 조회 결과 이상
+기존 헬스체크 설계에서도 단순 /actuator/health가 아니라 Liveness, Readiness, Deep, Smoke Check의 4단계 검증 구조가 필요하다고 정리되어 있다.
+
+67.4 롤백 대상
+대상
+롤백 필요 여부
+설명
+WAR
+필수
+신규 배포 WAR를 직전 정상 WAR로 교체
+압축 해제 Context
+필수
+Tomcat이 풀어놓은 기존 Context 디렉터리 삭제 후 재전개
+외부 설정
+조건부 필수
+application-prod.yml, DB URL, Timeout 설정 변경 시 복구
+Gateway Route
+조건부 필수
+라우팅 테이블 변경 시 이전 Target으로 복구
+OM 기준정보
+조건부 필수
+ServiceId, 거래통제, Timeout, 오류코드 변경 시 복구
+DB DDL
+매우 신중
+컬럼/테이블 변경은 별도 DB 롤백 계획 필요
+DB DML
+조건부
+기준정보 반영 오류 시 이전 값 복구
+Batch Job
+조건부
+배치 배포 후 오류 발생 시 이전 Job WAR 복구
+Cache
+조건부
+기준정보 복구 후 Cache Evict / Reload 필요
+Apache 설정
+조건부
+Reverse Proxy, Balancer 변경 시 이전 conf 복구
+
+67.5 롤백 전체 흐름
+1. 장애 감지
+   ↓
+2. 롤백 판단
+   - Health Check 실패
+   - Smoke Test 실패
+   - 오류율 / Timeout 증가
+   ↓
+3. 롤백 승인 또는 긴급 승인
+   ↓
+4. 대상 WAS 트래픽 제외
+   ↓
+5. 신규 WAR 제거
+   ↓
+6. 압축 해제 Context 삭제
+   ↓
+7. 직전 정상 WAR 복구
+   ↓
+8. 외부 설정 / 기준정보 필요 시 복구
+   ↓
+9. Tomcat Context Reload 또는 Restart
+   ↓
+10. Health Check
+   ↓
+11. Smoke Test
+   ↓
+12. 트래픽 복귀
+   ↓
+13. OM 배포이력 기록
+   ↓
+14. 장애 원인 분석
+   ↓
+15. 재배포 여부 판단
+
+
+67.6 표준 롤백 절차
+1단계. 롤백 판단
+운영자는 배포 후 다음 중 하나라도 발생하면 롤백 후보로 판단한다.
+확인 항목
+롤백 판단 기준
+Tomcat 로그
+Context 기동 실패, Bean 생성 실패
+애플리케이션 로그
+ERROR, Exception, OutOfMemory, Mapper 오류
+거래로그
+FAIL, TIMEOUT, UNKNOWN 급증
+Health Check
+Liveness / Readiness / Deep 실패
+Smoke Test
+대표 ServiceId 실패
+APM
+응답시간 급증, Thread 급증
+DB
+Connection Pool 고갈, SQL 오류 급증
+업무 확인
+화면 오류, 데이터 오류, 권한 오류
+
+2단계. 대상 WAS 트래픽 제외
+롤백 대상 WAS를 서비스 트래픽에서 제외한다.
+예)
+대상 WAS: AP01
+조치:
+- L4 Pool에서 AP01 제외
+또는
+- Apache BalancerMember AP01 disabled
+
+확인 기준은 다음과 같다.
+확인 항목
+정상 기준
+신규 요청
+AP01로 유입되지 않음
+기존 요청
+처리 중 거래 종료 대기
+Access Log
+신규 Access 감소
+세션
+Spring Session JDBC 기준 다른 WAS에서 세션 유지 가능
+
+3단계. 신규 WAR 제거
+신규 배포된 WAR와 압축 해제 Context를 제거한다.
+rm -f /app/tomcat/webapps/sv.war
+rm -rf /app/tomcat/webapps/sv
+
+주의할 점은 다음과 같다.
+주의 항목
+설명
+Context 디렉터리 삭제
+기존 신규 버전 Class가 남지 않도록 삭제
+Tomcat 실행 상태
+Context 자동 재전개 정책 확인
+파일 권한
+Tomcat 계정 권한 확인
+다른 업무 WAR
+롤백 대상 외 WAR는 삭제 금지
+
+4단계. 직전 정상 WAR 복구
+배포 전 백업한 WAR 또는 Artifact Repository의 직전 정상본을 복구한다.
+cp /app/backup/nsight/20260705_210000/sv/sv.war \
+   /app/tomcat/webapps/sv.war
+
+chown tomcat:tomcat /app/tomcat/webapps/sv.war
+chmod 750 /app/tomcat/webapps/sv.war
+
+Artifact Repository에서 복구하는 경우는 다음 기준을 따른다.
+복구 기준:
+- module      = sv-service
+- version     = 직전 운영 정상 버전
+- commitId    = 직전 운영 Commit ID
+- checksum    = 배포이력의 checksum과 일치
+- artifact    = 공식 CI/CD 생성 WAR
+
+
+5단계. 외부 설정 복구
+WAR 외에 설정 변경이 포함된 배포라면 외부 설정도 함께 되돌린다.
+설정 유형
+복구 대상
+Spring 설정
+/app/nsight/config/sv/application-prod.yml
+DB 설정
+DataSource URL, Pool Size, Timeout
+TCF 설정
+거래통제, Timeout, Idempotency 설정
+Gateway 설정
+Route Target, Timeout, Retry
+Cache 설정
+TTL, Cache Name, Evict 정책
+Log 설정
+Logback, 로그 레벨
+보안 설정
+JWT Key, SSO Endpoint, Cookie 설정
+예시:
+cp /app/backup/nsight/20260705_210000/config/sv/application-prod.yml \
+   /app/nsight/config/sv/application-prod.yml
+
+
+6단계. Tomcat Context Reload 또는 Restart
+공통 모듈 변경, 설정 변경, 메모리 오류, Bean 오류가 발생한 경우에는 Tomcat Restart를 권장한다.
+systemctl stop nsight-tomcat
+sleep 10
+systemctl start nsight-tomcat
+
+Context Reload만 가능한 경우:
+curl -u admin:**** \
+  "http://localhost:8080/manager/text/reload?path=/sv"
+
+방식
+사용 기준
+Context Reload
+단일 업무 WAR만 변경되고 공통 모듈 영향이 작을 때
+Tomcat Restart
+공통 TCF 모듈, 설정, JVM, Session, ClassLoader 영향 가능 시
+
+7단계. Health Check 수행
+curl -f http://localhost:8080/sv/actuator/health/liveness
+curl -f http://localhost:8080/sv/actuator/health/readiness
+curl -f http://localhost:8080/sv/actuator/health
+
+확인 기준은 다음과 같다.
+단계
+정상 기준
+Liveness
+JVM / Spring Boot 생존
+Readiness
+업무 요청 수신 가능
+Deep
+DB, SESSIONDB, Cache 정상
+로그
+기동 오류 없음
+Context
+/sv 정상 전개
+
+8단계. Smoke Test 수행
+대표 거래를 호출한다.
+POST http://localhost:8080/sv/online
+Content-Type: application/json
+
+{
+  "header": {
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "serviceName": "고객 요약 조회",
+    "user": "rollbacktest",
+    "channelId": "WEB",
+    "branch": "0001"
+  },
+  "body": {
+    "customerNo": "CUST000001"
+  }
+}
+
+정상 기준은 다음이다.
+항목
+정상 기준
+HTTP Status
+200
+표준 응답
+StandardResponse 구조
+Result
+SUCCESS
+거래로그
+PROCESSING → SUCCESS
+오류로그
+신규 오류 없음
+응답시간
+기준 이내
+DB Pool
+고갈 없음
+
+9단계. 트래픽 복귀
+Health Check와 Smoke Test가 정상인 경우 WAS를 서비스에 복귀시킨다.
+AP01 롤백 완료
+  ↓
+Health Check 정상
+  ↓
+Smoke Test 정상
+  ↓
+L4 / Apache Pool 복귀
+  ↓
+신규 요청 유입 확인
+
+복귀 후 5~10분간 다음 지표를 확인한다.
+지표
+정상 기준
+HTTP 5xx
+증가 없음
+업무 오류
+증가 없음
+Timeout
+증가 없음
+p95 응답시간
+기준 이내
+Busy Thread
+70% 이하
+JVM Heap
+70% 이하
+Hikari Pool
+70~80% 이하
+거래로그
+SUCCESS 비율 정상
+감사로그
+비정상 접근 없음
+
+67.7 롤백 유형별 절차
+롤백 유형
+절차
+주의사항
+단일 업무 WAR 롤백
+대상 WAS 제외 → WAR 복구 → Context Reload/Restart → 검증
+가장 일반적인 롤백
+공통 TCF 변경 롤백
+전체 영향 WAR 복구 → Tomcat Restart → 주요 업무 Smoke
+업무 전체 영향 확인
+Gateway 롤백
+Gateway 제외 → gw.war 복구 → 라우팅 Smoke
+모든 업무 호출 영향
+OM 롤백
+om.war 복구 → 관리자 기능 Smoke
+기준정보 관리 영향
+JWT 롤백
+jwt.war 복구 → 토큰 발급/검증 Smoke
+로그인·인증 영향
+Batch 롤백
+Scheduler 중지 → batch.war 복구 → 수동 실행 확인
+중복 실행 주의
+설정 롤백
+설정 파일 복구 → Restart → Health Check
+변경 파일 식별 중요
+DB 기준정보 롤백
+이전 기준정보 복구 → Cache Evict → Smoke
+데이터 정합성 확인
+DB DDL 롤백
+DBA 승인 후 별도 수행
+자동 롤백 금지
+
+67.8 DB 변경 포함 시 롤백 기준
+DB 변경이 포함된 배포는 App WAR 롤백만으로 복구되지 않을 수 있다.
+DB 변경 유형
+롤백 기준
+기준정보 Insert
+이전 상태로 Delete 또는 Status 변경
+기준정보 Update
+백업값으로 복구
+컬럼 추가
+일반적으로 유지 가능, App만 롤백
+컬럼 삭제
+매우 위험, 사전 금지 원칙
+컬럼 타입 변경
+별도 복구 SQL 필요
+테이블 생성
+사용 중지 또는 Drop 여부 DBA 판단
+데이터 마이그레이션
+사전 백업 기준 복원 계획 필요
+Index 추가
+성능 문제 시 Drop 가능
+Procedure 변경
+이전 버전 복구 필요
+DB 변경 포함 배포는 반드시 다음을 준비해야 한다.
+준비 항목
+설명
+사전 백업
+변경 대상 테이블 데이터 백업
+Forward Script
+적용 SQL
+Rollback Script
+복구 SQL
+검증 SQL
+반영 전후 검증
+DBA 승인
+운영 DB 변경 승인
+업무 승인
+데이터 영향 확인
+
+67.9 Cache 관련 롤백 기준
+OM 기준정보, ServiceId, 거래통제, Timeout 정책을 복구한 경우에는 Cache도 함께 처리한다.
+기준정보 복구
+  ↓
+Cache Evict
+  ↓
+Cache Reload
+  ↓
+업무 Smoke Test
+
+Cache 대상
+롤백 후 조치
+공통코드
+Code Cache Evict / Reload
+ServiceId 카탈로그
+Service Catalog Cache Reload
+거래통제
+Transaction Control Cache Reload
+Timeout 정책
+Timeout Policy Cache Reload
+Gateway Route
+Gateway Route Cache Reload
+오류코드
+Error Code Cache Reload
+Cache 구조 설계에서도 공통코드, ServiceId 카탈로그, 거래통제 정책, Timeout 정책 같은 기준정보를 tcf-cache와 OM 기준으로 관리하도록 정리되어 있다.
+
+67.10 롤백 완료 기준
+완료 항목
+완료 기준
+WAR 복구
+직전 정상 WAR 반영 완료
+Context 정리
+신규 Context 잔여 파일 없음
+설정 복구
+변경 설정 원복 완료
+Tomcat 기동
+Context 정상 기동
+Health Check
+Liveness / Readiness / Deep 성공
+Smoke Test
+대표 ServiceId 성공
+트래픽 복귀
+L4 / Apache 정상 분산
+로그 확인
+신규 오류 없음
+업무 확인
+업무 담당자 정상 확인
+이력 기록
+OM 배포이력에 Rollback 기록
+원인 분석
+장애 분석 티켓 생성
+
+67.11 롤백 이력 관리 항목
+항목
+내용
+롤백 ID
+RBK-YYYYMMDD-####
+배포 ID
+원 배포 이력 ID
+업무코드
+SV, OM, GW, JWT 등
+대상 WAR
+sv.war
+신규 버전
+장애 발생 버전
+복구 버전
+직전 정상 버전
+대상 서버
+AP01, AP02 등
+롤백 사유
+Health 실패, Smoke 실패, 오류율 증가 등
+시작 시각
+롤백 시작 시간
+종료 시각
+롤백 완료 시간
+수행자
+운영 담당자
+승인자
+운영 승인자
+결과
+성공 / 실패
+후속 조치
+원인 분석, 재배포 계획
+
+67.12 롤백 금지 사항
+금지 항목
+사유
+원인 불명 상태에서 같은 WAR 재배포
+장애 반복 가능
+백업 없는 상태에서 신규 WAR 삭제
+복구 불가 위험
+운영 서버에서 임의 빌드 후 복구
+공식 Artifact 아님
+Class 파일만 부분 복구
+무결성 보장 불가
+Mapper XML만 부분 복구
+Class와 SQL 불일치 위험
+DB DDL 임의 롤백
+데이터 손실 위험
+전체 WAS 동시 롤백
+전체 장애 위험
+Health Check 생략
+복구 성공 여부 확인 불가
+이력 미기록
+감사·장애 분석 불가
+Cache 미갱신
+이전 기준정보가 반영되지 않을 수 있음
+
+67.13 롤백 체크리스트
+구분
+점검 항목
+확인
+판단
+롤백 사유가 명확한가?
+
+판단
+롤백 승인 또는 긴급 승인이 완료되었는가?
+
+준비
+직전 정상 WAR가 확보되었는가?
+
+준비
+직전 설정 파일이 확보되었는가?
+
+준비
+DB 변경 여부를 확인했는가?
+
+준비
+Cache 갱신 필요 여부를 확인했는가?
+
+작업
+대상 WAS를 트래픽에서 제외했는가?
+
+작업
+신규 WAR와 Context를 제거했는가?
+
+작업
+직전 WAR를 복구했는가?
+
+작업
+필요 시 설정을 복구했는가?
+
+작업
+Tomcat을 Reload 또는 Restart 했는가?
+
+검증
+Liveness Check가 성공했는가?
+
+검증
+Readiness Check가 성공했는가?
+
+검증
+Deep Check가 성공했는가?
+
+검증
+Smoke Test가 성공했는가?
+
+복귀
+대상 WAS를 서비스에 복귀했는가?
+
+완료
+오류율, Timeout, Thread, Heap, Pool을 확인했는가?
+
+완료
+OM 롤백 이력을 기록했는가?
+
+완료
+장애 원인 분석 티켓을 생성했는가?
+
+
+67.14 마무리말
+롤백은 실패한 배포를 되돌리는 작업이 아니라 서비스를 정상 상태로 빠르게 복구하는 운영 안정성 절차이다.
+NSIGHT TCF Framework는 업무 WAR, Gateway, JWT, OM, Batch, Cache, SessionDB가 연결되어 있으므로 WAR 하나의 장애도 인증, 세션, 거래통제, Timeout, 로그, 기준정보에 영향을 줄 수 있다. 따라서 롤백은 반드시 트래픽 제외, 직전 WAR 복구, 설정 복구, Health Check, Smoke Test, 이력 기록 순서로 수행해야 한다.
+
+67.15 시사점
+NSIGHT의 롤백 절차는 다음 한 문장으로 정리할 수 있다.
+롤백은 “이전 파일로 되돌리는 작업”이 아니라, 직전 정상 운영 상태를 재현하고 검증하는 표준 복구 절차이다.
+

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM DB Pool 분석</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+  <style>
+    .om-row-warn td { background: rgba(251, 191, 36, 0.06); }
+    .om-row-critical td { background: rgba(239, 68, 68, 0.08); }
+    .om-screen-message {
+      white-space: pre-line;
+      line-height: 1.6;
+      padding: 12px 14px;
+      background: var(--panel-2);
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260711c"></script>
+  <script>
+    function formatPct(value) {
+      if (value == null || value === '') return '-';
+      return `${value}%`;
+    }
+
+    function formatNum(value) {
+      if (value == null || value === '') return '-';
+      return value;
+    }
+
+    function formatElapsed(ms) {
+      const value = Number(ms);
+      if (Number.isNaN(value)) return '-';
+      if (value >= 1000) return `${(value / 1000).toFixed(1)}초`;
+      return `${value}ms`;
+    }
+
+    function renderRows(rows, columns, emptyText) {
+      if (!rows.length) {
+        return `<tr><td colspan="${columns}" class="om-empty">${emptyText}</td></tr>`;
+      }
+      return rows.join('');
+    }
+
+    function stepChip(step) {
+      if (!step || step === '-') return '-';
+      const warnSteps = ['WAIT_DB_CONNECTION', 'EXECUTING_SQL'];
+      if (warnSteps.includes(step)) {
+        return `<span class="om-chip warn">${step}</span>`;
+      }
+      return `<span class="om-chip">${step}</span>`;
+    }
+
+    async function load(el) {
+      const { body, relay } = await OmAdmin.inquiry('runtimeDiagnostics', { includeDetails: 'Y' });
+      const dbPoolAnalysis = body.dbPoolAnalysis || {};
+      const exhaustion = dbPoolAnalysis.exhaustion || {};
+      const pools = dbPoolAnalysis.pools || [];
+
+      document.getElementById('rtmStatus').textContent =
+        `${relay.elapsedMs}ms · 점검 ${body.checkedAt || '-'}`;
+
+      const exhausted = Boolean(exhaustion.detected);
+      const bannerClass = exhausted ? 'critical' : 'normal';
+      document.getElementById('poolBanner').className = `om-status-banner ${bannerClass}`;
+      document.getElementById('poolMain').className = `om-status-main ${bannerClass}`;
+      document.getElementById('poolMain').textContent =
+        exhausted ? 'DB Pool 포화: DB_POOL_EXHAUSTED' : 'DB Pool 상태: 정상 범위';
+      document.getElementById('poolMessage').textContent = exhaustion.message || '-';
+      document.getElementById('poolCriteria').textContent =
+        `9.2 판정: ${exhaustion.criteria || '-'} · 전체 Pending ${formatNum(exhaustion.aggregatePending)}`;
+      document.getElementById('poolScreenMessage').textContent =
+        exhausted ? (exhaustion.screenMessage || '-') : 'DB Pool 포화 기준 미충족';
+
+      const poolRows = pools.map(p => {
+        const rowClass = p.exhausted ? 'om-row-critical' : '';
+        return `
+        <tr class="${rowClass}">
+          <td>${OmAdmin.field(p, 'businessCode')}</td>
+          <td class="om-mono">${OmAdmin.field(p, 'poolName')}</td>
+          <td>${formatNum(p.maximum)}</td>
+          <td>${formatNum(p.active)}</td>
+          <td>${formatNum(p.idle)}</td>
+          <td>${formatNum(p.pending)}</td>
+          <td>${formatPct(p.usageRatio)}</td>
+          <td>${formatNum(p.connectionTimeoutCount)}</td>
+          <td>${formatNum(p.longUsageConnections)}</td>
+          <td>${p.exhausted ? '<span class="om-chip critical">포화</span>' : '-'}</td>
+        </tr>`;
+      });
+      document.getElementById('poolBody').innerHTML =
+        renderRows(poolRows, 10, 'DB Pool 데이터 없음 — HikariCP 미연결 또는 대상 WAR 미응답');
+
+      const dbWaitRows = (dbPoolAnalysis.dbWaitTransactions || []).map(r => `
+        <tr class="om-row-warn">
+          <td>${OmAdmin.field(r, 'businessCode')}</td>
+          <td class="om-mono">${OmAdmin.field(r, 'serviceId')}</td>
+          <td>${stepChip(OmAdmin.field(r, 'currentStep'))}</td>
+          <td>${formatElapsed(r.dbWaitMs)}</td>
+          <td>${formatElapsed(r.elapsedMs)}</td>
+          <td class="om-mono">${OmAdmin.field(r, 'guid')}</td>
+        </tr>`);
+
+      const sqlRows = (dbPoolAnalysis.executingSqlTransactions || []).map(r => `
+        <tr class="om-row-warn">
+          <td>${OmAdmin.field(r, 'businessCode')}</td>
+          <td class="om-mono">${OmAdmin.field(r, 'serviceId')}</td>
+          <td>${stepChip(OmAdmin.field(r, 'currentStep'))}</td>
+          <td class="om-mono">${OmAdmin.field(r, 'sqlId')}</td>
+          <td>${formatElapsed(r.elapsedMs)}</td>
+          <td class="om-mono">${OmAdmin.field(r, 'guid')}</td>
+        </tr>`);
+
+      document.getElementById('dbWaitBody').innerHTML =
+        renderRows(dbWaitRows, 6, exhausted
+          ? 'WAIT_DB_CONNECTION 단계 거래 없음 — Pending은 Hikari 대기 Thread일 수 있음'
+          : 'Connection 획득 전 대기 거래 없음');
+      document.getElementById('sqlWaitBody').innerHTML =
+        renderRows(sqlRows, 6, 'EXECUTING_SQL 단계 거래 없음 — Slow SQL·DB Lock 의심 시 이 표 확인');
+    }
+
+    OmAdmin.initPage('runtime-dbpool-analysis', 'DB Pool 분석', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">
+          설계 9장 DB Pool 분석 — HikariCP Pool 상태 + Connection 대기 vs SQL 실행 구분.
+          <a href="/om/admin/runtime-diagnostics.html" style="margin-left:8px">← 런타임 진단 통합</a>
+          <a href="/om/admin/runtime-thread-analysis.html" style="margin-left:8px">Thread 분석</a>
+          <a href="/om/admin/runtime-jvm-analysis.html" style="margin-left:8px">JVM 분석</a>
+          <a href="/om/admin/runtime-sql-analysis.html" style="margin-left:8px">SQL 분석</a>
+          <a href="/om/admin/runtime-dominance-analysis.html" style="margin-left:8px">자원 독점 분석</a>
+          <a href="/om/admin/runtime-transaction-detail.html" style="margin-left:8px">거래·Thread 상세</a>
+        </div>
+        <section class="om-filter-bar">
+          <button class="btn-primary" id="refreshBtn" type="button">새로고침</button>
+          <span id="rtmStatus" style="color:var(--muted);font-size:0.85rem;align-self:center">조회 중...</span>
+        </section>
+
+        <section class="om-status-banner normal" id="poolBanner" style="margin-bottom:16px">
+          <div>
+            <div class="om-status-main normal" id="poolMain">DB Pool 상태: -</div>
+            <div id="poolMessage" style="margin-top:8px">-</div>
+            <div id="poolCriteria" style="margin-top:4px;color:var(--muted);font-size:0.85rem">-</div>
+          </div>
+        </section>
+
+        <div class="om-card" style="margin-bottom:16px">
+          <div class="om-card-head">9.2 DB Connection 대기 (DB_POOL_EXHAUSTED)</div>
+          <div class="om-card-body">
+            <div class="om-screen-message" id="poolScreenMessage">-</div>
+          </div>
+        </div>
+
+        <div class="om-card" style="margin-bottom:16px">
+          <div class="om-card-head">9.1 DB Pool 상태 (WAR별 HikariCP)</div>
+          <div class="om-card-body om-table-wrap">
+            <table class="om-table">
+              <thead>
+                <tr>
+                  <th>업무</th><th>Pool Name</th><th>Maximum</th><th>Active</th>
+                  <th>Idle</th><th>Pending</th><th>Usage Ratio</th>
+                  <th>Conn Timeout</th><th>Long Usage</th><th>판정</th>
+                </tr>
+              </thead>
+              <tbody id="poolBody"><tr><td colspan="10" class="om-empty">조회 중...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="om-grid-2">
+          <div class="om-card">
+            <div class="om-card-head">9.3 Connection 획득 전 지연 (WAIT_DB_CONNECTION)</div>
+            <div class="om-card-body">
+              <p style="margin:0 0 8px;color:var(--muted);font-size:0.85rem">
+                DB Pool 부족 — Connection 획득 전 대기시간(<code>dbWaitMs</code>) 표시
+              </p>
+              <div class="om-table-wrap">
+                <table class="om-table">
+                  <thead>
+                    <tr>
+                      <th>업무</th><th>ServiceId</th><th>단계</th>
+                      <th>DB 대기</th><th>경과</th><th>GUID</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dbWaitBody"><tr><td colspan="6" class="om-empty">조회 중...</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="om-card">
+            <div class="om-card-head">9.3 Connection 획득 후 SQL 지연 (EXECUTING_SQL)</div>
+            <div class="om-card-body">
+              <p style="margin:0 0 8px;color:var(--muted);font-size:0.85rem">
+                Slow SQL 또는 DB Lock — Pool과 무관한 DB 내부 지연
+              </p>
+              <div class="om-table-wrap">
+                <table class="om-table">
+                  <thead>
+                    <tr>
+                      <th>업무</th><th>ServiceId</th><th>단계</th>
+                      <th>SQL ID</th><th>경과</th><th>GUID</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sqlWaitBody"><tr><td colspan="6" class="om-empty">조회 중...</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>`;
+
+      document.getElementById('refreshBtn').addEventListener('click', () => {
+        load(el).catch(err => OmAdmin.showErrorBanner(el, err.message));
+      });
+      await load(el);
+      window.setInterval(() => {
+        load(el).catch(() => {});
+      }, 30000);
+    });
+  </script>
+</body>
+</html>

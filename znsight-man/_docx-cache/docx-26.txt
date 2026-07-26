@@ -1,0 +1,995 @@
+아래 내용을 NSIGHT TCF 개발자 가이드 3차 - 21장으로 이어 붙이면 됩니다.
+
+21. Header 작성 기준
+21.1 도입 전 안내말
+NSIGHT TCF Framework에서 Header는 온라인 거래의 공통 통제 영역이다.Body가 업무 데이터를 담는 영역이라면, Header는 이 거래가 어느 업무인지, 어떤 서비스를 실행할 것인지, 누가 요청했는지, 어느 채널·지점에서 요청했는지, 어떻게 추적할 것인지를 담는 영역이다.
+NSIGHT 표준 전문은 StandardRequest = header + body, StandardResponse = header + result + body 구조를 기준으로 하며, 기본 Endpoint는 POST /{businessCode}/online, 실행 식별자는 URL이 아니라 header.serviceId이다.
+따라서 Header는 다음 기준으로 이해해야 한다.
+Header
+= 거래 식별 정보
++ 실행 서비스 정보
++ 사용자 / 채널 / 지점 정보
++ 추적 정보
++ 거래통제 / 권한 / 감사 / 로그 기준
+
+
+21.2 Header 작성 결론
+NSIGHT Header는 다음 기준으로 작성한다.
+구분
+설계 기준
+Header 위치
+JSON 전문의 header 영역
+Header 성격
+공통 통제 정보
+Body와 관계
+Body에는 업무 데이터만 두고 Header 항목을 중복하지 않음
+실행 기준
+serviceId
+거래 기준
+transactionCode
+업무 기준
+businessCode
+거래통제 기준
+serviceId, transactionCode, businessCode, serviceName, userId, channelId, branchId
+추적 기준
+guid, traceId, transactionId
+세션 기준
+userId, branchId, channelId를 세션 기준으로 재검증
+생성 기준
+클라이언트가 보내도 서버에서 검증·보정
+검증 위치
+STF.preProcess()
+로그 연계
+MDC, 거래로그, 감사로그에 Header 주요 항목 기록
+핵심 원칙은 다음이다.
+Header는 클라이언트가 보낸 값을 그대로 믿지 않는다.
+Header는 STF 전처리에서 검증하고 보정한다.
+Header는 Dispatcher, 거래통제, 권한, Timeout, 로그, 감사의 기준이다.
+
+
+21.3 HTTP Header와 JSON Header 구분
+NSIGHT에서는 HTTP Header와 JSON Header를 명확히 구분한다.
+구분
+역할
+예시
+HTTP Header
+기술 통제 영역
+Content-Type, Authorization, Cookie, X-Forwarded-For
+JSON Header
+업무 전문 영역
+serviceId, transactionCode, businessCode, userId, branchId
+JSON Body
+업무 데이터 영역
+customerNo, campaignId, searchCondition
+HTTP/JSON 통신 기준에서도 HTTP Header는 기술 통제용, JSON Header는 업무 전문용, JSON Body는 업무 데이터용으로 구분하고, 모든 업무 요청은 JSON Body로 수신하는 기준을 제시한다.
+예시는 다음과 같다.
+POST /sv/online
+Content-Type: application/json; charset=UTF-8
+Authorization: Bearer {accessToken}
+Cookie: JSESSIONID=...
+X-Forwarded-For: 10.10.10.10
+
+{
+  "header": {
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "serviceName": "고객요약조회",
+    "userId": "U123456",
+    "channelId": "WEBTOP",
+    "branchId": "001234"
+  },
+  "body": {
+    "customerNo": "CUST00000001"
+  }
+}
+
+
+21.4 Header 기본 구조
+표준 Header는 다음 구조를 기본으로 한다.
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "SV",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "processingType": "INQUIRY",
+    "serviceName": "고객요약조회",
+    "guid": "G202607040001",
+    "traceId": "T202607040001",
+    "transactionId": "TX202607040001",
+    "channelId": "WEBTOP",
+    "userId": "U123456",
+    "branchId": "001234",
+    "centerId": "DC1",
+    "clientIp": "10.10.10.10",
+    "requestTime": "2026-07-04T18:30:00+09:00",
+    "idempotencyKey": "SV-INQ-0001-U123456-20260704-000001"
+  },
+  "body": {
+    "customerNo": "CUST00000001"
+  }
+}
+
+
+21.5 Header 항목 분류
+분류
+항목
+설명
+시스템 식별
+systemId
+요청 시스템 ID
+업무 식별
+businessCode
+업무코드
+서비스 식별
+serviceId
+실행할 ServiceId
+거래 식별
+transactionCode
+거래코드
+처리 유형
+processingType
+조회, 등록, 수정, 삭제 등
+서비스 표시
+serviceName
+운영자 표시용 서비스명
+추적 정보
+guid, traceId, transactionId
+거래 추적 ID
+사용자 정보
+userId
+사용자 ID
+조직 정보
+branchId
+지점 또는 부서 코드
+채널 정보
+channelId
+WebTopSuite, OM, API 등
+센터 정보
+centerId
+DR/센터 식별
+요청 정보
+clientIp, requestTime
+요청 IP, 요청 시각
+중복 방지
+idempotencyKey
+등록·수정·실행 거래 중복 방지
+화면 정보
+screenId, menuId
+화면·메뉴 추적용 선택 항목
+전문처리 설계 기준에서도 Header 필드는 businessCode, serviceId, transactionCode, processingType, channelId를 주요 필수 항목으로 두고, guid, traceId, userId, branchId, clientIp, idempotencyKey 등을 Header에 포함하도록 정의한다.
+
+21.6 Header 필수 항목
+개발자가 반드시 포함해야 하는 Header 필수 항목은 다음과 같다.
+항목
+필수
+설명
+예시
+businessCode
+Y
+업무코드
+SV
+serviceId
+Y
+실행할 서비스 ID
+SV.Customer.selectSummary
+transactionCode
+Y
+거래코드
+SV-INQ-0001
+processingType
+Y
+처리유형
+INQUIRY
+serviceName
+Y
+서비스명
+고객요약조회
+channelId
+Y
+호출 채널
+WEBTOP
+userId
+Y
+사용자 ID
+U123456
+branchId
+Y
+지점 코드
+001234
+다만 userId, branchId는 클라이언트가 보낸 값을 그대로 믿지 않는다. 세션, SSO, JWT, 권한 DB 기준으로 반드시 재검증해야 한다. 거래통제 설계에서도 user, branch 값은 클라이언트가 보냈다고 그대로 믿으면 안 되고 서버 세션·SSO·권한 DB 기준으로 재검증해야 한다고 정리되어 있다.
+
+21.7 거래통제용 Header 7개 항목
+NSIGHT 거래통제는 Header 기반 Allow-List 방식이다.따라서 다음 7개 항목은 거래통제의 최소 기준이다.
+No
+논리명
+개발 표준 필드명
+설명
+1
+ServiceId
+serviceId
+실행할 서비스 식별자
+2
+TransactionCode
+transactionCode
+거래코드
+3
+BusinessCode
+businessCode
+업무코드
+4
+ServiceName
+serviceName
+서비스명
+5
+User
+userId
+사용자 ID
+6
+ChannelId
+channelId
+채널 ID
+7
+Branch
+branchId
+지점 코드
+기존 거래통제 설계에서는 serviceId, transactionCode, businessCode, serviceName, user, channelId, branch 7개 Header 항목을 기준으로 거래를 직접 통제하는 구조를 정의한다. 개발 표준에서는 Java·JSON 필드명을 명확히 하기 위해 user는 userId, branch는 branchId로 표준화하고, 거래통제 테이블 매핑 시 USER_ID, BRANCH_ID로 변환한다.
+
+21.8 user / branch와 userId / branchId 표준
+과거 설계 문서에는 user, branch 표현이 함께 사용되었다.개발자 가이드에서는 다음처럼 정리한다.
+구분
+표준
+JSON Header 표준 필드명
+userId, branchId
+거래통제 논리명
+user, branch
+DB 컬럼명
+USER_ID, BRANCH_ID
+Java 필드명
+userId, branchId
+로그 필드명
+userId, branchId
+예시는 다음과 같다.
+{
+  "header": {
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "serviceName": "고객요약조회",
+    "userId": "U123456",
+    "channelId": "WEBTOP",
+    "branchId": "001234"
+  }
+}
+
+거래통제 테이블 조회 시에는 다음처럼 매핑한다.
+header.userId   → TCF_TRANSACTION_CONTROL.USER_ID
+header.branchId → TCF_TRANSACTION_CONTROL.BRANCH_ID
+
+
+21.9 Header 정합성 검증 기준
+Header는 필수값 존재 여부만 확인하면 안 된다.업무코드, ServiceId, 거래코드가 서로 맞는지도 확인해야 한다.
+검증 항목
+기준
+오류 예시
+URL 업무코드와 businessCode
+/sv/online이면 SV
+/sv/online + businessCode=CM
+businessCode와 serviceId Prefix
+SV이면 SV.로 시작
+businessCode=SV, serviceId=CM.Campaign.selectList
+businessCode와 transactionCode Prefix
+SV이면 SV-로 시작
+businessCode=SV, transactionCode=CM-INQ-0001
+serviceId와 transactionCode 매핑
+Catalog에 등록된 조합
+SV.Customer.selectSummary + SV-UPD-0001
+processingType과 거래코드 유형
+INQUIRY ↔ INQ
+조회 거래인데 UPD
+channelId 허용 여부
+허용 채널만 가능
+미등록 채널
+userId와 세션 사용자
+세션 사용자와 일치
+Header 위변조
+branchId와 사용자 권한 지점
+권한 지점이어야 함
+타 지점 임의 요청
+전문 검증 기준에서도 businessCode는 URL Path 업무코드와 일치해야 하고, serviceId는 Service Catalog 등록 여부, transactionCode는 형식 및 등록 여부, user는 세션 사용자와 일치 여부, channelId는 허용 채널 여부, branch는 사용자 권한 지점 여부를 확인해야 한다고 정리되어 있다.
+
+21.10 Header 생성 주체 기준
+Header 항목마다 생성 주체를 구분한다.
+항목
+생성 주체
+처리 기준
+systemId
+클라이언트 또는 서버
+없으면 서버 기본값
+businessCode
+클라이언트 / URL Path
+URL Path 기준 보정 가능
+serviceId
+클라이언트
+필수, Catalog 검증
+transactionCode
+클라이언트
+필수, ServiceId 매핑 검증
+processingType
+클라이언트
+필수, 거래코드 유형과 검증
+serviceName
+클라이언트 또는 Catalog
+Catalog 기준 보정 가능
+guid
+클라이언트 또는 서버
+없으면 서버 생성
+traceId
+서버
+없으면 서버 생성
+transactionId
+서버
+없으면 서버 생성
+userId
+클라이언트 또는 세션
+세션 기준 재검증
+branchId
+클라이언트 또는 세션
+세션·권한 기준 재검증
+clientIp
+서버
+HTTP Header 기준 보정
+requestTime
+클라이언트
+없으면 서버 시각 사용
+idempotencyKey
+클라이언트
+변경 거래에서 권장
+
+21.11 GUID / TraceId / TransactionId 작성 기준
+추적용 Header는 다음처럼 구분한다.
+항목
+의미
+생성 기준
+사용처
+guid
+End-to-End 거래 추적 ID
+클라이언트가 없으면 서버 생성
+전체 로그, 감사로그
+traceId
+AP 내부 추적 ID
+서버 생성 권장
+MDC, APM, 내부 로그
+transactionId
+단위 거래 ID
+서버 생성 권장
+거래로그, 재처리, 상태조회
+권장 예시는 다음과 같다.
+{
+  "guid": "G202607040001",
+  "traceId": "T202607040001",
+  "transactionId": "TX202607040001"
+}
+
+STF 전처리 흐름에서도 StandardRequest 수신 후 Header 필수값을 검증하고, GUID와 TraceId를 생성 또는 검증하며, MDC를 설정한 뒤 세션·인증·권한·거래통제·중복요청·Timeout 정책을 처리한다.
+
+21.12 ChannelId 작성 기준
+channelId는 요청이 들어온 채널을 식별한다.
+채널
+channelId 예시
+설명
+WebTopSuite
+WEBTOP
+일반 사용자 업무 화면
+OM 관리자
+OM-PORTAL
+운영관리 포털
+내부 API
+INTERNAL-API
+내부 시스템 연계
+Gateway
+TCF-GW
+TCF Gateway 경유
+Batch
+BATCH
+배치 또는 스케줄러
+외부 연계
+EXT-API
+외부 API 연계
+작성 기준은 다음과 같다.
+기준
+설명
+필수값
+모든 온라인 거래에 필수
+대문자 사용
+WEBTOP, OM-PORTAL
+공통코드 관리
+OM 공통코드 또는 채널 정책으로 관리
+권한 연계
+채널별 호출 가능 ServiceId 제한 가능
+감사 연계
+다운로드, 권한변경 등 감사 대상 식별 가능
+
+21.13 ProcessingType 작성 기준
+processingType은 거래의 처리 성격을 나타낸다.
+처리유형
+값
+거래코드 예시
+설명
+조회
+INQUIRY
+SV-INQ-0001
+목록, 상세, 요약 조회
+등록
+CREATE
+CM-REG-0001
+신규 등록
+수정
+UPDATE
+OM-UPD-0001
+기존 데이터 변경
+삭제
+DELETE
+OM-DEL-0001
+삭제 또는 논리삭제
+저장
+SAVE
+OM-SAV-0001
+등록/수정 통합
+실행
+EXECUTE
+EB-EXE-0001
+배치, 작업 실행
+발송
+SEND
+MG-SND-0001
+메시지 발송
+업로드
+UPLOAD
+UD-UPL-0001
+파일 업로드
+다운로드
+DOWNLOAD
+UD-DWN-0001
+파일 다운로드
+인증
+AUTH
+OM-AUT-0001
+로그인, SSO, JWT
+processingType과 transactionCode는 서로 맞아야 한다.
+processingType = INQUIRY  → transactionCode = *-INQ-*
+processingType = UPDATE   → transactionCode = *-UPD-*
+processingType = DOWNLOAD → transactionCode = *-DWN-*
+
+
+21.14 IdempotencyKey 작성 기준
+idempotencyKey는 중복요청 방지를 위한 선택 항목이다.조회 거래에는 필수가 아니지만, 등록·수정·삭제·실행·발송 거래에는 권장한다.
+거래 유형
+idempotencyKey 기준
+조회
+선택
+등록
+권장
+수정
+권장
+삭제
+권장
+메시지 발송
+필수 권장
+이벤트 발행
+필수 권장
+파일 업로드
+권장
+배치 수동 실행
+필수 권장
+예시는 다음과 같다.
+{transactionCode}-{userId}-{businessKey}-{yyyyMMddHHmmss}
+
+{
+  "idempotencyKey": "MG-SND-0001-U123456-MSG0001-20260704183000"
+}
+
+중복요청 검증은 STF.preProcess() 단계에서 수행하고, 동일 Key가 PROCESSING 또는 SUCCESS 상태이면 정책에 따라 차단하거나 기존 결과를 안내한다.
+
+21.15 ClientIp 작성 기준
+clientIp는 클라이언트가 JSON Header에 직접 넣더라도 서버에서 HTTP Header 기준으로 보정해야 한다.
+우선순위
+기준
+1
+X-Forwarded-For 첫 번째 IP
+2
+X-Real-IP
+3
+Servlet Request RemoteAddr
+4
+JSON Header clientIp는 참고용
+작성 기준은 다음과 같다.
+clientIp는 클라이언트 입력값을 신뢰하지 않는다.
+Apache / L4 / Gateway를 거친 실제 사용자 IP를 서버에서 보정한다.
+거래로그와 감사로그에는 보정된 clientIp를 기록한다.
+
+
+21.16 Request Header와 Response Header 기준
+요청 Header와 응답 Header는 동일한 추적 정보를 유지한다.응답 Header에는 처리 결과를 추적하기 위한 정보를 추가한다.
+항목
+요청 Header
+응답 Header
+systemId
+Y
+Y
+businessCode
+Y
+Y
+serviceId
+Y
+Y
+transactionCode
+Y
+Y
+processingType
+Y
+Y
+serviceName
+Y
+Y
+guid
+Y
+Y
+traceId
+Y
+Y
+transactionId
+Y
+Y
+channelId
+Y
+Y
+userId
+Y
+Y
+branchId
+Y
+Y
+requestTime
+Y
+Y
+responseTime
+N
+Y
+elapsedTimeMs
+N
+Y
+apId
+N
+선택
+centerId
+선택
+선택
+응답 예시는 다음과 같다.
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "SV",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "processingType": "INQUIRY",
+    "serviceName": "고객요약조회",
+    "guid": "G202607040001",
+    "traceId": "T202607040001",
+    "transactionId": "TX202607040001",
+    "channelId": "WEBTOP",
+    "userId": "U123456",
+    "branchId": "001234",
+    "requestTime": "2026-07-04T18:30:00+09:00",
+    "responseTime": "2026-07-04T18:30:01+09:00",
+    "elapsedTimeMs": 120
+  },
+  "result": {
+    "resultCode": "SUCCESS",
+    "message": "정상 처리되었습니다."
+  },
+  "body": {}
+}
+
+
+21.17 Java StandardHeader 예시
+개발 표준 Header 객체는 다음처럼 작성한다.
+@Getter
+@Setter
+@NoArgsConstructor
+public class StandardHeader {
+
+    private String systemId;
+
+    @NotBlank(message = "업무코드는 필수입니다.")
+    private String businessCode;
+
+    @NotBlank(message = "ServiceId는 필수입니다.")
+    private String serviceId;
+
+    @NotBlank(message = "거래코드는 필수입니다.")
+    private String transactionCode;
+
+    @NotBlank(message = "처리유형은 필수입니다.")
+    private String processingType;
+
+    @NotBlank(message = "서비스명은 필수입니다.")
+    private String serviceName;
+
+    private String guid;
+    private String traceId;
+    private String transactionId;
+
+    @NotBlank(message = "채널ID는 필수입니다.")
+    private String channelId;
+
+    @NotBlank(message = "사용자ID는 필수입니다.")
+    private String userId;
+
+    @NotBlank(message = "지점코드는 필수입니다.")
+    private String branchId;
+
+    private String centerId;
+    private String clientIp;
+    private String requestTime;
+    private String responseTime;
+    private Long elapsedTimeMs;
+    private String idempotencyKey;
+    private String screenId;
+    private String menuId;
+}
+
+전처리·후처리 모듈 설계에서도 StandardHeader는 표준 전문 Header 정보를 보관하며, 주요 필드는 guid, traceId, transactionId, serviceId, channelId, userId, branchId, centerId, clientIp이고, Filter, Interceptor, Controller, Log, Audit, Response에서 사용된다고 정리되어 있다.
+
+21.18 Header Validator 예시
+@Component
+@RequiredArgsConstructor
+public class StandardHeaderValidator {
+
+    private final ServiceCatalogService serviceCatalogService;
+    private final ChannelPolicyService channelPolicyService;
+
+    public void validate(StandardHeader header, String pathBusinessCode) {
+
+        require(header.getBusinessCode(), "E-TCF-HDR-0001", "업무코드는 필수입니다.");
+        require(header.getServiceId(), "E-TCF-HDR-0002", "ServiceId는 필수입니다.");
+        require(header.getTransactionCode(), "E-TCF-HDR-0003", "거래코드는 필수입니다.");
+        require(header.getProcessingType(), "E-TCF-HDR-0004", "처리유형은 필수입니다.");
+        require(header.getChannelId(), "E-TCF-HDR-0005", "채널ID는 필수입니다.");
+        require(header.getUserId(), "E-TCF-HDR-0006", "사용자ID는 필수입니다.");
+        require(header.getBranchId(), "E-TCF-HDR-0007", "지점코드는 필수입니다.");
+
+        if (!pathBusinessCode.equalsIgnoreCase(header.getBusinessCode())) {
+            throw new BusinessException(
+                    "E-TCF-HDR-0011",
+                    "URL 업무코드와 Header 업무코드가 일치하지 않습니다."
+            );
+        }
+
+        if (!header.getServiceId().startsWith(header.getBusinessCode() + ".")) {
+            throw new BusinessException(
+                    "E-TCF-HDR-0012",
+                    "업무코드와 ServiceId가 일치하지 않습니다."
+            );
+        }
+
+        if (!header.getTransactionCode().startsWith(header.getBusinessCode() + "-")) {
+            throw new BusinessException(
+                    "E-TCF-HDR-0013",
+                    "업무코드와 거래코드가 일치하지 않습니다."
+            );
+        }
+
+        serviceCatalogService.validateActiveService(
+                header.getServiceId(),
+                header.getTransactionCode()
+        );
+
+        channelPolicyService.validateChannel(header.getChannelId());
+    }
+
+    private void require(String value, String errorCode, String message) {
+        if (value == null || value.isBlank()) {
+            throw new BusinessException(errorCode, message);
+        }
+    }
+}
+
+
+21.19 Header와 TransactionContext 변환 기준
+Header는 검증 후 TransactionContext로 변환한다.업무 계층은 Header를 직접 많이 참조하지 않고 TransactionContext를 통해 필요한 값을 읽는다.
+StandardHeader
+   ↓ STF 검증·보정
+TransactionContext
+   ↓
+Handler / Facade / Service / Rule
+
+예시는 다음과 같다.
+@Getter
+@Builder
+public class TransactionContext {
+
+    private String guid;
+    private String traceId;
+    private String transactionId;
+    private String businessCode;
+    private String serviceId;
+    private String transactionCode;
+    private String processingType;
+    private String channelId;
+    private String userId;
+    private String branchId;
+    private String clientIp;
+    private String centerId;
+}
+
+업무 Service에서는 다음처럼 사용한다.
+public SvCustomerSummaryResponse selectCustomerSummary(
+        SvCustomerSummaryRequest request,
+        TransactionContext context
+) {
+    String userId = context.getUserId();
+    String branchId = context.getBranchId();
+
+    // 사용자/지점 기준 업무 처리
+}
+
+
+21.20 Header와 MDC 로그 연계
+Header 주요 항목은 MDC에 설정한다.
+Header 항목
+MDC Key
+설명
+guid
+guid
+End-to-End 추적
+traceId
+traceId
+내부 추적
+transactionId
+transactionId
+거래 단위 ID
+serviceId
+serviceId
+서비스 식별
+transactionCode
+transactionCode
+거래코드
+businessCode
+businessCode
+업무코드
+userId
+userId
+사용자
+branchId
+branchId
+지점
+channelId
+channelId
+채널
+로그 기준에서도 모든 로그에는 GUID, TraceId, ServiceId, TransactionId, UserId, BranchId, ChannelId, ClientIp, RequestUri, ElapsedTime, ResultCode, ErrorCode가 남아야 한다고 정리되어 있다.
+MDC 설정 예시는 다음과 같다.
+public void applyMdc(StandardHeader header) {
+    MDC.put("guid", header.getGuid());
+    MDC.put("traceId", header.getTraceId());
+    MDC.put("transactionId", header.getTransactionId());
+    MDC.put("serviceId", header.getServiceId());
+    MDC.put("transactionCode", header.getTransactionCode());
+    MDC.put("businessCode", header.getBusinessCode());
+    MDC.put("userId", header.getUserId());
+    MDC.put("branchId", header.getBranchId());
+    MDC.put("channelId", header.getChannelId());
+}
+
+
+21.21 Header 오류코드 기준
+오류 상황
+오류코드
+설명
+Header 없음
+E-TCF-HDR-0000
+요청 전문에 Header 없음
+업무코드 누락
+E-TCF-HDR-0001
+businessCode 없음
+ServiceId 누락
+E-TCF-HDR-0002
+serviceId 없음
+거래코드 누락
+E-TCF-HDR-0003
+transactionCode 없음
+처리유형 누락
+E-TCF-HDR-0004
+processingType 없음
+채널ID 누락
+E-TCF-HDR-0005
+channelId 없음
+사용자ID 누락
+E-TCF-HDR-0006
+userId 없음
+지점코드 누락
+E-TCF-HDR-0007
+branchId 없음
+URL 업무코드 불일치
+E-TCF-HDR-0011
+Path와 Header 불일치
+ServiceId Prefix 불일치
+E-TCF-HDR-0012
+업무코드와 ServiceId 불일치
+거래코드 Prefix 불일치
+E-TCF-HDR-0013
+업무코드와 거래코드 불일치
+세션 사용자 불일치
+E-TCF-AUTH-0001
+Header userId와 세션 사용자 불일치
+지점 권한 오류
+E-TCF-AUTHZ-0001
+Header branchId 권한 없음
+거래통제 미등록
+E-TCF-CTL-0001
+Allow-List 미등록
+거래통제 설계에서도 Header 필수값 누락과 미등록 거래, 세션 불일치에 대한 오류코드를 분리해서 정의한다.
+
+21.22 Header 작성 예시
+21.22.1 SV 고객 요약 조회
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "SV",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "processingType": "INQUIRY",
+    "serviceName": "고객요약조회",
+    "guid": "G202607040001",
+    "traceId": "T202607040001",
+    "transactionId": "TX202607040001",
+    "channelId": "WEBTOP",
+    "userId": "U123456",
+    "branchId": "001234",
+    "clientIp": "10.10.10.10",
+    "requestTime": "2026-07-04T18:30:00+09:00"
+  },
+  "body": {
+    "customerNo": "CUST00000001"
+  }
+}
+
+21.22.2 OM 사용자 수정
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "OM",
+    "serviceId": "OM.User.update",
+    "transactionCode": "OM-UPD-0001",
+    "processingType": "UPDATE",
+    "serviceName": "사용자정보수정",
+    "guid": "G202607040002",
+    "traceId": "T202607040002",
+    "transactionId": "TX202607040002",
+    "channelId": "OM-PORTAL",
+    "userId": "ADMIN001",
+    "branchId": "000001",
+    "idempotencyKey": "OM-UPD-0001-ADMIN001-U123456-20260704183000",
+    "requestTime": "2026-07-04T18:30:00+09:00"
+  },
+  "body": {
+    "targetUserId": "U123456",
+    "userName": "홍길동",
+    "useYn": "Y"
+  }
+}
+
+21.22.3 UD 파일 다운로드
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "UD",
+    "serviceId": "UD.File.download",
+    "transactionCode": "UD-DWN-0001",
+    "processingType": "DOWNLOAD",
+    "serviceName": "파일다운로드",
+    "guid": "G202607040003",
+    "traceId": "T202607040003",
+    "transactionId": "TX202607040003",
+    "channelId": "WEBTOP",
+    "userId": "U123456",
+    "branchId": "001234",
+    "requestTime": "2026-07-04T18:30:00+09:00"
+  },
+  "body": {
+    "fileId": "FILE000001",
+    "downloadReason": "고객 상담 증적 확인"
+  }
+}
+
+
+21.23 Header 작성 시 금지 사항
+금지 사항
+사유
+serviceId를 Body에 작성
+Dispatcher 기준 훼손
+transactionCode 생략
+거래로그·감사 추적 불가
+businessCode와 URL Path 불일치
+업무 WAR 라우팅 오류
+userId, branchId를 클라이언트 값만 신뢰
+위변조 위험
+Header에 고객번호, 계좌번호 등 업무 데이터 작성
+Header 오염 및 로그 노출 위험
+guid, traceId 없이 로그 처리
+장애 추적 불가
+processingType과 거래코드 유형 불일치
+통계·감사 오류
+idempotencyKey 없이 변경 거래 반복 요청
+중복 등록·중복 발송 위험
+Header 필드를 업무별로 제각각 추가
+표준 전문 훼손
+HTTP Header와 JSON Header를 혼용
+보안·업무 통제 책임 혼선
+
+21.24 개발자 체크리스트
+점검 항목
+확인
+Header가 JSON 전문의 header 영역에 작성되었는가?
+□
+businessCode가 존재하는가?
+□
+serviceId가 존재하는가?
+□
+transactionCode가 존재하는가?
+□
+processingType이 존재하는가?
+□
+serviceName이 존재하는가?
+□
+channelId가 존재하는가?
+□
+userId, branchId가 존재하는가?
+□
+URL Path의 업무코드와 businessCode가 일치하는가?
+□
+serviceId Prefix가 businessCode와 일치하는가?
+□
+transactionCode Prefix가 businessCode와 일치하는가?
+□
+processingType과 거래코드 유형이 일치하는가?
+□
+userId, branchId를 세션 기준으로 재검증하는가?
+□
+channelId가 허용 채널인지 검증하는가?
+□
+guid, traceId, transactionId가 생성 또는 보정되는가?
+□
+변경 거래에 idempotencyKey 적용을 검토했는가?
+□
+Header 주요 항목이 MDC와 거래로그에 기록되는가?
+□
+Header 항목을 Body에 중복해서 넣지 않았는가?
+□
+
+21.25 마무리말
+Header는 NSIGHT 표준 전문에서 가장 중요한 공통 영역이다.업무 개발자가 Body만 잘 작성해도 Header가 부정확하면 TCF Framework는 해당 거래를 안전하게 실행할 수 없다.
+Header가 정확해야 다음이 가능하다.
+효과
+설명
+실행 통제
+ServiceId 기준 Handler 실행
+거래 식별
+transactionCode 기준 로그·감사 추적
+업무 라우팅
+businessCode 기준 업무 WAR 식별
+보안 검증
+userId, branchId, channelId 기준 권한 확인
+장애 추적
+guid, traceId 기준 전 구간 추적
+중복 방지
+idempotencyKey 기준 중복 요청 차단
+운영관리
+OM에서 ServiceId, 거래통제, Timeout 정책 관리
+
+21.26 시사점
+NSIGHT 개발에서 Header를 잘못 작성하면 단순 입력 오류가 아니라 거래통제 우회, 권한 검증 실패, 로그 추적 불가, 감사 누락, 장애 분석 불가로 이어진다.
+따라서 개발자는 다음 원칙을 지켜야 한다.
+Header는 업무 데이터가 아니라 거래 실행을 통제하는 공통 계약이다.Header 값은 클라이언트가 보낸 그대로 믿지 말고, STF에서 검증·보정해야 한다.ServiceId, 거래코드, 업무코드, 사용자, 채널, 지점은 반드시 하나의 정합성 있는 조합으로 관리해야 한다.
+

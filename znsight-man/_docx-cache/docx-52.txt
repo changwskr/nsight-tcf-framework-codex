@@ -1,0 +1,833 @@
+49. Timeout 정책 등록 절차
+49.1 도입 전 안내말
+Timeout 정책은 NSIGHT TCF Framework에서 온라인 거래가 어느 시간 안에 끝나야 하는지 정의하는 실행 통제 기준이다.
+Timeout은 단순히 “몇 초 기다릴 것인가”를 정하는 설정이 아니다. NSIGHT에서는 Timeout을 WAS Thread 보호, DB Connection Pool 보호, 장시간 SQL 차단, 외부 연계 지연 차단, 장애 전파 방지, 거래 상태 명확화를 위한 핵심 운영 정책으로 본다.
+기존 설계 기준에서도 Timeout은 거래통제 테이블에 넣지 않고 별도 TCF_SERVICE_TIMEOUT_POLICY로 분리하는 것이 적절하다고 정리되어 있다. 즉, TCF_TRANSACTION_CONTROL은 “이 거래를 허용할 것인가”를 판단하고, TCF_SERVICE_TIMEOUT_POLICY는 “이 거래를 몇 초 안에 끝내야 하는가”를 판단한다. 또한 Spring Boot 설정 기준에서도 온라인 거래 Timeout, DB Query Timeout, 외부 연계 Timeout을 구분해서 관리하도록 정의되어 있다.
+핵심 문장은 다음과 같다.
+거래통제는 실행 허용 여부를 판단하고, Timeout 정책은 실행 제한시간을 판단한다.
+
+49.2 Timeout 정책 등록 절차 결론
+구분
+기준
+등록 주체
+업무 개발자 신청 → 업무 PL 검토 → 아키텍트 / 운영자 승인
+등록 위치
+OM Timeout 정책 관리 화면
+기준 테이블
+TCF_SERVICE_TIMEOUT_POLICY
+적용 위치
+STF.preProcess() 전처리 단계
+적용 대상
+ServiceId, 거래코드, 업무코드, 거래유형
+기본 원칙
+서비스별 Timeout 정책을 명시적으로 등록
+미등록 시 처리
+기본 Timeout 적용 또는 등록 오류 처리
+거래통제와 관계
+거래통제와 분리
+오류코드
+E-TCF-TMO-*
+변경 이력
+모든 등록·수정·중지 이력은 감사로그 기록
+삭제 원칙
+물리 삭제보다 비활성 처리
+Timeout 정책은 TCF 전처리 단계에서 조회하고, 조회된 정책은 거래 실행 컨텍스트에 담아 Handler 이후 계층에서 사용한다. 기존 Timeout 관리 구조에서도 Timeout 정책 조회는 STF.preProcess()에서 수행하는 것이 자연스럽다고 정리되어 있다.
+
+49.3 Timeout 정책 등록 전체 흐름
+[1. 신규 거래 개발]
+ ServiceId 정의
+ 거래유형 판단
+ 조회 / 등록 / 수정 / 삭제 / 외부연계 / 파일 / 배치 구분
+        ↓
+[2. Timeout 기준 산정]
+ 온라인 거래 Timeout
+ DB Transaction Timeout
+ MyBatis Query Timeout
+ 외부연계 Timeout
+ Gateway Relay Timeout 결정
+        ↓
+[3. OM Timeout 정책 등록]
+ TCF_SERVICE_TIMEOUT_POLICY 등록
+        ↓
+[4. ServiceId 매핑]
+ OM_SERVICE_CATALOG.TIMEOUT_POLICY_ID 연결
+        ↓
+[5. 거래통제 확인]
+ TCF_TRANSACTION_CONTROL 등록 여부 확인
+        ↓
+[6. 승인]
+ 업무 PL / 아키텍트 / 운영자 승인
+        ↓
+[7. 반영]
+ 개발 → 검증 → 운영 환경 순차 반영
+ Cache Evict / Reload
+        ↓
+[8. 실행 검증]
+ 정상 거래
+ Timeout 거래
+ DB 지연 거래
+ 외부연계 지연 거래 테스트
+        ↓
+[9. 운영 모니터링]
+ 거래로그 / 성능로그 / Timeout 로그 조회
+
+
+49.4 Timeout 정책 등록 단계별 절차
+단계
+작업
+담당
+산출물
+1
+Timeout 대상 거래 식별
+업무 개발자
+ServiceId, 거래코드
+2
+거래유형 분류
+업무 개발자 / PL
+조회, 변경, 외부연계, 파일, 배치
+3
+기본 Timeout 기준 확인
+아키텍트
+표준 Timeout 기준
+4
+업무 특성 검토
+업무 PL
+장시간 조회 여부, 외부연계 여부
+5
+DB 영향 검토
+DBA / 개발자
+예상 SQL 수행시간
+6
+외부연계 영향 검토
+연계 담당자
+Connect / Read Timeout
+7
+Timeout 정책 등록
+OM 관리자
+TCF_SERVICE_TIMEOUT_POLICY
+8
+ServiceId와 정책 매핑
+OM 관리자
+TIMEOUT_POLICY_ID 연결
+9
+테스트 수행
+개발자 / QA
+정상 / Timeout 테스트 결과
+10
+승인 처리
+PL / 운영자 / 아키텍트
+승인 이력
+11
+운영 반영
+운영자
+운영 정책 등록
+12
+모니터링
+운영자
+거래로그 / 성능로그
+
+49.5 Timeout 유형 정의
+Timeout 정책은 반드시 유형별로 분리해서 등록한다.
+Timeout 유형
+설명
+적용 위치
+예시
+Online Transaction Timeout
+한 건 온라인 거래 전체 제한시간
+TCF / Facade
+5초
+DB Transaction Timeout
+DB 트랜잭션 제한시간
+Spring @Transactional
+5초
+Query Timeout
+SQL 한 건 수행 제한시간
+MyBatis / JDBC
+3초
+DB Connection Timeout
+DB Connection 획득 대기시간
+HikariCP
+3초
+External Connect Timeout
+외부 시스템 연결 제한시간
+RestClient / WebClient
+2초
+External Read Timeout
+외부 응답 대기 제한시간
+RestClient / WebClient
+3초
+Gateway Relay Timeout
+Gateway가 Downstream 응답을 기다리는 시간
+tcf-gateway
+5초
+File Download Timeout
+파일 다운로드 처리 제한시간
+UD / OM File
+별도 기준
+Batch Timeout
+배치 Job 실행 제한시간
+tcf-batch
+별도 기준
+HikariCP는 DB Connection을 미리 준비하고 요청 시 빌려주는 구조이므로, DB 지연 시 Connection Pool 보호를 위해 Connection Timeout을 명확히 관리해야 한다.
+
+49.6 Timeout 기본 권장값
+거래 유형
+Online Timeout
+DB Query Timeout
+External Timeout
+비고
+단순 조회
+3초
+2~3초
+해당 없음
+고객요약, 코드조회
+일반 조회
+5초
+3초
+해당 없음
+목록조회, 조건조회
+등록 / 수정 / 삭제
+5초
+3초
+해당 없음
+짧은 트랜잭션 기준
+외부 연계 조회
+5~7초
+3초
+Connect 2초 / Read 3초
+연계 지연 차단
+대량 조회
+일반 온라인 금지
+별도 기준
+해당 없음
+페이징 또는 배치 전환
+파일 다운로드
+별도 ServiceId
+별도 기준
+해당 없음
+Stream 처리 기준
+배치 실행
+온라인과 분리
+별도 기준
+별도 기준
+Batch 정책 사용
+OM 조회
+3~5초
+3초
+해당 없음
+운영조회
+OM 변경
+5초
+3초
+해당 없음
+감사로그 필수
+운영 기본값은 온라인 거래 5초, DB Query 3초 수준을 기준으로 시작하고, 업무 특성상 더 긴 시간이 필요하면 예외 정책으로 등록한다. 기존 Spring Boot 운영 기준에서도 트랜잭션 Timeout은 5초 수준, 장기 트랜잭션은 금지하고 10초 초과 거래는 분석 대상으로 관리하는 방향이 제시되어 있다.
+
+49.7 Timeout 정책 등록 항목
+TCF_SERVICE_TIMEOUT_POLICY에는 최소한 다음 항목을 등록한다.
+항목
+필수
+설명
+예시
+TIMEOUT_POLICY_ID
+Y
+Timeout 정책 ID
+TMO-SV-INQ-001
+SERVICE_ID
+Y
+ServiceId
+SV.Customer.selectSummary
+TRANSACTION_CODE
+Y
+거래코드
+SV-INQ-0001
+BUSINESS_CODE
+Y
+업무코드
+SV
+SERVICE_NAME
+Y
+서비스명
+고객 요약 조회
+TX_TYPE
+Y
+거래유형
+INQ, REG, UPD, DEL, EXEC
+ONLINE_TIMEOUT_SEC
+Y
+온라인 거래 Timeout
+3
+DB_TX_TIMEOUT_SEC
+Y
+DB Transaction Timeout
+3
+QUERY_TIMEOUT_SEC
+Y
+SQL Query Timeout
+2
+CONNECTION_TIMEOUT_MS
+Y
+DB Connection 획득 Timeout
+3000
+EXTERNAL_CONNECT_TIMEOUT_MS
+N
+외부 연결 Timeout
+2000
+EXTERNAL_READ_TIMEOUT_MS
+N
+외부 응답 Timeout
+3000
+GATEWAY_TIMEOUT_SEC
+N
+Gateway Relay Timeout
+5
+RETRY_YN
+Y
+Retry 허용 여부
+N
+MAX_RETRY_COUNT
+N
+Retry 횟수
+0
+CIRCUIT_BREAKER_YN
+N
+Circuit Breaker 적용 여부
+Y
+USE_YN
+Y
+사용 여부
+Y
+POLICY_STATUS
+Y
+상태
+ACTIVE
+APPLY_START_DTTM
+Y
+적용 시작일시
+2026-07-04 09:00:00
+APPLY_END_DTTM
+N
+적용 종료일시
+9999-12-31 23:59:59
+APPROVAL_STATUS
+Y
+승인 상태
+APPROVED
+REASON
+N
+등록 사유
+고객요약 조회 3초 제한
+CREATED_BY
+Y
+등록자
+admin01
+CREATED_DTTM
+Y
+등록일시
+현재일시
+
+49.8 Timeout 정책 ID 명명 기준
+Timeout 정책 ID는 다음 형식을 사용한다.
+TMO-{업무코드}-{거래유형}-{일련번호}
+
+업무
+거래유형
+정책 ID
+설명
+SV
+INQ
+TMO-SV-INQ-001
+SV 조회 Timeout
+SV
+EXT
+TMO-SV-EXT-001
+SV 외부연계 Timeout
+OM
+INQ
+TMO-OM-INQ-001
+OM 조회 Timeout
+OM
+UPD
+TMO-OM-UPD-001
+OM 변경 Timeout
+CM
+REG
+TMO-CM-REG-001
+캠페인 등록 Timeout
+MG
+SND
+TMO-MG-SND-001
+메시지 발송 Timeout
+UD
+DNL
+TMO-UD-DNL-001
+파일 다운로드 Timeout
+BAT
+JOB
+TMO-BAT-JOB-001
+배치 Job Timeout
+
+49.9 Timeout 정책 등록 예시
+49.9.1 SV 고객 요약 조회 Timeout 정책 예시
+항목
+값
+Timeout Policy ID
+TMO-SV-INQ-001
+ServiceId
+SV.Customer.selectSummary
+거래코드
+SV-INQ-0001
+업무코드
+SV
+서비스명
+고객 요약 조회
+거래유형
+조회
+Online Timeout
+3초
+DB Transaction Timeout
+3초
+Query Timeout
+2초
+Connection Timeout
+3000ms
+Retry
+N
+사용여부
+Y
+상태
+ACTIVE
+이 정책은 고객요약 조회 거래는 전체 3초 안에 끝나야 하고, SQL은 2초 안에 끝나야 한다는 의미이다.
+
+49.9.2 외부 연계 거래 Timeout 정책 예시
+항목
+값
+Timeout Policy ID
+TMO-IC-EXT-001
+ServiceId
+IC.SvCustomer.selectSummary
+거래코드
+IC-EXT-SV-001
+업무코드
+IC
+서비스명
+SV 고객요약 연계 조회
+거래유형
+외부연계
+Online Timeout
+7초
+DB Transaction Timeout
+3초
+Query Timeout
+3초
+External Connect Timeout
+2000ms
+External Read Timeout
+3000ms
+Gateway Timeout
+5초
+Retry
+N 또는 1회
+사용여부
+Y
+이 정책은 IC 업무가 SV 업무를 호출하는 연계 거래에 적용할 수 있다. 외부 연계 거래는 전체 Timeout과 외부 Connect/Read Timeout을 반드시 분리해야 한다.
+
+49.9.3 OM 기준정보 변경 Timeout 정책 예시
+항목
+값
+Timeout Policy ID
+TMO-OM-UPD-001
+ServiceId
+OM.ServiceCatalog.save
+거래코드
+OM-REG-SVC-001
+업무코드
+OM
+서비스명
+ServiceId 등록
+거래유형
+등록
+Online Timeout
+5초
+DB Transaction Timeout
+5초
+Query Timeout
+3초
+Connection Timeout
+3000ms
+Audit Log
+Y
+Retry
+N
+사용여부
+Y
+OM 기준정보 변경 거래는 반드시 감사로그를 남기며, Retry는 원칙적으로 사용하지 않는다.
+
+49.10 OM Timeout 정책 등록 요청 전문 예시
+{
+  "header": {
+    "serviceId": "OM.TimeoutPolicy.save",
+    "transactionCode": "OM-REG-TMO-001",
+    "businessCode": "OM",
+    "serviceName": "Timeout 정책 등록",
+    "user": "admin01",
+    "channelId": "OM",
+    "branch": "0000"
+  },
+  "body": {
+    "timeoutPolicyId": "TMO-SV-INQ-001",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "serviceName": "고객 요약 조회",
+    "txType": "INQ",
+    "onlineTimeoutSec": 3,
+    "dbTxTimeoutSec": 3,
+    "queryTimeoutSec": 2,
+    "connectionTimeoutMs": 3000,
+    "externalConnectTimeoutMs": null,
+    "externalReadTimeoutMs": null,
+    "gatewayTimeoutSec": null,
+    "retryYn": "N",
+    "maxRetryCount": 0,
+    "circuitBreakerYn": "N",
+    "useYn": "Y",
+    "policyStatus": "ACTIVE",
+    "applyStartDttm": "2026-07-04 09:00:00",
+    "applyEndDttm": "9999-12-31 23:59:59",
+    "reason": "SV 고객요약 조회 거래의 표준 Timeout 정책"
+  }
+}
+
+
+49.11 Timeout 정책 실행 시 검증 흐름
+POST /sv/online
+        ↓
+STF.preProcess()
+        ↓
+1. Header 필수값 검증
+        ↓
+2. ServiceId 등록 여부 확인
+        ↓
+3. 거래통제 확인
+        ↓
+4. Timeout 정책 조회
+   TCF_SERVICE_TIMEOUT_POLICY
+        ↓
+5. 적용기간 확인
+   APPLY_START_DTTM <= 현재시각 <= APPLY_END_DTTM
+        ↓
+6. 상태 확인
+   USE_YN = Y
+   POLICY_STATUS = ACTIVE
+        ↓
+7. TimeoutContext 생성
+   onlineTimeoutSec
+   dbTxTimeoutSec
+   queryTimeoutSec
+   externalTimeout
+        ↓
+8. TransactionDispatcher 실행
+        ↓
+9. Handler → Facade → Service → DAO 실행
+        ↓
+10. Timeout 발생 시
+    거래로그 TIMEOUT 또는 UNKNOWN 상태 갱신
+
+Timeout 정책은 Dispatcher 이후에 찾으면 늦다.반드시 Dispatcher 이전 전처리 단계에서 정책을 조회하고 실행 컨텍스트에 담아야 한다.
+
+49.12 Timeout 정책 우선순위
+동일 ServiceId에 여러 정책이 있을 수 있으므로 우선순위를 명확히 한다.
+우선순위
+조건
+예시
+1
+ServiceId 전용 정책
+SV.Customer.selectSummary
+2
+거래코드 전용 정책
+SV-INQ-0001
+3
+업무코드 + 거래유형 정책
+SV + INQ
+4
+업무코드 기본 정책
+SV
+5
+시스템 기본 정책
+DEFAULT
+운영 원칙은 구체적인 정책이 일반 정책보다 우선이다.
+ServiceId 정책
+  > 거래코드 정책
+  > 업무코드 + 거래유형 정책
+  > 업무코드 기본 정책
+  > 시스템 기본 정책
+
+
+49.13 Timeout 정책 등록 SQL 예시
+INSERT INTO TCF_SERVICE_TIMEOUT_POLICY (
+    TIMEOUT_POLICY_ID,
+    SERVICE_ID,
+    TRANSACTION_CODE,
+    BUSINESS_CODE,
+    SERVICE_NAME,
+    TX_TYPE,
+    ONLINE_TIMEOUT_SEC,
+    DB_TX_TIMEOUT_SEC,
+    QUERY_TIMEOUT_SEC,
+    CONNECTION_TIMEOUT_MS,
+    EXTERNAL_CONNECT_TIMEOUT_MS,
+    EXTERNAL_READ_TIMEOUT_MS,
+    GATEWAY_TIMEOUT_SEC,
+    RETRY_YN,
+    MAX_RETRY_COUNT,
+    CIRCUIT_BREAKER_YN,
+    USE_YN,
+    POLICY_STATUS,
+    APPLY_START_DTTM,
+    APPLY_END_DTTM,
+    APPROVAL_STATUS,
+    REASON,
+    CREATED_BY,
+    CREATED_DTTM
+) VALUES (
+    'TMO-SV-INQ-001',
+    'SV.Customer.selectSummary',
+    'SV-INQ-0001',
+    'SV',
+    '고객 요약 조회',
+    'INQ',
+    3,
+    3,
+    2,
+    3000,
+    NULL,
+    NULL,
+    NULL,
+    'N',
+    0,
+    'N',
+    'Y',
+    'ACTIVE',
+    TIMESTAMP '2026-07-04 09:00:00',
+    TIMESTAMP '9999-12-31 23:59:59',
+    'APPROVED',
+    'SV 고객요약 조회 거래의 표준 Timeout 정책',
+    'admin01',
+    CURRENT_TIMESTAMP
+);
+
+
+49.14 application.yml 기본값과의 관계
+Timeout 정책 테이블은 운영 중 변경 가능한 서비스별 정책이고, application.yml은 시스템 기본값이다.
+nsight:
+  tcf:
+    timeout:
+      online-transaction-seconds: 5
+      db-query-seconds: 3
+      external-connect-timeout-ms: 2000
+      external-read-timeout-ms: 3000
+
+spring:
+  transaction:
+    default-timeout: 5
+
+mybatis:
+  configuration:
+    default-statement-timeout: 3
+
+구분
+역할
+application.yml
+시스템 기본 Timeout
+TCF_SERVICE_TIMEOUT_POLICY
+ServiceId별 상세 Timeout
+우선순위
+정책 테이블 값이 있으면 정책 테이블 우선
+미등록 시
+application.yml 기본값 적용
+운영 변경
+운영 서버 직접 수정 금지, OM 정책 또는 Git/CI-CD 기준 변경
+Spring Boot 표준에서도 application.yml은 Port, Context Path, 세션, DB, HikariCP, MyBatis, Transaction, Security, Log, Actuator 설정을 통제하는 핵심 운영 기준 파일로 정의된다.
+
+49.15 Timeout 오류코드 기준
+Timeout 정책 오류 또는 Timeout 발생 시에는 E-TCF-TMO-* 오류코드를 사용한다.
+오류코드
+의미
+처리
+E-TCF-TMO-0001
+Timeout 정책 없음
+기본값 적용 또는 차단
+E-TCF-TMO-0002
+Timeout 정책 비활성
+기본값 적용 또는 차단
+E-TCF-TMO-0003
+적용기간 아님
+기본값 적용 또는 차단
+E-TCF-TMO-0004
+Online Transaction Timeout
+거래 TIMEOUT 처리
+E-TCF-TMO-0005
+DB Transaction Timeout
+거래 TIMEOUT 처리
+E-TCF-TMO-0006
+Query Timeout
+거래 TIMEOUT 처리
+E-TCF-TMO-0007
+External Connect Timeout
+연계 실패 처리
+E-TCF-TMO-0008
+External Read Timeout
+연계 실패 처리
+E-TCF-TMO-0009
+Timeout 정책값 오류
+등록 실패
+E-TCF-TMO-0010
+Timeout 정책 중복
+등록 실패
+오류 발생 시에는 ETF 후처리에서 표준 오류 응답으로 변환하고, 거래로그에는 TIMEOUT, FAIL, UNKNOWN 중 정책에 맞는 상태를 남긴다. 거래로그 설계 기준에서도 거래 시작 시 PROCESSING 상태를 기록하고 종료 시 SUCCESS / FAIL / TIMEOUT / UNKNOWN 상태로 갱신하는 구조를 권장한다.
+
+49.16 Timeout 정책 테스트 기준
+테스트 유형
+확인 내용
+정상 거래
+정책 시간 이내 정상 응답
+Online Timeout
+전체 거래 시간이 초과되면 Timeout 처리
+Query Timeout
+SQL 지연 시 Query Timeout 처리
+DB Transaction Timeout
+DB 트랜잭션 지연 시 Timeout 처리
+Connection Timeout
+DB Connection 획득 지연 시 오류 처리
+External Connect Timeout
+외부 시스템 연결 지연 시 오류 처리
+External Read Timeout
+외부 응답 지연 시 오류 처리
+정책 미등록
+기본 Timeout 적용 여부 확인
+정책 비활성
+비활성 정책 미적용 여부 확인
+적용기간 전/후
+정책 적용 차단 또는 기본값 적용 확인
+거래로그
+Timeout 상태와 소요시간 기록 확인
+감사로그
+정책 등록·수정·중지 이력 확인
+Cache 갱신
+정책 변경 후 즉시 반영 여부 확인
+
+49.17 운영 변경 원칙
+Timeout 정책은 운영 중 장애 대응을 위해 변경될 수 있지만, 무분별하게 늘리면 안 된다.
+변경 유형
+처리 기준
+신규 등록
+승인 후 ACTIVE 처리
+Timeout 증가
+성능 영향 검토 후 승인
+Timeout 감소
+업무 영향 검토 후 승인
+임시 변경
+적용 종료일시 필수
+장시간 거래
+온라인 거래가 아니라 배치 또는 비동기 전환 검토
+외부연계 지연
+Timeout 증가보다 Circuit Breaker / Fallback 검토
+장애 대응
+특정 ServiceId만 정책 변경
+폐기
+RETIRED 상태 처리
+물리 삭제
+원칙적으로 금지
+Timeout을 늘리는 것은 장애 해결이 아니라 장애를 더 오래 기다리게 만드는 것일 수 있다. 따라서 Timeout 증가는 반드시 SQL, DB Pool, 외부연계, Thread 사용률과 함께 검토해야 한다.
+
+49.18 Timeout 정책과 다른 기준정보의 관계
+기준정보
+Timeout 정책과의 관계
+ServiceId
+Timeout 정책의 기본 대상
+거래코드
+Timeout 정책 상세 식별
+거래통제
+실행 허용 후 Timeout 정책 적용
+권한
+권한 통과 후 거래 실행
+HikariCP
+Connection Timeout과 Pool 보호 연계
+MyBatis
+Query Timeout 적용
+Spring Transaction
+DB Transaction Timeout 적용
+Gateway
+Downstream Relay Timeout 적용
+거래로그
+Timeout 발생 시 상태 기록
+감사로그
+Timeout 정책 변경 이력 기록
+Cache
+Timeout 정책 조회 성능 개선
+
+49.19 개발자 체크리스트
+점검 항목
+확인
+ServiceId가 등록되어 있는가
+
+거래통제가 등록되어 있는가
+
+Timeout 정책 ID가 명명 규칙을 따르는가
+
+거래유형이 올바르게 분류되었는가
+
+Online Timeout이 과도하게 길지 않은가
+
+Query Timeout이 Online Timeout보다 짧은가
+
+외부연계 Timeout이 분리되어 있는가
+
+Retry 설정이 변경 거래에 적용되지 않았는가
+
+Timeout 발생 시 거래로그 상태가 남는가
+
+Timeout 오류코드가 등록되어 있는가
+
+정책 변경 이력이 감사로그에 남는가
+
+정책 변경 후 Cache Evict / Reload가 되는가
+
+장시간 거래는 배치 또는 비동기로 분리했는가
+
+운영환경 반영 전 승인이 완료되었는가
+
+
+49.20 마무리말
+Timeout 정책 등록 절차는 NSIGHT TCF Framework의 운영 안정성을 확보하기 위한 필수 절차이다.
+ServiceId가 “무엇을 실행할 것인가”를 정의하고, 거래통제가 “실행해도 되는가”를 정의한다면, Timeout 정책은 그 거래가 얼마 안에 끝나야 하는가를 정의한다.
+정리하면 다음과 같다.
+ServiceId 등록
+= 실행할 프로그램 정의
+
+거래통제 등록
+= 실행 허용 조건 정의
+
+Timeout 정책 등록
+= 실행 제한시간 정의
+
+거래로그 / 감사로그
+= 실행 결과와 변경 이력 추적
+
+
+49.21 시사점
+Timeout 정책은 성능 설정이 아니라 장애 확산 방지 정책이다.
+관점
+시사점
+개발 관점
+신규 ServiceId 개발 시 Timeout 정책을 함께 정의해야 한다
+운영 관점
+장애 거래의 Timeout을 ServiceId 단위로 통제할 수 있어야 한다
+성능 관점
+Query Timeout, DB Pool, Thread 사용률과 함께 관리해야 한다
+보안/감사 관점
+Timeout 정책 변경 이력이 남아야 한다
+아키텍처 관점
+Timeout 정책은 거래통제와 분리하고 TCF 전처리에서 적용해야 한다
+

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Server port="${shutdown.port}" shutdown="SHUTDOWN">
+  <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
+  <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
+  <Service name="Catalina">
+    <Connector port="${http.port}" protocol="org.apache.coyote.http11.Http11NioProtocol"
+      maxThreads="500" minSpareThreads="100" acceptCount="500"
+      maxConnections="10000" connectionTimeout="8000"
+      keepAliveTimeout="5000" maxKeepAliveRequests="100"
+      URIEncoding="UTF-8" enableLookups="false"
+      proxyName="nh.marketing.com" proxyPort="443" scheme="https" secure="true" />
+    <Engine name="Catalina" defaultHost="localhost" jvmRoute="${jvmRoute}">
+      <Cluster className="org.apache.catalina.ha.tcp.SimpleTcpCluster" channelSendOptions="8">
+        <Manager className="org.apache.catalina.ha.session.DeltaManager"
+          expireSessionsOnShutdown="false" />
+        <Channel className="org.apache.catalina.tribes.group.GroupChannel">
+          <Membership className="org.apache.catalina.tribes.membership.McastService"
+            address="228.0.0.4" port="45564" frequency="500" dropTime="3000" />
+          <Receiver className="org.apache.catalina.tribes.transport.nio.NioReceiver"
+            address="${cluster.bind.address}" port="${cluster.receiver.port}"
+            autoBind="0" selectorTimeout="5000" maxThreads="6" />
+          <Sender className="org.apache.catalina.tribes.transport.ReplicationTransmitter">
+            <Transport className="org.apache.catalina.tribes.transport.nio.PooledParallelSender" />
+          </Sender>
+        </Channel>
+        <Valve className="org.apache.catalina.ha.tcp.ReplicationValve" filter="" />
+        <ClusterListener className="org.apache.catalina.ha.session.ClusterSessionListener" />
+      </Cluster>
+      <Host name="localhost" appBase="webapps" unpackWARs="true" autoDeploy="false">
+        <Valve className="org.apache.catalina.valves.AccessLogValve"
+          directory="logs" prefix="nsight_access" suffix=".log"
+          pattern="%h %l %u %t &quot;%r&quot; %s %b %D %{JSESSIONID}c %{X-GUID}i" />
+      </Host>
+    </Engine>
+  </Service>
+</Server>

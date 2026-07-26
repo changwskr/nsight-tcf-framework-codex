@@ -1,0 +1,58 @@
+﻿# dev — ztomcat WAR (om.war → /om)
+spring:
+  application:
+    name: nsight-tcf-om
+  datasource:
+    url: jdbc:h2:tcp://127.0.0.1:9092/./nsight_om;MODE=Oracle;DATABASE_TO_UPPER=false
+    hikari:
+      pool-name: nsight-om-hikari-dev
+      auto-commit: true
+  h2:
+    console:
+      enabled: true
+  sql:
+    init:
+      mode: embedded
+      continue-on-error: true
+      encoding: UTF-8
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+  session:
+    store-type: jdbc
+    timeout: 60m
+    jdbc:
+      initialize-schema: always
+      table-name: SPRING_SESSION
+
+nsight:
+  gateway:
+    base-url: http://127.0.0.1:8080
+  tcf:
+    transaction-log-schema-auto-init: false
+    transaction-log-datasource:
+      separate: false
+      url: jdbc:h2:tcp://127.0.0.1:9092/./nsight_om;MODE=Oracle;DATABASE_TO_UPPER=false
+      username: sa
+      password:
+      driver-class-name: org.h2.Driver
+  om:
+    batch-service-url: http://127.0.0.1:8080/batch
+    runtime-diagnostics:
+      enabled: true
+      connect-timeout-ms: 2000
+      read-timeout-ms: 8000
+      max-parallel-requests: 4
+      targets:
+        - { businessCode: IC, baseUrl: '${nsight.gateway.base-url}/ic', enabled: true }
+        - { businessCode: PC, baseUrl: '${nsight.gateway.base-url}/pc', enabled: true }
+        - { businessCode: MS, baseUrl: '${nsight.gateway.base-url}/ms', enabled: true }
+        - { businessCode: SV, baseUrl: '${nsight.gateway.base-url}/sv', enabled: true }
+        - { businessCode: PD, baseUrl: '${nsight.gateway.base-url}/pd', enabled: true }
+        - { businessCode: EB, baseUrl: '${nsight.gateway.base-url}/eb', enabled: true }
+        - { businessCode: EP, baseUrl: '${nsight.gateway.base-url}/ep', enabled: true }
+        - { businessCode: SS, baseUrl: '${nsight.gateway.base-url}/ss', enabled: true }
+        - { businessCode: MG, baseUrl: '${nsight.gateway.base-url}/mg', enabled: true }
+        - { businessCode: OM, baseUrl: '${nsight.gateway.base-url}/om', enabled: true }
+  updownload:
+    storage-path: ./data/updownload
+    max-file-size-bytes: 52428800

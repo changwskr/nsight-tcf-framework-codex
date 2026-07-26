@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NSIGHT TCF · 문서 라이브러리</title>
+  <script src="/_shared/ui-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/help-viewer.css">
+</head>
+<body class="tcf-home tcf-help-library">
+  <div class="tcf-main help-library-layout">
+    <header class="tcf-topbar help-library-topbar">
+      <div class="tcf-topbar__brand">
+        <h1>문서 라이브러리</h1>
+        <p id="helpLibrarySubtitle">nsight-tcf-framework 전체 마크다운</p>
+      </div>
+      <nav class="tcf-topbar__nav" aria-label="HELP">
+        <a class="tcf-topbar__link" href="/help.html" data-help-ui-link>HELP 홈</a>
+        <a class="tcf-topbar__link" href="/help/view.html?doc=doc-map" data-help-ui-link>문서 지도</a>
+        <a class="tcf-topbar__link tcf-topbar__link--active" href="/help/library.html" data-help-ui-link>라이브러리</a>
+        <span class="badge" id="helpLibraryCount">—</span>
+      </nav>
+    </header>
+
+    <aside class="help-library-sidebar">
+      <input type="search" id="helpLibrarySearch" class="help-viewer-search" placeholder="제목·경로·요약 검색…" aria-label="문서 검색"/>
+      <nav id="helpLibraryCorpus" class="help-library-corpus" aria-label="코퍼스 필터"></nav>
+    </aside>
+
+    <main class="help-library-main">
+      <section id="helpLibraryFeatured" class="help-library-featured" hidden aria-label="추천 문서"></section>
+      <div id="helpLibraryActiveCorpus" class="help-library-active-corpus"></div>
+      <div class="help-library-table-wrap">
+        <table class="help-library-table" id="helpLibraryTable">
+          <thead>
+            <tr>
+              <th scope="col">제목</th>
+              <th scope="col">코퍼스</th>
+              <th scope="col">경로</th>
+              <th scope="col">요약</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody id="helpLibraryBody">
+            <tr><td colspan="5" class="help-viewer-empty">불러오는 중…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p id="helpLibraryFooter" class="help-library-footer"></p>
+    </main>
+  </div>
+  <script src="/_shared/help-library.js"></script>
+</body>
+</html>

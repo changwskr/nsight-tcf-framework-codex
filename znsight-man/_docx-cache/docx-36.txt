@@ -1,0 +1,790 @@
+31. 서비스 간 연동 개발
+31.1 도입 전 안내말
+서비스 간 연동은 한 업무 서비스가 다른 업무 서비스의 기능을 호출하는 개발 방식이다.
+예를 들면 ic-service에서 고객 기본정보를 처리하다가 sv-service의 고객 요약조회가 필요한 경우가 있다.
+ic-service
+  ↓
+sv-service 호출
+  ↓
+SV.Customer.selectSummary 실행
+  ↓
+결과 수신
+  ↓
+IC 업무 처리 계속 수행
+
+NSIGHT TCF Framework에서는 서비스 간 연동을 Java Service 직접 호출 방식으로 만들지 않는다.업무 서비스는 서로의 내부 Class를 참조하지 않고, HTTP/JSON 표준 전문 + serviceId 호출 방식으로 연동한다.
+기존 서비스 간 연동 설계에서도 ic-service → sv-service 호출은 공통 유틸리티 모듈로 구성하되, IC가 SV의 Java Service를 직접 참조하지 않고 HTTP/JSON 표준 전문 + serviceId 호출 방식으로 호출하는 것이 맞다고 정리되어 있다. 또한 NSIGHT TCF 구조는 POST /{businessCode}/online 진입점과 header.serviceId 기준 Dispatcher 방식을 전제로 하므로, 서비스 간 호출도 같은 구조로 맞추는 것이 자연스럽다.
+
+31.2 서비스 간 연동 개발 결론
+구분
+개발 기준
+연동 방식
+HTTP/JSON 표준 전문 방식
+호출 기준
+businessCode + serviceId + transactionCode
+호출 URL
+/{businessCode}/online
+공통 모듈
+tcf-integration
+공통 Client
+NsightIntegrationClient
+업무별 Adapter
+SvIntegrationClient, OmIntegrationClient 등
+직접 Java 참조
+금지
+직접 DB 참조
+금지
+응답 구조
+StandardResponse.header + result + body
+Timeout
+서비스별 연동 Timeout 적용
+Retry
+조회성 거래에 한해 제한 검토
+거래로그
+호출 서비스와 피호출 서비스 양쪽 기록
+추적 기준
+GUID, TraceId, ParentServiceId, TargetServiceId
+장애 처리
+Timeout, 통신오류, 업무오류 구분
+트랜잭션
+원격 서비스와 로컬 DB를 하나의 트랜잭션으로 묶지 않음
+핵심 문장은 다음이다.
+서비스 간 연동은 내부 Class 호출이 아니라, 표준 전문을 통한 내부 API 호출이다.업무 서비스는 서로의 DB와 Service를 직접 참조하지 않는다.
+
+31.3 서비스 간 연동 구조
+[ic-service]
+  IcCustomerHandler
+      ↓
+  IcCustomerFacade
+      ↓
+  IcCustomerService
+      ↓
+  SvIntegrationClient
+      ↓
+  NsightIntegrationClient
+      ↓
+  TcfServiceClient
+      ↓ HTTP/JSON 표준 전문
+POST /sv/online
+      ↓
+[sv-service]
+  TCF.process()
+      ↓
+  STF.preProcess()
+      ↓
+  TransactionDispatcher
+      ↓
+  SV.Customer.selectSummary Handler
+      ↓
+  Facade → Service → Rule → DAO/Mapper
+      ↓
+  RDW
+
+이 구조에서 ic-service는 sv-service 내부의 SvCustomerService, SvCustomerDao, SvCustomerMapper를 알 필요가 없다.IC는 단지 다음 값만 알고 있으면 된다.
+항목
+예시
+대상 업무코드
+SV
+대상 Endpoint
+/sv/online
+대상 ServiceId
+SV.Customer.selectSummary
+대상 거래코드
+SV-INQ-0001
+요청 Body
+{ "customerNo": "C0000001" }
+응답 Type
+SvCustomerSummaryResponse.class
+
+31.4 서비스 간 연동 원칙
+원칙
+설명
+직접 참조 금지
+다른 업무 WAR의 Service, DAO, Mapper를 직접 참조하지 않는다
+DB 직접 접근 금지
+IC가 SV DB 테이블을 직접 조회하지 않는다
+표준 전문 사용
+모든 호출은 StandardRequest, StandardResponse 구조를 따른다
+ServiceId 기반 호출
+URL이 아니라 serviceId로 실제 업무를 실행한다
+업무 Adapter 사용
+업무 Service 안에 HTTP 호출 코드를 직접 작성하지 않는다
+Timeout 필수
+호출 대상별 Timeout을 반드시 적용한다
+장애 격리
+SV 장애가 IC 전체 장애로 확산되지 않도록 처리한다
+로그 추적
+호출 전후 GUID, TraceId, serviceId를 남긴다
+응답 검증
+resultCode, errorCode, body를 검증한다
+순환 호출 금지
+IC → SV → IC 같은 순환 호출은 금지한다
+
+31.5 서비스 간 연동 모듈 구성
+서비스 간 연동은 별도 공통 모듈로 분리한다.
+tcf-integration
+└── src/main/java/com/nh/nsight/tcf/integration
+    ├── client
+    │   ├── NsightIntegrationClient.java
+    │   └── TcfServiceClient.java
+    │
+    ├── config
+    │   ├── IntegrationProperties.java
+    │   └── IntegrationClientConfig.java
+    │
+    ├── model
+    │   ├── IntegrationTarget.java
+    │   ├── IntegrationRequest.java
+    │   └── IntegrationResult.java
+    │
+    ├── exception
+    │   ├── IntegrationTimeoutException.java
+    │   ├── IntegrationConnectionException.java
+    │   └── IntegrationBusinessException.java
+    │
+    └── support
+        ├── IntegrationHeaderFactory.java
+        └── IntegrationTraceSupport.java
+
+업무 WAR에서는 공통 Client를 직접 사용할 수도 있지만, 권장 방식은 업무별 Adapter Client를 한 번 더 두는 것이다.
+ic-service
+└── application
+    └── integration
+        └── SvIntegrationClient.java
+
+
+31.6 호출 방식 표준
+31.6.1 공통 호출 메서드
+모든 업무 서비스를 호출할 수 있는 공통 Client를 둔다.
+@Component
+@RequiredArgsConstructor
+public class NsightIntegrationClient {
+
+    private final TcfServiceClient tcfServiceClient;
+
+    public <T> T call(
+            String businessCode,
+            String serviceId,
+            String transactionCode,
+            Object body,
+            Class<T> responseType
+    ) {
+        return tcfServiceClient.call(
+                businessCode,
+                serviceId,
+                transactionCode,
+                body,
+                responseType
+        );
+    }
+}
+
+호출자는 다음 값만 넘긴다.
+파라미터
+설명
+예시
+businessCode
+대상 업무코드
+SV
+serviceId
+대상 서비스 ID
+SV.Customer.selectSummary
+transactionCode
+대상 거래코드
+SV-INQ-0001
+body
+요청 Body
+고객번호
+responseType
+응답 DTO Type
+SvCustomerSummaryResponse.class
+기존 예제에서도 NsightIntegrationClient.call(...) 방식으로 업무코드, serviceId, 거래코드만 넘기면 SV, IC, OM, CM, MG 등 모든 서비스를 호출할 수 있도록 정리되어 있다.
+
+31.7 업무별 Adapter Client 기준
+공통 Client를 업무 Service에서 직접 호출해도 되지만, 업무별 의미가 드러나도록 Adapter를 둔다.
+31.7.1 SV 연동 Client 예시
+@Component
+@RequiredArgsConstructor
+public class SvIntegrationClient {
+
+    private final NsightIntegrationClient integrationClient;
+
+    public SvCustomerSummaryResponse selectCustomerSummary(String customerNo) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("customerNo", customerNo);
+
+        return integrationClient.call(
+                "SV",
+                "SV.Customer.selectSummary",
+                "SV-INQ-0001",
+                body,
+                SvCustomerSummaryResponse.class
+        );
+    }
+}
+
+31.7.2 IC 업무 Service에서 호출
+@Service
+@RequiredArgsConstructor
+public class IcCustomerService {
+
+    private final SvIntegrationClient svIntegrationClient;
+    private final IcCustomerRule customerRule;
+
+    public IcCustomerResponse inquiryCustomer(IcCustomerRequest request) {
+        customerRule.validate(request);
+
+        SvCustomerSummaryResponse svSummary =
+                svIntegrationClient.selectCustomerSummary(request.getCustomerNo());
+
+        return IcCustomerResponse.builder()
+                .customerNo(request.getCustomerNo())
+                .customerName(svSummary.getCustomerName())
+                .branchCode(svSummary.getBranchCode())
+                .customerGrade(svSummary.getCustomerGrade())
+                .build();
+    }
+}
+
+이 구조의 장점은 다음과 같다.
+장점
+설명
+업무 의미 명확
+selectCustomerSummary()처럼 업무 의미가 보임
+호출 규격 은닉
+ServiceId, 거래코드, URL 조립을 업무 Service가 알 필요 없음
+변경 영향 축소
+SV ServiceId 변경 시 Adapter만 수정
+테스트 용이
+SvIntegrationClient를 Mock 처리 가능
+책임 분리
+업무 Service와 연동 기술 코드 분리
+
+31.8 표준 전문 조립 기준
+서비스 간 호출도 외부 화면 호출과 동일한 표준 전문을 사용한다.
+{
+  "header": {
+    "businessCode": "SV",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "serviceName": "고객 요약 조회",
+    "user": "user001",
+    "channelId": "INTERNAL",
+    "branch": "001",
+    "guid": "GUID-20260704-000001",
+    "traceId": "TRACE-20260704-000001",
+    "callerServiceId": "IC.Customer.inquiry"
+  },
+  "body": {
+    "customerNo": "C0000001"
+  }
+}
+
+Header 항목
+기준
+businessCode
+대상 업무코드
+serviceId
+대상 서비스 ID
+transactionCode
+대상 거래코드
+user
+원 호출 사용자
+channelId
+내부 연동은 INTERNAL 또는 원 채널 유지
+branch
+원 사용자 지점
+guid
+원 거래 GUID 유지 또는 하위 GUID 생성
+traceId
+End-to-End 추적을 위해 유지
+callerServiceId
+호출한 원 서비스 ID
+
+31.9 응답 처리 기준
+피호출 서비스는 표준 응답을 반환한다.
+{
+  "header": {
+    "businessCode": "SV",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "guid": "GUID-20260704-000001",
+    "traceId": "TRACE-20260704-000001"
+  },
+  "result": {
+    "resultCode": "SUCCESS",
+    "message": "정상 처리되었습니다."
+  },
+  "body": {
+    "customerNo": "C0000001",
+    "customerName": "홍길동",
+    "branchCode": "001",
+    "customerGrade": "A"
+  }
+}
+
+호출 Client는 다음을 검증한다.
+검증 항목
+처리 기준
+HTTP Status
+200 계열 여부 확인
+resultCode
+SUCCESS 여부 확인
+errorCode
+실패 시 업무 예외 또는 연동 예외로 변환
+body
+Null 여부 확인
+Timeout
+연동 Timeout 예외 처리
+통신 오류
+Connection 오류로 처리
+업무 오류
+대상 서비스가 반환한 오류코드 유지
+
+31.10 Timeout 기준
+서비스 간 연동은 Timeout을 반드시 둔다.
+구분
+권장 기준
+Connection Timeout
+1~3초
+Read Timeout
+대상 서비스 Timeout + 1초
+일반 온라인 연동
+3~5초
+조회성 내부 연동
+3초
+외부 기관 연동
+별도 정책
+파일/대량 연동
+온라인 동기 호출 금지
+서비스별 Timeout은 거래통제 테이블에 넣지 않고 별도 Timeout 정책 테이블로 분리하는 것이 좋다. 기존 Timeout 설계에서도 TCF_TRANSACTION_CONTROL은 거래 허용 여부를 판단하고, TCF_SERVICE_TIMEOUT_POLICY는 거래를 몇 초 안에 끝내야 하는지 판단하는 구조로 분리한다고 정리되어 있다.
+
+31.11 Retry 기준
+Retry는 신중하게 적용한다.
+거래 유형
+Retry 기준
+단순 조회
+제한적 허용
+등록
+원칙 금지
+수정
+원칙 금지
+삭제
+원칙 금지
+외부송신
+멱등성 Key 없으면 금지
+Timeout 발생
+자동 Retry 금지, 상태 확인 후 처리
+Connection Timeout
+1회 제한 검토
+Read Timeout
+재호출 시 중복 처리 위험 검토
+Retry 기준의 핵심은 다음이다.
+조회성 거래는 Retry 가능성이 있다.
+변경성 거래는 Retry하면 중복 처리 위험이 있다.
+
+등록·수정·삭제 거래를 Retry하려면 반드시 다음이 필요하다.
+필수 조건
+설명
+Idempotency Key
+중복요청 식별
+처리상태 테이블
+PROCESSING / SUCCESS / FAIL 관리
+재처리 정책
+상태 불명확 거래 처리 기준
+거래로그
+원 요청과 재시도 요청 연결
+업무 승인
+해당 거래가 Retry 가능한지 승인
+
+31.12 장애 처리 기준
+서비스 간 연동 오류는 세 가지로 구분한다.
+오류 유형
+예시
+처리 기준
+통신 오류
+대상 서버 Down, DNS 오류, Connection Refused
+IntegrationConnectionException
+Timeout 오류
+Read Timeout, Gateway Timeout
+IntegrationTimeoutException
+업무 오류
+대상 서비스가 FAIL 응답
+IntegrationBusinessException
+예시는 다음과 같다.
+try {
+    return svIntegrationClient.selectCustomerSummary(customerNo);
+} catch (IntegrationTimeoutException e) {
+    throw new BusinessException("E-IC-INT-0001", "SV 고객요약조회가 지연되었습니다.", e);
+} catch (IntegrationConnectionException e) {
+    throw new SystemException("E-IC-INT-0002", "SV 서비스에 연결할 수 없습니다.", e);
+} catch (IntegrationBusinessException e) {
+    throw new BusinessException(e.getErrorCode(), e.getMessage(), e);
+}
+
+오류코드는 호출 업무 기준으로 감싸되, 원 대상 오류코드는 로그에 남긴다.
+사용자 메시지
+= IC 업무 기준 메시지
+
+운영 로그
+= IC ServiceId + SV ServiceId + SV errorCode + GUID + TraceId
+
+
+31.13 거래로그 / 추적 기준
+서비스 간 연동은 호출한 서비스와 호출받은 서비스 양쪽에 로그가 남아야 한다.
+IC 거래로그
+  serviceId = IC.Customer.inquiry
+  targetServiceId = SV.Customer.selectSummary
+  targetResult = SUCCESS / FAIL / TIMEOUT
+
+SV 거래로그
+  serviceId = SV.Customer.selectSummary
+  callerServiceId = IC.Customer.inquiry
+  result = SUCCESS / FAIL
+
+로그 항목
+설명
+guid
+원 거래 식별자
+traceId
+End-to-End 추적 ID
+serviceId
+현재 실행 서비스
+callerServiceId
+호출한 서비스
+targetServiceId
+호출 대상 서비스
+targetBusinessCode
+호출 대상 업무코드
+elapsedTime
+연동 소요시간
+resultCode
+성공/실패
+errorCode
+오류코드
+timeoutYn
+Timeout 여부
+거래로그 설계 기준에서도 모든 온라인 거래는 GUID, TraceId, TransactionId 기반으로 추적하고, 거래 시작 시 PROCESSING 로그 생성, 종료 시 SUCCESS / FAIL / TIMEOUT / UNKNOWN 상태로 갱신하는 구조를 권장한다.
+
+31.14 트랜잭션 기준
+서비스 간 연동에서는 원격 서비스와 로컬 DB를 하나의 DB 트랜잭션으로 묶지 않는다.
+금지:
+IC DB Transaction 시작
+  ↓
+SV 원격 호출
+  ↓
+IC DB Update
+  ↓
+SV DB Update까지 하나의 트랜잭션처럼 기대
+
+권장:
+각 서비스는 자기 DB 트랜잭션만 책임진다.
+서비스 간 정합성은 상태값, 거래로그, 재처리 정책으로 관리한다.
+
+구분
+기준
+로컬 DB 트랜잭션
+Facade에서 관리
+원격 서비스 트랜잭션
+피호출 서비스 내부에서 관리
+분산 트랜잭션
+기본 금지
+XA/JTA
+특별한 요건과 승인 필요
+정합성
+상태관리, 보상처리, 재처리로 해결
+Timeout
+로컬 트랜잭션보다 원격 호출 Timeout을 짧게 관리
+
+31.15 호출 위치 기준
+서비스 간 호출은 아무 계층에서나 수행하지 않는다.
+계층
+호출 가능 여부
+기준
+Handler
+금지
+요청 변환과 Facade 호출만 수행
+Facade
+제한
+트랜잭션 경계이므로 직접 호출 최소화
+Service
+권장
+업무 흐름 중 연동 호출
+Rule
+금지
+Rule은 검증과 업무 규칙만 수행
+DAO
+금지
+DB 접근 계층에서 원격 호출 금지
+Mapper
+금지
+SQL 계층에서 원격 호출 불가
+Integration Adapter
+권장
+실제 호출 코드 위치
+권장 구조는 다음이다.
+Service
+  ↓
+Integration Adapter
+  ↓
+NsightIntegrationClient
+  ↓
+HTTP/JSON
+
+
+31.16 환경설정 기준
+대상 서비스 URL은 코드에 직접 쓰지 않는다.
+nsight:
+  integration:
+    default-connect-timeout-ms: 2000
+    default-read-timeout-ms: 5000
+    targets:
+      SV:
+        base-url: http://sv-service:8080
+        context-path: /sv
+        online-path: /online
+        read-timeout-ms: 3000
+      OM:
+        base-url: http://tcf-om:8081
+        context-path: /om
+        online-path: /online
+        read-timeout-ms: 3000
+
+호출 URL은 다음처럼 조립한다.
+base-url + context-path + online-path
+
+예)
+http://sv-service:8080 + /sv + /online
+= http://sv-service:8080/sv/online
+
+운영에서는 Gateway를 통하도록 구성할 수도 있다.
+nsight:
+  integration:
+    mode: gateway
+    gateway-base-url: http://tcf-gateway:8080
+
+직접 호출 방식:
+ic-service → http://sv-service:8080/sv/online
+
+Gateway 경유 방식:
+ic-service → http://tcf-gateway:8080/gw/SV/online → sv-service
+
+
+31.17 직접 호출 방식과 Gateway 경유 방식 비교
+구분
+직접 호출
+Gateway 경유
+구조
+업무 서비스가 대상 서비스 직접 호출
+Gateway가 업무코드 기준 라우팅
+장점
+단순, 지연시간 적음
+라우팅·통제 중앙화
+단점
+대상 URL 관리가 분산됨
+Gateway 장애 영향 존재
+적용
+내부 단순 연동
+운영 통제 강화 필요 시
+라우팅 변경
+각 서비스 설정 변경
+Gateway Route 변경
+거래통제
+대상 서비스 STF에서 수행
+Gateway + 대상 서비스에서 수행
+권장
+초기 단순 구조
+운영 표준 구조
+NSIGHT Gateway 설계에서는 Gateway를 인프라 Gateway가 아니라 인증, 세션/JWT 검증, Header 검증, ServiceId 검증, 거래통제, 업무 라우팅, 거래로그를 담당하는 애플리케이션 Gateway로 정의한다.
+
+31.18 ServiceId 등록 기준
+서비스 간 연동 대상도 ServiceId Catalog에 등록해야 한다.
+항목
+예시
+ServiceId
+SV.Customer.selectSummary
+업무코드
+SV
+거래코드
+SV-INQ-0001
+호출유형
+INTERNAL
+허용채널
+INTERNAL, WEB
+Timeout
+3초
+Retry 가능 여부
+N 또는 조회성만 Y
+감사 여부
+Y
+사용 여부
+Y
+등록되지 않은 ServiceId는 실행하지 않는다.NSIGHT 거래통제 기준에서도 등록된 거래만 실행하고, 등록되지 않은 거래는 기본 차단하는 Allow-List 방식을 권장한다.
+
+31.19 서비스 간 연동 개발 절차
+순서
+작업
+설명
+1
+대상 서비스 확인
+호출할 업무코드와 ServiceId 확인
+2
+대상 요청/응답 DTO 확인
+Body 구조 확인
+3
+ServiceId Catalog 등록
+대상 서비스 기준정보 등록
+4
+거래통제 등록
+호출 가능한 사용자/채널/업무 등록
+5
+Timeout 정책 등록
+대상 서비스 Timeout 정의
+6
+tcf-integration 의존성 추가
+공통 Client 사용
+7
+업무 Adapter 작성
+SvIntegrationClient 등
+8
+업무 Service에서 Adapter 호출
+Service 계층에서 호출
+9
+오류 처리 작성
+Timeout, 통신오류, 업무오류 구분
+10
+거래로그 확인
+caller/target 추적 확인
+11
+단위 테스트
+Adapter Mock 테스트
+12
+통합 테스트
+실제 대상 서비스 호출
+13
+장애 테스트
+대상 Down, Timeout, FAIL 응답 테스트
+
+31.20 테스트 기준
+테스트 유형
+검증 내용
+단위 테스트
+업무 Service가 Adapter를 정상 호출하는지
+Client 테스트
+StandardRequest 조립이 맞는지
+응답 테스트
+resultCode, body 파싱이 맞는지
+Timeout 테스트
+대상 서비스 지연 시 Timeout 처리
+장애 테스트
+대상 서비스 Down 시 오류 처리
+업무 오류 테스트
+대상 서비스 FAIL 응답 처리
+로그 테스트
+GUID, TraceId, targetServiceId 기록
+보안 테스트
+Header 위변조 차단
+거래통제 테스트
+미등록 ServiceId 차단
+성능 테스트
+연동 호출 포함 p95 응답시간 확인
+
+31.21 금지 규칙
+금지 항목
+사유
+다른 업무 Service Class 직접 호출
+WAR 독립성 훼손
+다른 업무 DAO 직접 호출
+DB 접근 경계 위반
+다른 업무 DB 테이블 직접 조회
+업무 소유권 위반
+Service 안에 RestTemplate/WebClient 코드 직접 작성
+연동 코드 분산
+URL 하드코딩
+환경별 배포 불가
+Timeout 없는 호출
+Thread 고갈 위험
+변경성 거래 Retry
+중복 처리 위험
+원격 호출을 DB 트랜잭션 안에 장시간 유지
+Lock / Thread 점유 위험
+응답 오류 무시
+데이터 정합성 문제
+TraceId 미전달
+장애 추적 불가
+순환 호출
+장애 전파 위험
+대량 데이터 동기 호출
+Timeout 및 Heap 위험
+
+31.22 개발 체크리스트
+점검 항목
+확인
+대상 업무코드와 ServiceId가 명확한가
+□
+대상 ServiceId가 OM Service Catalog에 등록되어 있는가
+□
+거래통제 기준에 등록되어 있는가
+□
+Timeout 정책이 있는가
+□
+대상 URL을 설정파일로 관리하는가
+□
+업무 Service가 다른 업무 Service Class를 직접 참조하지 않는가
+□
+Integration Adapter를 통해 호출하는가
+□
+요청 Header에 callerServiceId가 포함되는가
+□
+GUID / TraceId가 전달되는가
+□
+HTTP Status와 resultCode를 모두 검증하는가
+□
+Timeout / 통신오류 / 업무오류를 구분하는가
+□
+변경성 거래에 Retry를 적용하지 않았는가
+□
+거래로그에 targetServiceId가 남는가
+□
+대상 서비스 장애 테스트를 수행했는가
+□
+p95 응답시간에 연동 지연이 반영되었는가
+□
+
+31.23 마무리말
+서비스 간 연동 개발의 핵심은 편하게 호출하는 것이 아니라, 업무 서비스 간 경계를 유지하면서 안전하게 호출하는 것이다.
+NSIGHT에서는 다음 구조를 표준으로 삼는다.
+업무 Service
+  ↓
+업무별 Integration Adapter
+  ↓
+tcf-integration 공통 Client
+  ↓
+HTTP/JSON 표준 전문
+  ↓
+대상 업무 WAR의 /{businessCode}/online
+  ↓
+대상 TCF Dispatcher
+  ↓
+대상 Handler 실행
+
+이 구조를 지키면 업무 서비스는 서로 독립적으로 배포할 수 있고, 장애 발생 시 어떤 서비스가 어떤 서비스를 호출했는지 GUID와 TraceId로 추적할 수 있다.
+
+31.24 시사점
+서비스 간 연동은 잘못 만들면 가장 쉽게 장애가 전파되는 영역이다.
+SV 서비스 지연
+  ↓
+IC 서비스 Thread 대기
+  ↓
+IC Hikari Connection 점유
+  ↓
+Tomcat Thread 증가
+  ↓
+전체 업무 응답 지연
+
+따라서 서비스 간 연동 개발자는 항상 세 가지를 확인해야 한다.
+첫째, 직접 참조가 아니라 표준 전문 호출인가?
+둘째, Timeout과 오류 처리가 명확한가?
+셋째, GUID / TraceId로 호출 관계를 추적할 수 있는가?
+
+

@@ -1,0 +1,33 @@
+package com.nh.nsight.marketing.om.support;
+
+import java.util.Map;
+
+public final class OmBodySupport {
+    private OmBodySupport() {
+    }
+
+    public static String stringValue(Map<String, Object> body, String key) {
+        if (body == null || !body.containsKey(key) || body.get(key) == null) {
+            return null;
+        }
+        String value = String.valueOf(body.get(key)).trim();
+        return value.isEmpty() ? null : value;
+    }
+
+    public static int intValue(Map<String, Object> body, String key, int defaultValue) {
+        if (body == null || body.get(key) == null) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(String.valueOf(body.get(key)));
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    public static Map<String, Object> searchCriteria(Map<String, Object> body) {
+        return body == null ? Map.of() : body;
+    }
+}
+
+

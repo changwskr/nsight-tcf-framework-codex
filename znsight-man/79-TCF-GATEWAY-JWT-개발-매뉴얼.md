@@ -1,0 +1,662 @@
+# 79. JWT 개발 매뉴얼
+
+> **NSIGHT TCF 개발 Manual** · 원본: [`znsight-guide-word`](../znsight-guide-word/) · 갱신: 2026-07-06
+
+> **NSIGHT TCF Framework JWT 토큰 설계 기준서 v1.0** — tcf-jwt 발급 + tcf-gateway JWT 검증 + OM 운영관리 연계 구조 기준.
+
+## 1. 도입 전 안내말
+
+본 기준서는 NSIGHT TCF Framework에서 JWT 토큰 발급, 검증, 갱신, 폐기, 운영관리, 감사 추적을 표준화하기 위한 설계 기준을 정의한다.
+NSIGHT에서 JWT는 업무 처리를 직접 실행하는 기능이 아니다. JWT는 사용자가 누구인지 증명하는 인증 수단이고, 실제 업무 실행 가능 여부는 TCF가 ServiceId, 권한, 거래통제, Timeout 정책을 기준으로 최종 판단한다. 기존 JWT 적용 설계에서도 JWT는 TCF를 대체하지 않고, TCF는 계속 거래통제·권한·로그·감사·Timeout·표준응답을 담당하는 구조로 정의되어 있다.
+JWT = 사용자가 누구인지 증명하는 인증 토큰
+TCF = 그 사용자가 해당 거래를 실행해도 되는지 판단하는 거래 실행 프레임워크
+OM  = 사용자, 권한, 토큰 정책, 강제 로그아웃, 감사 이력 관리
+
+## 2. 설계 결론
+
+| 구분 | 설계 기준 |
+| --- | --- |
+| 인증 방식 | SSO + Spring Session JDBC + JWT 혼합 구조 |
+| SSO 검증 주체 | tcf-om |
+| JWT 발급 주체 | tcf-jwt |
+| JWT 검증 주체 | tcf-gateway, 필요 시 업무 WAR Security Filter |
+| 토큰 서명 방식 | RS256 |
+| 공개키 제공 방식 | JWKS, /.well-known/jwks.json |
+| Access Token 용도 | 업무 요청 인증 |
+| Refresh Token 용도 | Access Token 재발급 |
+| Refresh Token 저장 | DB Hash 저장, 원문 저장 금지 |
+| 토큰 폐기 기준 | jti 기준 Denylist |
+| Gateway 검증 대상 | Authorization: Bearer {accessToken} |
+| Body Token 검증 | 금지 |
+| 최종 거래 실행 기준 | JWT가 아니라 header.serviceId |
+| 권한/거래통제 | TCF STF 전처리에서 수행 |
+| 운영관리 | OM JWT 토큰관리 화면에서 조회·폐기·감사 |
+
+핵심 문장은 다음과 같다.
+SSO는 사용자를 인증하고, JWT는 인증 결과를 전달하며, Gateway는 토큰의 유효성을 검증하고, TCF는 그 사용자가 해당 ServiceId 거래를 실행할 수 있는지 최종 판단한다.
+
+## 3. 전체 인증 아키텍처
+
+```text
+[사용자 / WebTopSuite / tcf-ui]
+        │
+        │ 1. SSO Login
+        ▼
+```
+
+```text
+[SSO 서버 / IdP]
+        │
+        │ 2. 사용자 인증
+        │ 3. SSO Token / Code / Assertion 발급
+        ▼
+```
+
+```text
+[화면]
+        │
+        │ 4. POST /om/online
+        │    serviceId = OM.Auth.ssoLogin
+        ▼
+```
+
+```text
+[tcf-om]
+        │
+        │ 5. SSO Token 검증
+        │ 6. OM_USER 조회
+        │ 7. HttpSession 생성
+        │ 8. Spring Session JDBC 저장
+        │ 9. JWT.Auth.ssoIssue 내부 호출
+        ▼
+```
+
+```text
+[tcf-jwt]
+        │
+        │ 10. Access Token 발급
+        │ 11. Refresh Token 발급
+        │ 12. Token DB 저장
+        │ 13. JWKS 공개키 제공
+        ▼
+```
+
+```text
+[tcf-om]
+        │
+        │ 14. 세션 + JWT 응답
+        ▼
+```
+
+```text
+[화면]
+        │
+        │ 15. 업무 호출
+        │    Authorization: Bearer {accessToken}
+        ▼
+```
+
+```text
+[tcf-gateway]
+        │
+        │ 16. GSF 전처리
+        │ 17. JWT / Session 인증 분기
+        │ 18. JwtDecoder 검증
+        ▼
+```
+
+```text
+[업무 WAR / tcf-om]
+        │
+        │ 19. TCF STF 전처리
+        │ 20. Claim과 전문 Header 비교
+        │ 21. 권한 / 거래통제 확인
+        ▼
+```
+
+```text
+[TransactionDispatcher]
+        │
+        ▼
+```
+
+[Business Handler]
+
+SSO Token 검증은 tcf-om이 담당하고, JWT 발급·갱신·폐기는 tcf-jwt가 담당하며, 세션 원천은 Spring Session JDBC + SESSIONDB로 유지하는 구조가 적합하다고 정리되어 있다.
+
+## 4. 구성요소별 책임
+
+| 구성요소 | 책임 | 금지 사항 |
+| --- | --- | --- |
+| SSO 서버 / IdP | 사용자 1차 인증, SSO Token 발급 | NSIGHT 세션/JWT 직접 생성 금지 |
+| 화면 / WebTopSuite | SSO 로그인 시작, OM.Auth.ssoLogin 호출, Bearer Token 전달 | SSO Token 직접 검증 금지 |
+| tcf-om | SSO Token 검증, 사용자 조회, 세션 생성, JWT 발급 요청 | JWT 개인키 보관 금지 |
+| tcf-jwt | Access/Refresh Token 발급·갱신·폐기, JWKS 제공 | 외부 직접 호출 허용 금지 |
+| tcf-gateway | Authorization Header 수신, JWT/Session 인증 분기, 업무 라우팅 | Token 원문 로그 출력 금지 |
+| 업무 WAR | TCF 전처리, 권한, 거래통제, Handler 실행 | 로그인/토큰 발급 중복 구현 금지 |
+| OM | 토큰 조회, 강제폐기, Denylist, 감사로그 관리 | 토큰 원문 화면 표시 금지 |
+| SESSIONDB | Spring Session 저장 | 업무 데이터 저장 금지 |
+| Token DB | JWT Token 이력, Refresh Token Hash, Denylist 저장 | Refresh Token 원문 저장 금지 |
+
+## 5. 토큰 종류 표준
+
+토큰
+| 용도 | 권장 만료 | 저장 위치 | 폐기 방식 |
+| --- | --- | --- | --- |
+| Access Token | 업무 API 요청 인증 | 15분 | Browser Memory 또는 HttpOnly Cookie |
+| jti Denylist | Refresh Token | Access Token 재발급 | 8시간 또는 1영업일 |
+| DB Hash + HttpOnly Cookie 권장 | DB 상태값 폐기 | Admin Access Token | OM 관리자 인증 |
+| 10분 | HttpOnly Cookie 권장 | jti Denylist | System Token |
+| 배치/내부 연계 | 5~30분 | 서버 내부 Secret 기반 | mTLS/IP/HMAC 병행 |
+| One-Time Token | 다운로드·민감 기능 승인 | 1~5분 | DB 검증 |
+
+1회 사용 후 폐기
+기존 기준서에서도 Access Token은 짧게, Refresh Token은 서버에서 관리하고 DB에는 Hash로 저장하며, JWT에는 최소 정보만 넣고 고객정보는 넣지 않는 원칙을 제시하고 있다.
+
+## 6. JWT Claim 설계 기준
+
+### 6.1 표준 Claim
+
+| Claim | 의미 | 예시 |
+| --- | --- | --- |
+| 필수 | iss | 발급자 |
+| NSIGHT-AUTH | Y | sub |
+| 사용자 ID | U123456 | Y |
+| aud | 대상 시스템 | NSIGHT-MP |
+| Y | exp | 만료시각 |
+| epoch seconds | Y | iat |
+| 발급시각 | epoch seconds | Y |
+| nbf | 사용 가능 시작시각 | epoch seconds |
+| Y | jti | 토큰 고유 ID |
+
+UUID
+Y
+### 6.2 NSIGHT 확장 Claim
+
+| Claim | 의미 | 예시 |
+| --- | --- | --- |
+| 사용 위치 | userId | 사용자 ID |
+| U123456 | Header 사용자 검증 | userName |
+| 사용자명 | 홍길동 | 화면 표시, 감사 |
+| branchId | 지점 코드 | 001234 |
+| 지점/데이터권한 | channelId | 채널 ID |
+| WEBTOP | 채널 통제 | authGroupId |
+| 권한그룹 | SV_USER | 기능권한 |
+| sessionId | Spring Session ID 참조 | abc123... |
+| 세션 연계 | loginType | 로그인 유형 |
+| SSO | 감사로그 | scope |
+| 허용 범위 | sv:read | API 권한 확장 |
+
+### 6.3 JWT 저장 금지 정보
+
+금지 정보
+사유
+주민번호, 계좌번호, 고객번호
+탈취 시 개인정보 유출
+고객명, 조회결과
+토큰 탈취 시 업무정보 노출
+메뉴 전체 목록
+토큰 비대화, 변경 즉시 반영 어려움
+기능권한 전체
+권한 변경 시 반영 지연
+DB 접속정보
+보안상 절대 금지
+SSO Token 원문
+재사용·탈취 위험
+Refresh Token 원문
+장기 인증 탈취 위험
+파일명 상세, 다운로드 대상
+민감정보 노출 위험
+기존 Claim 표준에서도 iss, sub, aud, exp, iat, nbf, jti를 필수 표준 Claim으로 두고, NSIGHT 확장 Claim으로 userId, branchId, channelId, authGroupId 등을 정의한다.
+
+## 7. 토큰 발급 기준
+
+### 7.1 발급 경로
+
+발급 유형
+| ServiceId | 호출 주체 | 설명 | 직접 로그인 |
+| --- | --- | --- | --- |
+| JWT.Auth.login | 화면 / JWT Admin | ID/PW 또는 관리자 로그인 | SSO 후 발급 |
+| JWT.Auth.ssoIssue | tcf-om 내부 호출 | SSO 인증 완료 사용자 대상 | 갱신 |
+| JWT.Auth.refresh | 클라이언트 | Refresh Token 기반 Access Token 재발급 | 폐기 |
+| JWT.Auth.revoke | OM / 사용자 | 단일 토큰 폐기 | 로그아웃 |
+
+JWT.Auth.logout
+화면 / OM
+세션 + 토큰 동시 폐기
+### 7.2 SSO 발급 흐름
+
+```text
+OM.Auth.ssoLogin
+      ↓
+tcf-om
+  - SSO Token 검증
+  - OM_USER 조회
+  - 사용자 상태 확인
+  - HttpSession 생성
+      ↓
+JWT.Auth.ssoIssue 내부 호출
+      ↓
+tcf-jwt
+  - 내부 호출 검증
+  - 사용자 Claim 구성
+  - Access Token 발급
+  - Refresh Token 발급
+  - Token DB 저장
+      ↓
+tcf-om
+  - 세션 + JWT 응답 조립
+```
+
+tcf-jwt의 JWT.Auth.ssoIssue는 SSO 완료 사용자용 JWT pair 발급 서비스로 정의하고, tcf-om이 SSO 검증과 세션 생성을 담당한 후 내부 호출하는 구조가 기준이다.
+
+## 8. tcf-gateway JWT 검증 기준
+
+### 8.1 검증 호출 경로
+
+현재 tcf-gateway 기준 JWT 검증 흐름은 다음과 같이 표준화한다.
+AbstractBusinessProxyController.proxyOnline()
+  → BusinessRouteService.forwardOnline()
+    → GRF.forwardOnline()
+      → GSF.preProcess()
+        → GatewayAuthenticationService.authenticate()
+          → GatewayJwtValidator.validate()
+            → JwtDecoder.decode()
+
+### 8.2 Authorization Header 기준
+
+Gateway는 반드시 HTTP Header의 Bearer Token만 검증한다.
+Authorization: Bearer {accessToken}
+
+다음 방식은 Gateway JWT 검증 기준이 아니다.
+{
+  "accessToken": "..."
+}
+
+### 8.3 인증 분기 기준
+
+| 조건 | 인증 방식 |
+| --- | --- |
+| `jwt.enabled=false` | Session Cookie 검증 |
+| `businessCode=OM` + `jwt.enabled=true` | Bearer JWT 필수 |
+| Bearer Token 있음 | JWT 검증 |
+| Bearer Token 없음 | Spring Session Cookie 검증 |
+| 인증 면제 ServiceId | 인증 Skip |
+| Health Check | 인증 제외 |
+### 8.4 JwtDecoder 검증 항목
+
+| 검증 항목 | 기준 |
+| --- | --- |
+| 실패 처리 | Bearer 형식 |
+| Authorization: Bearer ... | 401 |
+| 서명 | JWKS 공개키로 RS256 검증 |
+| 401 | 만료 |
+| exp 만료 여부 | 401 |
+| 발급자 | iss = NSIGHT-AUTH |
+| 401 | 대상 |
+| aud에 NSIGHT-MP 포함 | 401 |
+| 사용자 | userId 또는 sub 존재 |
+| 401 | 폐기 여부 |
+| jti Denylist 확인 | 401 |
+| Header 일치 | Header userId/branchId/channelId와 Claim 비교 |
+
+401 또는 403
+### 8.5 Gateway 검증 결과
+
+검증 성공 시 Gateway는 다음 정보를 GatewaySessionContext로 구성한다.
+| 항목 | 출처 |
+| --- | --- |
+| userId | JWT userId 또는 sub |
+| branchId | JWT branchId |
+| channelId | JWT channelId |
+| jti | JWT jti |
+| 인증유형 | JWT |
+| 원본 Authorization | downstream 전달 여부 정책에 따름 |
+
+## 9. TCF 전처리 연계 기준
+
+Gateway에서 JWT가 통과해도 업무 실행이 바로 허용되는 것은 아니다. 업무 WAR의 TCF 전처리에서 다음을 추가 확인한다.
+```text
+Gateway JWT 검증 성공
+↓
+업무 WAR 전달
+↓
+STF.preProcess()
+```
+
+  - 표준 Header 검증
+  - JWT Claim과 Header 비교
+  - 세션 존재 여부 확인
+  - ServiceId 등록 여부 확인
+  - 기능권한 확인
+  - 데이터권한 확인
+  - 거래통제 확인
+  - Timeout 정책 확인
+```text
+        ↓
+TransactionDispatcher
+```
+
+| 검증 항목 | 기준 |
+| --- | --- |
+| 사용자 일치 | header.userId == jwt.userId |
+| 지점 일치 | header.branchId == jwt.branchId |
+| 채널 일치 | header.channelId == jwt.channelId |
+| 업무코드 일치 | URL path businessCode와 Header businessCode 비교 |
+| ServiceId 등록 | OM_SERVICE_CATALOG 확인 |
+| 거래통제 | TCF_TRANSACTION_CONTROL 확인 |
+| Timeout | TCF_SERVICE_TIMEOUT_POLICY 확인 |
+| 감사 | 인증 사용자, jti, serviceId, guid 기록 |
+
+JWT 인증 구조에서도 업무 실행 기준은 JWT가 아니라 serviceId이고, TCF는 Header 검증, Token Claim 비교, 권한 검증, 거래통제, 로그·감사를 담당한다고 정의한다.
+
+## 10. 토큰 저장 테이블 기준
+
+### 10.1 TCF_JWT_TOKEN
+
+Access Token 발급 이력을 관리한다. 원문 Token은 저장하지 않는다.
+| 컬럼 | 설명 |
+| --- | --- |
+| TOKEN_ID | 내부 Token ID |
+| JTI | JWT 고유 ID |
+| USER_ID | 사용자 ID |
+| BRANCH_ID | 지점 코드 |
+| CHANNEL_ID | 채널 ID |
+| AUTH_GROUP_ID | 권한그룹 |
+| ISSUER | 발급자 |
+| AUDIENCE | 대상 시스템 |
+| ISSUED_AT | 발급시각 |
+| EXPIRES_AT | 만료시각 |
+| TOKEN_STATUS | ACTIVE / EXPIRED / REVOKED |
+| ISSUE_TYPE | LOGIN / SSO / REFRESH |
+| SESSION_ID | Spring Session ID |
+| LOGIN_IP | 발급 IP |
+| USER_AGENT | User-Agent |
+| CREATED_AT | 생성시각 |
+
+### 10.2 TCF_REFRESH_TOKEN
+
+Refresh Token은 반드시 Hash로 저장한다.
+| 컬럼 | 설명 |
+| --- | --- |
+| REFRESH_TOKEN_ID | Refresh Token ID |
+| USER_ID | 사용자 ID |
+| TOKEN_HASH | Refresh Token Hash |
+| PARENT_JTI | 연계 Access Token JTI |
+| SESSION_ID | 세션 ID |
+| ISSUED_AT | 발급시각 |
+| EXPIRES_AT | 만료시각 |
+| STATUS | ACTIVE / USED / REVOKED / EXPIRED |
+| ROTATION_SEQ | Rotation 순번 |
+| REVOKED_AT | 폐기시각 |
+| REVOKED_REASON | 폐기사유 |
+
+### 10.3 TCF_TOKEN_DENYLIST
+
+폐기된 Access Token을 차단하기 위한 테이블이다.
+| 컬럼 | 설명 |
+| --- | --- |
+| JTI | 폐기 대상 JWT ID |
+| ISSUER | 발급자 |
+| USER_ID | 사용자 ID |
+| EXPIRES_AT | 원래 만료시각 |
+| REVOKED_AT | 폐기시각 |
+| REVOKED_BY | 폐기자 |
+| REVOKED_REASON | 폐기사유 |
+| SOURCE | LOGOUT / ADMIN / SECURITY / SYSTEM |
+
+### 10.4 TCF_JWT_AUDIT_LOG
+
+토큰 관련 감사 이력을 저장한다.
+| 컬럼 | 설명 |
+| --- | --- |
+| AUDIT_ID | 감사 ID |
+| EVENT_TYPE | ISSUE / REFRESH / REVOKE / VALIDATE_FAIL |
+| USER_ID | 사용자 ID |
+| JTI | JWT ID |
+| SERVICE_ID | 관련 ServiceId |
+| GUID | 거래 GUID |
+| TRACE_ID | Trace ID |
+| IP_ADDRESS | 요청 IP |
+| USER_AGENT | User-Agent |
+| RESULT_CODE | SUCCESS / FAIL |
+| ERROR_CODE | 오류코드 |
+| CREATED_AT | 발생시각 |
+
+## 11. Denylist 설계 기준
+
+Denylist는 JWT 운영에서 필수다. Access Token이 짧게 만료되더라도 로그아웃, 강제 종료, 보안사고 대응을 위해 폐기 목록을 관리해야 한다.
+로그아웃
+  → Refresh Token 폐기
+  → Access Token jti Denylist 등록
+
+강제 로그아웃
+  → Spring Session 삭제
+  → Refresh Token 전체 폐기
+  → 사용자 Access Token 전체 Denylist 등록
+
+보안사고
+  → 사용자 또는 권한그룹 단위 토큰 폐기
+  → 감사로그 기록
+  → 재로그인 요구
+
+| 기준 | 설계 내용 | 폐기 Key |
+| --- | --- | --- |
+| jti + iss | 조회 위치 | Gateway 또는 업무 WAR Security Filter |
+| 성능 방식 | DB 직접 조회보다 Cache 권장 | TTL |
+| Token 원래 만료시각까지 유지 | 운영 화면 | OM JWT Denylist 조회 화면 |
+
+감사
+폐기자, 폐기사유, 폐기시각 필수
+현재 Gateway가 Denylist를 조회하지 않으면 폐기된 Access Token도 만료 전까지 통과할 수 있으므로, 운영 기준에서는 Gateway Denylist Cache 연동을 필수 보완 과제로 둔다.
+
+## 12. OM JWT 토큰관리 화면 기준
+
+JWT는 운영 중 조회·폐기·감사 추적이 필요하므로 OM에 토큰관리 화면을 둔다.
+OM 운영관리
+```text
+ └─ JWT 토큰관리
+      ├─ 토큰 현황 조회
+      ├─ 사용자별 토큰 조회
+      ├─ 토큰 상세 조회
+      ├─ 토큰 강제 폐기
+      ├─ Refresh Token 관리
+      ├─ Denylist 조회
+      ├─ JWT 감사로그 조회
+      └─ JWKS / 키 상태 조회
+```
+
+| 화면 | ServiceId | 기능 |
+| --- | --- | --- |
+| 토큰 현황 조회 | OM.JwtToken.inquiry | 사용자별 Token 현황 조회 |
+| 토큰 상세 조회 | OM.JwtToken.detail | Claim, 만료, 상태 조회 |
+| 토큰 강제 폐기 | OM.JwtToken.revoke | jti 기준 폐기 |
+| 사용자 전체 폐기 | OM.JwtToken.revokeByUser | 사용자 보유 토큰 전체 폐기 |
+| Refresh Token 폐기 | OM.RefreshToken.revoke | 재발급 차단 |
+| Denylist 조회 | OM.JwtDenylist.inquiry | 폐기 Token 조회 |
+| JWT 감사로그 조회 | OM.JwtAudit.inquiry | 발급·갱신·폐기·실패 조회 |
+| JWT 정책 조회 | OM.JwtPolicy.inquiry | 만료시간, issuer, audience 조회 |
+| JWKS 상태 조회 | OM.JwtKey.inquiry | 공개키 상태, kid 확인 |
+
+운영관리 화면 기준에서도 토큰 현황, 강제폐기, 로그인 이력, Refresh Token 관리, 보안정책 관리, 권한 검증 로그 화면을 추가하는 방식이 자연스럽다고 정리되어 있다.
+
+## 13. 토큰 보안 기준
+
+| 항목 | 기준 |
+| --- | --- |
+| 알고리즘 | RS256 고정, none 금지 |
+| Key Size | RSA 2048 이상 |
+| 개인키 보관 | tcf-jwt 내부 Secret/Vault, 소스 저장 금지 |
+| 공개키 제공 | JWKS |
+| kid | Key Rotation을 위해 필수 |
+| Token 원문 로그 | 금지 |
+| Token 원문 화면 표시 | 금지 |
+| Refresh Token 원문 저장 | 금지, Hash 저장 |
+| Header 위조 방지 | JWT Claim과 전문 Header 비교 |
+| Access Token 만료 | 짧게, 기본 15분 |
+| Refresh Token Rotation | 권장 |
+| Cookie 사용 시 | HttpOnly, Secure, SameSite 적용 |
+| 내부 호출 | HMAC, mTLS, IP Allowlist 권장 |
+| 운영 Secret | application.yml 직접 저장 금지 |
+
+## 14. 내부 호출 보안 기준
+
+tcf-om → tcf-jwt 호출은 반드시 내부 호출로 제한한다.
+
+| 보안 항목 | 적용 기준 |
+| --- | --- |
+| 내부 Header | `X-NSIGHT-Internal-Service: tcf-om` |
+| HMAC Signature | Body + timestamp + secret 기반 서명 |
+| Timestamp | 1~3분 이내 요청만 허용 |
+| Replay 방지 | nonce 또는 requestId 중복 차단 |
+| IP Allowlist | tcf-om 서버 IP만 허용 |
+| mTLS | 운영환경 권장 |
+| 방화벽 | 외부망에서 `/jwt/online` 직접 접근 차단 |
+| 감사로그 | 발급자, 대상 userId, 발급시간, IP, GUID 기록 |
+| Secret 관리 | 환경변수, Secret Manager, Vault 사용 |
+SSO Token 인증설계에서도 tcf-om → tcf-jwt 내부 호출은 내부망 전용으로 제한하고, HMAC Signature, Timestamp, Replay 방지, IP Allowlist, mTLS, 감사로그, Secret 외부화를 기준으로 제시한다.
+
+## 15. 표준 오류코드
+
+| 오류코드 | 오류명 | 발생 조건 | HTTP |
+| --- | --- | --- | --- |
+| E-JWT-AUTH-0001 | Token Missing | Authorization Header 없음 | 401 |
+| E-JWT-AUTH-0002 | Invalid Bearer Format | Bearer 형식 오류 | 401 |
+| E-JWT-AUTH-0003 | Token Expired | exp 만료 | 401 |
+| E-JWT-AUTH-0004 | Invalid Signature | 서명 검증 실패 | 401 |
+| E-JWT-AUTH-0005 | Invalid Issuer | iss 불일치 | 401 |
+| E-JWT-AUTH-0006 | Invalid Audience | aud 불일치 | 401 |
+| E-JWT-AUTH-0007 | Token Revoked | Denylist 등록 토큰 | 401 |
+| E-JWT-AUTH-0008 | Missing User Claim | 사용자 Claim 없음 | 401 |
+| E-JWT-AUTH-0009 | Header Claim Mismatch | JWT Claim과 전문 Header 불일치 | 403 |
+| E-JWT-ISSUE-0001 | Token Issue Failed | 토큰 발급 실패 | 500 |
+| E-JWT-REFRESH-0001 | Invalid Refresh Token | Refresh Token 불일치 | 401 |
+| E-JWT-REFRESH-0002 | Refresh Token Expired | Refresh Token 만료 | 401 |
+| E-JWT-REVOKE-0001 | Revoke Failed | 토큰 폐기 실패 | 500 |
+| E-JWT-JWKS-0001 | JWKS Unavailable | 공개키 조회 실패 | 503 |
+| E-TCF-CTL-0001 | Transaction Denied | 거래통제 차단 | 403 |
+기존 오류코드 기준에서도 Token Missing, Token Expired, Invalid Signature, Invalid Issuer, Invalid Audience, Revoked Token, Header Claim Mismatch를 표준 오류로 정의한다.
+
+## 16. Spring 설정 기준
+
+```yaml
+nsight:
+  gateway:
+    auth:
+      jwt:
+        enabled: true
+        jwk-set-uri: http://tcf-jwt:8110/.well-known/jwks.json
+        issuer: NSIGHT-AUTH
+        audience: NSIGHT-MP
+        header-user-strict: true
+        denylist-check-enabled: true
+        denylist-cache-enabled: true
+  security:
+    jwt:
+      issuer: NSIGHT-AUTH
+      audience: NSIGHT-MP
+      algorithm: RS256
+      access-token-valid-minutes: 15
+      refresh-token-valid-hours: 8
+      refresh-token-rotation-enabled: true
+      token-denylist-enabled: true
+      jwks:
+        enabled: true
+        key-id: nsight-jwt-rs256
+  session:
+    store-type: jdbc
+    idle-timeout-minutes: 60
+    absolute-timeout-hours: 8
+    validate-header-user: true
+    validate-header-branch: true
+    validate-header-channel: true
+```
+
+## 17. 운영 점검 기준
+
+| 점검 항목 | 기준 | JWKS URL 응답 |
+| --- | --- | --- |
+| 정상 응답, kid 확인 | Gateway JWT Enabled | 운영 Profile에서 true |
+| issuer/audience | tcf-jwt 발급값과 Gateway 설정 일치 | Access Token 만료 |
+| 15분 기준 | Refresh Token 저장 | Hash 저장 여부 확인 |
+| Denylist 조회 | Gateway 또는 Cache 연동 확인 | Token 원문 로그 |
+| 출력 금지 확인 | 401 오류 분석 | 만료/서명/issuer/audience/Denylist 구분 |
+| Claim/Header 비교 | 운영 true | 강제 로그아웃 |
+| 세션 + Refresh + Access Denylist 동시 처리 | OM 토큰관리 | 조회·폐기·감사 기능 확인 |
+| 키 교체 | kid 기반 Key Rotation 계획 확인 |  |
+
+## 18. 개발 완료 체크리스트
+
+| 구분 | 체크 항목 | 완료 |
+| --- | --- | --- |
+| 발급 | JWT.Auth.ssoIssue 구현 | □ |
+| 발급 | Access/Refresh Token 발급 | □ |
+| 발급 | RS256 서명 적용 | □ |
+| 발급 | jti, iss, aud, exp, iat 포함 | □ |
+| 발급 | Refresh Token Hash 저장 | □ |
+| 검증 | Gateway Bearer Token 검증 | □ |
+| 검증 | JWKS 기반 서명 검증 | □ |
+| 검증 | issuer/audience 검증 | □ |
+| 검증 | 만료 검증 | □ |
+| 검증 | Denylist 검증 | □ |
+| TCF | Claim/Header 비교 | □ |
+| TCF | ServiceId 권한 검증 | □ |
+| TCF | 거래통제 연계 | □ |
+| 운영 | OM 토큰조회 화면 | □ |
+| 운영 | OM 토큰폐기 화면 | □ |
+| 운영 | JWT 감사로그 | □ |
+| 보안 | 토큰 원문 마스킹 | □ |
+| 보안 | 내부 호출 HMAC/mTLS/IP 제한 | □ |
+| 장애 | JWKS 장애 대응 | □ |
+| 장애 | 인증 실패 오류코드 표준화 | □ |
+
+## 19. 마무리말
+
+JWT 토큰 설계의 핵심은 토큰을 발급하는 것이 아니라, 운영 중에 검증하고, 폐기하고, 추적하고, 설명할 수 있는 구조를 만드는 것이다.
+NSIGHT에서는 JWT를 다음 기준으로 사용한다.
+tcf-om
+  = SSO 검증 + 세션 생성
+
+tcf-jwt
+  = RS256 JWT 발급 + Refresh Token 관리 + JWKS 제공
+
+tcf-gateway
+  = Authorization Bearer 검증 + 업무 라우팅
+
+TCF STF
+  = Claim/Header 비교 + 권한 + 거래통제
+
+OM
+  = 토큰 조회 + 강제 폐기 + Denylist + 감사로그
+
+## 20. 시사점
+
+첫째, JWT는 세션을 완전히 대체하는 구조로 보지 않는 것이 좋다. NSIGHT는 Spring Session JDBC를 통해 세션을 중앙화하고, JWT는 Gateway/API 인증 수단으로 병행하는 구조가 운영상 안전하다.
+둘째, JWT 인증 성공은 업무 실행 허용을 의미하지 않는다. JWT는 사용자를 증명할 뿐이며, 실제 업무 실행은 TCF의 ServiceId, 권한, 거래통제 기준을 통과해야 한다.
+셋째, Denylist 연동 없이는 로그아웃·강제폐기 통제가 완전하지 않다. 따라서 Gateway Denylist Cache 연동은 JWT 운영 전 필수 보완 항목이다.
+넷째, OM JWT 토큰관리 화면은 선택 기능이 아니라 운영 필수 기능이다. 운영자는 사용자별 토큰 상태, 만료, 폐기, Refresh Token, 인증 실패 로그를 확인할 수 있어야 한다.
+
+## 소스·관련 문서
+
+| 참고 |
+|------|
+
+> 원본: [`znsight-guide-word/NSIGHT TCF 개발 매뉴얼 - JWT.docx`](../znsight-guide-word/NSIGHT%20TCF%20개발%20매뉴얼%20-%20JWT.docx)
+
+| [41-JWT-SSO-연계.md](./41-JWT-SSO-연계.md) | SSO·Gateway 연계 요약 |
+| [tcf-jwt/README.md](../tcf-jwt/README.md) | tcf-jwt 모듈 구현 |
+| [tcf-gateway/README.md](../tcf-gateway/README.md) | Gateway JWT 검증 |
+
+## 코드베이스 정정 (develop 기준)
+
+| 항목 | 값 |
+|------|-----|
+| JWT 패키지 | `com.nh.nsight.auth.jwt` |
+| Gateway JWT 검증 | `GatewayJwtValidator` + `GatewayJwtConfiguration` (JWKS) |
+| OM Gateway JWT | `businessCode=OM` + `jwt.enabled=true` 시 Bearer 필수 |
+| bootRun | gateway 8100, jwt 8110, ui 8099 |
+| Denylist | Gateway 미연동 (tcf-jwt만 관리) |
+
+---
+
+← [41. JWT / SSO 연계 기준](./41-JWT-SSO-연계.md) · [70. FAQ](./70-FAQ-Troubleshooting.md) →

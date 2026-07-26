@@ -1,0 +1,696 @@
+55. 통합 테스트 기준
+55.1 도입 전 안내말
+NSIGHT TCF Framework에서 통합 테스트는 단순히 API가 호출되는지 확인하는 테스트가 아니다.통합 테스트는 화면 또는 호출자가 POST /{businessCode}/online으로 표준 전문을 보내고, TCF 공통 처리와 업무 처리, DB 처리, 거래로그, 오류 응답까지 End-to-End로 정상 동작하는지 검증하는 절차이다.
+NSIGHT 전처리·후처리 기준에서도 모든 온라인 거래는 동일한 방식으로 수신, 검증, 추적, 처리, 응답되어야 하며, GUID, TraceId, 인증, 권한, 세션, 마스킹, 감사, Timeout, 재처리, 모니터링을 공통 처리 대상으로 정의하고 있다.
+
+55.2 통합 테스트 기준 결론
+구분
+기준
+테스트 목적
+TCF 공통 파이프라인과 업무 서비스가 함께 정상 동작하는지 검증
+테스트 범위
+Controller/Gateway → STF → Dispatcher → Handler → Facade → Service → Rule → DAO/Mapper → DB → ETF
+기본 호출 방식
+POST /{businessCode}/online
+요청 형식
+StandardRequest.header + body
+응답 형식
+StandardResponse.header + result + body
+실행 식별자
+URL이 아니라 header.serviceId
+검증 대상
+Header, GUID, TraceId, 세션, 권한, 거래통제, Timeout, 오류코드, 거래로그, 감사로그
+테스트 DB
+개발/통합 테스트용 DB 사용
+테스트 Profile
+dev 또는 stg
+자동화 위치
+CI/CD Pipeline 또는 Merge Request 품질 Gate
+완료 기준
+정상/오류/권한/Timeout/거래로그 시나리오 통과
+TCF 구조는 STF.preProcess()에서 Header, GUID/TraceId, 세션, 권한, 거래통제, Timeout 정책, 거래로그를 처리하고, 이후 TransactionDispatcher → TransactionHandler → 업무 계층으로 실행된 뒤 ETF에서 표준응답, 오류코드, 감사, 메트릭, 거래로그 갱신을 수행하는 구조다.
+
+55.3 단위 테스트와 통합 테스트 차이
+구분
+단위 테스트
+통합 테스트
+목적
+클래스 단위 책임 검증
+실제 거래 흐름 검증
+실행 범위
+Handler, Service, Rule 등 개별 클래스
+TCF 전체 파이프라인 + 업무 계층
+Spring Context
+가급적 사용하지 않음
+사용
+DB
+Mock
+Test DB 또는 테스트 컨테이너
+HTTP 호출
+없음
+있음
+거래로그
+보통 검증하지 않음
+반드시 검증
+오류응답
+예외 발생 여부 중심
+표준 오류코드와 응답 전문 검증
+권한/세션
+Mock 처리
+실제 세션 또는 테스트 세션 사용
+완료 기준
+로직 정상성
+End-to-End 거래 정상성
+
+55.4 통합 테스트 전체 구조
+[Test Client / RestAssured / MockMvc]
+        ↓
+POST /sv/online
+StandardRequest JSON
+        ↓
+OnlineTransactionController / TcfGateway
+        ↓
+TCF.process()
+        ↓
+STF.preProcess()
+ - Header 검증
+ - GUID / TraceId 생성
+ - 세션 검증
+ - 인증 / 권한 확인
+ - 거래통제 확인
+ - Timeout 정책 조회
+ - 거래로그 PROCESSING 저장
+        ↓
+TransactionDispatcher
+ - serviceId 기준 Handler 선택
+        ↓
+Business Handler
+        ↓
+Facade
+        ↓
+Service
+        ↓
+Rule
+        ↓
+DAO / Mapper
+        ↓
+Test DB
+        ↓
+ETF 후처리
+ - StandardResponse 조립
+ - 오류코드 매핑
+ - 마스킹
+ - 감사로그 기록
+ - 성능 메트릭 기록
+ - 거래로그 SUCCESS / FAIL / TIMEOUT 갱신
+        ↓
+Test Client 응답 검증
+
+
+55.5 통합 테스트 대상
+대상
+테스트 내용
+Controller
+/sv/online, /om/online, /gw/{businessCode}/online 호출 가능 여부
+TCF STF
+Header 검증, GUID 생성, 세션 검증, 권한 검증
+Dispatcher
+serviceId 기준 Handler 선택
+Handler
+표준 전문 Body를 업무 DTO로 변환 후 Facade 호출
+Facade
+트랜잭션 경계와 Service 호출 흐름
+Service
+Rule, DAO, Client 조합 처리
+Rule
+업무 조건 판단
+DAO/Mapper
+MyBatis SQL 실행과 Result Mapping
+DB
+테스트 데이터 조회/등록/수정/삭제
+ETF
+표준 응답 조립, 오류코드 변환, 마스킹
+거래로그
+PROCESSING → SUCCESS/FAIL/TIMEOUT 상태 갱신
+감사로그
+고객정보 조회, 다운로드, 권한 위반 등 감사 대상 기록
+Timeout
+온라인 거래, DB Query, 외부연계 Timeout 처리
+세션
+정상 세션, 만료 세션, 미존재 세션 처리
+권한
+메뉴권한, 기능권한, 데이터권한 처리
+Gateway
+업무코드 라우팅, Header businessCode 불일치 차단
+
+55.6 통합 테스트 환경 기준
+환경
+용도
+기준
+local
+개발자 로컬 확인
+H2 또는 개발 DB, 최소 데이터
+dev
+개발 서버 통합 확인
+개발 DB, 테스트 세션, 테스트 계정
+stg
+통합/성능 검증
+운영 유사 설정, 성능 로그 활성
+prd
+운영
+통합 테스트 직접 수행 금지, Smoke Test만 수행
+Spring 환경설정 기준에서도 stg는 통합 테스트와 성능 테스트용 환경으로 두고, 운영은 prd만 사용하며 설정 파일은 Git 기준으로 관리하도록 정리되어 있다.
+
+55.7 표준 통합 테스트 시나리오
+전처리·후처리 설계서의 테스트 설계 기준은 정상 요청, Header 누락, 세션 만료, 권한 없음, 입력값 오류, 중복요청, DB Timeout, 외부연계 Timeout, 업무 예외, 시스템 예외, 감사로그, 마스킹, 거래상태 조회, MDC 정리, 성능로그 확인까지 포함한다.
+테스트 ID
+테스트명
+검증 내용
+기대 결과
+IT-001
+정상 요청 테스트
+정상 Header + Body 요청
+SUCCESS, 업무 Body 반환
+IT-002
+Header 누락 테스트
+serviceId, businessCode, userId 누락
+Header 오류
+IT-003
+미등록 ServiceId 테스트
+등록되지 않은 serviceId 요청
+Dispatcher 이전 차단
+IT-004
+업무코드 불일치 테스트
+URL /sv/online, Header businessCode=CM
+업무코드 불일치 오류
+IT-005
+세션 만료 테스트
+만료된 세션으로 요청
+인증 오류
+IT-006
+권한 없음 테스트
+권한 없는 ServiceId 호출
+권한 오류
+IT-007
+입력값 오류 테스트
+필수 Body 누락
+Validation 오류
+IT-008
+거래통제 차단 테스트
+미허용 거래 요청
+거래통제 오류
+IT-009
+중복요청 테스트
+동일 GUID 또는 IdempotencyKey 재요청
+중복요청 차단 또는 상태 반환
+IT-010
+DB 조회 테스트
+Mapper SQL 정상 실행
+Result Mapping 정상
+IT-011
+DB Timeout 테스트
+장시간 SQL 유도
+DB/TIME 오류
+IT-012
+외부연계 Timeout 테스트
+Downstream 응답 지연
+IF/TIME 오류
+IT-013
+업무 예외 테스트
+BusinessException 발생
+업무 오류코드 반환
+IT-014
+시스템 예외 테스트
+RuntimeException 발생
+시스템 오류코드 반환
+IT-015
+마스킹 테스트
+권한등급별 고객정보 응답
+마스킹 적용
+IT-016
+감사로그 테스트
+고객정보 조회/다운로드
+감사로그 생성
+IT-017
+거래로그 테스트
+정상/오류 거래 수행
+거래상태 갱신
+IT-018
+MDC 정리 테스트
+요청 완료 후 ThreadLocal 확인
+MDC 잔존 없음
+IT-019
+성능로그 테스트
+AP/DB/연계 처리시간 확인
+성능로그 기록
+IT-020
+Gateway 라우팅 테스트
+/gw/sv/online 호출
+SV 대상 WAS로 전달
+
+55.8 정상 요청 통합 테스트 기준
+55.8.1 요청 예시
+{
+  "header": {
+    "guid": "G202607050001",
+    "traceId": "T202607050001",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "serviceName": "고객요약조회",
+    "userId": "user001",
+    "channelId": "WEBTOP",
+    "branchId": "123456"
+  },
+  "body": {
+    "customerNo": "1234567890"
+  }
+}
+
+55.8.2 응답 예시
+{
+  "header": {
+    "guid": "G202607050001",
+    "traceId": "T202607050001",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV"
+  },
+  "result": {
+    "resultCode": "COM-0000",
+    "resultMessage": "정상",
+    "success": true
+  },
+  "body": {
+    "customerNo": "1234567890",
+    "customerName": "홍*동",
+    "customerGrade": "VIP"
+  }
+}
+
+
+55.9 정상 요청 검증 항목
+검증 영역
+검증 항목
+확인 방법
+HTTP
+Status 200
+응답 코드 확인
+표준 응답
+header + result + body 구조
+JSON Path 검증
+GUID
+요청 GUID와 응답 GUID 일치
+$.header.guid
+ServiceId
+요청 ServiceId와 응답 ServiceId 일치
+$.header.serviceId
+결과코드
+정상 코드 반환
+$.result.resultCode
+Body
+업무 응답 데이터 존재
+$.body.customerNo
+거래로그
+TCF_TX_LOG에 SUCCESS 저장
+DB 조회
+감사로그
+감사 대상이면 로그 생성
+OM_AUDIT_LOG 조회
+성능로그
+AP/DB 처리시간 기록
+로그 또는 DB 조회
+마스킹
+권한등급에 맞게 마스킹
+응답값 확인
+
+55.10 오류 요청 통합 테스트 기준
+오류 유형
+입력 조건
+기대 오류코드 예시
+Header 오류
+serviceId 없음
+E-TCF-HDR-0001
+미등록 서비스
+존재하지 않는 serviceId
+E-TCF-DSP-0001
+인증 오류
+세션 없음
+E-COM-AUTHN-0001
+권한 오류
+기능권한 없음
+E-COM-AUTHZ-0001
+거래통제 오류
+미허용 거래
+E-TCF-CTL-0001
+입력값 오류
+고객번호 없음
+E-SV-VAL-0001
+Timeout 오류
+처리시간 초과
+E-TCF-TIME-0001
+DB 오류
+SQL 오류
+E-SV-DB-0001
+업무 오류
+업무 조건 불만족
+E-SV-BIZ-0001
+시스템 오류
+RuntimeException
+E-COM-SYS-0001
+
+55.11 RestAssured 기반 통합 테스트 예시
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("stg")
+class SvCustomerIntegrationTest {
+
+    @LocalServerPort
+    int port;
+
+    @Test
+    void 고객요약조회_통합테스트_정상() {
+        Map<String, Object> request = Map.of(
+            "header", Map.of(
+                "guid", "G202607050001",
+                "traceId", "T202607050001",
+                "serviceId", "SV.Customer.selectSummary",
+                "transactionCode", "SV-INQ-0001",
+                "businessCode", "SV",
+                "serviceName", "고객요약조회",
+                "userId", "user001",
+                "channelId", "WEBTOP",
+                "branchId", "123456"
+            ),
+            "body", Map.of(
+                "customerNo", "1234567890"
+            )
+        );
+
+        given()
+            .port(port)
+            .contentType("application/json")
+            .cookie("JSESSIONID", "TEST_SESSION_ID")
+            .body(request)
+        .when()
+            .post("/sv/online")
+        .then()
+            .statusCode(200)
+            .body("header.serviceId", equalTo("SV.Customer.selectSummary"))
+            .body("header.businessCode", equalTo("SV"))
+            .body("result.resultCode", equalTo("COM-0000"))
+            .body("body.customerNo", equalTo("1234567890"));
+    }
+}
+
+
+55.12 MockMvc 기반 통합 테스트 예시
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("dev")
+class OmUserIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Test
+    void 사용자조회_통합테스트_정상() throws Exception {
+        String requestJson = """
+        {
+          "header": {
+            "guid": "G202607050002",
+            "traceId": "T202607050002",
+            "serviceId": "OM.User.inquiry",
+            "transactionCode": "OM-INQ-0001",
+            "businessCode": "OM",
+            "serviceName": "사용자조회",
+            "userId": "admin",
+            "channelId": "WEBTOP",
+            "branchId": "000000"
+          },
+          "body": {
+            "userName": "홍"
+          }
+        }
+        """;
+
+        mockMvc.perform(post("/om/online")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestJson)
+                .cookie(new Cookie("JSESSIONID", "TEST_SESSION_ID")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.header.serviceId").value("OM.User.inquiry"))
+            .andExpect(jsonPath("$.result.resultCode").value("COM-0000"));
+    }
+}
+
+
+55.13 거래로그 검증 기준
+통합 테스트에서는 응답만 확인하면 안 된다. 반드시 거래로그를 확인해야 한다.
+검증 항목
+기준
+거래 시작 로그
+요청 수신 시 PROCESSING 생성
+거래 종료 로그
+정상 완료 시 SUCCESS
+오류 거래
+오류 발생 시 FAIL
+Timeout 거래
+Timeout 발생 시 TIMEOUT 또는 UNKNOWN
+GUID
+요청 GUID와 거래로그 GUID 일치
+ServiceId
+요청 ServiceId와 거래로그 ServiceId 일치
+처리시간
+전체 처리시간 기록
+DB 시간
+DB 처리시간 기록
+연계 시간
+외부연계 처리시간 기록
+오류코드
+실패 시 표준 오류코드 저장
+SELECT GUID,
+       TRACE_ID,
+       SERVICE_ID,
+       TRANSACTION_CODE,
+       BUSINESS_CODE,
+       TX_STATUS,
+       RESULT_CODE,
+       ELAPSED_TIME_MS
+  FROM TCF_TX_LOG
+ WHERE GUID = 'G202607050001';
+
+
+55.14 DB / Mapper 통합 테스트 기준
+검증 항목
+기준
+Mapper XML 로딩
+Spring 기동 시 XML 오류 없어야 함
+SQL ID 매핑
+Mapper Interface 메서드와 XML ID 일치
+파라미터 바인딩
+요청 조건이 SQL 파라미터로 정상 전달
+Result Mapping
+컬럼이 DTO 필드에 정상 매핑
+트랜잭션
+등록/수정/삭제 실패 시 Rollback
+ReadOnly
+조회 거래는 ReadOnly 기준 적용
+Page Limit
+목록조회는 pageSize 제한 적용
+Timeout
+Query Timeout 기준 적용
+SQL Injection
+금지문자, 동적 SQL 검증
+NSIGHT Java 코딩 스타일 가이드는 MyBatis XML과 SQL ID 표준화, SQL 검증, 단위 테스트, 통합 테스트, SQL 실행계획 검증을 품질 통제 기준으로 둔다.
+
+55.15 세션 / 인증 / 권한 통합 테스트 기준
+테스트
+입력 조건
+기대 결과
+정상 세션
+유효한 JSESSIONID
+거래 정상 수행
+세션 없음
+Cookie 없음
+인증 오류
+세션 만료
+만료된 세션
+인증 오류
+사용자 불일치
+Header userId와 세션 userId 불일치
+인증 오류
+메뉴권한 없음
+메뉴 접근권한 없음
+권한 오류
+기능권한 없음
+다운로드/삭제 권한 없음
+권한 오류
+데이터권한 없음
+타 지점 고객 조회
+권한 오류 또는 마스킹
+관리자 권한
+OM 관리자 계정
+OM 기능 정상 수행
+전처리 요구사항에서도 모든 온라인 거래는 유효한 로그인 세션을 가져야 하며, 인증되지 않은 사용자는 업무 서비스를 호출할 수 없고, 메뉴권한·기능권한·데이터권한을 검증해야 한다고 정리되어 있다.
+
+55.16 Timeout 통합 테스트 기준
+Timeout 구분
+검증 내용
+기대 결과
+Online Timeout
+거래 전체 처리시간 초과
+E-TCF-TIME-*
+DB Query Timeout
+SQL 지연
+E-*-DB-* 또는 E-TCF-TIME-*
+외부연계 Timeout
+Downstream 응답 지연
+E-COM-IF-*
+Gateway Timeout
+업무 WAS 응답 지연
+E-GW-TIME-*
+Connection Timeout
+DB Connection 대기 초과
+시스템 오류 또는 DB Timeout
+Timeout 후 상태조회
+GUID 기준 상태 조회
+SUCCESS/FAIL/PROCESSING/UNKNOWN 반환
+Timeout은 WAS Thread 보호, DB Connection Pool 보호, 장시간 SQL 차단, 장애 전파 방지, 거래 상태 불명확 방지를 위한 핵심 운영 정책이다.
+
+55.17 Gateway 통합 테스트 기준
+테스트
+검증 내용
+기대 결과
+업무코드 라우팅
+/gw/sv/online 요청
+SV 업무 WAS로 전달
+Header 업무코드 일치
+Path SV, Header SV
+정상
+Header 업무코드 불일치
+Path SV, Header CM
+차단
+Route 미등록
+등록되지 않은 업무코드
+라우팅 오류
+Target Down
+대상 WAS 장애
+우회 또는 오류
+세션 Cookie 전달
+Gateway → 업무 WAR Cookie 전달
+세션 유지
+거래로그
+Gateway 거래로그와 업무 거래로그 연결
+TraceId 일치
+Timeout
+Downstream 지연
+Gateway Timeout 오류
+
+55.18 통합 테스트 데이터 기준
+데이터 유형
+기준
+사용자
+일반 사용자, 관리자, 권한 없는 사용자
+세션
+정상 세션, 만료 세션, 미존재 세션
+권한
+메뉴권한 있음/없음, 기능권한 있음/없음
+거래통제
+허용 거래, 차단 거래
+ServiceId
+등록 ServiceId, 미등록 ServiceId
+고객 데이터
+정상 고객, 미존재 고객, 타 지점 고객
+공통코드
+정상 코드, 미등록 코드
+Timeout 정책
+기본 정책, 짧은 Timeout 정책
+Gateway Route
+정상 Route, 미등록 Route, Down Target
+파일
+정상 파일, 대용량 파일, 권한 없는 파일
+
+55.19 통합 테스트 완료 기준
+구분
+완료 기준
+정상 거래
+주요 ServiceId 정상 응답
+오류 거래
+표준 오류코드 반환
+Header 검증
+필수 Header 누락/오류 검증
+세션 검증
+정상/만료/미존재 세션 검증
+권한 검증
+메뉴/기능/데이터권한 검증
+거래통제
+허용/차단 거래 검증
+Timeout
+Online/DB/외부연계 Timeout 검증
+DB 검증
+Mapper SQL 정상 실행
+거래로그
+PROCESSING → SUCCESS/FAIL/TIMEOUT 검증
+감사로그
+감사 대상 거래 로그 생성
+마스킹
+권한별 마스킹 결과 검증
+MDC
+요청 종료 후 MDC 정리
+CI/CD
+Pipeline에서 자동 실행
+결과보고
+테스트 결과표와 오류 목록 작성
+품질 Gate 기준에서도 통합 테스트는 전문 Header, GUID, 오류코드, 권한, 마스킹에 대한 End-to-End 정상/오류 시나리오 통과를 완료 기준으로 둔다.
+
+55.20 개발자 체크리스트
+점검 항목
+확인
+POST /{businessCode}/online 기준으로 테스트했는가?
+
+StandardRequest.header + body 구조로 요청했는가?
+
+정상 응답의 StandardResponse.header + result + body를 검증했는가?
+
+serviceId 기준 Handler 실행을 확인했는가?
+
+Header 필수값 누락 테스트를 수행했는가?
+
+세션 없음/만료 테스트를 수행했는가?
+
+권한 없음 테스트를 수행했는가?
+
+거래통제 차단 테스트를 수행했는가?
+
+DB Mapper SQL 실행을 확인했는가?
+
+Timeout 테스트를 수행했는가?
+
+거래로그 상태를 DB에서 확인했는가?
+
+감사로그 생성 여부를 확인했는가?
+
+마스킹 결과를 확인했는가?
+
+MDC/ThreadLocal 정리를 확인했는가?
+
+CI/CD에서 자동 실행 가능한가?
+
+
+55.21 마무리말
+NSIGHT 통합 테스트의 핵심은 업무 프로그램 하나가 정상 동작하는지가 아니라, TCF 공통 파이프라인과 업무 계층, DB, 로그, 보안, Timeout이 하나의 거래로 연결되어 정상 동작하는지 증명하는 것이다.
+통합 테스트
+= HTTP 표준 전문 호출
++ TCF 전처리 검증
++ ServiceId Dispatcher 검증
++ 업무 Handler 실행 검증
++ DB/Mapper 검증
++ ETF 표준 응답 검증
++ 거래로그/감사로그 검증
++ Timeout/권한/마스킹 검증
+
+55.22 시사점
+단위 테스트가 코드 내부의 책임을 검증한다면, 통합 테스트는 NSIGHT 거래 실행 구조 전체가 운영 가능한지를 검증한다.
+따라서 NSIGHT 개발가이드의 통합 테스트 기준은 다음 한 문장으로 정리할 수 있다.
+요청 전문 한 건이 들어와서 응답 전문 한 건으로 끝날 때까지, Header·세션·권한·거래통제·업무처리·DB·로그·오류코드가 모두 연결되어야 한다.
+

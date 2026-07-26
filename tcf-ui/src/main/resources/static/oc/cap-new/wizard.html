@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NSIGHT OC · NEW 용량산정 Wizard</title>
+  <script src="/_shared/ui-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/oc-cap-new.css?v=20260712e">
+</head>
+<body class="tcf-home oc-capnew-page">
+  <div class="tcf-main">
+    <header class="tcf-topbar oc-capnew-topbar">
+      <nav class="tcf-topbar__nav oc-capnew-topbar__nav" aria-label="OC 화면">
+        <a class="tcf-topbar__link" href="/index.html#moduleSection">TCF UI</a>
+        <a class="tcf-topbar__link" href="/oc/index.html">OC 포털</a>
+        <a class="tcf-topbar__link" href="/oc/capacity.html">용량 산정</a>
+        <a class="tcf-topbar__link tcf-topbar__link--active" href="/oc/cap-new/index.html">NEW 용량산정</a>
+        <a class="tcf-topbar__link" href="/oc/env-001.html">ENV</a>
+        <a class="tcf-topbar__link" href="/help.html">HELP</a>
+        <span class="badge">CAP-NEW</span>
+      </nav>
+      <div class="tcf-topbar__brand">
+        <h1 id="wizardTitle">NEW 용량산정 Wizard</h1>
+        <p>① 기본정보 → ② 사용자 → ③ TPS → ④ VM → ⑤ AP/DR → ⑥ WAS → ⑦ DB → ⑧ 결과</p>
+      </div>
+    </header>
+
+    <section class="tcf-section oc-capnew-wizard">
+      <header class="oc-capnew-wizard-head">
+        <div id="wizardContextBar" class="oc-capnew-context-bar" hidden></div>
+        <div id="capNewMsg" class="oc-capnew-msg" hidden></div>
+        <div id="cascadeImpactPanel" class="oc-capnew-cascade-host" hidden></div>
+        <p class="oc-capnew-track-legend" aria-label="단계 상태 범례">
+          <span><span class="oc-capnew-wizard-track__mark">●</span> 현재</span>
+          <span><span class="oc-capnew-wizard-track__mark">✓</span> 완료</span>
+          <span><span class="oc-capnew-wizard-track__mark">!</span> 주의</span>
+          <span><span class="oc-capnew-wizard-track__mark">×</span> 오류·미입력</span>
+          <span><span class="oc-capnew-wizard-track__mark">○</span> 대기</span>
+        </p>
+        <ol id="wizardTrack" class="oc-capnew-wizard-track" aria-label="Wizard 단계"></ol>
+        <nav class="oc-capnew-actions oc-capnew-actions--top" aria-label="Wizard 이동">
+          <button type="button" id="btnPrev" class="tcf-btn tcf-btn--ghost">이전</button>
+          <div class="oc-capnew-actions__right">
+            <button type="button" id="btnSave" class="tcf-btn tcf-btn--ghost">임시저장</button>
+            <button type="button" id="btnNext" class="tcf-btn">다음 단계</button>
+          </div>
+        </nav>
+      </header>
+      <div id="wizardPanel" class="oc-capnew-panel">
+        <p>시나리오를 불러오는 중…</p>
+      </div>
+    </section>
+  </div>
+  <script src="/_shared/oc-cap-new-api.js"></script>
+  <script src="/_shared/oc-cap-new-export.js"></script>
+  <script src="/_shared/oc-cap-new-env-handoff.js"></script>
+  <script src="/_shared/oc-cap-new-legacy-compare.js"></script>
+  <script src="/_shared/oc-cap-new-vm-compare.js"></script>
+  <script src="/_shared/oc-cap-new-wizard.js"></script>
+</body>
+</html>

@@ -1,0 +1,913 @@
+59. 성능 테스트 기준
+59.1 도입 전 안내말
+NSIGHT TCF Framework에서 성능 테스트는 단순히 “TPS가 몇 건 나오는가”를 확인하는 시험이 아니다.성능 테스트는 표준 전문 기반 거래가 실제 운영 부하에서 p95 3초 이내로 처리되고, Tomcat Thread, JVM Heap, Hikari Pool, DB SQL, SESSIONDB, Gateway, Apache가 함께 안정적으로 버티는지 검증하는 절차이다.
+NSIGHT 기준 성능 목표는 6,000지점 × 6명 = 36,000명, 설계 세션 43,200개, 피크 동시요청률 10% 기준 1,200 TPS, 목표 응답시간 p95 3초, Busy Thread 70% 이하, Heap 70% 이하, Hikari Pool 70~80% 이하로 정리되어 있다.
+성능 테스트
+= TPS 검증
++ p95 / p99 응답시간 검증
++ 오류율 검증
++ Tomcat Thread 검증
++ JVM Heap / GC 검증
++ Hikari Pool 검증
++ MyBatis SQL Time 검증
++ DB Session 검증
++ SESSIONDB 검증
++ Gateway / Apache / L4 분산 검증
++ 거래로그 / 성능로그 추적 검증
+
+
+59.2 성능 테스트 기준 결론
+구분
+기준
+테스트 목적
+피크 부하에서 NSIGHT 거래가 운영 목표 내에서 안정적으로 처리되는지 검증
+기준 업무
+대표 ServiceId 기준 거래
+기본 호출
+POST /{businessCode}/online
+실행 방식
+HTTP/JSON 표준 전문 + ServiceId Dispatcher
+핵심 목표
+1,200 TPS, p95 3초 이하
+스트레스 기준
+1,800 TPS까지 증가하여 병목 식별
+오류율
+피크 기준 1% 이하
+Thread 기준
+Busy Thread 70% 이하 권장
+JVM 기준
+Heap 사용률 70% 이하 권장
+DB Pool 기준
+Hikari Pool 사용률 70~80% 이하
+SQL 기준
+RDW 주요 SQL p95 500ms 이하, Query Timeout 3초 기준
+테스트 환경
+stg 성능 테스트 환경
+완료 기준
+TPS, p95, 오류율, 자원 사용률, 거래로그 추적성 기준 통과
+NSIGHT 품질 Gate에서도 성능 테스트의 검증 항목을 TPS, 응답시간, Thread, Pool, GC, SQL Time으로 두고, 목표 p95, 오류율, 자원 임계 충족을 완료 기준으로 정의한다.
+
+59.3 성능 테스트 대상 범위
+[부하 발생기 / JMeter / nGrinder / Gatling]
+        ↓
+[GSLB]
+        ↓
+[L4]
+        ↓
+[Apache]
+        ↓
+[tcf-gateway 또는 Tomcat 업무 WAR]
+        ↓
+[TCF]
+ STF → Dispatcher → Handler → Facade → Service → Rule → DAO/Mapper → ETF
+        ↓
+[HikariCP]
+        ↓
+[RDW / ADW / SESSIONDB / LOGDB]
+        ↓
+[거래로그 / 성능로그 / 감사로그 / APM]
+
+계층
+검증 대상
+GSLB / L4
+센터 분산, 서버 분산, 장애 시 우회
+Apache
+Reverse Proxy, KeepAlive, Worker, Timeout
+Gateway
+업무코드 라우팅, Downstream 응답시간, Gateway Timeout
+Tomcat
+maxThreads, Busy Thread, acceptCount, Connection
+Spring Boot
+TCF 처리시간, Transaction Timeout, 응답 조립
+TCF
+Header 검증, 거래통제, Timeout, 거래로그
+Handler 계층
+Handler → Facade → Service → Rule 처리시간
+DAO / Mapper
+SQL 실행시간, Result Mapping
+HikariCP
+Active, Idle, Wait, Timeout
+DB
+SQL Time, Lock, Session, CPU, I/O
+SESSIONDB
+세션 조회/갱신 응답시간
+JVM
+Heap, GC Pause, Metaspace, Thread Stack
+로그
+GUID, TraceId, ServiceId, SQL ID 추적
+성능·장애 검증 계획에서도 검증 범위를 사용자 → GSLB → L4 → Apache → Tomcat/Spring Boot → TCF → Handler/Service/DAO/Mapper → HikariCP → RDW/ADW/SESSIONDB/LOGDB로 정의하고 있다.
+
+59.4 성능 테스트 유형
+테스트 유형
+목적
+기준
+단건 응답 테스트
+대표 거래 1건의 기본 응답시간 확인
+p95 이전 평균 응답시간 확인
+기준 부하 테스트
+정상 운영 부하 확인
+600 TPS
+피크 부하 테스트
+피크 목표 검증
+1,200 TPS
+스트레스 테스트
+한계와 병목 식별
+1,800 TPS까지 증가
+장시간 테스트
+메모리 누수, Pool 누수 확인
+2~4시간 이상
+Spike 테스트
+순간 부하 증가 대응 확인
+급격한 TPS 상승
+Endurance 테스트
+장시간 안정성 확인
+업무 기준 4~8시간
+Failover 성능 테스트
+장애 후 잔여 처리량 확인
+센터/WAS 장애
+배포 중 성능 테스트
+Rolling Deploy 중 영향 확인
+일부 WAS 제외
+DB 지연 테스트
+SQL 지연 시 Thread/Pool 보호 확인
+Timeout 정상 작동
+
+59.5 성능 목표 기준
+59.5.1 기준 TPS
+시나리오
+동시요청률
+목표 TPS
+테스트 목적
+기본 운영
+3%
+360 TPS
+평상시 부하 검증
+기준 운영
+5%
+600 TPS
+일반 피크 전 운영 기준
+피크 운영
+10%
+1,200 TPS
+핵심 합격 기준
+스트레스
+15%
+1,800 TPS
+한계와 병목 확인
+NSIGHT 용량산정 보고서도 6,000지점 기준 전체 사용자를 36,000명으로 두고, 동시 요청률 3%, 5%, 10%, 15%를 적용하면 목표 응답시간 3초 기준 각각 360 / 600 / 1,200 / 1,800 TPS가 산정된다고 정의한다.
+
+59.5.2 합격 기준
+항목
+합격 기준
+조건부 기준
+보완 필요 기준
+TPS
+1,200 TPS 이상
+1,200 TPS 근접
+1,200 TPS 미달
+p95 응답시간
+3초 이하
+일부 거래 3초 초과
+다수 거래 3초 초과
+p99 응답시간
+5초 이하 권장
+5~8초
+8초 초과
+오류율
+1% 이하
+1~3%
+3% 초과
+Busy Thread
+70% 이하
+70~80%
+80% 초과
+Heap 사용률
+70% 이하
+70~80%
+80% 초과
+Hikari Pool
+70~80% 이하
+80~90%
+90% 이상 또는 Timeout
+GC Pause
+p95 응답시간에 영향 없음
+일부 지연
+응답시간 급증
+DB SQL Time
+RDW 주요 SQL p95 500ms 이하
+일부 SQL 지연
+Slow SQL 다수
+DB Session
+상한 내 안정
+상한 근접
+Session 고갈
+거래로그
+GUID 기준 추적 가능
+일부 누락
+추적 불가
+성능·장애 검증 계획의 PMO 판단 기준도 피크 1,200 TPS에서 p95 3초 이하, 오류율 1% 이하, 주요 자원 70~80% 이하를 합격 기준으로 둔다.
+
+59.6 성능 테스트 환경 기준
+환경
+기준
+Profile
+stg
+서버 구성
+운영과 동일하거나 축소 비율 명확화
+DB
+성능 테스트용 RDW/ADW/SESSIONDB
+데이터
+운영 유사 건수, 분포, 인덱스
+로그
+성능로그, 거래로그, SQL Time 로그 활성
+APM
+JVM, Thread, DB Pool, SQL 추적 가능
+부하 도구
+JMeter, nGrinder, Gatling 중 선택
+네트워크
+운영망과 유사한 경로
+배포 방식
+운영 배포 방식과 동일한 WAR 구조
+테스트 계정
+권한/지점/채널별 테스트 계정 준비
+Spring Profile 기준에서도 stg는 통합 테스트 / 성능 테스트 용도이며, 운영 유사 설정과 성능 로그 활성화를 기준으로 한다.
+
+59.7 대표 거래 선정 기준
+성능 테스트는 모든 ServiceId를 동일 비중으로 때리는 것이 아니라, 운영 부하를 대표하는 거래를 선정해야 한다.
+거래 유형
+대표 ServiceId 예시
+테스트 목적
+단건 조회
+SV.Customer.selectSummary
+Single View 핵심 조회
+목록 조회
+SV.Customer.inquiry
+Paging / SQL 응답 확인
+캠페인 조회
+CM.Campaign.inquiry
+조건검색 성능 확인
+OM 조회
+OM.User.inquiry
+운영관리 조회
+공통코드 조회
+OM.CommonCode.inquiry
+Cache 효과 확인
+거래통제 조회
+OM.TransactionControl.inquiry
+기준정보 조회
+파일 다운로드
+UD.File.download
+대용량/감사/권한 영향 확인
+외부연계 호출
+IC.Customer.callSvSummary
+Downstream 지연 영향 확인
+JWT 발급
+JWT.Auth.ssoIssue
+인증 부하 확인
+배치성 조회
+ADW.Report.inquiry
+ADW 분리 영향 확인
+
+59.8 부하 모델 기준
+59.8.1 기본 부하 비율
+거래 유형
+비율
+설명
+단건 조회
+50%
+고객 요약, 고객 상세
+목록 조회
+20%
+조건검색, Paging
+공통/코드 조회
+10%
+공통코드, 메뉴, 권한
+OM 조회
+5%
+운영관리 조회
+등록/수정
+5%
+기준정보, 캠페인 등록
+외부연계
+5%
+업무 간 호출
+파일/다운로드
+3%
+리포트, 엑셀
+오류/권한 실패
+2%
+표준 오류 응답 검증
+59.8.2 부하 증가 단계
+단계
+목표 TPS
+유지 시간
+목적
+1
+100 TPS
+10분
+Warm-up
+2
+360 TPS
+20분
+평상시 부하
+3
+600 TPS
+30분
+기준 운영 부하
+4
+1,200 TPS
+60분
+피크 합격 기준
+5
+1,800 TPS
+30분
+스트레스 병목 확인
+6
+600 TPS
+20분
+복귀 후 안정성 확인
+
+59.9 성능 측정 지표
+구분
+측정 항목
+기준
+처리량
+TPS
+목표 1,200 TPS
+응답시간
+평균, p90, p95, p99
+p95 3초 이하
+오류율
+HTTP 오류 + 업무 오류
+피크 1% 이하
+Tomcat
+Active Thread, Busy Thread
+70% 이하
+Tomcat
+acceptCount 대기
+지속 증가 금지
+JVM
+Heap 사용률
+70% 이하
+JVM
+GC Pause
+응답시간 영향 없어야 함
+Hikari
+Active Connection
+70~80% 이하
+Hikari
+Pending Thread
+지속 발생 금지
+Hikari
+Connection Timeout
+0건 목표
+DB
+SQL Time
+RDW 주요 SQL p95 500ms 이하
+DB
+Lock Wait
+지속 발생 금지
+Session
+SESSIONDB 응답시간
+세션 조회 지연 없어야 함
+Gateway
+Downstream Time
+Timeout 전 정상 반환
+Apache
+Busy Worker
+70% 이하 권장
+로그
+거래로그 누락
+0건
+
+59.10 TCF 구간별 성능 기준
+TCF 거래는 하나의 응답시간 안에 여러 구간이 포함된다.따라서 전체 p95만 보면 안 되고, 각 구간을 분리해서 측정해야 한다.
+구간
+측정 항목
+권장 기준
+Controller / Gateway
+요청 수신 시간
+50ms 이하
+STF 전처리
+Header, 세션, 권한, 거래통제
+100ms 이하
+Dispatcher
+ServiceId → Handler 탐색
+10ms 이하
+Handler
+Body 변환, Facade 호출
+30ms 이하
+Service / Rule
+업무 로직
+200ms 이하
+DAO / Mapper
+SQL 호출 준비
+20ms 이하
+RDW SQL
+단건/소량 조회
+p95 500ms 이하
+ADW SQL
+분석/집계 조회
+Timeout 5초 내
+ETF 후처리
+응답 조립, 마스킹, 로그
+100ms 이하
+거래로그 Insert/Update
+LOGDB 기록
+지연 최소화
+전체 거래
+End-to-End
+p95 3초 이하
+TCF 구조는 STF.preProcess()에서 Header, 세션, 권한, 거래통제, Timeout, 거래로그를 처리하고, Dispatcher가 ServiceId 기준 Handler를 선택한 뒤, ETF에서 표준 응답과 성능 메트릭, 거래 종료 로그를 처리한다.
+
+59.11 SQL 성능 테스트 기준
+항목
+기준
+단건 조회
+인덱스 기반 조회
+목록 조회
+Paging 필수
+Count SQL
+목록 SQL과 분리
+RDW SQL
+p95 500ms 이하 목표
+ADW SQL
+Query Timeout 5초 기준
+Full Scan
+온라인 RDW 거래 원칙 금지
+Sort
+불필요 Sort 제거
+Join
+대량 테이블 Join 주의
+SQL ID
+성능로그에 기록
+실행계획
+주요 SQL Explain Plan 확인
+용량산정 보고서에서도 최종 산정값은 선도개발과 성능테스트를 통해 AP 1대당 실측 TPS, DB SQL 응답시간, GC Pause, Thread 사용률, DB Pool 사용률을 확인한 뒤 보정해야 한다고 정리한다.
+
+59.12 HikariCP / DB Pool 성능 테스트 기준
+검증 항목
+기준
+Active Connection
+70~80% 이하
+Idle Connection
+최소 Idle 유지
+Pending Thread
+지속 대기 없음
+Connection Timeout
+0건 목표
+Pool 사용률 급증
+SQL 지연 또는 Pool 부족 원인 분석
+Pool 과대 설정
+DB Session 상한 초과 금지
+RDW Pool
+실시간 조회 중심
+ADW Pool
+분석/집계 분리
+SESSIONDB Pool
+세션 조회/갱신 안정
+LOGDB Pool
+거래로그 기록 지연 없음
+DB Connection Pool은 AP Thread 수와 동일하게 크게 잡으면 안 되며, AP 수량 증가 시 DB Session 상한을 함께 검토해야 한다. 용량산정 보고서도 TPS 증가 시 Pool 총량과 RDW DB의 허용 Session, Active Session, CPU, I/O, SQL 수행시간을 함께 검토해야 한다고 정리한다.
+
+59.13 JVM / GC 성능 테스트 기준
+항목
+기준
+Heap 사용률
+70% 이하 권장
+Old 영역 증가
+지속 증가 시 Memory Leak 의심
+Full GC
+발생 최소화
+GC Pause
+p95 응답시간에 영향 없어야 함
+Metaspace
+WAR 수 증가에 따른 사용량 확인
+Thread Stack
+Thread 증가 시 메모리 영향 확인
+Heap Dump
+OOM 발생 시 자동 생성
+GC Log
+테스트 기간 전체 수집
+객체 생성량
+DTO/Map 과다 생성 확인
+대용량 응답
+Streaming 또는 Paging 분리
+
+59.14 Tomcat Thread 성능 테스트 기준
+항목
+기준
+maxThreads
+성능시험으로 적정값 보정
+Busy Thread
+70% 이하 권장
+minSpareThreads
+피크 전 여유 Thread 확보
+acceptCount
+지속 증가 금지
+Connection Timeout
+장시간 점유 방지
+KeepAliveTimeout
+과다 설정 금지
+Thread Dump
+지연 시 즉시 확보
+Blocking 원인
+DB, 외부연계, Lock, File I/O 구분
+Thread-to-Pool 비율
+DB Pool과 과도한 불균형 금지
+Thread 사용률이 높지만 DB Pool은 낮으면 애플리케이션 로직, 외부연계, Lock, 파일 처리 병목을 의심한다. Thread와 DB Pool이 동시에 높으면 DB SQL, Connection Pool, DB Session 병목을 우선 확인한다.
+
+59.15 Timeout 성능 테스트 기준
+Timeout 구분
+권장 기준
+검증 내용
+Online Transaction Timeout
+5초
+전체 거래 지연 차단
+Spring Transaction Timeout
+5초
+DB 트랜잭션 장기 점유 차단
+MyBatis Query Timeout
+3초
+RDW 장시간 SQL 차단
+External Connect Timeout
+3초
+외부연계 연결 지연 차단
+External Read Timeout
+5초
+외부연계 응답 지연 차단
+Hikari Connection Timeout
+3초
+Pool 대기 지연 차단
+Timeout 설계 기준에서도 온라인 거래, DB 트랜잭션, SQL 실행, 외부 연계, Gateway 호출 구간의 Timeout은 WAS Thread 보호, DB Pool 보호, 장애 전파 방지를 위한 핵심 운영 정책으로 정의된다. 또한 설정 예시는 온라인 Timeout 5초, DB Query Timeout 3초, 외부 연결 Timeout 3000ms, 외부 Read Timeout 5000ms를 기준으로 둔다.
+
+59.16 성능 테스트 시나리오
+테스트 ID
+테스트명
+목표
+합격 기준
+PERF-001
+단건 응답시간
+대표 ServiceId 단건 응답
+정상 응답, SQL 정상
+PERF-002
+360 TPS 부하
+평상시 부하
+p95 3초 이하
+PERF-003
+600 TPS 부하
+기준 운영 부하
+자원 70% 이하
+PERF-004
+1,200 TPS 피크
+피크 합격 기준
+p95 3초 이하, 오류율 1% 이하
+PERF-005
+1,800 TPS 스트레스
+병목 식별
+시스템 다운 없이 병목 확인
+PERF-006
+2시간 지속 부하
+안정성 검증
+Heap/Pool 누수 없음
+PERF-007
+Spike 부하
+순간 급증 검증
+복구 가능
+PERF-008
+SQL 지연
+Query Timeout 검증
+Thread/Pool 고갈 없음
+PERF-009
+외부연계 지연
+연계 Timeout 검증
+장애 전파 없음
+PERF-010
+SESSIONDB 부하
+세션 조회/갱신 검증
+세션 지연 없음
+PERF-011
+Gateway 부하
+라우팅 성능 검증
+Downstream 지연 추적
+PERF-012
+파일 다운로드 부하
+파일 처리 영향 검증
+업무 Thread 영향 제한
+PERF-013
+배포 중 부하
+Rolling Deploy 영향 확인
+서비스 지속
+PERF-014
+센터 장애 부하
+잔여 센터 처리 검증
+목표 TPS 감당
+PERF-015
+복구 후 부하
+재기동 후 안정성 확인
+거래 정상화
+성능·장애 검증 계획도 수행 순서를 단위 성능 확인, 단일 WAS 부하, 다중 WAS 부하, 피크 성능, 스트레스, 장애 주입, 복구·롤백, 결과 보고로 제시한다.
+
+59.17 성능 테스트 수행 순서
+1단계. 테스트 환경 점검
+ - stg profile 확인
+ - DB / SESSIONDB / LOGDB 연결 확인
+ - Actuator / Metrics / APM 확인
+
+2단계. 테스트 데이터 준비
+ - 사용자 / 세션 / 권한 / 고객 데이터 준비
+ - ServiceId / 거래통제 / Timeout 정책 등록
+
+3단계. 단건 응답 확인
+ - 대표 ServiceId 단건 호출
+ - 거래로그 / SQL 로그 확인
+
+4단계. 기준 부하 테스트
+ - 360 TPS → 600 TPS 순차 증가
+ - Thread / Pool / Heap 안정성 확인
+
+5단계. 피크 부하 테스트
+ - 1,200 TPS 60분 유지
+ - p95 3초, 오류율 1% 이하 확인
+
+6단계. 스트레스 테스트
+ - 1,800 TPS까지 증가
+ - 병목 계층 식별
+
+7단계. 장시간 테스트
+ - Heap / Pool / Session 누수 확인
+
+8단계. 장애 연계 성능 테스트
+ - WAS / DB / 외부연계 지연 주입
+ - Timeout / Failover 확인
+
+9단계. 결과 분석
+ - TPS, p95, 오류율, 자원 사용률, 병목 정리
+
+10단계. 튜닝 및 재검증
+ - 설정 변경 전/후 비교
+
+
+59.18 부하 테스트 스크립트 기준
+항목
+기준
+도구
+JMeter, nGrinder, Gatling 중 선택
+요청 방식
+HTTP POST
+Content-Type
+application/json; charset=UTF-8
+URL
+/sv/online, /om/online, /gw/sv/online
+Body
+StandardRequest.header + body
+GUID
+요청마다 유일하게 생성
+TraceId
+시나리오별 추적 가능하게 생성
+세션
+로그인 후 JSESSIONID 재사용
+사용자
+다중 사용자 계정 사용
+Think Time
+실제 사용자 패턴 반영
+Ramp-up
+급격한 시작 금지
+Assertion
+HTTP 200 + resultCode 검증
+결과 저장
+TPS, p95, 오류율, GUID 샘플 저장
+
+59.19 성능 로그 기준
+성능 테스트에서는 응답시간만 저장하지 말고 구간별 시간을 남겨야 한다.
+로그 항목
+설명
+guid
+거래 추적 ID
+traceId
+End-to-End 추적 ID
+serviceId
+실행 ServiceId
+transactionCode
+거래코드
+businessCode
+업무코드
+totalElapsedMs
+전체 처리시간
+stfElapsedMs
+전처리 시간
+dispatchElapsedMs
+Dispatcher 시간
+businessElapsedMs
+업무 처리 시간
+sqlElapsedMs
+DB SQL 시간
+externalElapsedMs
+외부연계 시간
+etfElapsedMs
+후처리 시간
+resultCode
+결과코드
+errorCode
+오류코드
+threadName
+처리 Thread
+dbType
+RDW/ADW/SESSIONDB/LOGDB
+sqlId
+Mapper SQL ID
+
+59.20 병목 판단 기준
+현상
+의심 원인
+우선 조치
+TPS 증가 안 됨
+Thread, DB, CPU 병목
+Thread Dump, APM 확인
+p95만 급증
+일부 SQL 또는 외부연계 지연
+Slow SQL, 연계 Time 확인
+p99 급증
+GC, Lock, 네트워크 지연
+GC Log, DB Lock 확인
+오류율 증가
+Timeout, Pool 고갈
+오류코드 분포 확인
+Busy Thread 80% 이상
+DB/외부연계 대기
+Thread Dump 확인
+Hikari Pending 증가
+Pool 부족 또는 SQL 지연
+SQL Time, Active Session 확인
+CPU 80% 이상 지속
+로직/암호화/JSON 처리 과다
+Hot Method 확인
+Heap 지속 증가
+Memory Leak
+Heap Dump 분석
+Full GC 발생
+Heap 부족 또는 객체 과다
+GC Log 분석
+DB CPU 증가
+SQL 비효율
+실행계획 확인
+SESSIONDB 지연
+세션 조회/갱신 과다
+세션 테이블 Index 확인
+Gateway 지연
+Downstream 지연
+Route별 응답시간 확인
+
+59.21 성능 테스트 결과표
+항목
+결과
+테스트 ID
+PERF-004
+테스트명
+1,200 TPS 피크 부하 테스트
+환경
+stg
+테스트 일시
+2026-07-05 20:00
+대상 업무
+SV
+대표 ServiceId
+SV.Customer.selectSummary
+목표 TPS
+1,200 TPS
+실측 TPS
+1,215 TPS
+평균 응답시간
+820ms
+p95 응답시간
+2.4초
+p99 응답시간
+4.1초
+오류율
+0.3%
+Busy Thread
+62%
+Heap 사용률
+58%
+Hikari Pool 사용률
+71%
+DB SQL p95
+420ms
+GC Pause
+영향 없음
+거래로그 누락
+0건
+판정
+PASS
+비고
+일부 OM 조회 SQL 개선 권고
+
+59.22 최종 산출물
+산출물
+내용
+성능시험 계획서
+목표, 범위, 환경, 일정, 담당자
+부하 시나리오 정의서
+사용자 수, TPS, 거래 비율, Ramp-up
+부하 테스트 스크립트
+JMeter/nGrinder/Gatling 스크립트
+테스트 데이터 목록
+사용자, 세션, 고객, 권한, 거래통제 데이터
+성능시험 결과서
+TPS, p95, 오류율, 자원 사용률
+구간별 성능 분석표
+STF, Business, SQL, ETF 구간
+SQL 성능 분석표
+SQL ID, p95, 실행계획
+JVM/GC 분석표
+Heap, GC Pause, Full GC
+Thread/Pool 분석표
+Thread, Hikari, DB Session
+병목 분석 보고서
+원인, 증적, 개선안
+튜닝 조치표
+변경 전/후 비교
+PMO 보고 요약본
+합격/조건부 합격/보완 필요
+성능·장애 검증 계획에서도 최종 산출물로 성능시험 계획서, 부하 시나리오 스크립트, 성능시험 결과서, 병목 분석 보고서, 튜닝 조치표, 운영 전환 체크리스트, PMO 보고 요약본을 제시한다.
+
+59.23 개발자 체크리스트
+점검 항목
+확인
+대표 ServiceId가 성능 테스트 대상에 포함되었는가?
+
+요청마다 GUID가 유일하게 생성되는가?
+
+성능 테스트 요청이 표준 전문 구조를 사용하는가?
+
+resultCode 기준 Assertion이 있는가?
+
+p95, p99, 오류율을 측정하는가?
+
+Tomcat Busy Thread를 측정하는가?
+
+Hikari Active / Pending / Timeout을 측정하는가?
+
+JVM Heap / GC Pause를 측정하는가?
+
+SQL ID별 실행시간을 수집하는가?
+
+RDW/ADW/SESSIONDB별 성능을 분리해서 보는가?
+
+거래로그 누락 여부를 확인하는가?
+
+Timeout 발생 시 Thread/Pool이 회복되는가?
+
+1,200 TPS 피크 테스트를 수행했는가?
+
+1,800 TPS 스트레스 테스트로 병목을 찾았는가?
+
+테스트 결과를 설정 변경 전/후로 비교했는가?
+
+
+59.24 성능 테스트 완료 기준
+구분
+완료 기준
+기준 부하
+600 TPS 안정 처리
+피크 부하
+1,200 TPS, p95 3초 이하
+스트레스
+1,800 TPS에서 병목 식별
+오류율
+피크 기준 1% 이하
+Thread
+Busy Thread 70% 이하 권장
+JVM
+Heap 70% 이하, GC 영향 없음
+Pool
+Hikari 70~80% 이하, Timeout 없음
+SQL
+주요 RDW SQL p95 500ms 이하
+Session
+SESSIONDB 지연 없음
+Gateway
+라우팅 지연과 Timeout 없음
+거래로그
+GUID 기준 100% 추적 가능
+장애 연계
+지연/장애 후 자원 회복 가능
+보고
+결과서, 병목 분석, 튜닝 조치표 작성
+
+59.25 마무리말
+NSIGHT 성능 테스트의 핵심은 TPS 숫자 하나가 아니다.TPS가 나와도 p95가 깨지거나, Thread가 고갈되거나, Hikari Pool이 대기하거나, DB SQL이 느리거나, 거래로그가 누락되면 운영 가능한 성능이라고 볼 수 없다.
+성능 테스트 완료
+= 1,200 TPS 달성
++ p95 3초 이하
++ 오류율 1% 이하
++ Thread / Heap / Pool 안정
++ SQL Time 안정
++ GC 영향 없음
++ Timeout 정상 작동
++ GUID 기준 거래 추적 가능
+
+59.26 시사점
+NSIGHT는 Apache + Gateway + Tomcat + TCF + MyBatis + HikariCP + RDW/ADW + SESSIONDB가 결합된 구조다.따라서 성능 테스트는 어느 한 계층의 부하 테스트가 아니라 계층 간 정합성 검증이어야 한다. NSIGHT 통합 운영 매뉴얼도 17개 WAR, 다중 WAS, RDW/ADW/SESSIONDB, L4/GSLB가 결합된 구조에서는 한 계층만 튜닝해서 안정성을 확보하기 어렵고, Timeout·Thread·Pool·Session 기준을 하나의 운영 표준으로 묶어야 한다고 정리한다.
+성능 테스트의 최종 기준은 “1,200 TPS에서 p95 3초를 만족하면서도 Thread, Heap, Pool, SQL, 세션, 거래로그가 모두 운영 기준 안에 있는가”이다.
+

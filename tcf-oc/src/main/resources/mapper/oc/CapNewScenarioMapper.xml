@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nh.nsight.marketing.oc.capnew.persistence.mapper.CapNewScenarioMapper">
+
+    <select id="selectAll" resultType="com.nh.nsight.marketing.oc.capnew.persistence.dto.CapNewScenarioRow">
+        SELECT
+            SCENARIO_ID,
+            PROJECT_ID,
+            PROJECT_NAME,
+            SCENARIO_NAME,
+            TARGET_ENV,
+            CAST(BASE_DATE AS VARCHAR) AS BASE_DATE,
+            VERSION_NO,
+            AUTHOR,
+            DESCRIPTION,
+            PURPOSE,
+            STATUS,
+            CURRENT_STEP,
+            STEP_PAYLOAD,
+            CAST(CREATED_AT AS VARCHAR) AS CREATED_AT,
+            CAST(UPDATED_AT AS VARCHAR) AS UPDATED_AT
+        FROM CAP_NEW_SCENARIO
+        ORDER BY UPDATED_AT DESC
+    </select>
+
+    <select id="selectById" resultType="com.nh.nsight.marketing.oc.capnew.persistence.dto.CapNewScenarioRow">
+        SELECT
+            SCENARIO_ID,
+            PROJECT_ID,
+            PROJECT_NAME,
+            SCENARIO_NAME,
+            TARGET_ENV,
+            CAST(BASE_DATE AS VARCHAR) AS BASE_DATE,
+            VERSION_NO,
+            AUTHOR,
+            DESCRIPTION,
+            PURPOSE,
+            STATUS,
+            CURRENT_STEP,
+            STEP_PAYLOAD,
+            CAST(CREATED_AT AS VARCHAR) AS CREATED_AT,
+            CAST(UPDATED_AT AS VARCHAR) AS UPDATED_AT
+        FROM CAP_NEW_SCENARIO
+        WHERE SCENARIO_ID = #{scenarioId}
+    </select>
+
+    <insert id="insert" parameterType="com.nh.nsight.marketing.oc.capnew.persistence.dto.CapNewScenarioRow">
+        INSERT INTO CAP_NEW_SCENARIO (
+            SCENARIO_ID, PROJECT_ID, PROJECT_NAME, SCENARIO_NAME,
+            TARGET_ENV, BASE_DATE, VERSION_NO, AUTHOR, DESCRIPTION, PURPOSE,
+            STATUS, CURRENT_STEP, STEP_PAYLOAD
+        ) VALUES (
+            #{scenarioId}, #{projectId}, #{projectName}, #{scenarioName},
+            #{targetEnv}, #{baseDate}, #{versionNo}, #{author}, #{description}, #{purpose},
+            #{status}, #{currentStep}, #{stepPayload}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.nh.nsight.marketing.oc.capnew.persistence.dto.CapNewScenarioRow">
+        UPDATE CAP_NEW_SCENARIO
+        SET PROJECT_ID = #{projectId},
+            PROJECT_NAME = #{projectName},
+            SCENARIO_NAME = #{scenarioName},
+            TARGET_ENV = #{targetEnv},
+            BASE_DATE = #{baseDate},
+            VERSION_NO = #{versionNo},
+            AUTHOR = #{author},
+            DESCRIPTION = #{description},
+            PURPOSE = #{purpose},
+            STATUS = #{status},
+            CURRENT_STEP = #{currentStep},
+            STEP_PAYLOAD = #{stepPayload},
+            UPDATED_AT = CURRENT_TIMESTAMP
+        WHERE SCENARIO_ID = #{scenarioId}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM CAP_NEW_SCENARIO WHERE SCENARIO_ID = #{scenarioId}
+    </delete>
+</mapper>

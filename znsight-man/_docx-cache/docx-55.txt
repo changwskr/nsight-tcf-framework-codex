@@ -1,0 +1,476 @@
+54. 단위 테스트 기준
+54.1 도입 전 안내말
+NSIGHT TCF Framework에서 단위 테스트는 단순히 메서드가 실행되는지 확인하는 작업이 아니다.단위 테스트는 업무 Handler, Facade, Service, Rule, DAO/Mapper가 각자 자기 책임만 수행하는지 검증하는 품질 기준이다.
+NSIGHT Java 코딩 스타일 가이드에서도 품질 통제 기준으로 코드 인스펙션, 단위 테스트, SQL 검증, 그리고 SonarQube / Checkstyle / PMD / JUnit / MyBatis SQL 검증을 제시하고 있다. 또한 개발 결과는 자동 검증 가능해야 하며, 단위 테스트·통합 테스트·SQL 실행계획 검증을 적용 기준으로 둔다.
+
+54.2 단위 테스트 기준 결론
+NSIGHT 단위 테스트는 다음 기준으로 작성한다.
+구분
+기준
+테스트 대상
+Handler, Facade, Service, Rule, DAO, Mapper, 공통 유틸
+테스트 목적
+계층별 책임 준수, 정상/오류/예외 흐름 검증
+기본 도구
+JUnit 5, Mockito, AssertJ 기준
+Spring Context
+가급적 띄우지 않음
+DB 접근
+단위 테스트에서는 Mock 처리
+실제 DB 검증
+Mapper 통합 테스트 또는 SQL 검증 테스트로 분리
+HTTP 호출 검증
+단위 테스트가 아니라 Controller/Gateway 통합 테스트로 분리
+ServiceId 검증
+Handler 또는 Dispatcher 테스트에서 수행
+오류코드 검증
+BusinessException, SystemException, 표준 오류코드 매핑 확인
+로그 검증
+GUID, TraceId, ServiceId 전달 여부 중심 확인
+품질 Gate
+CI/CD에서 전체 테스트 자동 실행
+
+54.3 테스트 종류 구분
+테스트 유형
+목적
+대상
+DB 사용
+실행 시점
+단위 테스트
+클래스 단위 책임 검증
+Handler, Service, Rule
+Mock
+개발 중, Merge 전
+Mapper 테스트
+SQL Mapping 검증
+MyBatis Mapper XML
+Test DB 또는 H2
+개발 완료 후
+통합 테스트
+TCF 흐름 검증
+/sv/online, /om/online
+Test DB
+기능 검증
+API 테스트
+HTTP 요청/응답 검증
+Controller/Gateway
+Test DB
+통합 검증
+회귀 테스트
+기존 기능 영향 확인
+주요 ServiceId
+Test DB
+배포 전
+성능 테스트
+응답시간/TPS 검증
+주요 거래
+성능 DB
+성능 검증 단계
+TCF 설계 기준에서도 업무 처리는 Handler → Facade → Service → Rule → DAO/Mapper 구조로 수행되며, 공통 처리는 STF → Dispatcher → ETF 흐름에서 수행된다. 따라서 단위 테스트도 이 계층 구조를 기준으로 나누어야 한다.
+
+54.4 계층별 단위 테스트 기준
+계층
+테스트 대상
+검증 기준
+Mock 대상
+Handler
+ServiceId별 Handler
+Body 변환, Facade 호출, 필수값 오류
+Facade
+Facade
+업무 유스케이스
+Service 호출 순서, 트랜잭션 경계, 예외 전파
+Service
+Service
+업무 처리 흐름
+Rule/DAO/Client 조합, 정상/오류 분기
+Rule, DAO, Client
+Rule
+업무 규칙
+입력값 검증, 계산, 상태 판단, 예외 발생
+없음 또는 최소
+DAO
+Mapper 호출
+Mapper 메서드 호출, 파라미터 전달
+Mapper
+Mapper
+SQL Mapping
+SQL ID, 파라미터, 결과 매핑
+Test DB
+Client
+서비스 간 연동
+요청 전문 조립, Timeout, 오류 응답 처리
+HTTP Client
+ETF/STF
+공통 처리
+Header 검증, 오류코드 매핑, 응답 조립
+Repository, Policy Service
+
+54.5 Handler 단위 테스트 기준
+Handler는 TCF와 업무 계층 사이의 Adapter이다.따라서 Handler 테스트의 핵심은 업무 로직 검증이 아니라 요청 변환과 Facade 호출 검증이다.
+테스트 항목
+검증 기준
+ServiceId 매핑
+Handler가 지정 ServiceId에 정상 매핑되는지 확인
+Body 변환
+StandardRequest.body가 업무 Request DTO로 변환되는지 확인
+Facade 호출
+Handler가 Facade를 정확히 호출하는지 확인
+정상 응답
+업무 응답 DTO가 반환되는지 확인
+필수값 오류
+Body 필수값 누락 시 BusinessException 발생
+미등록 ServiceId
+Dispatcher 단계에서 차단
+거래로그
+GUID, ServiceId 기준 거래로그 생성 여부 확인
+Timeout
+정책 기준 초과 시 Timeout 오류 반환
+권한 오류
+권한 없는 사용자 거래 차단
+예외 매핑
+업무 예외가 표준 오류코드로 변환되는지 확인
+위 기준은 기존 Handler 단위 테스트 기준에도 동일하게 정리되어 있다.
+
+54.6 Handler 테스트 예시
+@ExtendWith(MockitoExtension.class)
+class SvCustomerSummaryHandlerTest {
+
+    @Mock
+    private SvCustomerFacade svCustomerFacade;
+
+    @InjectMocks
+    private SvCustomerSummaryHandler handler;
+
+    @Test
+    void 고객요약조회_정상처리() {
+        // given
+        StandardRequest request = TestRequestFactory.standardRequest(
+                "SV.Customer.selectSummary",
+                "SV-INQ-0001",
+                "SV",
+                Map.of("customerNo", "1234567890")
+        );
+
+        TransactionContext context = TestContextFactory.context("user001", "123456");
+
+        SvCustomerSummaryResponse expected =
+                new SvCustomerSummaryResponse("1234567890", "홍길동", "VIP");
+
+        given(svCustomerFacade.selectCustomerSummary(any()))
+                .willReturn(expected);
+
+        // when
+        Object result = handler.handle(request, context);
+
+        // then
+        assertThat(result).isInstanceOf(SvCustomerSummaryResponse.class);
+
+        verify(svCustomerFacade, times(1))
+                .selectCustomerSummary(any(SvCustomerSummaryRequest.class));
+    }
+
+    @Test
+    void 고객번호가_없으면_업무예외가_발생한다() {
+        // given
+        StandardRequest request = TestRequestFactory.standardRequest(
+                "SV.Customer.selectSummary",
+                "SV-INQ-0001",
+                "SV",
+                Map.of()
+        );
+
+        TransactionContext context = TestContextFactory.context("user001", "123456");
+
+        // when & then
+        assertThatThrownBy(() -> handler.handle(request, context))
+                .isInstanceOf(BusinessException.class);
+    }
+}
+
+
+54.7 Rule 단위 테스트 기준
+Rule은 단위 테스트의 가장 중요한 대상이다.Rule은 DB, HTTP, Spring Context 없이 순수 Java 로직으로 검증 가능해야 한다.
+테스트 항목
+검증 기준
+필수값 검증
+필수 입력값 누락 시 업무 예외 발생
+값 범위 검증
+pageSize, 금액, 날짜 범위 검증
+업무 조건 판단
+고객등급, 캠페인대상 여부, 권한 조건 판단
+계산 로직
+합계, 비율, 점수, 우선순위 계산
+상태 전이
+요청 상태에 따른 처리 가능/불가 판단
+예외 메시지
+표준 오류코드와 메시지 확인
+class SvCustomerRuleTest {
+
+    private final SvCustomerRule rule = new SvCustomerRule();
+
+    @Test
+    void 고객번호가_비어있으면_오류() {
+        SvCustomerSummaryRequest request = new SvCustomerSummaryRequest(null);
+
+        assertThatThrownBy(() -> rule.validateCustomerSummaryRequest(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("고객번호");
+    }
+
+    @Test
+    void VIP고객이면_캠페인대상이다() {
+        CustomerSummary summary = new CustomerSummary("123", "VIP");
+
+        boolean result = rule.isCampaignTarget(summary);
+
+        assertThat(result).isTrue();
+    }
+}
+
+
+54.8 Service 단위 테스트 기준
+Service는 Rule, DAO, Client를 조합한다.따라서 Service 테스트는 처리 흐름과 분기를 확인한다.
+테스트 항목
+검증 기준
+Rule 호출
+입력값 검증 Rule이 호출되는지 확인
+DAO 호출
+필요한 DAO 메서드가 호출되는지 확인
+Client 호출
+외부/타업무 호출이 필요한 경우 호출 여부 확인
+정상 흐름
+조회 결과를 Response DTO로 조립
+데이터 없음
+Empty 결과 또는 업무 예외 기준 확인
+DAO 오류
+DB 오류 발생 시 시스템 예외로 전파
+외부연계 오류
+연계 오류를 표준 예외로 변환
+@ExtendWith(MockitoExtension.class)
+class SvCustomerServiceTest {
+
+    @Mock
+    private SvCustomerRule svCustomerRule;
+
+    @Mock
+    private SvCustomerDao svCustomerDao;
+
+    @InjectMocks
+    private SvCustomerService svCustomerService;
+
+    @Test
+    void 고객요약조회_정상처리() {
+        SvCustomerSummaryRequest request =
+                new SvCustomerSummaryRequest("1234567890");
+
+        given(svCustomerDao.selectCustomerSummary("1234567890"))
+                .willReturn(new CustomerSummary("1234567890", "VIP"));
+
+        SvCustomerSummaryResponse result =
+                svCustomerService.selectCustomerSummary(request);
+
+        assertThat(result.customerNo()).isEqualTo("1234567890");
+        assertThat(result.customerGrade()).isEqualTo("VIP");
+
+        verify(svCustomerRule).validateCustomerSummaryRequest(request);
+        verify(svCustomerDao).selectCustomerSummary("1234567890");
+    }
+}
+
+
+54.9 DAO 단위 테스트 기준
+DAO는 업무 판단을 하지 않고 Mapper 호출만 담당한다.따라서 DAO 단위 테스트는 Mapper 호출 여부와 파라미터 전달을 검증한다.
+테스트 항목
+검증 기준
+Mapper 호출
+지정 Mapper 메서드 호출
+파라미터 전달
+검색조건, pageNo, pageSize, offset 전달 확인
+결과 반환
+Mapper 결과를 그대로 또는 DTO로 반환
+업무 판단 금지
+DAO 안에서 고객등급 판단, 메시지 생성 금지
+예외 전파
+Mapper 예외를 숨기지 않음
+@ExtendWith(MockitoExtension.class)
+class SvCustomerDaoTest {
+
+    @Mock
+    private SvCustomerMapper svCustomerMapper;
+
+    @InjectMocks
+    private SvCustomerDao svCustomerDao;
+
+    @Test
+    void 고객요약조회시_Mapper를_호출한다() {
+        given(svCustomerMapper.selectCustomerSummary("1234567890"))
+                .willReturn(new CustomerSummary("1234567890", "VIP"));
+
+        CustomerSummary result =
+                svCustomerDao.selectCustomerSummary("1234567890");
+
+        assertThat(result.customerNo()).isEqualTo("1234567890");
+        verify(svCustomerMapper).selectCustomerSummary("1234567890");
+    }
+}
+
+
+54.10 Mapper 테스트 기준
+Mapper는 단위 테스트보다는 SQL Mapping 테스트로 분리한다.실제 SQL, 파라미터 바인딩, Result Mapping, Paging, Timeout 기준을 확인해야 한다.
+테스트 항목
+검증 기준
+SQL ID 존재
+Mapper Interface와 XML SQL ID 일치
+파라미터 바인딩
+조건값이 정상 바인딩되는지 확인
+결과 매핑
+컬럼과 DTO 필드 매핑 확인
+목록 조회
+pageSize 제한, offset 적용
+Count SQL
+목록 조회 시 count SQL 별도 검증
+대량조회 방지
+pageSize 최대값 초과 차단
+SQL 오류
+SQL 문법 오류 조기 검출
+Timeout
+장시간 SQL 차단 기준 확인
+MyBatis는 DAO/Mapper 계층에 위치하며, DAO/Mapper는 업무 로직을 수행하는 곳이 아니라 SQL 실행 책임만 갖는다고 정의되어 있다. 따라서 Mapper 테스트도 업무 판단이 아니라 SQL 실행과 매핑 검증에 집중해야 한다.
+
+54.11 테스트 데이터 기준
+구분
+기준
+정상 데이터
+최소 1건 이상
+필수값 누락
+각 필수 필드별 1건 이상
+경계값
+최소값, 최대값, 0, 음수, 공백
+권한 데이터
+권한 있음, 권한 없음
+세션 데이터
+정상 세션, 만료 세션, 미존재 세션
+거래통제 데이터
+허용 거래, 차단 거래
+Timeout 데이터
+정상 시간, Timeout 초과
+DB 결과
+0건, 1건, N건
+페이징
+1페이지, 마지막 페이지, pageSize 초과
+오류 데이터
+업무 오류, 시스템 오류, DB 오류
+
+54.12 테스트 클래스 명명규칙
+대상
+테스트 클래스명
+SvCustomerSummaryHandler
+SvCustomerSummaryHandlerTest
+SvCustomerFacade
+SvCustomerFacadeTest
+SvCustomerService
+SvCustomerServiceTest
+SvCustomerRule
+SvCustomerRuleTest
+SvCustomerDao
+SvCustomerDaoTest
+SvCustomerMapper
+SvCustomerMapperTest
+TcfDispatcher
+TcfDispatcherTest
+StandardHeaderValidator
+StandardHeaderValidatorTest
+테스트 메서드명은 한글 또는 영문을 허용하되, 의미가 분명해야 한다.
+방식
+예시
+한글명
+고객번호가_없으면_업무예외가_발생한다()
+Given/When/Then
+givenNoCustomerNo_whenValidate_thenThrowBusinessException()
+should 스타일
+shouldThrowBusinessExceptionWhenCustomerNoIsEmpty()
+
+54.13 단위 테스트 작성 원칙
+원칙
+설명
+하나의 테스트는 하나의 조건만 검증
+여러 조건을 한 테스트에 섞지 않는다
+Given-When-Then 구조 사용
+준비, 실행, 검증을 분리한다
+외부 의존성은 Mock 처리
+DB, HTTP, 파일, 세션 저장소는 Mock 처리
+업무 규칙은 Rule에서 집중 검증
+Service 테스트에 모든 조건을 몰아넣지 않는다
+예외 테스트 필수
+정상 케이스만 작성하지 않는다
+오류코드 확인
+BusinessException 발생 시 오류코드 확인
+로그 민감정보 금지
+테스트 로그에도 고객명, 계좌번호, 주민번호 노출 금지
+테스트 데이터 명확화
+data1, test 같은 의미 없는 값 지양
+CI/CD 자동 실행
+Merge Request 전에 자동 실행되어야 한다
+
+54.14 단위 테스트 완료 기준
+구분
+완료 기준
+Handler
+정상 요청, 필수값 오류, Facade 호출 검증 완료
+Facade
+트랜잭션 대상 메서드와 Service 호출 순서 검증 완료
+Service
+정상/데이터 없음/DAO 오류/외부연계 오류 검증 완료
+Rule
+주요 업무 규칙과 경계값 검증 완료
+DAO
+Mapper 호출과 파라미터 전달 검증 완료
+Mapper
+SQL ID, 파라미터, 결과 매핑 검증 완료
+오류코드
+BusinessException/SystemException 오류코드 검증 완료
+테스트 실행
+Gradle test 성공
+CI/CD
+Merge Request 품질 Gate 통과
+
+54.15 개발자 체크리스트
+점검 항목
+확인
+Handler 테스트가 작성되어 있는가?
+
+Service 테스트에서 Rule/DAO Mock을 사용했는가?
+
+Rule 테스트가 순수 Java로 작성되어 있는가?
+
+정상 케이스와 오류 케이스가 모두 있는가?
+
+필수값 누락 테스트가 있는가?
+
+권한 없음, 거래통제 차단, Timeout 테스트가 있는가?
+
+DAO가 Mapper만 호출하는지 테스트했는가?
+
+Mapper XML SQL ID가 Interface와 일치하는가?
+
+테스트명이 업무 의미를 설명하는가?
+
+CI/CD에서 자동 실행 가능한가?
+
+
+54.16 마무리말
+NSIGHT 단위 테스트의 핵심은 코드가 돌아간다를 확인하는 것이 아니라, 각 계층이 자기 책임만 수행하는지 증명하는 것이다.
+Handler = 요청 변환과 Facade 호출 검증
+Facade  = 유스케이스 조립과 트랜잭션 경계 검증
+Service = 업무 처리 흐름 검증
+Rule    = 업무 규칙과 경계값 검증
+DAO     = Mapper 호출 검증
+Mapper  = SQL Mapping 검증
+
+TCF 업무 개발 절차에서도 ServiceId 정의, Handler/Facade/Service/Rule/DAO/Mapper 작성 이후 Handler, Service, Rule 단위 테스트 작성, POST /sv/online 통합 테스트, GUID/TraceId/ServiceId 기준 거래로그 확인을 개발 절차에 포함하고 있다.
+54.17 시사점
+단위 테스트가 없으면 NSIGHT TCF 구조는 문서상 표준에 머문다.단위 테스트가 있어야 Handler는 Handler답게, Service는 Service답게, Rule은 Rule답게 유지된다.
+따라서 NSIGHT 개발가이드의 단위 테스트 기준은 다음 한 문장으로 정리할 수 있다.
+업무 로직은 Rule에서 검증하고, 흐름은 Service에서 검증하며, TCF 연결은 Handler에서 검증한다.
+

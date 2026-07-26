@@ -1,0 +1,581 @@
+2. 개발자가 알아야 할 NSIGHT 기본 구조
+2.1 도입 전 안내말
+본 장은 NSIGHT 개발자가 업무 프로그램을 개발하기 전에 반드시 이해해야 할 기본 실행 구조를 설명한다.
+NSIGHT는 단순한 Spring Boot 업무 애플리케이션이 아니다. 사용자의 요청은 GSLB → L4 → Apache → tcf-gateway 또는 업무 WAR → TCF Framework → 업무 Handler → MyBatis/HikariCP → RDW/ADW/SESSIONDB/LOGDB 흐름으로 처리된다. 기존 TCF 설계서에서도 NSIGHT 전체 구조를 논리 구조, 실행 구조, 배포 구조, 데이터 접근 구조, 운영관리 구조가 결합된 아키텍처로 정의한다.
+개발자는 이 구조를 알아야 한다. 이유는 간단하다.
+개발자가 만든 Handler 하나는 단순 Java 클래스가 아니라, GSLB, L4, Apache, Gateway, TCF, Session, DB, Log, OM 운영관리와 연결되는 하나의 온라인 거래 단위이기 때문이다.
+
+2.2 NSIGHT 전체 구조 한눈에 보기
+NSIGHT의 기본 처리 흐름은 다음과 같다.
+[사용자 / WebTopSuite / DataEye / BI Portal / 외부 API]
+        ↓
+[GSLB]
+        ↓
+[L4]
+        ↓
+[Apache]
+        ↓
+[tcf-gateway] 선택 적용
+        ↓
+[업무 WAR / tcf-om]
+        ↓
+[tcf-web]
+        ↓
+[tcf-core : TCF Framework]
+        ↓
+[Handler]
+        ↓
+[Facade → Service → Rule → DAO / Mapper]
+        ↓
+[MyBatis / HikariCP]
+        ↓
+[RDW / ADW / SESSIONDB / LOGDB / OMDB]
+
+NSIGHT 통합 운영 매뉴얼도 기본 흐름을 GSLB → L4 → Apache → Tomcat/Spring Boot → MyBatis/HikariCP → RDW/ADW/SESSIONDB로 보고, 17개 WAR, 다중 WAS, RDW/ADW/SESSIONDB, L4/GSLB가 결합된 구조이므로 한 계층만 튜닝해서는 안정성을 확보하기 어렵다고 정리한다.
+
+2.3 개발자가 이해해야 할 핵심 결론
+구분
+개발자가 알아야 할 내용
+NSIGHT 통신 방식
+REST Resource 방식이 아니라 HTTP/JSON 표준 전문 방식이다.
+온라인 진입점
+기본적으로 POST /{businessCode}/online으로 들어온다.
+실행 식별자
+URL이 아니라 header.serviceId가 실제 실행 대상을 결정한다.
+업무 구분
+businessCode가 업무 WAR, Context, Package, ServiceId의 기준이 된다.
+공통 처리
+STF → TransactionDispatcher → ETF가 Header, 세션, 권한, 거래통제, Timeout, 로그, 응답을 처리한다.
+업무 처리
+개발자는 Handler → Facade → Service → Rule → DAO/Mapper 구조로 업무 로직을 작성한다.
+세션 기준
+세션은 Spring Session JDBC와 SESSIONDB 중심으로 관리한다.
+데이터 접근
+DB 접근은 MyBatis Mapper와 HikariCP를 통해 수행한다.
+운영관리
+ServiceId, 거래통제, Timeout, 권한, 오류코드는 OM에서 관리한다.
+배포 단위
+업무별 WAR 단위로 배포되며, Context Path와 업무코드가 일치해야 한다.
+TCF 설계 기준에서도 프레임워크 성격은 REST Resource 중심이 아니라 HTTP/JSON 표준 전문 + ServiceId Dispatcher 방식이고, 업무 처리는 Handler → Facade → Service → Rule → DAO/Mapper 구조로 정의되어 있다.
+
+2.4 요청 흐름 상세
+개발자가 작성한 업무 Handler가 호출되기까지의 흐름은 다음과 같다.
+1. 사용자가 화면에서 업무 요청
+        ↓
+2. WebTopSuite / UI가 HTTP JSON 전문 생성
+        ↓
+3. GSLB가 접속 센터 선택
+        ↓
+4. L4가 Apache 또는 WAS 서버로 분산
+        ↓
+5. Apache가 SSL 종료, URL Routing, Reverse Proxy 수행
+        ↓
+6. tcf-gateway가 업무코드 기준으로 대상 업무 WAR 라우팅
+        ↓
+7. 업무 WAR의 /{businessCode}/online 진입
+        ↓
+8. tcf-web의 OnlineTransactionController 호출
+        ↓
+9. tcf-core의 TCF.process() 실행
+        ↓
+10. STF.preProcess() 전처리
+        ↓
+11. TransactionDispatcher가 serviceId 기준 Handler 선택
+        ↓
+12. 업무 Handler 실행
+        ↓
+13. Facade → Service → Rule → DAO/Mapper 처리
+        ↓
+14. MyBatis / HikariCP를 통해 DB 조회 또는 변경
+        ↓
+15. ETF.postProcess() 후처리
+        ↓
+16. StandardResponse 반환
+
+이 흐름에서 개발자가 직접 작성하는 핵심 구간은 12번부터 14번까지이다. 그러나 개발자는 1번부터 16번까지 전체 흐름을 이해해야 한다. 그래야 Header, ServiceId, Timeout, 로그, 오류코드, 세션, 권한, SQL 작성 기준을 일관되게 지킬 수 있다.
+
+2.5 계층별 역할
+계층
+구성 요소
+역할
+개발자 관점
+사용자/채널
+WebTopSuite, DataEye, BI Portal, 외부 API
+업무 요청 생성
+표준 JSON 전문 형식을 맞춰야 한다.
+GSLB
+DNS/GSLB
+센터 선택, DR 전환
+개발자가 직접 제어하지 않는다.
+L4
+VIP, Real Server Pool
+서버 분산, Health Check
+Sticky, Health Check 영향을 이해해야 한다.
+Apache
+HTTP Server
+SSL, Reverse Proxy, URL Routing, Logging
+URL Context와 업무 WAR Context가 맞아야 한다.
+tcf-gateway
+Application Gateway
+업무코드 라우팅, 세션 Cookie 확인, Downstream 전달
+businessCode가 정확해야 한다.
+tcf-web
+Web 공통 모듈
+/online 진입점, Controller, 예외 Handler
+업무 Controller를 개별 작성하지 않는 것이 원칙이다.
+tcf-core
+TCF Engine
+STF, Dispatcher, ETF, 표준 전문 처리
+공통 처리 흐름을 우회하면 안 된다.
+Handler
+업무 진입 클래스
+ServiceId별 업무 시작점
+요청 Body를 DTO로 변환하고 Facade를 호출한다.
+Facade
+유스케이스 계층
+트랜잭션 경계, 업무 흐름 조립
+하나의 거래 흐름을 대표한다.
+Service
+업무 서비스 계층
+업무 처리 절차 수행
+Rule, DAO, Client 호출을 조정한다.
+Rule
+업무 규칙 계층
+업무 조건, 계산, 검증
+복잡한 판단 로직을 둔다.
+DAO/Mapper
+DB 접근 계층
+MyBatis SQL 실행
+SQL 실행 책임만 가진다.
+RDW
+실시간 조회 DB
+온라인 조회, Single View
+온라인 조회 SQL 품질이 중요하다.
+ADW
+분석 DB
+분석, 집계, 대량 조회
+대량 조회는 ADW 기준으로 분리한다.
+SESSIONDB
+세션 DB
+Spring Session JDBC 저장소
+세션 원천 저장소이다.
+LOGDB
+로그 DB
+거래로그, 감사로그 저장
+장애 추적의 기준이다.
+OMDB
+운영관리 DB
+ServiceId, 권한, 거래통제, Timeout, 오류코드
+운영 기준정보의 원천이다.
+
+2.6 개발자가 반드시 알아야 할 식별자
+NSIGHT 개발에서 가장 중요한 것은 식별자 체계이다.업무코드, Context, WAR, Package, ServiceId, 거래코드, Mapper, SQL ID가 서로 맞아야 운영 추적이 가능하다.
+식별자
+예시
+의미
+사용 위치
+업무코드
+SV
+업무 영역 식별
+Header, URL, WAR, Package
+Context Path
+/sv
+업무 WAR 접근 경로
+Apache, Gateway, Tomcat
+WAR 명
+sv.war
+배포 단위
+CI/CD, Tomcat
+Package
+com.nh.nsight.sv
+Java 소스 기준
+업무 모듈
+ServiceId
+SV.Customer.selectSummary
+실행 Handler 식별자
+Header, Dispatcher, OM
+거래코드
+SV-INQ-0001
+거래 추적 코드
+Header, 거래로그, 감사로그
+Handler
+SvCustomerSelectSummaryHandler
+ServiceId 실행 클래스
+업무 WAR
+Mapper
+SvCustomerMapper
+SQL 실행 Interface
+DAO/Mapper
+SQL ID
+SV.Customer.selectSummary 또는 selectCustomerSummary
+SQL 추적 기준
+MyBatis XML, 로그
+오류코드
+E-SV-BIZ-0001
+오류 유형 식별
+ETF, OM_ERROR_CODE
+핵심 원칙은 다음과 같다.
+업무코드
+ → Context
+ → WAR
+ → Package
+ → ServiceId
+ → Handler
+ → Mapper
+ → SQL ID
+ → 거래로그
+ → 오류코드
+
+이 선이 끊어지면 장애 분석, 권한 통제, 거래통제, 로그 추적, 배포 관리가 어려워진다.
+
+2.7 업무 요청과 ServiceId 관계
+NSIGHT에서는 URL이 실제 업무 기능을 의미하지 않는다.URL은 업무 WAR의 입구이고, 실제 실행 대상은 header.serviceId이다.
+POST /sv/online
+
+{
+  "header": {
+    "businessCode": "SV",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "user": "U123456",
+    "channelId": "WEBTOP",
+    "branch": "001"
+  },
+  "body": {
+    "customerNo": "1234567890"
+  }
+}
+
+처리 방식은 다음과 같다.
+POST /sv/online
+        ↓
+businessCode = SV 확인
+        ↓
+serviceId = SV.Customer.selectSummary 확인
+        ↓
+TransactionDispatcher
+        ↓
+SvCustomerSelectSummaryHandler 실행
+
+따라서 개발자는 Controller Method를 여러 개 만드는 방식이 아니라, ServiceId별 Handler를 등록하고 구현하는 방식으로 개발해야 한다.
+
+2.8 TCF 공통 처리 구조
+TCF는 업무 로직을 대신 처리하는 프레임워크가 아니다.TCF는 모든 온라인 거래가 같은 기준을 통과하도록 만드는 거래 실행 통제 프레임워크이다.
+TCF.process()
+   ├─ STF.preProcess()
+   │   ├─ Header 검증
+   │   ├─ GUID / TraceId 생성
+   │   ├─ 세션 검증
+   │   ├─ 인증 / 권한 검증
+   │   ├─ 거래통제 확인
+   │   ├─ Idempotency 중복요청 확인
+   │   ├─ Timeout 정책 조회
+   │   └─ 거래로그 PROCESSING 저장
+   │
+   ├─ TransactionDispatcher
+   │   └─ serviceId 기준 Handler 선택
+   │
+   ├─ Business Handler
+   │   └─ Facade → Service → Rule → DAO / Mapper
+   │
+   └─ ETF.postProcess()
+       ├─ 표준 응답 전문 조립
+       ├─ 오류코드 매핑
+       ├─ 데이터 마스킹
+       ├─ 감사로그 기록
+       ├─ 성능 메트릭 기록
+       └─ 거래로그 SUCCESS / FAIL / TIMEOUT 갱신
+
+TCF 설계서도 모든 온라인 거래가 표준 전문으로 수신되고, Header 기준으로 검증·세션·권한·거래통제·Timeout·로그·감사를 수행한 뒤, ServiceId에 매핑된 Handler를 실행한다고 정의한다.
+
+2.9 업무 개발자가 직접 구현하는 영역
+개발자가 직접 구현해야 할 영역은 다음과 같다.
+구현 대상
+설명
+작성 기준
+Request DTO
+요청 Body 구조
+업무별 입력값 정의
+Response DTO
+응답 Body 구조
+화면 또는 호출자에게 반환할 데이터
+Handler
+ServiceId별 진입 클래스
+Body 변환 후 Facade 호출
+Facade
+유스케이스 조립
+트랜잭션 경계 설정
+Service
+업무 처리 절차
+Rule, DAO, Client 호출
+Rule
+업무 규칙
+조건 판단, 계산, 검증
+DAO
+DB 접근 캡슐화
+Mapper 호출
+Mapper Interface
+MyBatis Interface
+SQL ID와 연결
+Mapper XML
+SQL 작성
+RDW/ADW/SESSIONDB 접근
+테스트 코드
+단위/통합/Mapper 테스트
+품질 게이트 통과
+거래 테스트 전문
+StandardRequest JSON
+TCF 거래 테스트
+개발자가 직접 구현하지 않아야 할 영역은 다음과 같다.
+금지 영역
+이유
+업무별 Controller 난립
+/online 공통 진입 구조가 깨진다.
+Handler에서 SQL 실행
+계층 책임이 무너진다.
+Handler에서 복잡한 업무 로직 처리
+Facade/Service/Rule 책임이 사라진다.
+Service에서 HTTP Response 직접 조립
+ETF 표준 응답 구조를 우회하게 된다.
+업무별 임의 오류 응답 생성
+오류코드와 OM_ERROR_CODE 관리가 불가능해진다.
+세션을 업무 DB에 임의 저장
+Spring Session JDBC 기준과 충돌한다.
+GUID/TraceId 직접 생성 남발
+TCF 공통 추적 체계와 충돌한다.
+SQL에 Timeout 미적용
+장애 시 DB와 WAS Thread를 보호할 수 없다.
+대량 데이터를 세션에 저장
+세션 복제, SESSIONDB, Heap 사용량에 영향을 준다.
+
+2.10 업무 WAR와 공통 모듈 관계
+NSIGHT 개발자는 업무 WAR와 공통 모듈의 관계를 이해해야 한다.
+업무 WAR
+ ├─ sv-service
+ ├─ ic-service
+ ├─ cm-service
+ ├─ mg-service
+ └─ ...
+
+공통 모듈
+ ├─ tcf-util
+ ├─ tcf-core
+ ├─ tcf-web
+ ├─ tcf-cache
+ ├─ tcf-integration
+ └─ ...
+
+운영 모듈
+ ├─ tcf-om
+ ├─ tcf-gateway
+ ├─ tcf-jwt
+ ├─ tcf-batch
+ └─ tcf-ui
+
+모듈
+개발자 관점 역할
+tcf-util
+GUID, 날짜, 문자열, 마스킹 등 공통 Utility 제공
+tcf-core
+StandardRequest, StandardResponse, STF, Dispatcher, ETF 제공
+tcf-web
+/online Controller, 예외 Handler, Web 공통 처리 제공
+tcf-cache
+공통코드, ServiceId, 정책정보 Cache 제공
+tcf-integration
+업무 간 HTTP/JSON 표준 전문 호출 Client 제공
+tcf-om
+운영 기준정보 관리 기능 제공
+tcf-gateway
+업무코드 기반 라우팅 제공
+tcf-jwt
+JWT 발급·검증 기능 제공
+tcf-batch
+운영 상태 수집 및 배치 실행 구조 제공
+업무 WAR
+업무 Handler와 업무 로직 구현 위치
+
+2.11 DB 구조와 개발자 책임
+NSIGHT는 DB를 목적별로 분리해서 본다.
+업무 WAR / tcf-om / tcf-gateway / tcf-batch
+        ↓
+MyBatis / HikariCP
+        ↓
+┌──────────────┬──────────────┬──────────────┬──────────────┬──────────────┐
+│ RDW          │ ADW          │ SESSIONDB    │ LOGDB        │ OMDB         │
+│ 실시간 조회  │ 분석/집계     │ 세션 저장     │ 로그 저장     │ 운영 기준정보 │
+└──────────────┴──────────────┴──────────────┴──────────────┴──────────────┘
+
+DB
+용도
+개발자 주의사항
+RDW
+실시간 조회, Single View
+온라인 조회 SQL은 짧고 명확해야 한다.
+ADW
+분석, 집계, 대량 조회
+대량 조회는 ADW로 분리하고 Paging을 적용한다.
+SESSIONDB
+Spring Session JDBC
+업무 데이터 저장용으로 사용하지 않는다.
+LOGDB
+거래로그, 감사로그, 성능로그
+업무에서 직접 임의 변경하지 않는다.
+OMDB
+ServiceId, 권한, 거래통제, Timeout, 오류코드
+OM 기준정보를 통해 관리한다.
+개발자는 MyBatis Mapper 작성 시 어느 DB를 사용하는지 명확히 해야 한다.온라인 실시간 조회는 RDW, 분석성 대량 조회는 ADW, 세션은 SESSIONDB, 로그는 LOGDB, 운영 기준정보는 OMDB 기준으로 분리한다.
+
+2.12 세션 구조와 개발자 주의사항
+NSIGHT 세션은 WAS 메모리만을 기준으로 보지 않는다.Spring Session JDBC와 SESSIONDB를 기준으로 중앙 관리한다.
+사용자 로그인
+        ↓
+tcf-om / SSO 로그인
+        ↓
+HttpSession 생성
+        ↓
+Spring Session JDBC
+        ↓
+SESSIONDB 저장
+        ↓
+업무 WAR에서 세션 조회
+        ↓
+STF.preProcess()에서 세션 검증
+
+항목
+개발 기준
+세션 원천
+SESSIONDB
+세션 Cookie
+JSESSIONID 또는 NSIGHT 표준 Cookie
+세션 검증 위치
+STF 전처리
+세션 저장 금지 데이터
+대량 목록, 파일, Connection, Thread, Socket
+세션 사용 가능 데이터
+사용자 ID, 지점, 채널, 권한, 로그인 상태
+세션 만료 처리
+공통 세션 정책 기준
+중복 로그인
+OM 세션관리 정책 기준
+세션 장애 분석
+JSESSIONID, SESSIONDB, 거래로그, Gateway 로그 확인
+
+2.13 운영관리 OM과 개발자의 관계
+OM은 단순 관리자 화면이 아니다.개발자가 만든 거래가 운영에서 실행되기 위해 필요한 기준정보를 관리하는 영역이다.
+OM 관리 항목
+개발자와의 관계
+ServiceId 관리
+신규 Handler를 만들면 ServiceId 등록이 필요하다.
+거래통제 관리
+허용 거래로 등록되어야 실행 가능하다.
+Timeout 정책
+거래별 제한시간을 관리한다.
+권한 관리
+사용자가 해당 ServiceId를 실행할 수 있는지 통제한다.
+메뉴 관리
+화면 메뉴와 ServiceId를 연결한다.
+기능권한 관리
+조회, 등록, 수정, 삭제, 다운로드 권한을 관리한다.
+공통코드 관리
+업무 화면과 검증 로직에서 사용하는 코드 기준이다.
+오류코드 관리
+ETF가 반환할 사용자 메시지와 운영자 메시지 기준이다.
+거래로그 조회
+장애 발생 시 개발자가 분석하는 1차 기준이다.
+배포관리
+WAR 배포 이력과 Health Check 결과를 확인한다.
+따라서 개발자는 신규 서비스를 만들 때 Java 코드만 작성하면 끝나는 것이 아니다.ServiceId, 거래통제, 권한, Timeout, 오류코드, 메뉴 매핑까지 함께 확인해야 한다.
+
+2.14 개발자가 기억해야 할 10가지 원칙
+No
+원칙
+설명
+1
+URL이 아니라 ServiceId가 실행 기준이다.
+/sv/online은 입구이고, SV.Customer.selectSummary가 실제 실행 기준이다.
+2
+모든 온라인 거래는 TCF를 통과해야 한다.
+공통 전처리와 후처리를 우회하지 않는다.
+3
+Handler는 업무 로직을 직접 처리하지 않는다.
+Handler는 Body 변환 후 Facade를 호출한다.
+4
+트랜잭션 경계는 Facade에서 관리한다.
+여러 Service 호출을 하나의 유스케이스로 묶는다.
+5
+업무 규칙은 Rule에 둔다.
+조건 판단, 계산, 복잡한 검증은 Rule로 분리한다.
+6
+DB 접근은 DAO/Mapper에서만 한다.
+Service나 Handler에서 SQL을 실행하지 않는다.
+7
+SQL은 반드시 Mapper XML에 둔다.
+SQL ID, Timeout, Paging, ResultMap 기준을 지킨다.
+8
+오류 응답은 ETF가 조립한다.
+업무에서 임의 JSON 오류 응답을 만들지 않는다.
+9
+세션은 SESSIONDB 기준으로 생각한다.
+WAS 메모리에만 의존하지 않는다.
+10
+개발 완료는 코드 작성이 아니라 운영 등록까지다.
+ServiceId, 거래통제, Timeout, 권한, 오류코드, 테스트까지 완료해야 한다.
+
+2.15 개발자 관점의 전체 그림
+개발자는 아래 구조를 머릿속에 두고 개발해야 한다.
+내가 만드는 것
+  = ServiceId 1개
+  + Handler 1개
+  + Facade / Service / Rule / DAO / Mapper
+  + Request / Response DTO
+  + Mapper XML
+  + 테스트 코드
+  + OM 등록 정보
+
+실행되는 위치
+  = 업무 WAR
+
+호출되는 방식
+  = POST /{businessCode}/online
+  + header.serviceId
+
+통제되는 기준
+  = 세션
+  + 권한
+  + 거래통제
+  + Timeout
+  + 오류코드
+  + 거래로그
+  + 감사로그
+
+운영자가 보는 기준
+  = GUID
+  + TraceId
+  + ServiceId
+  + TransactionCode
+  + User
+  + Branch
+  + SQL ID
+  + 처리시간
+  + 결과상태
+
+
+2.16 마무리말
+NSIGHT 기본 구조의 핵심은 다음과 같다.
+NSIGHT는 업무 개발자가 자유롭게 Controller를 만드는 구조가 아니라, 모든 거래가 같은 입구와 같은 전문 구조와 같은 TCF 공통 파이프라인을 통과하는 구조이다.
+따라서 개발자는 자신이 작성하는 Java 클래스 하나가 다음 기준과 연결된다는 점을 항상 고려해야 한다.
+ServiceId
+ → Handler
+ → Facade
+ → Service
+ → Rule
+ → DAO / Mapper
+ → SQL
+ → 거래로그
+ → 감사로그
+ → OM 운영관리
+ → 배포 / Health Check
+
+즉, 개발자가 알아야 할 NSIGHT 기본 구조는 단순 기술 구조가 아니라 개발, 운영, 보안, 장애 추적, 배포를 하나로 연결하는 실행 구조이다.
+

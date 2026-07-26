@@ -1,0 +1,75 @@
+server:
+  servlet:
+    context-path: /
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+    session:
+      timeout: 60m
+      tracking-modes: cookie
+      cookie:
+        name: JSESSIONID
+        path: /
+        http-only: true
+        secure: false
+        same-site: Lax
+
+spring:
+  profiles:
+    default: local
+  datasource:
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 3000
+      validation-timeout: 3000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      keepalive-time: 300000
+      auto-commit: false
+  session:
+    store-type: none
+  transaction:
+    default-timeout: 5
+
+mybatis:
+  mapper-locations:
+    - classpath:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    default-statement-timeout: 3
+    jdbc-type-for-null: NULL
+    call-setters-on-nulls: true
+    default-fetch-size: 500
+    cache-enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,threaddump
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+nsight:
+  system-id: NSIGHT-MP
+  domain: nh.marketing.com
+  tcf:
+    session-validation-enabled: false
+    authorization-validation-enabled: false
+    idempotency-enabled: true
+    audit-enabled: true
+    transaction-log-enabled: true
+    runtime-monitor-enabled: true
+    runtime-slow-sql-threshold-ms: 1000
+    runtime:
+      business-code: OC
+  timeout:
+    online-transaction-seconds: 5
+    db-query-seconds: 3

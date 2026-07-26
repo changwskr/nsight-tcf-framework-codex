@@ -1,0 +1,2 @@
+화면ID,화면명,이벤트ID,이벤트명,ServiceId,거래코드,Handler,Facade,Service,Rule,DAO,Mapper,SQL_ID,Table,Operation,Timeout,Audit
+SV-CUS-0001,고객 종합정보 조회,SV-CUS-0001-E01,고객요약 조회,SV.Customer.selectSummary,SV-INQ-0001,SvCustomerHandler,SvCustomerFacade,SvCustomerService,SvCustomerRule,SvCustomerDao,SvCustomerMapper,selectCustomerSummary,SV_CUSTOMER,SELECT_ONE,3,Y

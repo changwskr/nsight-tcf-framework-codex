@@ -1,0 +1,4 @@
+﻿node,host,http_port,shutdown_port,cluster_receiver_port,jvm_route,center
+tomcat-01,10.10.20.11,8080,8005,4000,tc01,CENTER-A
+tomcat-02,10.10.20.12,8080,8005,4000,tc02,CENTER-A
+tomcat-03,10.10.20.13,8080,8005,4000,tc03,CENTER-A

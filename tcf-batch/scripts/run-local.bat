@@ -1,0 +1,33 @@
+﻿@echo off
+setlocal enabledelayedexpansion
+
+set "PROJECT_HOME=%~dp0..\.."
+for %%I in ("!PROJECT_HOME!") do set "PROJECT_HOME=%%~fI"
+if exist "!PROJECT_HOME!\scripts\env-jdk21.bat" call "!PROJECT_HOME!\scripts\env-jdk21.bat"
+set "GRADLE_HOME=C:\Programming(23-08-15)\gradle-8.10.1"
+set "GRADLE=!GRADLE_HOME!\bin\gradle.bat"
+set "MODULE=tcf-batch"
+
+if defined GRADLE_HOME_OVERRIDE set "GRADLE_HOME=!GRADLE_HOME_OVERRIDE!"
+if defined GRADLE_HOME set "GRADLE=!GRADLE_HOME!\bin\gradle.bat"
+if not exist "!GRADLE!" for /f "delims=" %%G in ('where gradle.bat 2^>nul') do (
+    set "GRADLE=%%G"
+    goto :gradle_ok
+)
+if not exist "!GRADLE!" (
+    where gradle >nul 2>&1
+    if not errorlevel 1 set "GRADLE=gradle"
+)
+:gradle_ok
+if not exist "!GRADLE!" (
+    echo [tcf-batch-run] gradle not found.
+    exit /b 1
+)
+
+cd /d "!PROJECT_HOME!"
+chcp 65001 >nul
+set "JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8"
+echo [tcf-batch-run] gradle :!MODULE!:bootRun ^(port 8098, profile local^)
+set "SPRING_PROFILES_ACTIVE=local"
+call "!GRADLE!" :!MODULE!:bootRun
+exit /b %errorlevel%

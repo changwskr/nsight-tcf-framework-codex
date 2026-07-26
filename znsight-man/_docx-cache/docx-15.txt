@@ -1,0 +1,776 @@
+10. bootRun / Tomcat WAR 배포 차이
+10.1 도입 전 안내말
+본 장은 NSIGHT TCF Framework에서 개발자가 로컬에서 실행하는 bootRun 방식과 운영환경에서 사용하는 Tomcat WAR 배포 방식의 차이를 정의한다.
+NSIGHT 개발자는 로컬에서는 빠른 개발과 테스트를 위해 bootRun으로 업무 서비스를 실행한다. 그러나 운영환경에서는 Apache, Tomcat, Spring Boot, Spring Session JDBC, RDW/ADW, SESSIONDB, CI/CD가 함께 동작하므로 WAR를 생성하여 외부 Tomcat에 배포하는 방식을 기준으로 한다. NSIGHT Tomcat 운영 기준에서도 Tomcat은 Spring Boot Runtime, Session Cookie 처리, Transaction 처리, Thread Pool 관리, Connection Pool 연계 역할을 수행한다고 정의되어 있다.
+핵심 차이는 다음 한 문장으로 정리할 수 있다.
+bootRun은 개발자가 로컬에서 Spring Boot를 직접 실행하는 방식이고, Tomcat WAR 배포는 운영 Tomcat이 업무 WAR를 적재하여 실행하는 방식이다.
+
+10.2 차이점 결론
+구분
+bootRun
+Tomcat WAR 배포
+사용 목적
+로컬 개발, 단위 테스트, 빠른 확인
+개발/검증/운영 배포
+실행 주체
+Gradle + Spring Boot
+외부 Apache Tomcat
+실행 명령
+./gradlew :sv-service:bootRun
+Tomcat webapps에 WAR 배포
+Tomcat
+Spring Boot 내장 Tomcat 사용
+설치형 외부 Tomcat 사용
+산출물
+별도 WAR 없이 실행
+sv.war, om.war 등 생성
+Context Path
+application-local.yml 기준
+WAR 파일명 또는 Tomcat Context 기준
+설정
+local profile 중심
+dev/stg/prd profile 중심
+로그
+IDE Console 또는 로컬 로그
+Tomcat logs + 업무별 로그
+세션
+로컬 H2/개발 SESSIONDB 가능
+운영 SESSIONDB 기준
+DB
+Local 또는 Dev DB
+운영 RDW/ADW/SESSIONDB
+배포 자동화
+대상 아님
+CI/CD 대상
+장애 대응
+개발자 확인용
+운영 절차 기준
+성능 기준
+기능 확인 수준
+Thread, Heap, Hikari Pool, Timeout 기준 적용
+
+10.3 bootRun 방식
+bootRun은 Gradle이 Spring Boot 애플리케이션을 직접 실행하는 방식이다.
+개발자 PC
+   ↓
+Gradle bootRun
+   ↓
+Spring Boot Application 실행
+   ↓
+내장 Tomcat 기동
+   ↓
+/sv/online 호출
+   ↓
+TCF.process()
+   ↓
+Handler → Facade → Service → Rule → DAO/Mapper
+
+SV 업무 실행 예시는 다음과 같다.
+./gradlew :sv-service:bootRun --args='--spring.profiles.active=local'
+
+Windows에서는 다음과 같이 실행한다.
+gradlew.bat :sv-service:bootRun --args="--spring.profiles.active=local"
+
+OM 실행 예시는 다음과 같다.
+./gradlew :tcf-om:bootRun --args='--spring.profiles.active=local'
+
+Gateway 실행 예시는 다음과 같다.
+./gradlew :tcf-gateway:bootRun --args='--spring.profiles.active=local'
+
+
+10.4 bootRun의 사용 목적
+목적
+설명
+빠른 개발
+소스 수정 후 바로 실행 가능
+Handler 테스트
+ServiceId가 Handler로 매핑되는지 확인
+표준 전문 테스트
+POST /{businessCode}/online 요청/응답 확인
+단위 기능 검증
+Facade, Service, Rule, DAO 흐름 확인
+Mapper 검증
+MyBatis SQL 실행 확인
+로컬 디버깅
+IDE Breakpoint를 이용한 디버깅
+local profile 확인
+로컬 DB, 로컬 로그, 로컬 Port 설정 확인
+bootRun은 개발 편의성을 위한 방식이다.따라서 운영 배포 검증을 bootRun 성공만으로 대체하면 안 된다.
+
+10.5 Tomcat WAR 배포 방식
+Tomcat WAR 배포는 Gradle로 업무 WAR를 생성한 뒤 외부 Tomcat에 배포하는 방식이다.
+Gradle bootWar
+   ↓
+sv.war 생성
+   ↓
+CI/CD Artifact 저장
+   ↓
+Tomcat webapps 배포
+   ↓
+Tomcat 기동 또는 Reload
+   ↓
+/sv/online 호출
+   ↓
+Spring Boot Application 초기화
+   ↓
+TCF.process()
+
+WAR 생성 명령은 다음과 같다.
+./gradlew :sv-service:bootWar
+
+생성 결과는 다음과 같다.
+sv-service/build/libs/sv.war
+
+Tomcat 배포 위치 예시는 다음과 같다.
+$CATALINA_BASE/webapps
+ ├─ sv.war
+ ├─ ic.war
+ ├─ cm.war
+ ├─ mg.war
+ └─ om.war
+
+NSIGHT CI/CD 운영 기준도 GitLab, GitLab Runner, Gradle, WAR 배포를 기준으로 빌드 자동화, 배포 자동화, 롤백 자동화, 운영 안정성 확보를 목표로 둔다.
+
+10.6 실행 구조 차이
+구분
+bootRun
+Tomcat WAR
+실행 시작점
+main()
+Tomcat Servlet Container
+Tomcat 종류
+Spring Boot Embedded Tomcat
+외부 Apache Tomcat
+패키징
+Classpath 실행
+WAR 압축 배포
+Application 시작
+Gradle Task가 직접 실행
+Tomcat이 Web Application 로드
+Context 생성
+Spring Boot 설정 기준
+WAR 파일명 또는 Context 설정 기준
+재기동
+Gradle 재실행
+Tomcat 재기동 또는 WAR Reload
+ClassLoader
+단일 애플리케이션 중심
+WAR별 ClassLoader
+운영 통제
+제한적
+Tomcat 표준 운영 절차 적용
+
+10.7 개발환경과 운영환경 비교
+[로컬 개발]
+IDE / Gradle
+   ↓
+bootRun
+   ↓
+Embedded Tomcat
+   ↓
+sv-service
+
+[운영 배포]
+Apache
+   ↓
+External Tomcat
+   ↓
+webapps/sv.war
+   ↓
+Spring Boot WAR
+
+영역
+로컬 bootRun
+운영 Tomcat WAR
+앞단 Apache
+보통 생략
+필수 또는 표준 적용
+L4/GSLB
+생략
+운영 구성 적용
+Gateway
+선택 실행
+운영 아키텍처에 따라 적용
+SessionDB
+Local 또는 Dev
+운영 SESSIONDB
+RDW/ADW
+Local 또는 Dev
+운영 RDW/ADW
+Logback
+Console 중심
+업무별 로그 파일
+JVM 옵션
+IDE/Gradle 기준
+setenv.sh 기준
+Thread Pool
+내장 Tomcat 설정
+외부 Tomcat Connector 설정
+HikariCP
+로컬 설정
+운영 Pool 설정
+Health Check
+개발 확인
+배포 승인 기준
+
+10.8 build.gradle 차이
+업무 WAR 모듈은 로컬에서는 bootRun이 가능해야 하고, 운영에서는 bootWar로 WAR를 생성해야 한다.
+plugins {
+    id 'java'
+    id 'war'
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+}
+
+dependencies {
+    implementation project(':tcf-web')
+    implementation project(':tcf-core')
+    implementation project(':tcf-cache')
+    implementation project(':tcf-integration')
+
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter'
+    implementation 'com.zaxxer:HikariCP'
+
+    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+bootWar {
+    archiveFileName = 'sv.war'
+}
+
+설정
+의미
+war plugin
+WAR 생성 가능하게 함
+org.springframework.boot
+Spring Boot 실행 및 bootWar 지원
+providedRuntime spring-boot-starter-tomcat
+운영 Tomcat에서 제공하는 Tomcat과 중복 방지
+bootWar.archiveFileName
+표준 WAR 파일명 지정
+bootRun
+로컬 실행 Task
+bootWar
+운영 배포 산출물 생성 Task
+
+10.9 SpringBootServletInitializer 기준
+외부 Tomcat에 WAR로 배포하려면 Spring Boot Application Class가 SpringBootServletInitializer를 상속해야 한다.
+@SpringBootApplication
+public class SvServiceApplication extends SpringBootServletInitializer {
+
+    public static void main(String[] args) {
+        SpringApplication.run(SvServiceApplication.class, args);
+    }
+
+    @Override
+    protected SpringApplicationBuilder configure(SpringApplicationBuilder builder) {
+        return builder.sources(SvServiceApplication.class);
+    }
+}
+
+실행 방식
+필요한 이유
+bootRun
+main()으로 실행
+Tomcat WAR
+Tomcat이 configure()를 통해 Spring Application 초기화
+이 구조를 사용하면 하나의 업무 서비스가 로컬에서는 bootRun, 운영에서는 WAR 배포 방식으로 모두 실행될 수 있다.
+
+10.10 Context Path 차이
+bootRun
+로컬 bootRun에서는 application-local.yml의 server.servlet.context-path가 적용된다.
+server:
+  port: 8086
+  servlet:
+    context-path: /sv
+
+호출 URL은 다음과 같다.
+http://localhost:8086/sv/online
+
+Tomcat WAR
+Tomcat WAR 배포에서는 WAR 파일명 또는 Tomcat Context 설정이 Context Path가 된다.
+sv.war → /sv
+om.war → /om
+ic.war → /ic
+
+호출 URL은 다음과 같다.
+https://nh.marketing.com/sv/online
+
+운영에서는 WAR 파일명, Context Path, Apache Routing, Gateway Routing, Header businessCode가 모두 일치해야 한다.
+
+10.11 Profile 적용 차이
+구분
+bootRun
+Tomcat WAR
+기본 Profile
+local
+dev, stg, prd
+지정 방식
+명령 인자 또는 IDE VM Option
+Tomcat JVM 옵션 또는 환경변수
+설정 파일
+application-local.yml
+application-dev.yml, application-stg.yml, application-prd.yml
+Secret
+로컬 환경변수
+운영 Secret 또는 서버 환경변수
+DB
+Local/Dev
+운영 RDW/ADW/SESSIONDB
+bootRun 실행 예시는 다음과 같다.
+./gradlew :sv-service:bootRun --args='--spring.profiles.active=local'
+
+Tomcat WAR 배포 시에는 setenv.sh 또는 Tomcat 실행 환경에 Profile을 지정한다.
+export JAVA_OPTS="$JAVA_OPTS -Dspring.profiles.active=prd"
+export JAVA_OPTS="$JAVA_OPTS -Dfile.encoding=UTF-8"
+export JAVA_OPTS="$JAVA_OPTS -Duser.timezone=Asia/Seoul"
+
+NSIGHT application.yml 표준은 운영 서버에서 직접 수정하지 않고 Git 형상관리 기준으로 반영하며, dev, stg, prd 설정을 분리하도록 정의한다.
+
+10.12 로그 차이
+구분
+bootRun
+Tomcat WAR
+로그 위치
+IDE Console, 로컬 파일
+Tomcat logs, 업무별 로그 디렉터리
+로그 목적
+개발 확인, 디버깅
+장애 대응, 감사, 성능 추적
+로그 수준
+DEBUG 허용
+INFO 이상 권장
+Access Log
+보통 생략
+Apache/Tomcat Access Log 적용
+Transaction Log
+로컬 확인용
+운영 거래로그 필수
+Audit Log
+선택
+권한·다운로드·설정변경 필수
+운영 로그 구조 예시는 다음과 같다.
+/logs/nsight
+ ├─ sv
+ │   ├─ application.log
+ │   ├─ transaction.log
+ │   └─ error.log
+ ├─ om
+ │   ├─ application.log
+ │   ├─ audit.log
+ │   └─ error.log
+ └─ gateway
+     ├─ application.log
+     └─ access.log
+
+
+10.13 세션 차이
+구분
+bootRun
+Tomcat WAR
+세션 저장
+로컬 메모리, H2, Dev SESSIONDB 가능
+운영 SESSIONDB
+세션 공유
+단일 업무 실행이면 제한적
+다중 WAR 세션 공유 필요
+Cookie
+로컬 도메인 기준
+운영 도메인 기준
+Spring Session JDBC
+선택 또는 개발 DB
+필수 기준
+장애 시 세션 유지
+검증 제한
+운영 필수 검증
+운영에서는 여러 업무 WAR가 동일 SESSIONDB를 사용해야 한다.
+om.war 로그인
+   ↓
+SESSIONDB 저장
+   ↓
+sv.war / ic.war / cm.war에서 동일 세션 조회
+
+Spring Session JDBC 운영 기준은 세션 중앙화, WAS 독립 세션 관리, 장애 시 세션 유지, 다중 WAR 세션 공유, 사용자 인증 상태 유지를 역할로 정의한다.
+
+10.14 DB / HikariCP 차이
+구분
+bootRun
+Tomcat WAR
+DB 대상
+Local DB, H2, Dev DB
+운영 RDW/ADW/SESSIONDB
+Pool Size
+작게 설정
+운영 기준 적용
+Connection Timeout
+개발 기준 가능
+운영 표준 적용
+Query Timeout
+반드시 테스트
+운영 필수
+SQL 로그
+DEBUG 허용
+운영에서는 제한
+DB 장애 테스트
+선택
+운영 전환 전 필수
+로컬 예시는 다음과 같다.
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      connection-timeout: 3000
+
+운영에서는 업무별 TPS, Thread, DB Session 기준에 따라 HikariCP Pool을 산정해야 한다. HikariCP는 DB Connection을 미리 만들어두고 요청 시 빌려주는 구조이며, DB 자원 통제 장치로 관리해야 한다.
+
+10.15 Thread / JVM 차이
+구분
+bootRun
+Tomcat WAR
+JVM 옵션
+IDE 또는 Gradle JVM
+Tomcat setenv.sh
+Heap
+개발 PC 기준
+운영 VM 기준
+Thread
+내장 Tomcat 설정
+외부 Tomcat Connector 설정
+GC Log
+보통 생략
+운영 필수
+Heap Dump
+선택
+운영 권장
+OOM 대응
+개발자 확인
+운영 자동 조치 기준 필요
+운영 Tomcat에서는 다음 항목이 중요하다.
+항목
+운영 기준
+-Xms, -Xmx
+VM 메모리 기준 산정
+MaxMetaspaceSize
+WAR 수와 Class 수 고려
+maxThreads
+목표 TPS와 응답시간 기준 산정
+acceptCount
+순간 요청 대기 기준
+GC Log
+장애 분석용 필수
+Heap Dump
+OOM 분석용 필수
+
+10.16 개발자 관점 차이
+개발 작업
+bootRun에서 확인
+Tomcat WAR에서 확인
+Java 코드 수정
+즉시 실행 확인
+WAR 재생성 필요
+Handler 매핑
+가능
+가능
+ServiceId 테스트
+가능
+가능
+Mapper SQL 테스트
+가능
+가능
+Apache Routing
+보통 불가
+가능
+Gateway Routing
+별도 실행 시 가능
+가능
+Session 공유
+제한적
+필수 확인
+운영 Profile
+사용 금지
+dev/stg/prd 기준 확인
+Health Check
+로컬 확인
+배포 승인 기준
+Smoke Test
+개발 확인
+배포 후 필수
+
+10.17 운영자 관점 차이
+운영 항목
+bootRun
+Tomcat WAR
+서비스 기동/중지
+개발자 PC에서 수행
+Tomcat 운영 절차 기준
+로그 수집
+로컬
+중앙 로그 또는 서버 로그
+장애 대응
+개발자 확인
+운영 매뉴얼 기준
+배포 이력
+없음 또는 제한적
+CI/CD, OM 배포이력
+롤백
+소스 되돌림
+이전 WAR 복구
+Health Check
+수동
+자동 또는 표준 절차
+권한/거래통제
+개발 DB 기준
+OM 운영 기준
+성능 모니터링
+제한적
+Thread, Heap, Pool, TPS 기준
+
+10.18 CI/CD 관점 차이
+bootRun은 CI/CD의 운영 배포 산출물이 아니다.CI/CD는 WAR 생성을 기준으로 한다.
+Git Push / Merge Request
+   ↓
+Gradle Build
+   ↓
+Unit Test
+   ↓
+bootWar
+   ↓
+Artifact 저장
+   ↓
+배포 승인
+   ↓
+Tomcat 배포
+   ↓
+Health Check
+   ↓
+Smoke Test
+   ↓
+배포 완료
+
+단계
+bootRun
+Tomcat WAR
+로컬 개발
+사용
+사용 안 함
+CI 빌드
+보통 사용 안 함
+bootWar 사용
+배포 산출물
+없음
+WAR
+운영 배포
+불가
+가능
+롤백
+불가
+이전 WAR 복구
+이력관리
+제한적
+Artifact/Tag/배포이력 관리
+
+10.19 대표 오류 비교
+오류 상황
+bootRun 원인
+Tomcat WAR 원인
+Context Path 다름
+application-local.yml 설정 오류
+WAR 파일명 또는 Context 설정 오류
+404 발생
+Port/Context 오류
+Apache ProxyPass 또는 Tomcat Context 오류
+ClassNotFound
+IDE Import 오류
+WAR 패키징 누락
+Tomcat 충돌
+로컬 Port 중복
+외부 Tomcat Library 충돌
+DB 연결 실패
+Local DB 설정 오류
+운영 DataSource, Secret 오류
+세션 불일치
+로컬 세션 설정 누락
+SESSIONDB, Cookie Domain, SameSite 오류
+Mapper 오류
+XML 경로 오류
+WAR 내부 Mapper 누락
+Profile 오류
+local 미지정
+prd Profile 미적용
+로그 미출력
+Console 설정 오류
+logback 경로, 권한 오류
+
+10.20 개발 완료 후 WAR 검증 절차
+개발자는 bootRun 성공 후 반드시 WAR 생성과 Tomcat 배포 검증을 수행해야 한다.
+1. bootRun으로 기능 확인
+2. 단위 테스트 수행
+3. Gradle build 수행
+4. bootWar 생성
+5. 로컬 또는 개발 Tomcat에 WAR 배포
+6. Context Path 확인
+7. Health Check 확인
+8. 대표 ServiceId Smoke Test
+9. 로그 확인
+10. MR 생성
+
+검증 명령은 다음과 같다.
+./gradlew :sv-service:clean :sv-service:build
+./gradlew :sv-service:bootWar
+
+Smoke Test 예시는 다음과 같다.
+POST http://localhost:8080/sv/online
+Content-Type: application/json
+
+{
+  "header": {
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "serviceName": "고객요약조회",
+    "user": "testuser",
+    "channelId": "WEB",
+    "branch": "0001"
+  },
+  "body": {
+    "customerNo": "1234567890"
+  }
+}
+
+
+10.21 선택 기준
+상황
+권장 방식
+개발자가 Java 코드 수정 후 빠르게 확인
+bootRun
+Handler / Facade / Service 단위 개발
+bootRun
+Mapper SQL 로컬 테스트
+bootRun
+개발환경 배포 전 최종 확인
+Tomcat WAR
+Apache / Gateway 라우팅 확인
+Tomcat WAR
+SESSIONDB 세션 공유 확인
+Tomcat WAR
+운영 배포
+Tomcat WAR
+롤백 검증
+Tomcat WAR
+성능 테스트
+Tomcat WAR
+장애 테스트
+Tomcat WAR
+
+10.22 금지사항
+금지사항
+사유
+bootRun 성공만으로 개발 완료 처리
+운영 WAR 배포 오류를 놓칠 수 있음
+운영 Profile로 bootRun 실행
+운영 DB/Secret 오사용 위험
+WAR 파일명 임의 지정
+Context 및 배포 자동화 오류
+외부 Tomcat 배포인데 embedded Tomcat 중복 포함
+라이브러리 충돌 가능
+Tomcat WAR 배포 후 Smoke Test 생략
+배포 장애 조기 발견 실패
+Context Path와 WAR 파일명 불일치
+Apache/Gateway 라우팅 오류
+로컬 H2 SQL만 확인하고 Oracle SQL 미검증
+운영 SQL 오류 가능
+운영 Secret을 application.yml에 직접 작성
+보안 위반
+Tomcat 로그 확인 없이 배포 완료 처리
+장애 원인 추적 불가
+
+10.23 체크리스트
+점검 항목
+bootRun
+Tomcat WAR
+local Profile로 실행했는가
+□
+-
+dev/stg/prd Profile이 올바른가
+-
+□
+Context Path가 업무코드와 일치하는가
+□
+□
+/sv/online 호출이 가능한가
+□
+□
+ServiceId가 Handler로 매핑되는가
+□
+□
+Mapper XML이 로딩되는가
+□
+□
+DB 연결이 정상인가
+□
+□
+SESSIONDB 연계가 정상인가
+선택
+□
+Health Check가 정상인가
+선택
+□
+Smoke Test가 성공했는가
+□
+□
+업무 로그가 남는가
+□
+□
+거래로그가 남는가
+선택
+□
+WAR 파일명이 표준인가
+-
+□
+Tomcat 로그에 오류가 없는가
+-
+□
+Apache/Gateway 라우팅이 정상인가
+-
+□
+이전 WAR 롤백본이 있는가
+-
+□
+
+10.24 마무리말
+bootRun과 Tomcat WAR 배포는 서로 경쟁하는 방식이 아니다.두 방식은 목적이 다르다.
+bootRun
+= 개발자가 빠르게 실행하고 디버깅하기 위한 방식
+
+Tomcat WAR 배포
+= 운영과 동일한 구조로 배포, 검증, 모니터링하기 위한 방식
+
+개발자는 bootRun으로 기능을 빠르게 만들고, 반드시 bootWar와 Tomcat 배포 방식으로 운영 적합성을 확인해야 한다.
+
+10.25 시사점
+NSIGHT TCF Framework에서 개발 완료의 기준은 “내 PC에서 bootRun으로 실행된다”가 아니다.최종 기준은 다음이다.
+WAR로 패키징되고, Tomcat에 배포되며, Context Path가 맞고, ServiceId가 실행되고, 거래로그와 Health Check가 정상인 상태이다.
+따라서 개발자는 다음 순서를 습관화해야 한다.
+bootRun으로 개발 확인
+   ↓
+단위 테스트
+   ↓
+Gradle build
+   ↓
+bootWar 생성
+   ↓
+Tomcat 배포 확인
+   ↓
+Health Check
+   ↓
+ServiceId Smoke Test
+   ↓
+Merge Request
+
+결론적으로 bootRun은 개발 속도를 높이는 도구이고, Tomcat WAR 배포는 운영 가능성을 증명하는 절차이다.
+

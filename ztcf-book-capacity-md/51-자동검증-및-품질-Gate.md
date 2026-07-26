@@ -1,0 +1,698 @@
+# 51. 자동검증 및 품질 Gate
+
+> 제7부. 성능검증과 운영 전환
+
+## NSIGHT 1차 표준 전제
+
+| 항목 | 기준값 |
+|------|--------|
+| 지점 수 | 3,600 |
+| 지점당 사용자 | 6 |
+| 전체 사용자 | 21,600 |
+| 설계 세션 | 26,000~28,000 |
+| TPS | 360 / 720 / 1,080 |
+| 목표 응답 | p95 3초 이하 |
+| 기준 VM | 8 vCPU / 32GB |
+| VM당 TPS | 250 (보수) |
+| AP 구조 | 2센터 Active-Active |
+
+> 출처: `znsight-capacity-word` · [13단계 요약](./zNSIGHT-용량산정-전체-흐름.md)
+
+
+**자동검증 Gate** — rule-check, Pool 합산.
+
+## 원문 기반 본문
+
+농협 상호금융 NSIGHT 정보계 차세대용량산정 기준 검증 결과서통합 아키텍처 정의서 수치 교차검증 기준Architecture & Platform Team  |  Ver 1.0  |  2026.05▶ 검증 판정 범례  ✅ 검증됨 (Verified) — 산정값이 아키텍처 SLA 기준과 일치  ⚠️ 보완필요 (Caution) — 기준은 있으나 구체 수치 보완 필요  ❌ 미충족 (Gap) — 산정값이 아키텍처 기준에 미달 또는 누락
+
+## 1. 검증 개요
+
+본 문서는 NSIGHT 정보계 용량산정서(이하 '산정서')에 기술된 설정값·공식·기준치를 통합 아키텍처 정의서(Stage 1~6) 및 설계원칙서(NH Architecture Principles)에 명시된 SLA, NFR, 메커니즘 수치와 교차 검증한 결과서입니다.
+
+검증 범위: 온라인 AP / RDW / ADW / Batch·ETL / Kafka / CDC / BI 포탈 / 공통(DB Pool, 보안, 관측성)검증 기준: 통합 아키텍처 정의서 0~7장, NH Architecture Principles (P-01~P-05, G-01~G-07), 런타임 시뮬레이션(MTA/RTA) 설계값
+
+## 2. SLA / NFR 기준 검증표아키텍처 정의서 §2.5(NFR 1차), §7.3.2(런타임 시뮬레이션) 수치를 기준으로 산정서 공식·목표치를 교차 검증합니다.
+
+구분산정서 기준값아키텍처 정의서 SLA런타임 시뮬레이션 목표검증 수치 (최종)판정마케팅 API 응답시간주요 조회 거래 3초 이내채널 요청 후 3초 이내 응답 (APIM 수신~응답)피크 TPS 500, 평균응답 500ms, 허용최대 3,000ms목표 3초 이내 (SLA Critical)✅ 검증됨실시간 이벤트 오퍼링Single View 피크 TPS별 별도 산정 (NSIGHT 기준)이벤트 발생 후 1초 이내 오퍼링 실행 (SLA Critical)피크 TPS 200, 평균응답 200ms, 허용최대 1,000ms목표 1초 이내 (이벤트 처리 SLA Critical)✅ 검증됨CDC 데이터 동기화CDC 변경 데이터 목표 지연시간 내 RDW 반영 (기준: SLA)원천 변경 후 최대 30초 이내 RDW 반영 (High)1,000 msg/s, 허용 지연 30초 이내, 경보기준 15초 초과30초 이내 (단, NSIGHT PPT에서 CDC SLA 3초 언급 — 별도 확인 필요)⚠️ 보완필요Kafka 이벤트 처리Kafka 이벤트 폭증 시 Consumer Lag 허용 범위 산정 기준이벤트 발행 후 1초 이내 소비 처리 (SLA Critical)Lag 경보 10,000건 / Critical 50,000건, 5분 내 해소 자동 에스컬레이션1초 이내 소비 / Lag 10,000건 이상 시 경보✅ 검증됨BI 포탈 대시보드 조회동시 조회 사용자, 리포트 실행 건수 기준 (기준 미수치화)일반 조회 3초, 대용량 분석 30초 이내 (Medium)표준 리포트 3~5초, 대용량 OLAP 10초, Self-BI 5초 (PPT 기준)표준 3~5초 / 대용량 10초 / Self-BI 5초 — 아키텍처 정의서와 소폭 차이 (30초 vs 10초)⚠️ 보완필요배치 ETL 처리 완료배치 필요 처리량 = 총 처리건수 ÷ 허용 배치시간 (공식 제시)배치 윈도우(00:00~06:00) 내 완료 (High)2억 건/일, 목표 03:00 완료, DataStage 병렬 8채널 (30% 여유)배치 윈도우 00:00~03:00
+
+완료 목표 (여유율 30% 확보)✅ 검증됨데이터 플랫폼 가용성AP 한 대 또는 한 센터 장애 시 잔여 자원 서비스 감당 가능 여부 산정99.9% 이상 (월 43분 미만 중단), Oracle Exadata RAC 이중화AP Active-Active, RTO 목표 15분 (§4.
+
+### 3.5 ADR-001)가용성 99.9% / RTO 15분 (아키텍처 정의서), RTO 3시간 (NSIGHT PPT) — 정합 확인 필요⚠️ 보완필요※ CDC SLA: 아키텍처 정의서는 30초, NSIGHT PPT/설계원칙서는 3초로 표기. 두 문서 간 수치 정합 후 ARB 공식 승인 필요.※ BI 응답시간: 아키텍처 정의서(§2.5) '대용량 분석 30초', NSIGHT PPT '대용량 OLAP 10초'. 용량산정 기준은 PPT 수치(10초)를 따르되 ARB 확정 권장.※ RTO: 아키텍처 정의서 §4.
+
+### 3.5 ADR-001 기준 15분, NSIGHT PPT 기준 최대 3시간. 농협 내부 기준(3시간) 확인 후 단일 기준 통일 필요.
+
+## 3. 시스템별 용량산정 기준 검증
+
+### 3.1 온라인 AP (마케팅 플랫폼·Single View)산정 항목산정서 기준아키텍처 정의서 검증 수치검증 결과 (확정 수치)판정vCPU 산정식목표 TPS × 거래당 CPU 사용량 × 여유율마케팅 AP 피크 TPS 500 / 이벤트 TPS 200 (§7.3.2)피크 TPS 500 기준, 거래당 CPU 여유율 포함 산정✅ 검증됨Memory 산정식동시 사용자 세션 + JVM Heap + Cache + 여유율L2 분산캐시(Redis) 세션 외부화, JVM Heap 표준 (§7.2.4)JVM Heap 물리메모리 50~60%, 나머지 Redis·OS 여유 (물리 구성표 기준)✅ 검증됨Thread 산정피크 동시 요청 수 + 대기 요청 수Timeout 표준: 마케팅 API 1.5초, 일반 API 3초 (§7.2.2)maxThreads/acceptCount/connectionTimeout 표준화 (NSIGHT 물리구성 표준)✅ 검증됨AP 수량 산정목표 TPS ÷ AP 1대 처리 가능 TPS × 이중화 계수Active-Active 최소 2노드, 장애 시 잔여 노드 목표 TPS 처리 (§4.3.2)최소 2대 Active-Active, 장애 전환 기준 포함 산정 필수✅ 검증됨피크 계수 기준캠페인 실행 시점, 월초/월말 집중 고려 (정성 기술)캠페인 피크 대응 Auto-Scaling, 헤드룸 30% 이상 (NSIGHT 물리구성)피크 계수 × 헤드룸 30% — 정량 수치 명시 필요⚠️ 보완필요DB Connection Pool업무별 최대 동시 DB 요청 수 기준 (정성)RDW(마케팅) Pool: 초기 10/최대 50, Timeout 3초 (§7.2.4)RDW Pool 초기 10 / 최대 50 / 연결 Timeout 3초 / Idle 10분✅ 검증됨※ 온라인 AP 피크 계수(캠페인 집중률)는 정량값 미기재. 아키텍처 정의서 §7.
+
+### 3.2 피크 TPS 500 기준으로 역산하여 용량산정서에 수치 명기 권장.
+
+### 3.2 RDW (실시간 운영 데이터 웨어하우스)산정 항목산정서 기준아키텍처 정의서 검증 수치검증 결과 (확정 수치)판정CPU 산정 기준온라인 조회 SQL + 적재/검증 SQL 동시 부하 기준RDW 자원 풀 A 전용 (ADW 자원 풀 B와 물리 격리), Resource Manager (§4.3.1)온라인 조회 + CDC 적재 + DQ 검증 동시 부하 기준, Pool A 전용 CPU 할당✅ 검증됨Storage 산정식초기 적재 + 5년 증가량 + 인덱스 + 로그 + 여유율거래 테이블 월별 Range 파티셔닝, 3년 이상 ADW 이관 (§7.2.4)초기량 + (일 증가량 × 365 × 보관연수) + 인덱스/파티션 오버헤드 + 여유율✅ 검증됨Session 분리 기준Online AP Pool + Interface Pool + ETL Pool + 운영 Pool 분리RDW(마케팅) 10/50, ADW(BI) 5/30, 배치(DataStage) 2/10 (§7.2.4)마케팅 Pool 50 / BI Pool 30 / DataStage Pool 10 / 운영 Pool 별도 — 합산 세션 DBA 예산 통제✅ 검증됨금지 기준BI 대량 분석 SQL을 RDW에서 직접 수행 금지G-02: RDW 대용량 분석 쿼리 실행 금지, ADW 전용 계정 제어 (§3.2, §5.4.2)RDW BI 직접 쿼리 금지 / DB 계정 권한 매트릭스로 ADW 전용 계정 통제✅ 검증됨
+
+### 3.3 ADW (분석 전용 데이터 웨어하우스)산정 항목산정서 기준아키텍처 정의서 검증 수치검증 결과 (확정 수치)판정CPU 산정복잡 분석 SQL, 집계 SQL, BI 동시 조회 기준ADW 자원 풀 B 전용, PARALLEL 힌트 Degree 4~8 (§7.2.4)ADW Pool B 전용 CPU, BI 동시 조회 + 배치 집계 피크 합산 기준✅ 검증됨Temp 공간 산정대형 리포트, 집계성 SQL 기준Sort, Hash Join, BI Cache 대량 처리 기준 별도 산정 (§7.2.4)대형 집계 SQL 동시 실행 수 × Temp 예상 사용량 — 별도 Disk Group 권장⚠️ 보완필요I/O 경합 분석ETL 적재 시간대와 BI 조회 시간대 경합 고려배치윈도우 00:00~06:00 / BI 피크 오전 업무시간 분리 (§7.3.2)ETL 적재(야간)와 BI 조회(주간) 시간대 물리 분리 — ADW Resource Manager 큐 적용 필요✅ 검증됨Result Cache 정책분석 마트 증가, 리포트 증가 기준 (정성)ADW Result Cache TTL 1시간, 배치 완료 후 자동 무효화 (§7.2.4)ADW Result Cache TTL 1시간 / 배치 완료 즉시 무효화 / BI 첫 조회 재생성✅ 검증됨※ ADW Temp 공간 산정은 동시 실행 SQL 수와 평균 Temp 사용량의 정량 기준 미제시. 성능 테스트(PT) 결과 반영 후 확정 권장.4. Kafka / CDC 용량산정 검증
+
+### 4.1 Kafka 이벤트 스트리밍산정 항목산정서 공식아키텍처 정의서 검증 수치검증 결과 (확정 수치)판정일 메시지량 산정식일 이벤트 건수 × 평균 메시지 크기고객 행동 이벤트 기반 FAST 경로, 이벤트 TPS 피크 200 (§7.3.2)일 이벤트 건수 = 피크 TPS 200 × 86,400초 (피크 구간 집중률 보정 필요)⚠️ 보완필요Kafka 저장용량 산정일 메시지량 × Retention 일수 × 복제계수Kafka Broker 최소 3노드, 복제계수(RF=3) (§
+
+4.3.1, §6.3.2)저장량 = 일 메시지량 × Retention 일수 × 3 (RF=3) — Retention 기간 정의 필요⚠️ 보완필요Partition 수 설계Topic 수 기준 (정성)Consumer 수평 확장 = 파티션 수 이내, 초기 파
+
+티션 최대 트래픽 기준 설계 (§6.4.2)파티션 수 ≥ Consumer 최대 수, 초기 파티션 = 예상 최대 Consumer 수로 설계✅ 검증됨Consumer Lag 기준Consumer 장애 시 적체 데이터 처리 가능성 (정성)Lag ≥ 10,000건 Warning, ≥ 50,000건 Critical, 5분 내
+
+미해소 시 에스컬레이션 (§7.3.4)Lag 경보 기준: Warning 10,000건 / Critical 50,000건 / 5분 내 미해소 → 자동 에스컬레이션✅ 검증됨DLQ 설계Consumer 장애 시 적체 처리 가능성 기준3회 재시도(지수 백오프 1→2→4초) 후 DLQ 이동, 운영팀 즉시 알림 (§7.2.2)DLQ: 3회 재시도(1s→2s→4s Exponential) 후 이동, 전용 Consumer 모니터링✅ 검증됨※ Kafka Retention 기간(일수)이 산정서에 미정의. 이벤트 재처리 정책(DLQ 보관기간 포함)과 함께 ARB 확정 후 용량산정서 업데이트 필요.※ 일 메시지량은 피크 TPS 200을 전일 직산하면 과대산정 위험. 실제 캠페인 피크 구간(예: 영업시간 9시간) 집중률 보정 계수 적용 권장.
+
+### 4.2 CDC 중계서버산정 항목산정서 기준아키텍처 정의서 검증 수치검증 결과 (확정 수치)판정변경 건수 기준변경 건수, 지연시간, 반영 대상 테이블 수 (정성)CDC 지연 경보 30초 Warning, 60초 Critical, GoldenGate 자동 재시작 (§7.3.4)CDC 지연 기준: 30초 Warning / 60초 Critical / 자동 재시작 트리거✅ 검증됨중계서버 이중화장애 격리 기준 (정성)CDC 중계서버 전용 자원 확보(원천 DB 부하 경감 분리 배치), 큐 깊이 모니터링 (§4.3.1)중계서버 2대 이상 이중화, 버퍼 큐 깊이 15초 초과 시 경보, 10분 장애 시 Full Sync✅ 검증됨SLA 정합 여부실시간 반영 허용 지연시간 (정성)아키텍처 정의서: 30초 이내 / NSIGHT PPT: 3초 이내 — 문서 간 불일치 발견⚠️ 아키텍처 정의서(30초) vs NSIGHT PPT·설계원칙서(3초) 불일치 — ARB 공식 확정 필요❌ ARB 확정 필요※ CDC SLA 30초(아키텍처 정의서) vs 3초(NSIGHT PPT/설계원칙서) 불일치는 인프라 산정에 직접 영향. ARB에서 단일 기준으로 확정 후 용량산정서 반영 필수.5. Batch / ETL 용량산정 검증산정 항목산정서 공식아키텍처 정의서 검증 수치검증 결과 (확정 수치)판정배치 처리량 공식총 처리건수 ÷ 허용 배치시간2억 건/일, DataStage 병렬 8채널, 목표 03:00 완료, 30% 여유 (§7.3.2)필요 처리량 = 2억 건 ÷ 3시간(10,800초) ≈ 18,519 건/초 — DataStage 병렬도 역산 검증 필요⚠️ 보완필요ETL 처리량 공식적재 대상 데이터량 ÷ 허용 적재시간External Table 방식 병렬 적재, A
+
+DW Load 목표 03:00 이내 (§7.3.1)ETL 처리량 = 적재량(GB) ÷ 허용 적재시간 — External Table 병렬 적재 방식 적용✅ 검증됨재처리 여유계수기본 처리량 × 재처리 여유계수Checkpoint 기반 재처리, 배치 윈도우 30% 여유(04:30 실제 목
+
+표) (§7.3.2)재처리 여유계수 적용 시 실제 완료 목표 04:30 — 배치 윈도우 30% 헤드룸 확보✅ 검증됨고객 세그먼트 갱신배치 윈도우 내 완료 기준1,200만 고객, 03:00~04:30 (1.5시간), Redis Cache 재적재 포함 (§7.3.2)1,200만 고객 세그먼트 갱신: 03:00~04:30 완료 / 갱신 후 Redis Cache Eviction+재적재✅ 검증됨배치 윈도우 위험구간온라인 피크 시간대와 충돌 금지 기준04:00~04:30 DB I/O 최대 부하 구간 예측 (세그먼트 갱신+MFT 배포 겹침) (§7.3.2)04:00~04:30 고위험 구간: I/O Resource Manager 적용, 성능테스트(PT) 실측 검증 의무화⚠️ 보완필요※ DataStage 병렬 처리량(18,519건/초)은 8채널 병렬도와 Exadata Smart Scan 가정 기반. 실측 PT 후 채널 수 조정 필요.※ 배치 윈도우 04:00~04:30 고위험 구간은 MFT 파일 배포(외부기관 30개/일)와 세그먼트 갱신이 겹치므로, DB I/O Resource Manager 우선순위 정책 사전 확정 필요.6. BI 포탈 용량산정 검증산정 항목산정서 기준아키텍처 정의서 검증 수치검증 결과 (확정 수치)판정BI AP CPU동시 리포트 실행 수 × 리포트 복잡도ADW(BI) Pool 초기 5/최대 30, Timeout 10초 (§7.2.4)BI AP CPU = 동시 SQL 실행 수 × 복잡도 가중치 / 코어당 처리량 — ADW Pool 30 기준 역산⚠️ 보완필요ADW 부하 기준리포트 SQL 복잡도 + 동시 실행 수BI 포탈 TPS 50, 평균 2,000ms, 허용 최대
+
+10,000ms (§7.
+
+### 3.2 런타임 시뮬레이션)BI TPS 50 기준, 평균 응답 2,000ms, 최대 허용 10,000ms — ADW 전용 조회 계정 적용✅ 검증됨피크 기준오전 업무시작, 월말/마감 후, 경영회의 전 집중BI 피크: 업무 시작 전 신규 집계 데이터 반영(ADW Result Cache 무효화 05:00 이전) (§7.3.1)BI 피크 시간대 = 오전 6시 이후 업무 개시, 배치 완료 후 Result Cache 재생성 05:00 목표✅ 검증됨응답 SLA 기준동시 조회 사용자, 리포트 실행 건수, 조회 응답시간, 다운로드 건수 (정성)표준 3~5초(PP
+
+T) vs 일반 조회 3초·대용량 30초(정의서) — 불일치⚠️ 표준 리포트 3~5초 / Self-BI 5초 (PPT 기준) vs 대용량 30초(정의서) — 단일 기준 확정 필요⚠️ 보완필요감사로그 보관사용자 조회 이력 + 다운로드 이력 보관기간감사 로그 보관 5년(전자금융감독규정), 운영 로그 3개월 (§7.2.3)감사 로그 5년 보관 / 운영 로그 3개월 / 전용 감사 저장소(별도 Exadata 파티션)✅ 검증됨※ BI AP CPU 산정에 복잡도 가중치(단순 리포트/OLAP/Self-BI/AI NLP) 정의가 필요. ADW Pool 30개 기준 역산 후 정량 명기 권장.
+
+## 7. 공통 기준 검증 (DB Pool · 보안 · 관측성)산정 항목산정서 기준아키텍처 정의서 검증 수치검증 결과 (확정 수치)판정DB Pool 총량 통제업무별 최대 연결 수, 대기시간, Timeout 기준RDW 10/50, ADW 5/30, DataStage 2/10, Redis 5/20 (§7.2.4)Pool 총합: RDW 50 + ADW 30 + DataStage 10 + Redis 20 + 운영별도 — DBA 예산(DB 한계) 내 통제✅ 검증됨Timeout 표준업무별 Timeout 기준 (정성)마케팅 API 1.5초, 일반 API 3초, 배치 연계 60초 (§7.2.2)마케팅 API Timeout 1.5초 / 일반 API 3초 / 배치 연계 60초 / Timeout 미설정 배포 금지✅ 검증됨서킷브레이커 기준장애 전환 기준 (정성)5초 내 5회 실패 시 Open, 30초 후 Half-Open, 회복 시 Close (§7.2.2)서킷브레이커: 5초/5회 실패 → Open / 30초 후 Half-Open 시도 / 회복 확인 → Close✅ 검증됨구간 암호화TLS 전송, 저장 암호화(민감/개인정보 중심)TLS
+
+### 1.3 전 구간, Oracle TDE, Kafka 페이로드 AES-256, MFT PGP (§7.2.3)채널↔APIM TLS 1.3 / 내부 mTLS / Kafka 개인정보 AES-256 / DB TDE / MFT PGP SFTP✅ 검증됨개인정보 마스킹PII 저장 금지 원칙, 불가피 시 토큰화/암호화+TTL (물리구성 기준)주민번호 뒤 7자리/계좌 중간/이름/휴대폰 중간/이메일 마스킹 이중 적용 (§7.2.3)APIM 응답 필터 + DB View 레이어 이중 마스킹 / 개발·테스트 환경 원본 사용 금지✅ 검증됨SLA 알림 에스컬레이션성능테스트 기준값 확정 기준 (정성)1단계 담당자 → 5분 지속 시 팀장 → 15분 지속 시 아키텍처팀 긴급 대응 (§4.4.2)SLA 초과 시: 1단계 담당자 즉시 / 5분 지속 → 팀장 / 15분 지속 → 아키텍처팀 긴급 가동✅ 검증됨Trace ID 표준운영 모니터링에서 실제 사용량과 산정값 비교 (정성)UUID v4, APIM 진입 시 생성, HTTP 헤더(X-Trace-Id)+Kafka 헤더+SQL Comment 전파 (§7.3.4)Trace ID: UUID v4 / X-Trace-Id 헤더 전파 / Kafka 메시지 헤더 포함 / SQL Comment 삽입✅ 검증됨APM 수집 항목로그 발생량, 보관기간, 검색량, 저장소 (정성)TPS, 응답시간 P95/P99, 에러율, JVM Heap, DB Pool, Kafka Consumer Lag (§4.4.2)수집 필수 메트릭: TPS / P95 응답시간 / 에러율 / JVM·GC / DB Pool / Kafka Lag / Redis 히트율✅ 검증됨
+
+## 8. 장애 전환 / DR 용량산정 검증산정 항목산정서 기준아키텍처 정의서 검증 수치검증 결과 (확정 수치)판정DR 전환 방식AP Active-Active, DB Active-Standby — 잔여 자원 감당 가능성 산정AP Active-Active + DB Active-Standby, RTO 목표 15분 (§4.
+
+### 3.5 ADR-001)AP Active-Active DR 전환 / DB Active-Standby 승격 / RTO 15분 목표✅ 검증됨트래픽 전환 절차장애 전환 기준 (정성)Cruz APIM 라우팅 가중치 100%, DNS TTL 60초 사전 설정, 30분 이내 완료 목표 (§7.3.3)APIM 라우팅 DR 100% / DNS TTL 60초 / 전환 완료 30분 이내 목표✅ 검증됨RTO 기준 정합장애 전환 기준 (정성)§4.3.5: RTO 15분 / §7.3.3: DR 완료 2시간 / NSIGHT PPT: RTO 최대 3시간 — 문서 간 불일치⚠️ RTO 15분(정의서 ADR-001) vs 2시간(런타임) vs 3시간(PPT) 불일치 — ARB 단일 기준 확정 필요❌ ARB 확정 필요DR 훈련 주기DR 구성 기준 (정성)DR 전환 절차서 연 1회 훈련 필수 (§7.4)DR 연 1회 이상 훈련 의무화 / 훈련 결과서 ARB 보고 / RTO 검증 포함✅ 검증됨※ RTO 불일치(15분 / 2시간 / 3시간)는 DR 인프라 산정(잔여 자원 용량) 및 운영 SLA에 직접 영향. ARB 의결 후 모든 문서 동기화 필요.
+
+## 9. 종합 검증 결과 요약산정서 전체 검증 항목 37개 기준 판정 결과입니다.
+
+판정건수비율비고✅ 검증됨 (Verified)23건62%아키텍처 정의서와 완전 정합⚠️ 보완필요 (Caution)11건30%정량 수치 보완 또는 문서 간 경미한 차이❌ ARB 확정 필요 (Gap)3건8%문서 간 수치 불일치, ARB 결정 필수ARB 공식 확정 필요 항목 (3건)No항목불일치 내용ARB 확정 필요 사항영향 시스템1CDC SLA아키텍처 정의서: 30초 이내 vs NSIGHT PPT·설계원칙서: 3초 이내단일 CDC 지연 SLA 확정 후 용량산정·인프라·모니터링 기준 통일CDC 중계서버, RDW 적재, 마케팅 SLA2RTO 목표ADR-001(15분) vs 런타임 시나리오(2시간) vs NSIGHT PPT(3시간) 3개 수치 불일치DR 인프라 용량(잔여 자원) 산정 기준 및 운영 SLA 단일화DR 센터, AP 서버, GSLB, 운영 절차서3BI 응답시간아키텍처 정의서: 대용량 30초 vs NSIGHT PPT·설계원칙서: 대용량 10초BI 대용량 OLAP 응답 SLA 확정 후 ADW 자원 및 Temp 공간 산정 반영ADW, BI 포탈 AP, Result Cache 정책보완필요 주요 항목 요약항목보완 내용권장 조치우선순위온라인 AP 피크 계수캠페인 집중률·피크 배율 정성 기술, 정량값 미기재§7.
+
+### 3.2 피크 TPS 500 역산, 헤드룸 30% 이상 수치 명기높음ADW Temp 공간대형 집계 SQL Temp 예상 사용량 정량값 미제시동시 실행 SQL 수 × 평균 Temp 사용량 산정, 별도 Disk Group 권장중간Kafka 일 메시지량피크 TPS 200 직산 시 과대산정 위험, Retention 기간 미정의캠페인 피크 구간 집중률 보정 계수 + Retention 일수 ARB 확정높음배치 처리량 역산DataStage 8채널 병렬도 기준 처리량 검증값 미기재2억 건 ÷ 3시간 = 18,519건/초 기준, PT 실측 후 채널 수 조정높음BI AP CPU 복잡도 가중치리포트 유형별(표준/OLAP/Self-BI/AI NLP) 복잡도 정의 미제시ADW Pool 30 기준 역산 + 리포트 유형별 가중
+
+치 테이블 작성중간
+
+## 10. 검증 완료 수치 원스탑 참조표아키텍처 정의서 교차검증을 통해 확정된 수치입니다. ⚠️ 표기 항목은 ARB 확정 후 최종값으로 대체하십시오.
+
+분류지표검증 확정 수치근거 (정의서 조항)상태SLA마케팅 API 응답3초 이내 (APIM 수신~응답 반환)§
+
+### 2.5 NFR / §7.3.2✅SLA이벤트 오퍼링1초 이내 (이벤트 수신~오퍼링 발행)§
+
+### 2.5 NFR / §7.3.1✅SLACDC 동기화30초 이내 (정의서 기준) — 3초 이내(PPT) ARB 확정 대기 ⚠️§
+
+### 2.5 NFR / §7.3.2⚠️SLAKafka 이벤트1초 이내 소비 / Lag 경보 10,000건 / Critical 50,000건§7.
+
+### 3.4 SLA 대시보드✅SLABI 리포트표준 3~5초 / Self-BI 5초 / 대용량 10초(PPT) vs 30초(정의서) ARB 확정 대기 ⚠️§
+
+### 2.5 NFR / §7.3.2⚠️SLA배치 완료00:00~03:00 완료 (여유율 30%, 실제 목표 04:30 이전)§7.
+
+### 3.2 배치 시뮬레이션✅DB PoolRDW(마케팅)초기 10 / 최대 50 / 연결 Timeout 3초 / Idle Timeout 10분§7.
+
+### 2.4 커넥션 풀링✅DB PoolADW(BI)초기 5 / 최대 30 / 연결 Timeout 10초 / Idle Timeout 30분§7.
+
+### 2.4 커넥션 풀링✅DB PoolDataStage(배치)초기 2 / 최대 10 / 연결 Timeout 30초 / Idle Timeout 60분§7.
+
+### 2.4 커넥션 풀링✅DB PoolRedis초기 5 / 최대 20 / 연결 Timeout 1초 / Idle Timeout 5분 / Cluster 모드 필수§7.
+
+### 2.4 커넥션 풀링✅CacheL1 로컬TTL 10분 / 정적 데이터(코드 테이블) 한정 / JVM Heap(Caffeine)§7.
+
+### 2.4 캐시 전략✅CacheL2 분산(Redis)TTL 30분(세그먼트) / 마케팅 룰 변경 즉시 Eviction / Cluster 모드§7.
+
+### 2.4 캐시 전략✅CacheADW ResultTTL 1시간 / 배치 완료 후 자동 무효화 / BI 첫 조회 시 재생성§7.
+
+### 2.4 캐시 전략✅장애복구서킷브레이커5초/5회 실패 → Open / 30초 후 Half-Open / 회복 확인 → Close§7.
+
+### 2.2 장애 메커니즘✅장애복구재시도 정책최대 3회 / Exponential Backoff 1→2→4초 / 멱등성 보장 API 한정§7.
+
+### 2.2 장애 메커니즘✅장애복구DLQ3회 실패 → DLQ 이동 / 전용 Consumer 모니터링 / 운영자 승인 후 재처리§7.
+
+### 2.2 장애 메커니즘✅장애복구Rollback SLA5분 이내 이전 버전 복원 / Blue-Green 라우팅 재전환§7.
+
+### 3.3 운영 시나리오✅DRRTOARB 확정 대기 (15분/2시간/3시간 불일치) ⚠️§4.
+
+### 3.5 ADR-001⚠️DR전환 완료트래픽 전환 완료 30분 이내 / APIM 라우팅 100% / DNS TTL 60초§7.
+
+### 3.3 DR 전환✅보안/감사감사 로그 보관감사 로그 5년 / 운영 로그 3개월 / 전용 Exadata 파티션(삭제·수정 불가)§7.
+
+### 2.3 감사추적✅보안/감사Timeout 표준마케팅 API 1.5초 / 일반 API 3초 / 배치 연계 60초 / 미설정 배포 금지§7.
+
+### 2.2 장애 메커니즘✅운영SLA 에스컬레이션1단계(즉시) → 5분 지속 팀장 → 15분 지속 아키텍처팀 긴급 가동§4.
+
+### 4.2 관측성✅11. 후속 조치 계획순번조치 항목세부 내용담당목표 시점1[ARB 필수] CDC SLA 단일 기준 확정30초(정의서) vs 3초(PPT) 불일치 해소, 확정 후 용량산정서·모니터링 기준 동기화수석 아키텍트 + ARB즉시2[ARB 필수] RTO 단일 기준 확정15분/2시간/3시간 3개 수치 확정, DR 인프라 용량산정에 즉시 반영수석 아키텍트 + ARB + 인프라팀즉시3[ARB 필수] BI 대용량 응답 SLA 확정10초(PPT) vs 30초(정의서) 확정, ADW 자원·Temp 공간 산정에 반영수석 아키텍트 + BI팀 + ARB2주 이내4[보완] Kafka Retention 기간 및 일 메시지량 정량화캠페인 피크 집중률 보정 계수 산출, Retention 일수 ARB 확정, 저장용량 재산정연계팀 + Kafka팀 + TA1개월 이내5[보완] DataStage 병렬 처리량 PT 검증8채널 18,519건/초 가정 성능테스트 검증, 배치윈도우 04:00~04:30 고위험 구간 실측ETL팀 + 성능팀 + DBAPT 단계6[보완] ADW Temp 공간 정량 산정대형 집계 SQL 동시 실행 수 × 평균 Temp 사용량 산정, 별도 Disk Group 설계DA + DBA + ADW팀설계 단계7[일반] BI AP CPU 복잡도 가중치 정의리포트 유형별(표준/OLAP/Self-BI/AI NLP) 가중치 테이블 작성, CPU 산정 공식 정교화BI팀 + 성능팀설계 단계8[일반] 온라인 AP 피크 계수 정량화§7.
+
+### 3.2 피크 TPS 500 기준 역산, 캠페인 집중률 계수 수치 명기, 헤드룸 30% 확인성능팀 + 마케팅팀 + TA설계 단계본 검증 결과서는 ARB(아키텍처 리뷰 보드) 승인 후 공식 기준으로 관리됩니다.
+
+Architecture & Platform Team  |  Ver 1.0  |  2026.05
+
+## 절별 상세
+
+### 51.1 설정 스키마 검증
+
+본 절(**설정 스키마 검증**)은 자동검증 영역에서 **ENV Gate** 관점의 NSIGHT 1차 표준을 정의합니다. 피크 **720 TPS**·p95 **3초 이하**·8 vCPU / 32GB 기준으로 권고값을 제시하며, 최종값은 선도개발·성능시험(360/720/1080) 실측으로 확정합니다.
+
+#### NSIGHT 권고값
+
+| 항목 | ENV Gate 권고 |
+|------|----------------|
+| 기준 VM | 8 vCPU / 32GB |
+| TPS | 360/720/1080 |
+| 설정 파일 | /api/oc/env/* |
+| 핵심 | rule-check |
+
+#### 설정 예시
+
+**설정 파일**: `/api/oc/env/*` · **핵심 항목**: rule-check
+
+#### 검증 기준
+
+| 시나리오 | 합격 기준 |
+|----------|----------|
+| 360 TPS | p95≤3s, CPU≤70%, 오류율≤1% |
+| 720 TPS | Thread/Pool 고갈 없음, Hikari Pending=0 |
+| 1,080 TPS | Fail-fast·Timeout 정상, CB 동작 확인 |
+| AP 1대 Down | L4 제외·잔여 TPS≥목표 |
+| 센터 장애 | 잔여 센터 TPS≥720 |
+
+#### 주의사항
+
+- **피크 기준** 설계 — 평균 TPS만으로 설정 확정 금지
+- **세션 ≠ TPS** — 세션 증가는 Heap·복제 부담, TPS와 별도 산정
+- **Thread ≠ Pool** — Pool ≤ Thread×30~40%, DB Session 총량 검증
+- **안쪽 Timeout 짧게** — SQL(3s) < Tx(5s) < Proxy(10s) < Web(15s)
+- 운영 반영 전 **ENV rule-check** 및 성능시험 합격 필수
+
+#### 운영 참고
+
+검증 도구: APM, `jcmd`, `jstat`, Hikari Metrics, Access Log(GUID), ENV rule-check.
+
+API: `/api/oc/env/rule-check` — Timeout 순서·Pool 합산·Thread/Pool 비율 자동 검사.
+
+### 51.2 필수 설정 누락 검사
+
+본 절(**필수 설정 누락 검사**)은 자동검증 영역에서 **ENV Gate** 관점의 NSIGHT 1차 표준을 정의합니다. 피크 **720 TPS**·p95 **3초 이하**·8 vCPU / 32GB 기준으로 권고값을 제시하며, 최종값은 선도개발·성능시험(360/720/1080) 실측으로 확정합니다.
+
+#### NSIGHT 권고값
+
+| 항목 | ENV Gate 권고 |
+|------|----------------|
+| 기준 VM | 8 vCPU / 32GB |
+| TPS | 360/720/1080 |
+| 설정 파일 | /api/oc/env/* |
+| 핵심 | rule-check |
+
+#### 설정 예시
+
+**설정 파일**: `/api/oc/env/*` · **핵심 항목**: rule-check
+
+#### 검증 기준
+
+| 시나리오 | 합격 기준 |
+|----------|----------|
+| 360 TPS | p95≤3s, CPU≤70%, 오류율≤1% |
+| 720 TPS | Thread/Pool 고갈 없음, Hikari Pending=0 |
+| 1,080 TPS | Fail-fast·Timeout 정상, CB 동작 확인 |
+| AP 1대 Down | L4 제외·잔여 TPS≥목표 |
+| 센터 장애 | 잔여 센터 TPS≥720 |
+
+#### 주의사항
+
+- **피크 기준** 설계 — 평균 TPS만으로 설정 확정 금지
+- **세션 ≠ TPS** — 세션 증가는 Heap·복제 부담, TPS와 별도 산정
+- **Thread ≠ Pool** — Pool ≤ Thread×30~40%, DB Session 총량 검증
+- **안쪽 Timeout 짧게** — SQL(3s) < Tx(5s) < Proxy(10s) < Web(15s)
+- 운영 반영 전 **ENV rule-check** 및 성능시험 합격 필수
+
+#### 운영 참고
+
+API: `/api/oc/env/rule-check` — Timeout 순서·Pool 합산·Thread/Pool 비율 자동 검사.
+
+### 51.3 환경별 설정 비교
+
+본 절(**환경별 설정 비교**)은 자동검증 영역에서 **ENV Gate** 관점의 NSIGHT 1차 표준을 정의합니다. 피크 **720 TPS**·p95 **3초 이하**·8 vCPU / 32GB 기준으로 권고값을 제시하며, 최종값은 선도개발·성능시험(360/720/1080) 실측으로 확정합니다.
+
+#### NSIGHT 권고값
+
+| 항목 | ENV Gate 권고 |
+|------|----------------|
+| 기준 VM | 8 vCPU / 32GB |
+| TPS | 360/720/1080 |
+| 설정 파일 | /api/oc/env/* |
+| 핵심 | rule-check |
+
+#### 설정 예시
+
+**설정 파일**: `/api/oc/env/*` · **핵심 항목**: rule-check
+
+#### 검증 기준
+
+| 시나리오 | 합격 기준 |
+|----------|----------|
+| 360 TPS | p95≤3s, CPU≤70%, 오류율≤1% |
+| 720 TPS | Thread/Pool 고갈 없음, Hikari Pending=0 |
+| 1,080 TPS | Fail-fast·Timeout 정상, CB 동작 확인 |
+| AP 1대 Down | L4 제외·잔여 TPS≥목표 |
+| 센터 장애 | 잔여 센터 TPS≥720 |
+
+#### 주의사항
+
+- **피크 기준** 설계 — 평균 TPS만으로 설정 확정 금지
+- **세션 ≠ TPS** — 세션 증가는 Heap·복제 부담, TPS와 별도 산정
+- **Thread ≠ Pool** — Pool ≤ Thread×30~40%, DB Session 총량 검증
+- **안쪽 Timeout 짧게** — SQL(3s) < Tx(5s) < Proxy(10s) < Web(15s)
+- 운영 반영 전 **ENV rule-check** 및 성능시험 합격 필수
+
+#### 운영 참고
+
+API: `/api/oc/env/rule-check` — Timeout 순서·Pool 합산·Thread/Pool 비율 자동 검사.
+
+### 51.4 Timeout 순서 검사
+
+본 절(**Timeout 순서 검사**)은 자동검증 영역에서 **ENV Gate** 관점의 NSIGHT 1차 표준을 정의합니다. 피크 **720 TPS**·p95 **3초 이하**·8 vCPU / 32GB 기준으로 권고값을 제시하며, 최종값은 선도개발·성능시험(360/720/1080) 실측으로 확정합니다.
+
+#### NSIGHT 권고값
+
+| 계층 | 권고 | 설정 위치 |
+|------|------|----------|
+| SQL | 3초 | MyBatis / Mapper |
+| Pool 획득 | 3초 | Hikari connectionTimeout |
+| Transaction | 5초 | @Transactional |
+| TCF ServiceId | 4~5초 | TCF 설정 |
+| Proxy | 10초 | Apache / Gateway |
+| WebTop | 15초 | 단말 |
+| L4 Idle | 120초 | L4 Profile |
+
+#### 설정 예시
+
+| 계층 | 권고 | 설정 위치 |
+|------|------|----------|
+| SQL | 3초 | MyBatis / Mapper |
+| Pool 획득 | 3초 | Hikari connectionTimeout |
+| Transaction | 5초 | @Transactional |
+| TCF ServiceId | 4~5초 | TCF 설정 |
+| Proxy | 10초 | Apache / Gateway |
+| WebTop | 15초 | 단말 |
+| L4 Idle | 120초 | L4 Profile |
+
+#### 검증 기준
+
+| 시나리오 | 합격 기준 |
+|----------|----------|
+| 360 TPS | p95≤3s, CPU≤70%, 오류율≤1% |
+| 720 TPS | Thread/Pool 고갈 없음, Hikari Pending=0 |
+| 1,080 TPS | Fail-fast·Timeout 정상, CB 동작 확인 |
+| AP 1대 Down | L4 제외·잔여 TPS≥목표 |
+| 센터 장애 | 잔여 센터 TPS≥720 |
+
+#### 주의사항
+
+- **피크 기준** 설계 — 평균 TPS만으로 설정 확정 금지
+- **세션 ≠ TPS** — 세션 증가는 Heap·복제 부담, TPS와 별도 산정
+- **Thread ≠ Pool** — Pool ≤ Thread×30~40%, DB Session 총량 검증
+- **안쪽 Timeout 짧게** — SQL(3s) < Tx(5s) < Proxy(10s) < Web(15s)
+- 운영 반영 전 **ENV rule-check** 및 성능시험 합격 필수
+
+#### 운영 참고
+
+API: `/api/oc/env/rule-check` — Timeout 순서·Pool 합산·Thread/Pool 비율 자동 검사.
+
+### 51.5 Thread·Pool 비율 검사
+
+본 절(**Thread·Pool 비율 검사**)은 자동검증 영역에서 **ENV Gate** 관점의 NSIGHT 1차 표준을 정의합니다. 피크 **720 TPS**·p95 **3초 이하**·8 vCPU / 32GB 기준으로 권고값을 제시하며, 최종값은 선도개발·성능시험(360/720/1080) 실측으로 확정합니다.
+
+#### NSIGHT 권고값
+
+| 항목 | 8C/32G 권고 | 산식/근거 |
+|------|-------------|----------|
+| maxThreads | 400~500 | 250×1.2×1.2≈360 |
+| minSpareThreads | 100 | 피크 진입 지연 완화 |
+| acceptCount | 300~500 | Queue 병목 은폐 금지 |
+| maxConnections | 10,000 | L4 KeepAlive 정합 |
+
+#### 설정 예시
+
+```xml
+<Connector port="8080" protocol="org.apache.coyote.http11.Http11NioProtocol"
+  maxThreads="500" minSpareThreads="100" acceptCount="500"
+  maxConnections="10000" connectionTimeout="8000"
+  keepAliveTimeout="120000" maxKeepAliveRequests="200" />
+```
+
+#### 검증 기준
+
+| 시나리오 | 합격 기준 |
+|----------|----------|
+| 360 TPS | p95≤3s, CPU≤70%, 오류율≤1% |
+| 720 TPS | Thread/Pool 고갈 없음, Hikari Pending=0 |
+| 1,080 TPS | Fail-fast·Timeout 정상, CB 동작 확인 |
+| AP 1대 Down | L4 제외·잔여 TPS≥목표 |
+| 센터 장애 | 잔여 센터 TPS≥720 |
+
+#### 주의사항
+
+- **피크 기준** 설계 — 평균 TPS만으로 설정 확정 금지
+- **세션 ≠ TPS** — 세션 증가는 Heap·복제 부담, TPS와 별도 산정
+- **Thread ≠ Pool** — Pool ≤ Thread×30~40%, DB Session 총량 검증
+- **안쪽 Timeout 짧게** — SQL(3s) < Tx(5s) < Proxy(10s) < Web(15s)
+- 운영 반영 전 **ENV rule-check** 및 성능시험 합격 필수
+
+#### 운영 참고
+
+API: `/api/oc/env/rule-check` — Timeout 순서·Pool 합산·Thread/Pool 비율 자동 검사.
+
+### 51.6 전체 DB Connection 합산 검사
+
+본 절(**전체 DB Connection 합산 검사**)은 자동검증 영역에서 **ENV Gate** 관점의 NSIGHT 1차 표준을 정의합니다. 피크 **720 TPS**·p95 **3초 이하**·8 vCPU / 32GB 기준으로 권고값을 제시하며, 최종값은 선도개발·성능시험(360/720/1080) 실측으로 확정합니다.
+
+#### NSIGHT 권고값
+
+| 항목 | ENV Gate 권고 |
+|------|----------------|
+| 기준 VM | 8 vCPU / 32GB |
+| TPS | 360/720/1080 |
+| 설정 파일 | /api/oc/env/* |
+| 핵심 | rule-check |
+
+#### 설정 예시
+
+**설정 파일**: `/api/oc/env/*` · **핵심 항목**: rule-check
+
+#### 검증 기준
+
+| 시나리오 | 합격 기준 |
+|----------|----------|
+| 360 TPS | p95≤3s, CPU≤70%, 오류율≤1% |
+| 720 TPS | Thread/Pool 고갈 없음, Hikari Pending=0 |
+| 1,080 TPS | Fail-fast·Timeout 정상, CB 동작 확인 |
+| AP 1대 Down | L4 제외·잔여 TPS≥목표 |
+| 센터 장애 | 잔여 센터 TPS≥720 |
+
+#### 주의사항
+
+- **피크 기준** 설계 — 평균 TPS만으로 설정 확정 금지
+- **세션 ≠ TPS** — 세션 증가는 Heap·복제 부담, TPS와 별도 산정
+- **Thread ≠ Pool** — Pool ≤ Thread×30~40%, DB Session 총량 검증
+- **안쪽 Timeout 짧게** — SQL(3s) < Tx(5s) < Proxy(10s) < Web(15s)
+- 운영 반영 전 **ENV rule-check** 및 성능시험 합격 필수
+
+#### 운영 참고
+
+API: `/api/oc/env/rule-check` — Timeout 순서·Pool 합산·Thread/Pool 비율 자동 검사.
+
+### 51.7 Heap·Memory 정합성 검사
+
+본 절(**Heap·Memory 정합성 검사**)은 자동검증 영역에서 **ENV Gate** 관점의 NSIGHT 1차 표준을 정의합니다. 피크 **720 TPS**·p95 **3초 이하**·8 vCPU / 32GB 기준으로 권고값을 제시하며, 최종값은 선도개발·성능시험(360/720/1080) 실측으로 확정합니다.
+
+#### NSIGHT 권고값
+
+| 항목 | 일반 AP | SV AP | VM |
+|------|---------|-------|----|
+| Heap (Xms=Xmx) | 12GB | 14GB | 8C/32G |
+| -Xss | 512KB | 512KB | 500 Thread 기준 |
+| GC | G1GC | G1GC | Pause 목표 200ms |
+| Metaspace Max | 1GB | 1GB | 8C/32G |
+
+#### 설정 예시
+
+```shell
+-Xms12g -Xmx12g -Xss512k
+-XX:+UseG1GC -XX:MaxGCPauseMillis=200
+-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/logs/dump
+-XX:+ExitOnOutOfMemoryError
+-Xlog:gc*,safepoint:file=/logs/gc/ap-gc-%t.log:time,uptime,level,tags:filecount=10,filesize=100M
+-Dfile.encoding=UTF-8 -Duser.timezone=Asia/Seoul
+```
+
+#### 검증 기준
+
+| 시나리오 | 합격 기준 |
+|----------|----------|
+| 360 TPS | p95≤3s, CPU≤70%, 오류율≤1% |
+| 720 TPS | Thread/Pool 고갈 없음, Hikari Pending=0 |
+| 1,080 TPS | Fail-fast·Timeout 정상, CB 동작 확인 |
+| AP 1대 Down | L4 제외·잔여 TPS≥목표 |
+| 센터 장애 | 잔여 센터 TPS≥720 |
+
+#### 주의사항
+
+- **피크 기준** 설계 — 평균 TPS만으로 설정 확정 금지
+- **세션 ≠ TPS** — 세션 증가는 Heap·복제 부담, TPS와 별도 산정
+- **Thread ≠ Pool** — Pool ≤ Thread×30~40%, DB Session 총량 검증
+- **안쪽 Timeout 짧게** — SQL(3s) < Tx(5s) < Proxy(10s) < Web(15s)
+- 운영 반영 전 **ENV rule-check** 및 성능시험 합격 필수
+
+#### 운영 참고
+
+API: `/api/oc/env/rule-check` — Timeout 순서·Pool 합산·Thread/Pool 비율 자동 검사.
+
+### 51.8 JVM 옵션 검사
+
+본 절(**JVM 옵션 검사**)은 자동검증 영역에서 **ENV Gate** 관점의 NSIGHT 1차 표준을 정의합니다. 피크 **720 TPS**·p95 **3초 이하**·8 vCPU / 32GB 기준으로 권고값을 제시하며, 최종값은 선도개발·성능시험(360/720/1080) 실측으로 확정합니다.
+
+#### NSIGHT 권고값
+
+| 항목 | 일반 AP | SV AP | VM |
+|------|---------|-------|----|
+| Heap (Xms=Xmx) | 12GB | 14GB | 8C/32G |
+| -Xss | 512KB | 512KB | 500 Thread 기준 |
+| GC | G1GC | G1GC | Pause 목표 200ms |
+| Metaspace Max | 1GB | 1GB | 8C/32G |
+
+#### 설정 예시
+
+```shell
+-Xms12g -Xmx12g -Xss512k
+-XX:+UseG1GC -XX:MaxGCPauseMillis=200
+-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/logs/dump
+-XX:+ExitOnOutOfMemoryError
+-Xlog:gc*,safepoint:file=/logs/gc/ap-gc-%t.log:time,uptime,level,tags:filecount=10,filesize=100M
+-Dfile.encoding=UTF-8 -Duser.timezone=Asia/Seoul
+```
+
+#### 검증 기준
+
+| 시나리오 | 합격 기준 |
+|----------|----------|
+| 360 TPS | p95≤3s, CPU≤70%, 오류율≤1% |
+| 720 TPS | Thread/Pool 고갈 없음, Hikari Pending=0 |
+| 1,080 TPS | Fail-fast·Timeout 정상, CB 동작 확인 |
+| AP 1대 Down | L4 제외·잔여 TPS≥목표 |
+| 센터 장애 | 잔여 센터 TPS≥720 |
+
+#### 주의사항
+
+- **피크 기준** 설계 — 평균 TPS만으로 설정 확정 금지
+- **세션 ≠ TPS** — 세션 증가는 Heap·복제 부담, TPS와 별도 산정
+- **Thread ≠ Pool** — Pool ≤ Thread×30~40%, DB Session 총량 검증
+- **안쪽 Timeout 짧게** — SQL(3s) < Tx(5s) < Proxy(10s) < Web(15s)
+- 운영 반영 전 **ENV rule-check** 및 성능시험 합격 필수
+
+#### 운영 참고
+
+API: `/api/oc/env/rule-check` — Timeout 순서·Pool 합산·Thread/Pool 비율 자동 검사.
+
+### 51.9 중복 Port 검사
+
+본 절(**중복 Port 검사**)은 자동검증 영역에서 **ENV Gate** 관점의 NSIGHT 1차 표준을 정의합니다. 피크 **720 TPS**·p95 **3초 이하**·8 vCPU / 32GB 기준으로 권고값을 제시하며, 최종값은 선도개발·성능시험(360/720/1080) 실측으로 확정합니다.
+
+#### NSIGHT 권고값
+
+| 항목 | ENV Gate 권고 |
+|------|----------------|
+| 기준 VM | 8 vCPU / 32GB |
+| TPS | 360/720/1080 |
+| 설정 파일 | /api/oc/env/* |
+| 핵심 | rule-check |
+
+#### 설정 예시
+
+**설정 파일**: `/api/oc/env/*` · **핵심 항목**: rule-check
+
+#### 검증 기준
+
+| 시나리오 | 합격 기준 |
+|----------|----------|
+| 360 TPS | p95≤3s, CPU≤70%, 오류율≤1% |
+| 720 TPS | Thread/Pool 고갈 없음, Hikari Pending=0 |
+| 1,080 TPS | Fail-fast·Timeout 정상, CB 동작 확인 |
+| AP 1대 Down | L4 제외·잔여 TPS≥목표 |
+| 센터 장애 | 잔여 센터 TPS≥720 |
+
+#### 주의사항
+
+- **피크 기준** 설계 — 평균 TPS만으로 설정 확정 금지
+- **세션 ≠ TPS** — 세션 증가는 Heap·복제 부담, TPS와 별도 산정
+- **Thread ≠ Pool** — Pool ≤ Thread×30~40%, DB Session 총량 검증
+- **안쪽 Timeout 짧게** — SQL(3s) < Tx(5s) < Proxy(10s) < Web(15s)
+- 운영 반영 전 **ENV rule-check** 및 성능시험 합격 필수
+
+#### 운영 참고
+
+API: `/api/oc/env/rule-check` — Timeout 순서·Pool 합산·Thread/Pool 비율 자동 검사.
+
+### 51.10 업무 WAR별 Pool Name 검사
+
+본 절(**업무 WAR별 Pool Name 검사**)은 자동검증 영역에서 **ENV Gate** 관점의 NSIGHT 1차 표준을 정의합니다. 피크 **720 TPS**·p95 **3초 이하**·8 vCPU / 32GB 기준으로 권고값을 제시하며, 최종값은 선도개발·성능시험(360/720/1080) 실측으로 확정합니다.
+
+#### NSIGHT 권고값
+
+| 항목 | 일반 AP | SV AP | 산식 |
+|------|---------|-------|------|
+| maximumPoolSize | 50 | 60 | TPS×0.15×1.3 |
+| minimumIdle | 15 | 15 | max의 20~30% |
+| connectionTimeout | 3초 | 3초 | ≠ SQL timeout |
+| maxLifetime | 30분 | 30분 | DB Idle보다 짧게 |
+
+#### 설정 예시
+
+```yaml
+spring.datasource.hikari:
+  pool-name: marketing-pool
+  maximum-pool-size: 50
+  minimum-idle: 15
+  connection-timeout: 3000
+  idle-timeout: 600000
+  max-lifetime: 1800000
+  auto-commit: false
+```
+
+#### 검증 기준
+
+| 시나리오 | 합격 기준 |
+|----------|----------|
+| 360 TPS | p95≤3s, CPU≤70%, 오류율≤1% |
+| 720 TPS | Thread/Pool 고갈 없음, Hikari Pending=0 |
+| 1,080 TPS | Fail-fast·Timeout 정상, CB 동작 확인 |
+| AP 1대 Down | L4 제외·잔여 TPS≥목표 |
+| 센터 장애 | 잔여 센터 TPS≥720 |
+
+#### 주의사항
+
+- **피크 기준** 설계 — 평균 TPS만으로 설정 확정 금지
+- **세션 ≠ TPS** — 세션 증가는 Heap·복제 부담, TPS와 별도 산정
+- **Thread ≠ Pool** — Pool ≤ Thread×30~40%, DB Session 총량 검증
+- **안쪽 Timeout 짧게** — SQL(3s) < Tx(5s) < Proxy(10s) < Web(15s)
+- 운영 반영 전 **ENV rule-check** 및 성능시험 합격 필수
+
+#### 운영 참고
+
+API: `/api/oc/env/rule-check` — Timeout 순서·Pool 합산·Thread/Pool 비율 자동 검사.
+
+### 51.11 민감정보 평문 검사
+
+본 절(**민감정보 평문 검사**)은 자동검증 영역에서 **ENV Gate** 관점의 NSIGHT 1차 표준을 정의합니다. 피크 **720 TPS**·p95 **3초 이하**·8 vCPU / 32GB 기준으로 권고값을 제시하며, 최종값은 선도개발·성능시험(360/720/1080) 실측으로 확정합니다.
+
+#### NSIGHT 권고값
+
+| 항목 | ENV Gate 권고 |
+|------|----------------|
+| 기준 VM | 8 vCPU / 32GB |
+| TPS | 360/720/1080 |
+| 설정 파일 | /api/oc/env/* |
+| 핵심 | rule-check |
+
+#### 설정 예시
+
+**설정 파일**: `/api/oc/env/*` · **핵심 항목**: rule-check
+
+#### 검증 기준
+
+| 시나리오 | 합격 기준 |
+|----------|----------|
+| 360 TPS | p95≤3s, CPU≤70%, 오류율≤1% |
+| 720 TPS | Thread/Pool 고갈 없음, Hikari Pending=0 |
+| 1,080 TPS | Fail-fast·Timeout 정상, CB 동작 확인 |
+| AP 1대 Down | L4 제외·잔여 TPS≥목표 |
+| 센터 장애 | 잔여 센터 TPS≥720 |
+
+#### 주의사항
+
+- **피크 기준** 설계 — 평균 TPS만으로 설정 확정 금지
+- **세션 ≠ TPS** — 세션 증가는 Heap·복제 부담, TPS와 별도 산정
+- **Thread ≠ Pool** — Pool ≤ Thread×30~40%, DB Session 총량 검증
+- **안쪽 Timeout 짧게** — SQL(3s) < Tx(5s) < Proxy(10s) < Web(15s)
+- 운영 반영 전 **ENV rule-check** 및 성능시험 합격 필수
+
+#### 운영 참고
+
+API: `/api/oc/env/rule-check` — Timeout 순서·Pool 합산·Thread/Pool 비율 자동 검사.
+
+### 51.12 성능시험 품질 Gate
+
+본 절(**성능시험 품질 Gate**)은 자동검증 영역에서 **ENV Gate** 관점의 NSIGHT 1차 표준을 정의합니다. 피크 **720 TPS**·p95 **3초 이하**·8 vCPU / 32GB 기준으로 권고값을 제시하며, 최종값은 선도개발·성능시험(360/720/1080) 실측으로 확정합니다.
+
+#### NSIGHT 권고값
+
+| 항목 | ENV Gate 권고 |
+|------|----------------|
+| 기준 VM | 8 vCPU / 32GB |
+| TPS | 360/720/1080 |
+| 설정 파일 | /api/oc/env/* |
+| 핵심 | rule-check |
+
+#### 설정 예시
+
+**설정 파일**: `/api/oc/env/*` · **핵심 항목**: rule-check
+
+#### 검증 기준
+
+| 시나리오 | 합격 기준 |
+|----------|----------|
+| 360 TPS | p95≤3s, CPU≤70%, 오류율≤1% |
+| 720 TPS | Thread/Pool 고갈 없음, Hikari Pending=0 |
+| 1,080 TPS | Fail-fast·Timeout 정상, CB 동작 확인 |
+| AP 1대 Down | L4 제외·잔여 TPS≥목표 |
+| 센터 장애 | 잔여 센터 TPS≥720 |
+
+#### 주의사항
+
+- **피크 기준** 설계 — 평균 TPS만으로 설정 확정 금지
+- **세션 ≠ TPS** — 세션 증가는 Heap·복제 부담, TPS와 별도 산정
+- **Thread ≠ Pool** — Pool ≤ Thread×30~40%, DB Session 총량 검증
+- **안쪽 Timeout 짧게** — SQL(3s) < Tx(5s) < Proxy(10s) < Web(15s)
+- 운영 반영 전 **ENV rule-check** 및 성능시험 합격 필수
+
+#### 운영 참고
+
+검증 도구: APM, `jcmd`, `jstat`, Hikari Metrics, Access Log(GUID), ENV rule-check.
+
+API: `/api/oc/env/rule-check` — Timeout 순서·Pool 합산·Thread/Pool 비율 자동 검사.
+
+### 51.13 운영 전환 Gate
+
+본 절(**운영 전환 Gate**)은 자동검증 영역에서 **ENV Gate** 관점의 NSIGHT 1차 표준을 정의합니다. 피크 **720 TPS**·p95 **3초 이하**·8 vCPU / 32GB 기준으로 권고값을 제시하며, 최종값은 선도개발·성능시험(360/720/1080) 실측으로 확정합니다.
+
+#### NSIGHT 권고값
+
+| 항목 | ENV Gate 권고 |
+|------|----------------|
+| 기준 VM | 8 vCPU / 32GB |
+| TPS | 360/720/1080 |
+| 설정 파일 | /api/oc/env/* |
+| 핵심 | rule-check |
+
+#### 설정 예시
+
+**설정 파일**: `/api/oc/env/*` · **핵심 항목**: rule-check
+
+#### 검증 기준
+
+| 시나리오 | 합격 기준 |
+|----------|----------|
+| 360 TPS | p95≤3s, CPU≤70%, 오류율≤1% |
+| 720 TPS | Thread/Pool 고갈 없음, Hikari Pending=0 |
+| 1,080 TPS | Fail-fast·Timeout 정상, CB 동작 확인 |
+| AP 1대 Down | L4 제외·잔여 TPS≥목표 |
+| 센터 장애 | 잔여 센터 TPS≥720 |
+
+#### 주의사항
+
+- **피크 기준** 설계 — 평균 TPS만으로 설정 확정 금지
+- **세션 ≠ TPS** — 세션 증가는 Heap·복제 부담, TPS와 별도 산정
+- **Thread ≠ Pool** — Pool ≤ Thread×30~40%, DB Session 총량 검증
+- **안쪽 Timeout 짧게** — SQL(3s) < Tx(5s) < Proxy(10s) < Web(15s)
+- 운영 반영 전 **ENV rule-check** 및 성능시험 합격 필수
+
+#### 운영 참고
+
+검증 도구: APM, `jcmd`, `jstat`, Hikari Metrics, Access Log(GUID), ENV rule-check.
+
+API: `/api/oc/env/rule-check` — Timeout 순서·Pool 합산·Thread/Pool 비율 자동 검사.
+
+---
+
+[← 목차](./00-목차.md)

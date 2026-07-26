@@ -1,0 +1,1043 @@
+72. 목록조회 + 페이징 샘플
+72.1 도입 전 안내말
+본 장은 NSIGHT TCF Framework에서 목록조회와 페이징을 업무팀이 자체적으로 구현하는 표준 샘플을 정의한다.
+페이징은 TCF Core가 관리하지 않는다.TCF는 기존처럼 전문 수신, Header 검증, 세션, 권한, 거래통제, Timeout, 거래로그, 표준응답 조립만 담당한다. 실제 페이징 처리는 각 업무 WAR 내부에서 Rule → Service → DAO → MyBatis 흐름으로 처리한다. 기존 페이징 설계 기준에서도 TCF Core·Dispatcher는 페이징에 관여하지 않고, 업무 WAR 내부에서 처리하도록 정리되어 있다.
+이번 샘플은 SV 고객목록조회 거래로 정의한다.
+항목
+기준
+업무코드
+SV
+업무명
+Single View
+Context Path
+/sv
+Endpoint
+POST /sv/online
+ServiceId
+SV.Customer.selectList
+거래코드
+SV-INQ-0002
+거래명
+고객 목록 조회
+처리유형
+목록조회
+페이징 방식
+Offset Paging
+기본 Page No
+1
+기본 Page Size
+100
+일반 목록 최대 Page Size
+500
+실행 구조
+Handler → Facade → Service → Rule → DAO → Mapper → RDW
+
+72.2 설계 결론
+목록조회 + 페이징은 다음 구조로 개발한다.
+화면 / WebTopSuite / tcf-ui
+   ↓
+POST /sv/online
+   ↓
+StandardRequest.header
+StandardRequest.body.searchCondition
+StandardRequest.body.page
+   ↓
+TCF.process()
+   ↓
+STF 전처리
+   - Header 검증
+   - 세션 / 권한 / 거래통제
+   - Timeout 정책 확인
+   ↓
+Dispatcher
+   - serviceId = SV.Customer.selectList
+   ↓
+Handler
+   ↓
+Facade
+   ↓
+Service
+   ↓
+Rule
+   - pageNo / pageSize 검증
+   - offset 계산
+   ↓
+DAO
+   ↓
+MyBatis Mapper
+   - count 조회
+   - list 조회
+   ↓
+RDW
+   ↓
+ETF 후처리
+   ↓
+StandardResponse
+
+핵심 원칙은 다음이다.
+구분
+기준
+TCF 역할
+페이징 미관여
+업무 역할
+요청값 검증, offset 계산, count/list 조회
+SQL 역할
+DB 레벨에서 필요한 건수만 조회
+응답 역할
+list + page 구조로 반환
+대량조회 제한
+pageSize 최대값 제한
+정렬
+허용된 컬럼만 사용하거나 SQL 고정 정렬 사용
+Count
+목록 SQL과 별도 count SQL 작성
+기존 쉬운 설명 기준에서도 화면이 pageNo/pageSize를 보내면 Rule이 offset = (pageNo - 1) × pageSize를 계산하고, MyBatis가 필요한 건수만 DB에서 조회하는 구조로 설명되어 있다.
+
+72.3 요청 전문 샘플
+72.3.1 요청 URL
+POST /sv/online
+Content-Type: application/json; charset=UTF-8
+
+72.3.2 요청 JSON
+{
+  "header": {
+    "serviceId": "SV.Customer.selectList",
+    "transactionCode": "SV-INQ-0002",
+    "businessCode": "SV",
+    "serviceName": "고객 목록 조회",
+    "user": "U123456",
+    "channelId": "WEBTOP",
+    "branch": "012345"
+  },
+  "body": {
+    "searchCondition": {
+      "customerName": "홍",
+      "customerGrade": "GOLD",
+      "branchCode": "012345",
+      "fromDate": "20260701",
+      "toDate": "20260705"
+    },
+    "page": {
+      "pageNo": 1,
+      "pageSize": 10
+    }
+  }
+}
+
+
+72.4 응답 전문 샘플
+{
+  "header": {
+    "serviceId": "SV.Customer.selectList",
+    "transactionCode": "SV-INQ-0002",
+    "businessCode": "SV",
+    "guid": "20260705-SV-000000002",
+    "traceId": "TRACE-20260705-000002",
+    "transactionId": "TX-20260705-000002",
+    "responseTime": "2026-07-05T10:35:21.123+09:00"
+  },
+  "result": {
+    "resultCode": "SUCCESS",
+    "messageCode": "S-SV-INQ-0002",
+    "message": "정상 처리되었습니다."
+  },
+  "body": {
+    "list": [
+      {
+        "customerNo": "CUST00000001",
+        "customerName": "홍길동",
+        "customerGrade": "GOLD",
+        "branchCode": "012345",
+        "branchName": "농협중앙지점",
+        "totalBalance": 15000000,
+        "productCount": 5,
+        "lastTransactionDate": "20260704"
+      },
+      {
+        "customerNo": "CUST00000002",
+        "customerName": "홍민수",
+        "customerGrade": "GOLD",
+        "branchCode": "012345",
+        "branchName": "농협중앙지점",
+        "totalBalance": 8000000,
+        "productCount": 3,
+        "lastTransactionDate": "20260703"
+      }
+    ],
+    "page": {
+      "pageNo": 1,
+      "pageSize": 10,
+      "totalCount": 125,
+      "totalPage": 13,
+      "hasNext": true
+    }
+  }
+}
+
+
+72.5 패키지 구조
+sv-service
+└── src/main/java/com/nh/nsight/marketing/sv
+    ├── entry
+    │   ├── handler
+    │   │   └── SvCustomerListHandler.java
+    │   └── facade
+    │       └── SvCustomerFacade.java
+    │
+    ├── application
+    │   ├── service
+    │   │   └── SvCustomerService.java
+    │   └── rule
+    │       └── SvCustomerRule.java
+    │
+    ├── persistence
+    │   ├── dao
+    │   │   └── SvCustomerDao.java
+    │   └── mapper
+    │       └── SvCustomerMapper.java
+    │
+    └── dto
+        ├── SvCustomerListRequest.java
+        ├── SvCustomerSearchCondition.java
+        ├── SvCustomerListItem.java
+        ├── SvCustomerListResponse.java
+        ├── PageRequest.java
+        └── PageResponse.java
+
+src/main/resources
+└── mapper
+    └── sv
+        └── SvCustomerMapper.xml
+
+MyBatis는 NSIGHT 계층구조에서 DAO/Mapper Layer에 위치하며, DAO/Mapper는 업무 로직이 아니라 SQL 실행 책임만 갖는다.
+
+72.6 DTO 샘플
+72.6.1 PageRequest
+package com.nh.nsight.marketing.sv.dto;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+public class PageRequest {
+
+    private Integer pageNo;
+    private Integer pageSize;
+
+    private Integer offset;
+    private Integer limit;
+}
+
+
+72.6.2 PageResponse
+package com.nh.nsight.marketing.sv.dto;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+public class PageResponse {
+
+    private int pageNo;
+    private int pageSize;
+    private int totalCount;
+    private int totalPage;
+    private boolean hasNext;
+
+    public PageResponse(int pageNo, int pageSize, int totalCount) {
+        this.pageNo = pageNo;
+        this.pageSize = pageSize;
+        this.totalCount = totalCount;
+        this.totalPage = (int) Math.ceil((double) totalCount / pageSize);
+        this.hasNext = pageNo < this.totalPage;
+    }
+}
+
+
+72.6.3 검색조건 DTO
+package com.nh.nsight.marketing.sv.dto;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+public class SvCustomerSearchCondition {
+
+    private String customerName;
+    private String customerGrade;
+    private String branchCode;
+    private String fromDate;
+    private String toDate;
+}
+
+
+72.6.4 요청 DTO
+package com.nh.nsight.marketing.sv.dto;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+public class SvCustomerListRequest {
+
+    private SvCustomerSearchCondition searchCondition;
+    private PageRequest page;
+}
+
+
+72.6.5 목록 Item DTO
+package com.nh.nsight.marketing.sv.dto;
+
+import java.math.BigDecimal;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+public class SvCustomerListItem {
+
+    private String customerNo;
+    private String customerName;
+    private String customerGrade;
+    private String branchCode;
+    private String branchName;
+    private BigDecimal totalBalance;
+    private Integer productCount;
+    private String lastTransactionDate;
+}
+
+
+72.6.6 응답 DTO
+package com.nh.nsight.marketing.sv.dto;
+
+import java.util.List;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+public class SvCustomerListResponse {
+
+    private List<SvCustomerListItem> list;
+    private PageResponse page;
+
+    public SvCustomerListResponse(
+            List<SvCustomerListItem> list,
+            PageResponse page) {
+        this.list = list;
+        this.page = page;
+    }
+}
+
+
+72.7 Handler 샘플
+package com.nh.nsight.marketing.sv.entry.handler;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nh.nsight.marketing.sv.dto.SvCustomerListRequest;
+import com.nh.nsight.marketing.sv.entry.facade.SvCustomerFacade;
+import com.nh.nsight.tcf.core.context.TransactionContext;
+import com.nh.nsight.tcf.core.handler.TransactionHandler;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+@Component("SV.Customer.selectList")
+@RequiredArgsConstructor
+public class SvCustomerListHandler implements TransactionHandler {
+
+    private final SvCustomerFacade svCustomerFacade;
+    private final ObjectMapper objectMapper;
+
+    @Override
+    public String getServiceId() {
+        return "SV.Customer.selectList";
+    }
+
+    @Override
+    public Object handle(TransactionContext context, Object body) {
+        SvCustomerListRequest request =
+                objectMapper.convertValue(body, SvCustomerListRequest.class);
+
+        return svCustomerFacade.selectCustomerList(context, request);
+    }
+}
+
+Handler는 업무 로직을 직접 처리하지 않는다.요청 Body를 DTO로 변환한 뒤 Facade를 호출한다. TCF 구조에서는 header.serviceId를 기준으로 Dispatcher가 Handler를 선택한다.
+
+72.8 Facade 샘플
+package com.nh.nsight.marketing.sv.entry.facade;
+
+import com.nh.nsight.marketing.sv.application.service.SvCustomerService;
+import com.nh.nsight.marketing.sv.dto.SvCustomerListRequest;
+import com.nh.nsight.marketing.sv.dto.SvCustomerListResponse;
+import com.nh.nsight.tcf.core.context.TransactionContext;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class SvCustomerFacade {
+
+    private final SvCustomerService svCustomerService;
+
+    @Transactional(readOnly = true, timeout = 5)
+    public SvCustomerListResponse selectCustomerList(
+            TransactionContext context,
+            SvCustomerListRequest request) {
+
+        return svCustomerService.selectCustomerList(context, request);
+    }
+}
+
+기준
+설명
+readOnly = true
+목록조회 거래이므로 조회 전용
+timeout = 5
+목록조회는 단건조회보다 약간 긴 5초 기준
+트랜잭션 위치
+Handler가 아니라 Facade
+금지사항
+Facade에서 SQL 직접 호출 금지
+
+72.9 Service 샘플
+package com.nh.nsight.marketing.sv.application.service;
+
+import com.nh.nsight.marketing.sv.application.rule.SvCustomerRule;
+import com.nh.nsight.marketing.sv.dto.PageResponse;
+import com.nh.nsight.marketing.sv.dto.SvCustomerListItem;
+import com.nh.nsight.marketing.sv.dto.SvCustomerListRequest;
+import com.nh.nsight.marketing.sv.dto.SvCustomerListResponse;
+import com.nh.nsight.marketing.sv.persistence.dao.SvCustomerDao;
+import com.nh.nsight.tcf.core.context.TransactionContext;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class SvCustomerService {
+
+    private final SvCustomerRule svCustomerRule;
+    private final SvCustomerDao svCustomerDao;
+
+    public SvCustomerListResponse selectCustomerList(
+            TransactionContext context,
+            SvCustomerListRequest request) {
+
+        svCustomerRule.validateCustomerListRequest(request);
+        svCustomerRule.applyDefaultPage(request);
+        svCustomerRule.calculateOffset(request);
+
+        int totalCount = svCustomerDao.countCustomerList(request);
+
+        List<SvCustomerListItem> list = List.of();
+        if (totalCount > 0) {
+            list = svCustomerDao.selectCustomerList(request);
+        }
+
+        PageResponse page = new PageResponse(
+                request.getPage().getPageNo(),
+                request.getPage().getPageSize(),
+                totalCount
+        );
+
+        return new SvCustomerListResponse(list, page);
+    }
+}
+
+Service의 책임은 다음과 같다.
+처리
+설명
+요청 검증 호출
+Rule에 검증 위임
+기본 페이징 적용
+Rule에 위임
+Offset 계산
+Rule에 위임
+Count 조회
+DAO 호출
+목록 조회
+Count가 0보다 클 때만 수행
+응답 조립
+list + page 조립
+
+72.10 Rule 샘플
+package com.nh.nsight.marketing.sv.application.rule;
+
+import com.nh.nsight.marketing.sv.dto.PageRequest;
+import com.nh.nsight.marketing.sv.dto.SvCustomerListRequest;
+import com.nh.nsight.tcf.core.exception.BusinessException;
+import org.springframework.stereotype.Component;
+
+@Component
+public class SvCustomerRule {
+
+    private static final int DEFAULT_PAGE_NO = 1;
+    private static final int DEFAULT_PAGE_SIZE = 100;
+    private static final int MAX_PAGE_SIZE = 500;
+
+    public void validateCustomerListRequest(SvCustomerListRequest request) {
+        if (request == null) {
+            throw new BusinessException("E-SV-VAL-0101", "요청 정보가 없습니다.");
+        }
+
+        if (request.getSearchCondition() == null) {
+            throw new BusinessException("E-SV-VAL-0102", "검색조건이 없습니다.");
+        }
+
+        if (request.getSearchCondition().getFromDate() != null
+                && !request.getSearchCondition().getFromDate().matches("\\d{8}")) {
+            throw new BusinessException("E-SV-VAL-0103", "조회 시작일자 형식이 올바르지 않습니다.");
+        }
+
+        if (request.getSearchCondition().getToDate() != null
+                && !request.getSearchCondition().getToDate().matches("\\d{8}")) {
+            throw new BusinessException("E-SV-VAL-0104", "조회 종료일자 형식이 올바르지 않습니다.");
+        }
+    }
+
+    public void applyDefaultPage(SvCustomerListRequest request) {
+        if (request.getPage() == null) {
+            request.setPage(new PageRequest());
+        }
+
+        PageRequest page = request.getPage();
+
+        if (page.getPageNo() == null || page.getPageNo() < 1) {
+            page.setPageNo(DEFAULT_PAGE_NO);
+        }
+
+        if (page.getPageSize() == null || page.getPageSize() < 1) {
+            page.setPageSize(DEFAULT_PAGE_SIZE);
+        }
+
+        if (page.getPageSize() > MAX_PAGE_SIZE) {
+            throw new BusinessException(
+                    "E-SV-VAL-0105",
+                    "한 번에 조회할 수 있는 최대 건수를 초과했습니다."
+            );
+        }
+    }
+
+    public void calculateOffset(SvCustomerListRequest request) {
+        PageRequest page = request.getPage();
+
+        int offset = (page.getPageNo() - 1) * page.getPageSize();
+
+        page.setOffset(offset);
+        page.setLimit(page.getPageSize());
+    }
+}
+
+페이징 계산 기준은 다음과 같다.
+항목
+계산식
+pageNo
+화면 요청값, 없으면 1
+pageSize
+화면 요청값, 없으면 100
+offset
+(pageNo - 1) × pageSize
+limit
+pageSize
+totalPage
+ceil(totalCount / pageSize)
+예를 들어 pageNo=2, pageSize=10이면 offset = (2 - 1) × 10 = 10이다. 즉, DB는 앞의 10건을 건너뛰고 다음 10건을 조회한다.
+
+72.11 DAO 샘플
+package com.nh.nsight.marketing.sv.persistence.dao;
+
+import com.nh.nsight.marketing.sv.dto.SvCustomerListItem;
+import com.nh.nsight.marketing.sv.dto.SvCustomerListRequest;
+import com.nh.nsight.marketing.sv.persistence.mapper.SvCustomerMapper;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
+@Repository
+@RequiredArgsConstructor
+public class SvCustomerDao {
+
+    private final SvCustomerMapper svCustomerMapper;
+
+    public int countCustomerList(SvCustomerListRequest request) {
+        return svCustomerMapper.countCustomerList(request);
+    }
+
+    public List<SvCustomerListItem> selectCustomerList(
+            SvCustomerListRequest request) {
+        return svCustomerMapper.selectCustomerList(request);
+    }
+}
+
+DAO는 Mapper 호출만 담당한다.Count와 List SQL을 분리하여 목록 조회의 총 건수와 실제 페이지 데이터를 각각 조회한다.
+
+72.12 Mapper Interface 샘플
+package com.nh.nsight.marketing.sv.persistence.mapper;
+
+import com.nh.nsight.marketing.sv.dto.SvCustomerListItem;
+import com.nh.nsight.marketing.sv.dto.SvCustomerListRequest;
+import java.util.List;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface SvCustomerMapper {
+
+    int countCustomerList(SvCustomerListRequest request);
+
+    List<SvCustomerListItem> selectCustomerList(SvCustomerListRequest request);
+}
+
+
+72.13 Mapper XML 샘플 — Oracle 12c 이상
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nh.nsight.marketing.sv.persistence.mapper.SvCustomerMapper">
+
+    <select id="countCustomerList"
+            parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerListRequest"
+            resultType="int">
+
+        SELECT COUNT(1)
+        FROM RDW_CUSTOMER_SUMMARY C
+        WHERE 1 = 1
+
+        <if test="searchCondition.customerName != null and searchCondition.customerName != ''">
+            AND C.CUSTOMER_NAME LIKE '%' || #{searchCondition.customerName} || '%'
+        </if>
+
+        <if test="searchCondition.customerGrade != null and searchCondition.customerGrade != ''">
+            AND C.CUSTOMER_GRADE = #{searchCondition.customerGrade}
+        </if>
+
+        <if test="searchCondition.branchCode != null and searchCondition.branchCode != ''">
+            AND C.BRANCH_CODE = #{searchCondition.branchCode}
+        </if>
+
+        <if test="searchCondition.fromDate != null and searchCondition.fromDate != ''">
+            AND C.LAST_TRANSACTION_DATE <![CDATA[>=]]> #{searchCondition.fromDate}
+        </if>
+
+        <if test="searchCondition.toDate != null and searchCondition.toDate != ''">
+            AND C.LAST_TRANSACTION_DATE <![CDATA[<=]]> #{searchCondition.toDate}
+        </if>
+
+    </select>
+
+
+    <select id="selectCustomerList"
+            parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerListRequest"
+            resultType="com.nh.nsight.marketing.sv.dto.SvCustomerListItem">
+
+        SELECT
+              C.CUSTOMER_NO           AS customerNo
+            , C.CUSTOMER_NAME         AS customerName
+            , C.CUSTOMER_GRADE        AS customerGrade
+            , C.BRANCH_CODE           AS branchCode
+            , C.BRANCH_NAME           AS branchName
+            , C.TOTAL_BALANCE         AS totalBalance
+            , C.PRODUCT_COUNT         AS productCount
+            , C.LAST_TRANSACTION_DATE AS lastTransactionDate
+        FROM RDW_CUSTOMER_SUMMARY C
+        WHERE 1 = 1
+
+        <if test="searchCondition.customerName != null and searchCondition.customerName != ''">
+            AND C.CUSTOMER_NAME LIKE '%' || #{searchCondition.customerName} || '%'
+        </if>
+
+        <if test="searchCondition.customerGrade != null and searchCondition.customerGrade != ''">
+            AND C.CUSTOMER_GRADE = #{searchCondition.customerGrade}
+        </if>
+
+        <if test="searchCondition.branchCode != null and searchCondition.branchCode != ''">
+            AND C.BRANCH_CODE = #{searchCondition.branchCode}
+        </if>
+
+        <if test="searchCondition.fromDate != null and searchCondition.fromDate != ''">
+            AND C.LAST_TRANSACTION_DATE <![CDATA[>=]]> #{searchCondition.fromDate}
+        </if>
+
+        <if test="searchCondition.toDate != null and searchCondition.toDate != ''">
+            AND C.LAST_TRANSACTION_DATE <![CDATA[<=]]> #{searchCondition.toDate}
+        </if>
+
+        ORDER BY C.LAST_TRANSACTION_DATE DESC, C.CUSTOMER_NO ASC
+        OFFSET #{page.offset} ROWS
+        FETCH NEXT #{page.limit} ROWS ONLY
+
+    </select>
+
+</mapper>
+
+
+72.14 Mapper XML 샘플 — Oracle 11g 이하 ROWNUM 방식
+Oracle 11g 이하 또는 OFFSET FETCH를 사용할 수 없는 경우에는 ROWNUM 방식으로 작성한다.
+<select id="selectCustomerListByRownum"
+        parameterType="com.nh.nsight.marketing.sv.dto.SvCustomerListRequest"
+        resultType="com.nh.nsight.marketing.sv.dto.SvCustomerListItem">
+
+    SELECT *
+    FROM (
+        SELECT
+              INNER_QUERY.*
+            , ROWNUM AS RN
+        FROM (
+            SELECT
+                  C.CUSTOMER_NO           AS customerNo
+                , C.CUSTOMER_NAME         AS customerName
+                , C.CUSTOMER_GRADE        AS customerGrade
+                , C.BRANCH_CODE           AS branchCode
+                , C.BRANCH_NAME           AS branchName
+                , C.TOTAL_BALANCE         AS totalBalance
+                , C.PRODUCT_COUNT         AS productCount
+                , C.LAST_TRANSACTION_DATE AS lastTransactionDate
+            FROM RDW_CUSTOMER_SUMMARY C
+            WHERE 1 = 1
+
+            <if test="searchCondition.customerName != null and searchCondition.customerName != ''">
+                AND C.CUSTOMER_NAME LIKE '%' || #{searchCondition.customerName} || '%'
+            </if>
+
+            <if test="searchCondition.customerGrade != null and searchCondition.customerGrade != ''">
+                AND C.CUSTOMER_GRADE = #{searchCondition.customerGrade}
+            </if>
+
+            <if test="searchCondition.branchCode != null and searchCondition.branchCode != ''">
+                AND C.BRANCH_CODE = #{searchCondition.branchCode}
+            </if>
+
+            ORDER BY C.LAST_TRANSACTION_DATE DESC, C.CUSTOMER_NO ASC
+        ) INNER_QUERY
+        WHERE ROWNUM <![CDATA[<=]]> #{page.offset} + #{page.limit}
+    )
+    WHERE RN <![CDATA[>]]> #{page.offset}
+
+</select>
+
+운영 표준에서는 가능하면 Oracle 12c 이상 기준의 OFFSET FETCH 방식을 우선 사용하고, 구버전 호환이 필요한 경우에만 ROWNUM 방식을 사용한다.
+
+72.15 ServiceId / 거래통제 / Timeout 등록
+72.15.1 ServiceId 카탈로그 등록
+항목
+값
+SERVICE_ID
+SV.Customer.selectList
+BUSINESS_CODE
+SV
+TRANSACTION_CODE
+SV-INQ-0002
+SERVICE_NAME
+고객 목록 조회
+HANDLER_BEAN_NAME
+SV.Customer.selectList
+HANDLER_CLASS
+SvCustomerListHandler
+PROCESSING_TYPE
+LIST_INQUIRY
+USE_YN
+Y
+AUDIT_YN
+Y
+
+72.15.2 거래통제 등록
+항목
+값
+SERVICE_ID
+SV.Customer.selectList
+TRANSACTION_CODE
+SV-INQ-0002
+BUSINESS_CODE
+SV
+SERVICE_NAME
+고객 목록 조회
+USER
+* 또는 허용 사용자
+CHANNEL_ID
+WEBTOP
+BRANCH
+* 또는 허용 지점
+ALLOW_YN
+Y
+거래통제는 등록된 거래만 실행하고 등록되지 않은 거래는 기본 차단하는 Allow-List 방식이다.
+
+72.15.3 Timeout 정책 등록
+Timeout 구분
+기준값
+설명
+Online Transaction Timeout
+5초
+목록조회 전체 처리 제한
+Spring Transaction Timeout
+5초
+Facade 트랜잭션 제한
+MyBatis Query Timeout
+3초
+Count/List SQL 각각 제한
+Hikari Connection Timeout
+3초
+DB Connection 획득 대기 제한
+
+72.16 오류코드 설계
+오류코드
+오류명
+발생 위치
+사용자 메시지
+E-SV-VAL-0101
+요청 정보 없음
+Rule
+요청 정보가 없습니다.
+E-SV-VAL-0102
+검색조건 없음
+Rule
+검색조건이 없습니다.
+E-SV-VAL-0103
+시작일자 형식 오류
+Rule
+조회 시작일자 형식이 올바르지 않습니다.
+E-SV-VAL-0104
+종료일자 형식 오류
+Rule
+조회 종료일자 형식이 올바르지 않습니다.
+E-SV-VAL-0105
+Page Size 초과
+Rule
+한 번에 조회할 수 있는 최대 건수를 초과했습니다.
+E-SV-DB-0101
+Count 조회 실패
+DAO / Mapper
+고객 목록 건수 조회 중 오류가 발생했습니다.
+E-SV-DB-0102
+목록 조회 실패
+DAO / Mapper
+고객 목록 조회 중 오류가 발생했습니다.
+E-SV-TMO-0101
+목록 조회 Timeout
+TCF / Facade / Mapper
+고객 목록 조회 시간이 초과되었습니다.
+
+72.17 거래로그 / 감사로그 설계
+로그 항목
+기록 값
+GUID
+요청별 고유 ID
+TRACE_ID
+추적 ID
+SERVICE_ID
+SV.Customer.selectList
+TRANSACTION_CODE
+SV-INQ-0002
+BUSINESS_CODE
+SV
+USER_ID
+요청 사용자
+BRANCH_ID
+요청 지점
+CHANNEL_ID
+WEBTOP
+PAGE_NO
+요청 페이지 번호
+PAGE_SIZE
+요청 페이지 크기
+TOTAL_COUNT
+전체 건수
+RESULT_COUNT
+실제 반환 건수
+SQL_ID_COUNT
+SvCustomerMapper.countCustomerList
+SQL_ID_LIST
+SvCustomerMapper.selectCustomerList
+TX_STATUS
+PROCESSING → SUCCESS / FAIL / TIMEOUT
+ELAPSED_MS
+처리시간
+고객목록조회는 고객정보를 조회하는 거래이므로 감사로그 대상이다. 단, 대량 목록조회에서는 고객별 상세정보를 모두 감사로그에 남기기보다 검색조건, 건수, 사용자, 지점, ServiceId, GUID 중심으로 남긴다.
+
+72.18 curl 테스트 샘플
+curl -X POST http://localhost:8086/sv/online \
+  -H "Content-Type: application/json; charset=UTF-8" \
+  -d '{
+    "header": {
+      "serviceId": "SV.Customer.selectList",
+      "transactionCode": "SV-INQ-0002",
+      "businessCode": "SV",
+      "serviceName": "고객 목록 조회",
+      "user": "U123456",
+      "channelId": "WEBTOP",
+      "branch": "012345"
+    },
+    "body": {
+      "searchCondition": {
+        "customerName": "홍",
+        "customerGrade": "GOLD",
+        "branchCode": "012345",
+        "fromDate": "20260701",
+        "toDate": "20260705"
+      },
+      "page": {
+        "pageNo": 1,
+        "pageSize": 10
+      }
+    }
+  }'
+
+
+72.19 테스트 케이스
+No
+테스트명
+입력
+기대 결과
+1
+정상 1페이지 조회
+pageNo=1, pageSize=10
+10건 이하 반환
+2
+2페이지 조회
+pageNo=2, pageSize=10
+offset 10 적용
+3
+Page 미입력
+page=null
+기본 pageNo=1, pageSize=100
+4
+Page Size 초과
+pageSize=1000
+E-SV-VAL-0105
+5
+검색조건 없음
+searchCondition=null
+E-SV-VAL-0102
+6
+시작일자 오류
+fromDate=2026-07-01
+E-SV-VAL-0103
+7
+조회 결과 없음
+조건에 맞는 고객 없음
+list=[], totalCount=0
+8
+Count SQL 오류
+Count SQL 오류 유도
+E-SV-DB-0101
+9
+List SQL 오류
+List SQL 오류 유도
+E-SV-DB-0102
+10
+SQL Timeout
+SQL 3초 초과
+E-SV-TMO-0101
+11
+미등록 ServiceId
+SV.Customer.unknown
+Dispatcher 또는 거래통제 오류
+12
+거래통제 차단
+ALLOW_YN=N
+E-TCF-CTL-*
+13
+감사로그 확인
+정상 조회
+검색조건, 건수, 사용자 기록
+14
+거래로그 확인
+정상/오류 거래
+상태와 SQL ID 기록
+
+72.20 개발자 체크리스트
+점검 항목
+확인
+ServiceId가 SV.Customer.selectList로 정의되었는가?
+
+거래코드가 SV-INQ-0002로 정의되었는가?
+
+Handler Bean 이름이 ServiceId와 일치하는가?
+
+TCF Core에 페이징 로직을 넣지 않았는가?
+
+Page 기본값을 Rule에서 적용하는가?
+
+Page Size 최대값을 제한하는가?
+
+Offset 계산식이 (pageNo - 1) × pageSize인가?
+
+Count SQL과 List SQL을 분리했는가?
+
+List SQL에 정렬 기준이 명확한가?
+
+대량조회 시 Paging 없는 SQL을 사용하지 않았는가?
+
+Mapper XML namespace가 Interface FQCN과 일치하는가?
+
+SQL ID가 Mapper Method명과 일치하는가?
+
+ServiceId 카탈로그에 등록했는가?
+
+거래통제에 등록했는가?
+
+Timeout 정책을 등록했는가?
+
+오류코드를 등록했는가?
+
+거래로그에 pageNo, pageSize, totalCount를 기록하는가?
+
+curl 또는 tcf-ui로 1페이지/2페이지 테스트를 수행했는가?
+
+
+72.21 마무리말
+목록조회 + 페이징 샘플의 핵심은 TCF는 페이징을 모른다는 점이다.
+TCF
+= 전문 수신
++ Header 검증
++ 세션 / 권한
++ 거래통제
++ Timeout
++ 거래로그
++ 표준응답
+
+업무 WAR
+= 검색조건 검증
++ pageNo / pageSize 검증
++ offset 계산
++ count SQL
++ list SQL
++ list + page 응답 조립
+
+따라서 신규 목록조회 거래는 본 샘플에서 다음 항목만 업무에 맞게 바꾸면 된다.
+변경 대상
+예시
+ServiceId
+SV.Customer.selectList → CM.Campaign.selectList
+DTO
+고객 검색조건 → 캠페인 검색조건
+Mapper SQL
+RDW_CUSTOMER_SUMMARY → 업무 테이블
+오류코드
+E-SV-* → E-CM-*
+거래코드
+SV-INQ-0002 → CM-INQ-0001
+
+72.22 시사점
+목록조회는 단건조회보다 장애 위험이 높다.조건 없는 대량조회, Page Size 무제한, Count SQL 과다 수행, 정렬 기준 누락은 운영 장애로 이어질 수 있다.
+NSIGHT 목록조회 페이징의 기준은 “업무팀 자체 처리, DB 레벨 페이징, Page Size 제한, Count/List SQL 분리, 거래로그 기록”이다.
+

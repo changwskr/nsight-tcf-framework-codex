@@ -1,0 +1,874 @@
+70. FAQ / Troubleshooting
+70.1 도입 전 안내말
+FAQ / Troubleshooting은 개발자가 NSIGHT TCF Framework를 개발·빌드·배포·운영 중 자주 만나는 문제를 증상 → 원인 → 확인 방법 → 조치 방법 순서로 빠르게 판단할 수 있도록 정리한 장이다.
+NSIGHT TCF Framework는 HTTP/JSON 표준 전문 + ServiceId Dispatcher + STF/TCF/ETF 공통 처리 파이프라인 구조를 기준으로 하며, 모든 온라인 거래는 /{businessCode}/online으로 수신되고 header.serviceId를 기준으로 Handler가 실행된다. 기존 설계 기준에서도 TCF는 Header 검증, 세션·권한, 거래통제, Timeout, 로그, 응답 조립을 공통 파이프라인에서 처리하는 구조로 정의되어 있다.
+따라서 장애나 오류가 발생하면 무작정 소스를 수정하기보다 다음 순서로 확인한다.
+1. 어떤 환경인가?
+   local / dev / stg / prod
+
+2. 어떤 모듈인가?
+   tcf-core / tcf-web / sv-service / tcf-om / tcf-gateway / tcf-jwt
+
+3. 어떤 단계에서 실패했는가?
+   build / bootRun / WAR / deploy / runtime / transaction
+
+4. 어떤 거래인가?
+   businessCode / serviceId / transactionCode
+
+5. 어떤 추적값이 있는가?
+   GUID / TraceId / TransactionId
+
+6. 어느 계층에서 실패했는가?
+   STF / Dispatcher / Handler / Service / DAO / Mapper / ETF
+
+
+70.2 FAQ / Troubleshooting 기본 원칙
+원칙
+설명
+증상 기준으로 접근
+먼저 빌드 오류인지, 기동 오류인지, 거래 오류인지 구분한다
+GUID 기준으로 추적
+운영 장애는 GUID / TraceId / TransactionId 기준으로 확인한다
+ServiceId 기준으로 확인
+NSIGHT는 URL이 아니라 serviceId가 실제 실행 기준이다
+최근 변경 우선 확인
+최근 배포, 설정, DB, 기준정보, Cache 변경을 먼저 확인한다
+운영 서버 직접 수정 금지
+운영에서 Class, Mapper XML, WAR를 임의 수정하지 않는다
+기준정보와 Cache 함께 확인
+OM 기준정보 변경 후 Cache Reload 여부를 확인한다
+복구 우선
+운영 장애는 원인 분석보다 서비스 복구와 Rollback 판단을 우선한다
+
+70.3 전체 FAQ 분류표
+구분
+대표 증상
+주요 확인 영역
+로컬 빌드
+gradlew build 실패
+JDK, Gradle, 의존성, 테스트
+WAR 생성
+WAR 미생성, 파일명 오류
+bootWar, build/libs, Gradle 설정
+bootRun
+로컬 기동 실패
+Port, Profile, DB, Bean
+Tomcat 배포
+Context 기동 실패
+WAR, webapps, ClassLoader, 설정
+CI/CD
+Pipeline 실패
+GitLab Runner, Test, Artifact
+ServiceId
+Handler not found
+ServiceId, Handler Bean, Dispatcher
+거래통제
+거래 미등록 오류
+TCF_TRANSACTION_CONTROL, OM 기준정보
+권한
+권한 없음
+사용자, 권한그룹, 메뉴/기능권한
+세션
+로그인 풀림, 세션 없음
+Spring Session JDBC, Cookie, SESSIONDB
+JWT/SSO
+인증 실패
+Token, Key, 만료, SSO 검증
+MyBatis
+SQL 실행 오류
+Mapper XML, namespace, SQL ID
+Timeout
+응답 지연, TIMEOUT
+Service Timeout, SQL Timeout, Pool
+Gateway
+라우팅 실패
+Route, Target URL, Downstream Health
+Cache
+기준정보 미반영
+Evict, Reload, TTL
+Health Check
+/actuator/health 실패
+DB, SessionDB, Cache, 외부연계
+Rollback
+원복 실패
+백업 WAR, 설정, DB, Cache
+
+70.4 로컬 빌드 FAQ
+Q1. ./gradlew clean build가 실패한다
+항목
+내용
+증상
+BUILD FAILED, compileJava FAILED, test FAILED
+주요 원인
+JDK 버전 불일치, 의존성 오류, 테스트 실패, Mapper 오류
+확인 명령
+java -version, ./gradlew -v, ./gradlew clean build --stacktrace
+조치
+JDK 17 이상 확인, Gradle Wrapper 사용, 실패한 모듈과 테스트 로그 확인
+java -version
+./gradlew -v
+./gradlew clean build --stacktrace
+
+판단 기준
+오류 메시지
+원인
+조치
+Unsupported class file major version
+JDK 버전 불일치
+JDK 17 이상 적용
+Could not resolve dependency
+의존성 다운로드 실패
+Repository, Proxy, Network 확인
+test FAILED
+단위 테스트 실패
+실패 테스트 리포트 확인
+compileJava FAILED
+Java 문법 또는 참조 오류
+수정 파일과 import 확인
+
+Q2. 테스트를 제외하고 빌드해도 되는가?
+구분
+기준
+개발 중 임시 확인
+가능
+Merge Request 전
+금지
+운영 배포 전
+금지
+긴급 장애 수정
+승인 후 제한적으로 가능
+./gradlew clean build -x test
+
+-x test는 빠른 확인용이지 품질 검증 완료가 아니다. 운영 반영용 WAR는 반드시 CI/CD에서 테스트 포함 빌드를 통과해야 한다. NSIGHT CI/CD 운영 기준도 Gradle Build, Unit Test, WAR 생성, 배포 자동화와 롤백 자동화를 목표로 한다.
+
+Q3. 특정 모듈만 빌드하고 싶다
+./gradlew :sv-service:build
+./gradlew :sv-service:bootWar
+
+변경 대상
+권장 빌드
+업무 서비스만 수정
+해당 업무 모듈 빌드
+Mapper만 수정
+해당 업무 모듈 빌드 + Mapper 테스트
+tcf-core 수정
+전체 빌드
+tcf-web 수정
+전체 빌드
+tcf-cache 수정
+Cache 사용 업무 포함 빌드
+tcf-gateway 수정
+Gateway + 주요 업무 Smoke Test
+
+70.5 WAR 생성 FAQ
+Q4. WAR 파일이 생성되지 않는다
+항목
+내용
+증상
+build/libs에 .war 파일 없음
+주요 원인
+bootWar 미실행, Gradle Plugin 설정 오류, 모듈 선택 오류
+확인 명령
+./gradlew :sv-service:tasks, ls -al sv-service/build/libs
+조치
+bootWar Task 존재 여부 확인 후 재실행
+./gradlew :sv-service:bootWar
+ls -al sv-service/build/libs
+
+
+Q5. WAR 파일명과 Context가 다르다
+증상
+예시
+기대 Context
+/sv
+실제 배포
+/sv-service
+원인
+WAR 파일명이 sv-service.war로 생성됨
+조치
+운영 배포 시 sv.war로 표준화
+권장:
+sv.war  → /sv
+om.war  → /om
+gw.war  → /gw
+jwt.war → /jwt
+
+
+Q6. 공통 TCF JAR는 Tomcat lib에 넣어도 되는가?
+넣지 않는 것이 기준이다.
+방식
+판단
+각 WAR 내부 WEB-INF/lib 포함
+권장
+Tomcat 공용 lib에 수동 배치
+금지
+Class 파일 단독 교체
+금지
+Mapper XML 단독 교체
+금지
+공통 JAR를 Tomcat lib에 넣으면 WAR 간 버전 충돌, 롤백 불일치, ClassLoader 문제가 발생할 수 있다.
+
+70.6 bootRun / 로컬 실행 FAQ
+Q7. bootRun 실행 시 포트 충돌이 발생한다
+항목
+내용
+증상
+Port 8086 already in use
+원인
+동일 포트에서 기존 프로세스 실행 중
+확인
+lsof -i :8086, Windows는 netstat -ano
+조치
+기존 프로세스 종료 또는 포트 변경
+lsof -i :8086
+kill -9 {PID}
+
+Windows:
+netstat -ano | findstr 8086
+taskkill /PID {PID} /F
+
+
+Q8. local Profile이 적용되지 않는다
+확인 항목
+정상 기준
+실행 옵션
+--spring.profiles.active=local
+환경변수
+SPRING_PROFILES_ACTIVE=local
+설정 파일
+application-local.yml 존재
+로그
+The following profiles are active: local 출력
+./gradlew :sv-service:bootRun --args='--spring.profiles.active=local'
+
+Spring 환경설정 기준에서도 local, dev, stg, prd 환경별 설정 분리와 운영 서버 직접 수정 금지를 원칙으로 둔다.
+
+70.7 Tomcat 배포 FAQ
+Q9. Tomcat에 WAR를 올렸는데 Context가 기동되지 않는다
+주요 원인
+확인 위치
+조치
+Bean 생성 오류
+catalina.out, app log
+StackTrace 확인
+DB 접속 실패
+application log
+DataSource URL, 계정 확인
+Mapper 오류
+application log
+namespace, SQL ID 확인
+Profile 오류
+기동 로그
+spring.profiles.active 확인
+WAR 파일명 오류
+webapps
+Context명 확인
+JDK 버전 오류
+Tomcat log
+운영 JDK 확인
+확인 명령:
+tail -f /app/tomcat/logs/catalina.out
+tail -f /app/logs/nsight/sv/application.log
+
+
+Q10. Context Reload와 Tomcat Restart 중 무엇을 써야 하는가?
+상황
+권장 방식
+단일 업무 WAR만 변경
+Context Reload 가능
+공통 TCF 모듈 변경
+Tomcat Restart 권장
+환경설정 변경
+Restart 권장
+DB Pool 설정 변경
+Restart 필요
+JVM 옵션 변경
+Restart 필수
+ClassLoader 오류
+Restart 권장
+
+70.8 CI/CD FAQ
+Q11. GitLab Pipeline이 실패한다
+Stage
+주요 원인
+확인
+validate
+브랜치명, Secret, 금지파일
+Pipeline log
+build
+컴파일 오류
+compileJava log
+test
+테스트 실패
+JUnit report
+quality
+품질 Gate 실패
+분석 리포트
+package
+WAR 생성 실패
+bootWar log
+deploy
+서버 접속, 권한, Tomcat 오류
+deploy log
+post-check
+Health 실패
+actuator / smoke 결과
+조치 순서:
+1. 실패 Stage 확인
+2. 실패 모듈 확인
+3. 실패 로그 원문 확인
+4. 로컬에서 동일 명령 재현
+5. 수정 후 다시 Push
+
+
+Q12. 개발자 PC에서 만든 WAR를 운영에 반영해도 되는가?
+안 된다.
+구분
+기준
+개발자 PC WAR
+개인 검증용
+CI/CD WAR
+공식 배포 산출물
+운영 반영
+CI/CD Artifact만 가능
+운영 반영용 WAR는 Commit ID, Build Time, Checksum, Artifact 이력이 있어야 한다.
+
+70.9 ServiceId / Dispatcher FAQ
+Q13. Handler not found 오류가 발생한다
+확인 항목
+정상 기준
+Request Header
+serviceId 값 존재
+ServiceId 철자
+Handler 등록값과 일치
+Handler Bean
+Spring Bean 등록
+Package Scan
+Component Scan 범위 포함
+OM Service Catalog
+ServiceId 등록
+거래통제
+허용 상태
+예시:
+{
+  "header": {
+    "serviceId": "SV.Customer.selectSummary",
+    "businessCode": "SV"
+  }
+}
+
+조치:
+1. Header serviceId 확인
+2. Handler 클래스의 ServiceId 등록값 확인
+3. Spring Bean 등록 여부 확인
+4. Dispatcher 로그 확인
+5. OM ServiceId 기준정보 확인
+
+ServiceId는 온라인 거래를 실행·통제·추적하는 핵심 식별자이며, Dispatcher는 serviceId → TransactionHandler 기준으로 Handler를 선택한다.
+
+Q14. URL은 맞는데 다른 업무 Handler가 실행된다
+원인
+설명
+URL Path와 Header 업무코드 불일치
+/sv/online인데 businessCode=OM
+ServiceId 오입력
+SV 거래인데 OM ServiceId 사용
+Gateway 라우팅 오류
+업무코드 Route가 잘못 등록
+테스트 전문 복사 오류
+Header 값 미수정
+조치 기준:
+URL Path businessCode == Header businessCode == ServiceId Prefix
+
+예:
+POST /sv/online
+businessCode = SV
+serviceId    = SV.Customer.selectSummary
+
+
+70.10 거래통제 / 권한 FAQ
+Q15. “거래 미등록” 또는 “거래 차단” 오류가 발생한다
+확인 항목
+정상 기준
+serviceId
+거래통제 테이블에 등록
+transactionCode
+요청 Header와 등록값 일치
+businessCode
+업무코드 일치
+user
+허용 사용자 또는 권한그룹
+channelId
+허용 채널
+branch
+허용 지점
+사용 여부
+Active 상태
+거래통제는 등록된 거래만 실행하고 미등록 거래는 기본 차단하는 Allow-List 방식이다.
+
+Q16. 특정 사용자만 권한 오류가 발생한다
+확인 항목
+설명
+사용자 상태
+OM_USER 사용 여부
+권한그룹
+사용자 권한그룹 매핑
+메뉴권한
+해당 메뉴 접근 권한
+기능권한
+조회/등록/수정/삭제/다운로드 권한
+ServiceId 권한
+해당 거래 실행 가능 여부
+지점 권한
+branch 기준 제한 여부
+Cache
+권한 변경 후 Cache Reload 여부
+
+70.11 MyBatis / SQL FAQ
+Q17. Invalid bound statement 오류가 발생한다
+원인
+설명
+Mapper XML namespace 불일치
+Interface FQCN과 다름
+SQL id 불일치
+Interface Method명과 다름
+Mapper XML 미포함
+WAR에 XML 누락
+Mapper Scan 누락
+Package Scan 범위 오류
+파일 경로 오류
+resources/mapper/** 위치 불일치
+확인:
+jar tf sv.war | grep mapper
+
+정상 기준:
+Interface:
+com.nh.nsight.sv.persistence.mapper.SvCustomerMapper.selectSummary
+
+XML:
+<mapper namespace="com.nh.nsight.sv.persistence.mapper.SvCustomerMapper">
+  <select id="selectSummary">
+
+MyBatis는 DAO/Mapper 계층에 위치하며 SQL 실행 책임만 갖고, Mapper 표준과 Query Timeout, SQL ID 관측성을 통제해야 한다.
+
+Q18. 조회가 너무 느리다
+확인 항목
+기준
+SQL 실행시간
+Query Timeout 초과 여부
+실행계획
+Full Scan 여부
+Index
+조건절 컬럼 Index 여부
+Paging
+대량 조회 Page Size 제한
+Fetch Size
+대량 조회 기준 확인
+DB Pool
+Hikari Active Connection 확인
+Lock
+DB Lock 대기 여부
+통계정보
+Optimizer 통계 최신 여부
+조치 순서:
+1. SQL ID 확인
+2. 실행시간 확인
+3. 실행계획 확인
+4. 조건절 / Index 확인
+5. Paging 적용 여부 확인
+6. Query Timeout 기준 확인
+7. DBA 협의
+
+
+70.12 Timeout FAQ
+Q19. 거래가 자주 TIMEOUT 된다
+Timeout 구분
+확인 항목
+Online Timeout
+ServiceId별 Timeout 정책
+Transaction Timeout
+Spring Transaction Timeout
+Query Timeout
+MyBatis Statement Timeout
+Hikari Timeout
+Connection 대기 Timeout
+Gateway Timeout
+Downstream 응답 지연
+외부연계 Timeout
+외부 API 지연
+Apache Timeout
+Proxy Timeout
+Timeout은 거래통제와 분리하여 별도 정책 테이블로 관리하는 것이 기준이다. 기존 설계에서도 거래통제는 허용 여부, Timeout 정책은 제한 시간을 판단하는 구조로 구분한다.
+
+Q20. Timeout 값을 무조건 늘리면 해결되는가?
+아니다.
+Timeout 증가 효과
+위험
+일시적 실패 감소
+Tomcat Thread 장시간 점유
+느린 SQL 성공 가능
+DB Connection Pool 고갈
+외부연계 대기 증가
+장애 전파 확대
+사용자 오류 감소
+전체 응답시간 악화
+Timeout 증가는 임시 조치일 수 있으나, 근본 원인은 SQL, DB, 외부연계, Gateway, Pool 사용률에서 찾아야 한다.
+
+70.13 세션 FAQ
+Q21. 로그인 후 다른 업무로 이동하면 세션이 없다고 나온다
+확인 항목
+정상 기준
+Cookie Domain
+동일 도메인에서 공유 가능
+Cookie Path
+업무 Context 간 전달 가능
+Secure
+HTTPS 환경과 일치
+SameSite
+화면 구조에 맞게 설정
+SESSIONDB
+세션 저장 정상
+WAR 설정
+모든 업무 WAR가 동일 SESSIONDB 사용
+Session Attribute
+사용자/권한 정보 저장
+Spring Session JDBC는 세션 중앙화, WAS 독립 세션 관리, 다중 WAR 세션 공유, 사용자 인증 상태 유지를 담당한다.
+
+Q22. WAS 장애 후 로그인이 풀린다
+가능 원인
+확인
+Spring Session JDBC 미적용
+SPRING_SESSION 확인
+Cookie 전달 오류
+Browser Cookie 확인
+SESSIONDB 장애
+DB 연결 확인
+L4 Sticky 정책 문제
+Routing 확인
+업무 WAR별 세션 설정 불일치
+application.yml 비교
+
+70.14 JWT / SSO FAQ
+Q23. JWT 인증이 실패한다
+확인 항목
+설명
+Authorization Header
+Bearer {token} 전달 여부
+Token 만료
+exp 확인
+서명 Key
+Public/Private Key 일치
+Algorithm
+RS256 등 정책 일치
+Issuer
+발급자 일치
+Audience
+대상 시스템 일치
+DenyList
+폐기 토큰 여부
+Clock Skew
+서버 시간 차이
+JWT는 TCF를 대체하는 기능이 아니라 사용자 인증 수단이며, TCF는 계속 Header 검증, 세션/JWT 검증, 권한, 거래통제, Timeout, 로그, 감사, 표준응답을 담당한다.
+
+Q24. SSO 로그인은 성공했는데 업무 호출이 실패한다
+가능 원인
+설명
+OM 세션 미생성
+SSO 검증 후 HttpSession 생성 실패
+JWT 미발급
+tcf-jwt 호출 실패
+사용자 미등록
+OM_USER에 사용자 없음
+권한 미등록
+권한그룹 또는 기능권한 없음
+업무 WAR 세션 미공유
+SESSIONDB 설정 불일치
+Gateway 인증 실패
+Cookie 또는 Authorization 전달 누락
+
+70.15 Gateway FAQ
+Q25. Gateway에서 Downstream 호출이 실패한다
+확인 항목
+정상 기준
+ENV_CODE
+현재 실행환경과 일치
+BUSINESS_CODE
+요청 업무코드와 일치
+Target URL
+실제 업무 WAS 주소 정상
+Context Path
+/sv, /om 등 일치
+Online Path
+/sv/online
+Target Health
+Downstream Health 정상
+Timeout
+Gateway Timeout 기준 적정
+Header 전달
+GUID, Cookie, Authorization 전달
+Gateway는 업무코드 기반 라우팅, 세션/JWT 검증, Header 검증, ServiceId 검증, 거래통제, 업무 라우팅을 담당하는 Application Gateway이다.
+
+Q26. local에서는 되는데 dev/prod에서 Gateway 라우팅이 실패한다
+원인
+조치
+ENV_CODE 불일치
+실행 Profile 확인
+dev/prod Route 미등록
+TCF_GATEWAY_ROUTE 확인
+Target 서버명 DNS 오류
+서버명, IP 확인
+방화벽 차단
+Port 오픈 확인
+Context Path 불일치
+WAR 파일명과 Context 확인
+Health Check 실패
+Downstream 먼저 확인
+
+70.16 Cache FAQ
+Q27. OM에서 기준정보를 수정했는데 반영되지 않는다
+가능 원인
+조치
+Cache Evict 미수행
+해당 Cache Evict
+Cache Reload 실패
+Reload 로그 확인
+TTL 미도래
+강제 Reload
+다른 WAS Cache 미갱신
+전체 WAS Evict
+Gateway Cache 별도 보유
+Gateway Cache도 Reload
+DB Commit 누락
+기준정보 DB 확인
+Cache는 업무 데이터가 아니라 공통코드, ServiceId 카탈로그, 거래통제 정책, Timeout 정책 같은 기준정보를 대상으로 해야 한다.
+
+70.17 Health Check FAQ
+Q28. /actuator/health는 UP인데 업무가 실패한다
+/actuator/health가 UP이어도 실제 업무 거래가 실패할 수 있다.
+점검 단계
+확인 내용
+Liveness
+프로세스 생존
+Readiness
+요청 수신 가능
+Deep Check
+DB, SESSIONDB, Cache 정상
+Smoke Check
+실제 ServiceId 거래 성공
+헬스체크는 단순 Health 하나가 아니라 Liveness, Readiness, Deep, Smoke Check의 4단계로 봐야 한다.
+
+Q29. Smoke Test는 어떤 거래로 해야 하는가?
+모듈
+대표 Smoke Test
+SV
+SV.Customer.selectSummary
+OM
+OM.CommonCode.inquiry
+Gateway
+GW → SV.Customer.selectSummary
+JWT
+JWT.Auth.issueToken
+Session
+로그인 후 /sv/online 호출
+Batch
+대표 Job 수동 실행
+Smoke Test는 DB, TCF, Handler, Mapper, 응답 조립까지 포함하는 대표 거래를 선택해야 한다.
+
+70.18 배포 / 롤백 FAQ
+Q30. 배포 직후 장애가 나면 무엇부터 확인하는가?
+1. 배포 버전 / Commit ID
+2. 변경 파일 목록
+3. Health Check 결과
+4. Smoke Test 결과
+5. 거래로그 오류 증가 여부
+6. 최근 DB / 기준정보 / 설정 변경
+7. Rollback 필요 여부
+
+배포 절차는 승인된 Artifact를 순차 반영하고 Health Check와 Smoke Test로 정상 여부를 검증하는 운영 통제 절차이다.
+
+Q31. 언제 Rollback해야 하는가?
+Rollback 조건
+설명
+Context 기동 실패
+WAR가 올라오지 않음
+Health Check 실패
+Liveness / Readiness / Deep 실패
+Smoke Test 실패
+대표 거래 실패
+5xx 급증
+HTTP 오류 증가
+Timeout 급증
+TIMEOUT / UNKNOWN 증가
+DB Pool 고갈
+Hikari Active 급증
+업무 담당자 오류 판단
+기능 오류 확인
+Rollback은 직전 정상 WAR와 설정을 복구한 뒤 Health Check와 Smoke Test까지 통과해야 완료로 본다.
+
+70.19 운영 장애 FAQ
+Q32. 전체 업무가 갑자기 느려졌다
+확인 항목
+판단
+Apache
+Worker 고갈, Proxy Timeout
+Tomcat
+Busy Thread 70% 초과
+JVM
+Heap 70% 초과, GC 증가
+HikariCP
+Pool 70~80% 초과
+DB
+Lock, Slow Query, Session 증가
+SESSIONDB
+세션 조회 지연
+Gateway
+Downstream Timeout
+외부연계
+지연 또는 장애
+최근 배포
+공통 모듈 변경 여부
+
+Q33. 특정 업무만 실패한다
+확인 순서
+내용
+1
+해당 업무 WAR Health 확인
+2
+ServiceId / 거래코드 확인
+3
+거래통제 / 권한 확인
+4
+Handler 등록 확인
+5
+Mapper / SQL 확인
+6
+해당 업무 DB 연결 확인
+7
+최근 해당 업무 배포 확인
+
+Q34. 특정 사용자만 실패한다
+확인 항목
+설명
+사용자 상태
+사용 여부, 잠금 여부
+권한그룹
+권한 매핑
+지점코드
+Branch 제한
+채널
+Channel 제한
+세션
+Session Attribute
+Token
+JWT Claim
+거래통제
+user / branch / channel 기준 허용 여부
+메뉴권한
+화면 접근 권한
+기능권한
+버튼/기능 권한
+
+70.20 자주 쓰는 확인 명령
+목적
+명령
+Java 버전
+java -version
+Gradle 버전
+./gradlew -v
+전체 빌드
+./gradlew clean build
+특정 WAR 생성
+./gradlew :sv-service:bootWar
+WAR 내부 확인
+`jar tf sv.war
+포트 확인
+lsof -i :8086
+로그 확인
+tail -f application.log
+Tomcat 로그
+tail -f catalina.out
+Health Check
+curl -f http://localhost:8080/sv/actuator/health
+프로세스 확인
+`ps -ef
+디스크 확인
+df -h
+메모리 확인
+free -g
+
+70.21 장애 조치 우선순위
+우선순위
+조치
+설명
+1
+서비스 영향 범위 확인
+전체 장애인지 일부 거래 장애인지 구분
+2
+장애 거래 식별
+업무코드, ServiceId, GUID 확보
+3
+Health 확인
+대상 WAR, DB, SessionDB, Gateway 상태 확인
+4
+최근 변경 확인
+배포, 설정, DB, 기준정보, Cache
+5
+임시 복구 판단
+기준정보 수정, Cache Reload, Route 변경
+6
+Rollback 판단
+배포본 문제면 즉시 원복
+7
+원인 분석
+코드, SQL, 설정, 인프라 분석
+8
+재발방지
+테스트 추가, 모니터링 강화, 기준 보완
+
+70.22 FAQ 요약표
+질문
+핵심 답변
+빌드 실패 시?
+JDK, Gradle, 실패 Stage, 테스트 로그부터 확인
+WAR가 안 생기면?
+bootWar Task와 build/libs 확인
+Handler를 못 찾으면?
+serviceId, Handler Bean, Dispatcher 등록 확인
+거래가 차단되면?
+거래통제 Allow-List와 권한 확인
+SQL 오류가 나면?
+Mapper namespace, SQL ID, Parameter 확인
+Timeout이면?
+온라인, SQL, Hikari, Gateway Timeout 분리 확인
+세션이 없으면?
+Cookie, SESSIONDB, Spring Session 설정 확인
+JWT 오류면?
+Token 만료, 서명 Key, Header 전달 확인
+Gateway 오류면?
+Route, Target URL, Downstream Health 확인
+기준정보가 안 바뀌면?
+Cache Evict / Reload 확인
+Health는 UP인데 거래 실패?
+Smoke Test로 실제 ServiceId 확인
+배포 직후 장애면?
+최근 변경과 Rollback 가능성 먼저 확인
+
+70.23 마무리말
+FAQ / Troubleshooting의 목적은 모든 문제를 한 번에 해결하는 것이 아니라, 문제를 빠르게 분류하고 올바른 확인 지점으로 이동하는 것이다.
+NSIGHT TCF Framework에서는 장애를 다음 기준으로 나누면 대부분 원인을 빠르게 좁힐 수 있다.
+빌드 문제인가?
+기동 문제인가?
+배포 문제인가?
+거래통제 문제인가?
+권한 문제인가?
+세션/인증 문제인가?
+SQL/DB 문제인가?
+Gateway 문제인가?
+Cache 문제인가?
+최근 변경 문제인가?
+
+
+70.24 시사점
+NSIGHT의 Troubleshooting 기준은 다음 한 문장으로 정리할 수 있다.
+장애는 감으로 찾지 않고, 환경 → 모듈 → ServiceId → GUID → TCF 단계 → 업무 계층 → DB/외부연계 순서로 좁혀야 한다.
+

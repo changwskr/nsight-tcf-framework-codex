@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rule 점검 · NSIGHT OC</title>
+  <script src="/_shared/ui-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css"/>
+  <link rel="stylesheet" href="/_shared/oc-capacity.css"/>
+  <link rel="stylesheet" href="/_shared/oc-env.css"/>
+</head>
+<body class="tcf-env-page" data-env-page="rulecheck" data-env-title="Rule 점검 · NSIGHT OC" data-env-subtitle="Rule Engine · 설정 점검 · SC-002/004/007/008/009">
+<div id="envPageShell"></div>
+<div id="statusBar" class="status-bar hidden" role="status"></div>
+
+<main class="env-layout">
+    <section class="card env-rule-intro">
+        <div class="card-title row-title">
+            <div>
+                <h2>Rule 점검</h2>
+                <p>
+                    프로젝트 기준정보·설정 업로드·Rule Engine·Timeout/Flow Map·SC-007 설정 대조를 이 탭에서 수행합니다.
+                    ENV-002~004 산정·계층 결론은 <a href="/oc/check.html">종합 보고서</a>에서 확인하세요.
+                </p>
+            </div>
+            <button type="button" class="secondary env-export-excel-btn" data-env-export="RULE_CHECK">Excel 다운로드</button>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="card-title row-title">
+            <div>
+                <h2>프로젝트 기준정보 (SC-002)</h2>
+                <p id="projectSummary">불러오는 중…</p>
+                <p class="env-baseline-source-hint">ENV-002에서 「산정 실행」한 경우 용량·TPS·실요청자 등 수치가 여기에 반영됩니다. 미산정 시 <code>application.yml</code> 기본값을 표시합니다.</p>
+            </div>
+            <div class="env-score-box">
+                <span id="runStatusBadge" class="env-score hidden">—</span>
+                <span id="envMatchBadge" class="env-score env-score--match">일치 0</span>
+                <span id="envWarnBadge" class="env-score env-score--warn">주의 0</span>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table class="dump-report__table dump-report__table--env-baseline" id="projectBaselineTable">
+                <colgroup>
+                    <col class="col-bl-cat"/>
+                    <col class="col-bl-item"/>
+                    <col class="col-bl-value"/>
+                </colgroup>
+                <thead>
+                <tr>
+                    <th>구분</th>
+                    <th>항목</th>
+                    <th>기준값</th>
+                </tr>
+                </thead>
+                <tbody id="projectBaselineBody">
+                <tr><td colspan="3" class="env-empty-cell">불러오는 중…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="card-title">
+            <h2>설정 수집 · 점검 실행 (SC-004 / Assessment)</h2>
+            <p>아래 <strong>필수</strong> 파일을 포함해 업로드한 뒤 Rule Engine 점검을 실행합니다. 환경 코드에 맞는 프로파일 파일이 있으면 함께 올려 주세요.</p>
+        </div>
+        <div class="table-wrap env-files-table-wrap">
+            <table class="dump-report__table dump-report__table--env-files" id="requiredConfigFilesTable" aria-label="점검에 필요한 설정 파일">
+                <colgroup>
+                    <col class="col-file-req"/>
+                    <col class="col-file-name"/>
+                    <col class="col-file-path"/>
+                    <col class="col-file-desc"/>
+                    <col class="col-file-pick"/>
+                </colgroup>
+                <thead>
+                <tr>
+                    <th>구분</th>
+                    <th>파일명</th>
+                    <th>경로(예시)</th>
+                    <th>점검 항목</th>
+                    <th>파일 선택</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><span class="pill ok">필수</span></td>
+                    <td><code>application.yml</code></td>
+                    <td><code>src/main/resources/application.yml</code></td>
+                    <td>세션·HikariCP·<code>nsight.env-check</code>(TPS·동시)·<code>nsight.*</code> Timeout·트랜잭션</td>
+                    <td class="env-file-pick">
+                        <input type="file" class="env-config-file-input" data-slot="application-yml"
+                               accept=".yml,.yaml" title="application.yml"/>
+                        <span class="env-file-picked" data-for="application-yml">미선택</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="pill ok">필수</span></td>
+                    <td><code>application.yml</code> <small>(Tomcat)</small></td>
+                    <td><code>server.tomcat.*</code> in <code>application.yml</code></td>
+                    <td><code>threads.max</code>, <code>min-spare</code>, <code>accept-count</code>, <code>max-connections</code>, <code>connection-timeout</code> — SC-008·SC-009</td>
+                    <td class="env-file-pick">
+                        <input type="file" class="env-config-file-input" data-slot="tomcat-yml"
+                               accept=".yml,.yaml,.properties" title="Tomcat (Spring Boot embedded)"/>
+                        <span class="env-file-picked" data-for="tomcat-yml">미선택</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="pill">권장</span></td>
+                    <td><code>server.xml</code></td>
+                    <td><code>$CATALINA_HOME/conf/server.xml</code></td>
+                    <td>외장 Tomcat Connector·스레드풀·포트 (embedded와 병행 점검 시)</td>
+                    <td class="env-file-pick">
+                        <input type="file" class="env-config-file-input" data-slot="tomcat-server-xml"
+                               accept=".xml" title="server.xml"/>
+                        <span class="env-file-picked" data-for="tomcat-server-xml">미선택</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="pill ok">필수</span></td>
+                    <td><code>mybatis-config.xml</code></td>
+                    <td><code>src/main/resources/mybatis/mybatis-config.xml</code></td>
+                    <td><code>defaultStatementTimeout</code>, <code>defaultFetchSize</code> (DB Query Timeout)</td>
+                    <td class="env-file-pick">
+                        <input type="file" class="env-config-file-input" data-slot="mybatis-config"
+                               accept=".xml" title="mybatis-config.xml"/>
+                        <span class="env-file-picked" data-for="mybatis-config">미선택</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="pill">권장</span></td>
+                    <td><code id="profileFileNameLabel">application-{환경코드}.yml</code></td>
+                    <td><code id="profileFilePathLabel">src/main/resources/application-local.yml</code></td>
+                    <td>프로파일별 DB·로깅·<code>nsight.ap-id</code> 등 환경 오버라이드</td>
+                    <td class="env-file-pick">
+                        <input type="file" class="env-config-file-input" data-slot="application-profile"
+                               accept=".yml,.yaml" title="application profile yml"/>
+                        <span class="env-file-picked" data-for="application-profile">미선택</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="pill">권장</span></td>
+                    <td><code>application.properties</code></td>
+                    <td><code>src/main/resources/application.properties</code></td>
+                    <td>YAML 대신 Properties 형식인 경우 동일 키 점검</td>
+                    <td class="env-file-pick">
+                        <input type="file" class="env-config-file-input" data-slot="application-properties"
+                               accept=".properties" title="application.properties"/>
+                        <span class="env-file-picked" data-for="application-properties">미선택</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="pill">선택</span></td>
+                    <td><code>logback-spring.xml</code></td>
+                    <td><code>src/main/resources/logback-spring.xml</code></td>
+                    <td>로깅·파일 경로 (운영 장애 분석 참고)</td>
+                    <td class="env-file-pick">
+                        <input type="file" class="env-config-file-input" data-slot="logback-spring"
+                               accept=".xml" title="logback-spring.xml"/>
+                        <span class="env-file-picked" data-for="logback-spring">미선택</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="pill">선택</span></td>
+                    <td><code>bootstrap.yml</code></td>
+                    <td><code>src/main/resources/bootstrap.yml</code></td>
+                    <td>Config Server·초기 프로퍼티 (사용 시)</td>
+                    <td class="env-file-pick">
+                        <input type="file" class="env-config-file-input" data-slot="bootstrap-yml"
+                               accept=".yml,.yaml" title="bootstrap.yml"/>
+                        <span class="env-file-picked" data-for="bootstrap-yml">미선택</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="pill no">참고</span></td>
+                    <td><code>httpd.conf</code> / <code>nginx.conf</code></td>
+                    <td>AP 외부 (Proxy)</td>
+                    <td>Proxy Connect/Read Timeout — 콘솔·인프라 설정</td>
+                    <td class="env-file-pick env-file-pick--na">—</td>
+                </tr>
+                <tr>
+                    <td><span class="pill">권장</span></td>
+                    <td><code>application.yml</code> <small>(L4/GSLB)</small></td>
+                    <td><code>nsight.env-check.l4-*</code>, <code>gslb-*</code></td>
+                    <td>L4·GSLB Health/Sticky/Idle — 콘솔 설정과 <code>env-check</code> 기준값 대조</td>
+                    <td class="env-file-pick">
+                        <input type="file" class="env-config-file-input" data-slot="l4-gslb-yml"
+                               accept=".yml,.yaml" title="application.yml L4/GSLB env-check"/>
+                        <span class="env-file-picked" data-for="l4-gslb-yml">미선택</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="env-upload-hint">각 행에서 파일을 개별 선택한 뒤 <strong>설정 업로드·파싱</strong>을 실행하세요. 지원 확장자: <code>.yml</code>, <code>.yaml</code>, <code>.properties</code>, <code>.xml</code> 등 · 파일당 최대 2MB · 합계 최대 20개</p>
+        <form id="uploadForm" class="grid-form env-upload-form">
+            <label>
+                프로젝트 ID
+                <input type="text" id="projectId" value="nsight-message-mgmt"/>
+            </label>
+            <label>
+                환경 코드
+                <input type="text" id="envCode" value="local"/>
+            </label>
+            <div class="actions wide">
+                <button type="submit">설정 업로드·파싱</button>
+                <button type="button" id="runAssessmentBtn">점검 실행</button>
+                <button type="button" class="secondary" id="reloadSettingsBtn">런타임만 조회</button>
+            </div>
+        </form>
+        <p id="importMeta" class="ops-check-meta"></p>
+    </section>
+
+    <section class="card hidden" id="timeoutMapSection">
+        <div class="card-title row-title">
+            <div>
+                <h2>Timeout 일관성 Map (SC-008)</h2>
+                <p id="timeoutChainSummary"></p>
+            </div>
+            <span id="timeoutChainBadge" class="env-score">—</span>
+        </div>
+        <div class="env-timeout-chain" id="timeoutChain"></div>
+    </section>
+
+    <section class="card hidden" id="concurrentFlowSection">
+        <div class="card-title row-title">
+            <div>
+                <h2>실시간 동시 요청자 Flow (SC-009)</h2>
+                <p id="concurrentFlowSummary">실요청 사용자(5%·1,800명) → AP당 동시 → TPS(600) → Tomcat → Pool → DB Session</p>
+            </div>
+            <span id="concurrentFlowBadge" class="env-score">—</span>
+        </div>
+        <p id="concurrentFlowEstimate" class="ops-check-meta"></p>
+        <div class="env-timeout-chain env-flow-chain" id="concurrentFlowChain"></div>
+    </section>
+
+    <section class="card" id="assessmentResultsSection">
+        <div class="card-title">
+            <h2>Rule Engine 점검 (설정·연계 규칙)</h2>
+            <p id="assessmentMeta">점검 실행 전 — 아래 중요 기준을 참고해 설정을 맞춘 뒤 「점검 실행」을 누르세요. 결과는 <a href="/oc/check.html">종합 보고서</a>에도 요약 반영됩니다.</p>
+        </div>
+        <div class="env-assessment-criteria" id="assessmentCriteriaPanel" aria-label="설정 점검 중요 기준">
+            <h3 class="env-assessment-criteria__title">설정 점검 중요 기준</h3>
+            <p class="env-assessment-criteria__intro">
+                THRESHOLD(단일 값) · RELATION(계층·용량 연계) 규칙은 아래 기준으로 판정합니다.
+                <span id="assessmentCriteriaVersion" class="env-assessment-criteria__ver"></span>
+            </p>
+            <ul id="assessmentCriteriaList" class="env-assessment-criteria__list"></ul>
+        </div>
+        <div class="table-wrap table-wrap--sticky-head hidden" id="assessmentResultsTableWrap">
+            <table class="dump-report__table dump-report__table--data dump-report__table--env-assess" id="assessmentTable">
+                <colgroup>
+                    <col class="col-as-rule"/>
+                    <col class="col-as-type"/>
+                    <col class="col-as-sev"/>
+                    <col class="col-as-file"/>
+                    <col class="col-as-param"/>
+                    <col class="col-as-desc"/>
+                    <col class="col-as-exp"/>
+                    <col class="col-as-act"/>
+                    <col class="col-as-status"/>
+                </colgroup>
+                <thead>
+                <tr>
+                    <th>Rule</th>
+                    <th>유형</th>
+                    <th>심각도</th>
+                    <th>설정 파일</th>
+                    <th>설정 파라미터</th>
+                    <th>설명</th>
+                    <th>가이드 권장</th>
+                    <th>실측 값</th>
+                    <th>판정</th>
+                </tr>
+                </thead>
+                <tbody id="assessmentResultsBody"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="card-title">
+            <h2>설계 원칙 (가이드)</h2>
+        </div>
+        <ul id="envRules" class="env-rules-list"></ul>
+    </section>
+
+    <section id="envCategories" class="env-categories"></section>
+</main>
+
+  <script src="/_shared/oc-env-layout.js"></script>
+  <script src="/_shared/oc-env-planner.js"></script>
+  <script src="/_shared/oc-env.js"></script>
+  <script src="/_shared/oc-env-export.js"></script>
+</body>
+</html>

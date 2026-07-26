@@ -1,0 +1,14 @@
+﻿no,war_file,context_path,gradle_module,description,spring_application_name,health_check,deploy_scope
+1,ic.war,/ic,ic-service,Integration Customer,ic-service,/ic/actuator/health,core
+2,pc.war,/pc,pc-service,Private Customer,pc-service,/pc/actuator/health,core
+3,ms.war,/ms,ms-service,Mini Single View,ms-service,/ms/actuator/health,core
+4,sv.war,/sv,sv-service,Single View,sv-service,/sv/actuator/health,core
+5,pd.war,/pd,pd-service,Product,pd-service,/pd/actuator/health,core
+6,eb.war,/eb,eb-service,EBM,eb-service,/eb/actuator/health,core
+7,ep.war,/ep,ep-service,Event Processing,ep-service,/ep/actuator/health,core
+8,ss.war,/ss,ss-service,Sales Support,ss-service,/ss/actuator/health,core
+9,mg.war,/mg,mg-service,Message,mg-service,/mg/actuator/health,core
+10,om.war,/om,tcf-om,Operation Management,tcf-om,/om/actuator/health,core
+11,batch.war,/batch,tcf-batch,Batch (운영 배포명; 로컬 ztomcat은 zz-batch.war+/batch),tcf-batch,/batch/actuator/health,core
+12,ui.war,/ui,tcf-ui,거래 UI,tcf-ui,/ui/actuator/health,core
+13,jwt.war,/jwt,tcf-jwt,JWT Auth,tcf-jwt,/jwt/actuator/health,extended

@@ -1,0 +1,52 @@
+# NSIGHT TCF — 환경 설정 manifest (tcf-cicd SoT)
+# sync: tcf-cicd/scripts/sync-to-framework.ps1 | pull-from-framework.ps1
+
+frameworkRoot: ..
+
+profiles:
+  local:
+    file: application-local.yml
+  dev:
+    file: application-dev.yml
+  prod:
+    file: application-prod.yml
+
+# Spring Boot 모듈 (application-{profile}.yml)
+modules:
+  platform:
+    - tcf-web
+    - tcf-cache
+    - tcf-core
+    - tcf-om
+    - tcf-batch
+    - tcf-ui
+  business:
+    - ic-service
+    - pc-service
+    - ms-service
+    - sv-service
+    - pd-service
+    - eb-service
+    - ep-service
+    - ss-service
+    - mg-service
+
+# ztomcat / 인프라 (profile 디렉터리 기준 상대 경로)
+ztomcat:
+  local:
+    - ztomcat/setenv.local.sh
+    - ztomcat/setenv.local.bat
+  dev:
+    - ztomcat/conf/setenv.sh
+    - ztomcat/conf/setenv.bat
+  prod:
+    - ztomcat/setenv.sh
+    - ztomcat/setenv.bat
+
+apache:
+  prod:
+    - apache/nsight-marketing-routing.conf
+
+# prod Tomcat runtime mount (apply-tomcat-config.sh)
+runtime:
+  prodSpringMount: conf/nsight

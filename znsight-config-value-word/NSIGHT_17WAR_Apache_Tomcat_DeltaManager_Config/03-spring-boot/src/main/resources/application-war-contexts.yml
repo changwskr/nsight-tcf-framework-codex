@@ -1,0 +1,19 @@
+nsight:
+  war-contexts:
+    auth-service: /auth
+    portal-service: /portal
+    customer-service: /customer-service
+    singleview-service: /singleview-service
+    campaign-service: /campaign-service
+    event-service: /event-service
+    platform-service: /platform-service
+    ebm-service: /ebm-service
+    message-service: /message-service
+    segment-service: /segment-service
+    report-service: /report-service
+    stat-service: /stat-service
+    admin-service: /admin-service
+    code-service: /code-service
+    file-service: /file-service
+    audit-service: /audit-service
+    batch-admin: /batch-admin

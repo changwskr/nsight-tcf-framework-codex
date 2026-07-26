@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SS - Sales Support -->
+<Context path="/ss"
+         docBase="/app/nsight/war/ss.war"
+         reloadable="false"
+         sessionCookieName="JSESSIONID">
+</Context>

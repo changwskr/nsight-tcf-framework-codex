@@ -1,0 +1,25 @@
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "LN",
+    "serviceId": "LN.CustomerContact.selectDetail",
+    "serviceName": "고객연락처 상세조회",
+    "transactionCode": "LN-INQ-0002",
+    "processingType": "INQUIRY",
+    "guid": "",
+    "traceId": "",
+    "channelId": "WEBTOP",
+    "userId": "U123456",
+    "branchId": "001234",
+    "centerId": "DC1",
+    "requestTime": "2026-07-26T10:30:00+09:00",
+    "transactionIntime": "2026-07-26T10:30:00+09:00",
+    "transactionOuttime": "",
+    "systemDate": "20260726",
+    "bizDate": "20260726",
+    "clientIp": "10.10.10.10"
+  },
+  "body": {
+    "contactId": "CCT-001"
+  }
+}

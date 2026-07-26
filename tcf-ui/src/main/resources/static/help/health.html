@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NSIGHT TCF · HELP 품질</title>
+  <script src="/_shared/ui-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/help-viewer.css">
+</head>
+<body class="tcf-home tcf-help-health">
+  <div class="tcf-main help-health-layout">
+    <header class="tcf-topbar help-health-topbar">
+      <div class="tcf-topbar__brand">
+        <h1>HELP 품질 리포트</h1>
+        <p id="helpHealthSubtitle">링크·화면 매핑·카탈로그 상태</p>
+      </div>
+      <nav class="tcf-topbar__nav" aria-label="HELP">
+        <a class="tcf-topbar__link" href="/help.html" data-help-ui-link>HELP 홈</a>
+        <a class="tcf-topbar__link" href="/help/library.html" data-help-ui-link>라이브러리</a>
+        <a class="tcf-topbar__link tcf-topbar__link--active" href="/help/health.html" data-help-ui-link>품질</a>
+      </nav>
+    </header>
+
+    <section id="helpHealthSummary" class="help-health-summary" aria-label="요약"></section>
+
+    <div class="help-health-panels">
+      <section class="help-health-panel">
+        <h2>깨진 링크</h2>
+        <p class="help-health-panel__desc">HELP 네이티브·meta 문서 내 마크다운 링크 검증</p>
+        <div class="help-health-table-wrap">
+          <table class="help-health-table" id="helpHealthBroken">
+            <thead><tr><th>파일</th><th>줄</th><th>링크</th><th>사유</th></tr></thead>
+            <tbody><tr><td colspan="4" class="help-viewer-empty">불러오는 중…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="help-health-panel">
+        <h2>미매핑 화면</h2>
+        <p class="help-health-panel__desc">tcf-ui HTML 중 HELP screen 맵에 없는 경로 (상위 200건)</p>
+        <div class="help-health-table-wrap">
+          <table class="help-health-table" id="helpHealthUnmapped">
+            <thead><tr><th>화면 경로</th><th>비고</th></tr></thead>
+            <tbody><tr><td colspan="2" class="help-viewer-empty">불러오는 중…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <p id="helpHealthFooter" class="help-health-footer"></p>
+  </div>
+  <script src="/_shared/help-health.js"></script>
+</body>
+</html>

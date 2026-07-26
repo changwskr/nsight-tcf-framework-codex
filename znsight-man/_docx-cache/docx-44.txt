@@ -1,0 +1,517 @@
+39. 세션 사용 기준
+39.1 도입 전 안내말
+세션은 로그인한 사용자의 상태를 유지하기 위한 정보이다.NSIGHT TCF Framework에서 세션은 단순히 JSESSIONID를 발급하는 기능이 아니라, 사용자 인증 상태, 지점, 채널, 권한, 중복 로그인, 만료 정책, 감사 추적의 기준이 된다.
+NSIGHT 세션의 원천은 WAS 메모리가 아니라 Spring Session JDBC + SESSIONDB이다. 모든 업무 WAR는 동일한 SESSIONDB를 바라보고, TCF 전처리 단계인 STF.preProcess()에서 세션 사용자, 지점, 채널, 권한을 검증하는 구조가 기준이다.
+핵심 문장은 다음이다.
+업무 개발자는 HttpSession을 직접 남용하지 않는다.세션은 TCF 전처리에서 검증하고, 업무 로직에서는 검증된 SessionContext만 사용한다.
+
+39.2 세션 사용 기준 결론
+구분
+기준
+세션 저장 방식
+Spring Session JDBC
+세션 원천
+SESSIONDB
+세션 Cookie
+JSESSIONID 또는 NSIGHTSID
+세션 검증 위치
+STF.preProcess()
+업무 사용 방식
+SessionContext 또는 RequestContext 사용
+직접 사용 금지
+업무 Service/Rule/DAO에서 HttpSession 직접 접근 금지
+저장 허용 정보
+사용자 ID, 사용자명, 지점, 채널, 권한그룹, 로그인 유형
+저장 금지 정보
+고객 조회 결과, 대량 목록, 파일 원본, 비밀번호, 토큰 원문
+만료 기준
+Idle Timeout + Absolute Timeout 병행
+운영관리
+OM.Session.*에서 조회, 강제종료, 중복 로그인 관리
+
+39.3 세션 사용 위치
+세션은 아무 계층에서나 직접 사용하지 않는다.
+[Client / WebTopSuite]
+        ↓
+Cookie: JSESSIONID 또는 NSIGHTSID
+        ↓
+[Spring Session JDBC Filter]
+        ↓
+[STF.preProcess()]
+  - 세션 존재 확인
+  - 세션 만료 확인
+  - Header user / branch / channel 비교
+  - 권한 확인
+  - SessionContext 생성
+        ↓
+[Handler]
+        ↓
+[Facade]
+        ↓
+[Service / Rule]
+  - SessionContext 참조
+        ↓
+[DAO / Mapper]
+  - 세션 직접 참조 금지
+
+TCF 전처리 흐름에서도 STF.preProcess()는 Header 필수값 검증, GUID/TraceId 생성, 세션 검증, 인증 상태 검증, 권한 검증, 거래통제, 중복요청 확인, Timeout 정책 조회, 거래 시작 로그 생성을 수행하도록 정의되어 있다.
+
+39.4 계층별 세션 사용 원칙
+계층
+세션 사용 기준
+설명
+Controller / Gateway
+Cookie 전달, 요청 수신
+세션 로직 직접 처리 금지
+STF
+세션 검증
+세션 존재, 만료, 사용자/지점/채널 검증
+Handler
+SessionContext 전달
+업무 요청 DTO와 함께 전달
+Facade
+트랜잭션 경계에서 사용자 정보 참조
+등록자, 수정자, 감사정보 설정
+Service
+업무 처리에 필요한 사용자/지점 정보 참조
+세션 직접 조회 금지
+Rule
+업무 규칙 판단에 필요한 최소 정보 참조
+권한, 지점, 채널 기준 판단
+DAO / Mapper
+세션 사용 금지
+필요한 값은 파라미터로 전달
+ETF
+감사로그, 거래로그에 세션 정보 기록
+userId, branchId, channelId 기록
+
+39.5 SessionContext 표준
+업무 로직에서는 HttpSession 대신 SessionContext를 사용한다.
+@Getter
+@Builder
+public class SessionContext {
+
+    private String sessionId;
+
+    private String userId;
+    private String userName;
+
+    private String branchId;
+    private String branchName;
+
+    private String channelId;
+    private String loginType;
+
+    private List<String> authGroupIds;
+    private List<String> roleCodes;
+
+    private LocalDateTime loginTime;
+    private LocalDateTime lastAccessTime;
+    private LocalDateTime idleExpireAt;
+    private LocalDateTime absoluteExpireAt;
+
+    private String clientIp;
+    private String userAgent;
+}
+
+SessionContext는 “현재 요청을 수행하는 사용자가 누구인가”를 알려주는 읽기 전용 객체이다. 업무 개발자는 이 객체를 수정하지 않는다.
+
+39.6 세션에 저장 가능한 정보
+세션에는 로그인 상태 유지와 권한 판단에 필요한 최소 정보만 저장한다.
+항목
+저장 여부
+설명
+userId
+허용
+사용자 식별자
+userName
+허용
+화면 표시 또는 감사로그용
+branchId
+허용
+지점 기준 권한 판단
+branchName
+허용
+표시용
+channelId
+허용
+WebTopSuite, API, 내부연계 구분
+loginType
+허용
+ID/PW, SSO, JWT 등
+authGroupIds
+허용
+권한그룹 식별자
+roleCodes
+허용
+기능권한 판단
+loginTime
+허용
+Absolute Timeout 판단
+lastAccessTime
+허용
+세션 활동 추적
+clientIp
+허용
+감사 추적
+userAgent
+허용
+단말 추적
+
+39.7 세션 저장 금지 정보
+항목
+금지 사유
+고객 상세 조회 결과
+개인정보 과다 저장 위험
+고객 목록 / 페이징 결과
+세션 크기 증가, DB 부하 증가
+대량 다운로드 데이터
+WAS Heap 증가 위험
+파일 원본 / 바이너리
+세션 DB 비대화, 성능 저하
+비밀번호
+보안 위반
+주민번호 / 계좌번호 원문
+개인정보 보호 위반
+Access Token / Refresh Token 원문
+토큰 탈취 위험
+MyBatis 조회 결과 전체
+직렬화 비용 증가
+업무 처리 중간 상태 전체
+장애 시 상태 불명확
+세션은 데이터 저장소가 아니다.업무 데이터는 RDW/ADW/업무 DB에 두고, 세션에는 “사용자 상태를 판단하기 위한 최소 정보”만 둔다.
+
+39.8 Header와 세션 비교 기준
+업무 요청의 Header 값은 세션 값과 반드시 비교한다.
+{
+  "header": {
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "user": "U10001",
+    "channelId": "WTS",
+    "branch": "123456"
+  },
+  "body": {
+    "customerNo": "C000000001"
+  }
+}
+
+비교 항목
+세션 값
+Header 값
+불일치 시
+사용자
+session.userId
+header.user
+거래 차단
+지점
+session.branchId
+header.branch
+거래 차단
+채널
+session.channelId
+header.channelId
+거래 차단
+권한
+session.authGroupIds
+serviceId 기준 권한
+권한 오류
+세션 상태
+ACTIVE
+요청 가능
+비활성 시 재로그인
+업무 요청 시 세션 검증 흐름은 Spring Session JDBC가 JSESSIONID로 SESSIONDB를 조회한 뒤, STF.preProcess()에서 Header 사용자와 세션 사용자, 지점, 채널을 비교하고 권한·중복 로그인·Absolute Timeout을 확인하는 구조로 정리되어 있다.
+
+39.9 세션 만료 기준
+구분
+기준
+설명
+Idle Timeout
+60분
+마지막 요청 이후 60분 미사용 시 만료
+Absolute Timeout
+8~12시간
+계속 사용 중이어도 최대 로그인 유지 시간 제한
+강제 로그아웃
+즉시
+운영자 또는 보안 정책에 의한 종료
+중복 로그인 종료
+정책 기준
+동일 사용자 중복 로그인 정책에 따라 처리
+세션 정리 주기
+5분 권장
+만료 세션 정리
+Spring 환경설정 기준에서도 NSIGHT 세션은 server.servlet.session.timeout: 60m, Cookie 방식 사용, spring.session.store-type: jdbc, SPRING_SESSION 테이블 사용, 만료 세션 정리 Cron을 기준으로 둔다.
+
+39.10 application.yml 예시
+server:
+  servlet:
+    session:
+      timeout: 60m
+      tracking-modes: cookie
+      cookie:
+        name: NSIGHTSID
+        path: /
+        http-only: true
+        secure: true
+        same-site: Lax
+
+spring:
+  session:
+    store-type: jdbc
+    timeout: 60m
+    jdbc:
+      table-name: SPRING_SESSION
+      initialize-schema: never
+      cleanup-cron: "0 */5 * * * *"
+
+nsight:
+  session:
+    type: spring-session-jdbc
+    idle-timeout-minutes: 60
+    absolute-timeout-hours: 8
+    max-session-size-kb: 10
+    reject-session-size-kb: 50
+    concurrent-login-policy: SINGLE_BY_USER_CHANNEL
+    session-cookie-name: NSIGHTSID
+    validate-header-user: true
+    validate-header-branch: true
+    validate-header-channel: true
+    force-logout-enabled: true
+
+운영환경에서 secure: true, http-only: true는 필수로 본다. SSO 또는 iframe 구조가 있으면 same-site: None과 Secure 조합을 별도 검토한다.
+
+39.11 세션 오류코드 기준
+오류코드
+오류명
+발생 위치
+처리
+E-SES-0001
+세션 없음
+STF
+재로그인 요청
+E-SES-0002
+Idle Timeout 만료
+STF
+재로그인 요청
+E-SES-0003
+Absolute Timeout 만료
+STF
+강제 재로그인
+E-SES-0004
+Header 사용자 불일치
+STF
+거래 차단
+E-SES-0005
+Header 지점 불일치
+STF
+거래 차단
+E-SES-0006
+Header 채널 불일치
+STF
+거래 차단
+E-SES-0007
+강제 로그아웃 상태
+STF
+재로그인 요청
+E-SES-0008
+중복 로그인 종료
+STF
+재로그인 요청
+E-SES-0009
+세션 Attribute 오류
+STF
+시스템 오류
+E-SES-0010
+세션 크기 초과
+STF
+거래 차단
+
+39.12 개발자 사용 예시
+39.12.1 Handler
+@Component
+@RequiredArgsConstructor
+public class SvCustomerSummaryHandler
+        implements TransactionHandler<SvCustomerSummaryRequest, SvCustomerSummaryResponse> {
+
+    private final SvCustomerSummaryFacade facade;
+
+    @Override
+    public SvCustomerSummaryResponse handle(
+            SvCustomerSummaryRequest request,
+            TransactionContext context
+    ) {
+        SessionContext session = context.getSessionContext();
+
+        return facade.selectCustomerSummary(request, session);
+    }
+}
+
+39.12.2 Facade
+@Service
+@RequiredArgsConstructor
+public class SvCustomerSummaryFacade {
+
+    private final SvCustomerSummaryService service;
+
+    @Transactional(readOnly = true, timeout = 3)
+    public SvCustomerSummaryResponse selectCustomerSummary(
+            SvCustomerSummaryRequest request,
+            SessionContext session
+    ) {
+        return service.selectCustomerSummary(request, session);
+    }
+}
+
+39.12.3 Service
+@Service
+@RequiredArgsConstructor
+public class SvCustomerSummaryService {
+
+    private final SvCustomerSummaryRule rule;
+    private final SvCustomerSummaryDao dao;
+
+    public SvCustomerSummaryResponse selectCustomerSummary(
+            SvCustomerSummaryRequest request,
+            SessionContext session
+    ) {
+        rule.validateInquiryAvailable(request, session);
+
+        SvCustomerSummary summary =
+                dao.selectCustomerSummary(
+                        request.getCustomerNo(),
+                        session.getBranchId()
+                );
+
+        return SvCustomerSummaryResponse.from(summary);
+    }
+}
+
+39.12.4 Rule
+@Component
+public class SvCustomerSummaryRule {
+
+    public void validateInquiryAvailable(
+            SvCustomerSummaryRequest request,
+            SessionContext session
+    ) {
+        if (request.getCustomerNo() == null || request.getCustomerNo().isBlank()) {
+            throw new BusinessException(
+                    "E-SV-VAL-0001",
+                    "고객번호가 없습니다."
+            );
+        }
+
+        if (session.getBranchId() == null || session.getBranchId().isBlank()) {
+            throw new BusinessException(
+                    "E-SES-0005",
+                    "지점 정보가 없습니다."
+            );
+        }
+    }
+}
+
+39.12.5 DAO
+@Repository
+@RequiredArgsConstructor
+public class SvCustomerSummaryDao {
+
+    private final SvCustomerSummaryMapper mapper;
+
+    public SvCustomerSummary selectCustomerSummary(
+            String customerNo,
+            String branchId
+    ) {
+        return mapper.selectCustomerSummary(customerNo, branchId);
+    }
+}
+
+DAO와 Mapper는 HttpSession이나 SessionContext 전체를 받지 않는다.필요한 값만 파라미터로 받는다.
+
+39.13 금지 코드 예시
+나쁜 예: Service에서 HttpSession 직접 사용
+@Service
+@RequiredArgsConstructor
+public class SvCustomerService {
+
+    private final HttpSession httpSession;
+
+    public void saveMemo(SvMemoRequest request) {
+        String userId = (String) httpSession.getAttribute("userId");
+        // 업무 처리
+    }
+}
+
+이 방식은 업무 로직이 Servlet API에 종속되고, 테스트도 어려워진다.
+좋은 예: SessionContext 사용
+@Service
+public class SvCustomerService {
+
+    public void saveMemo(SvMemoRequest request, SessionContext session) {
+        String userId = session.getUserId();
+        String branchId = session.getBranchId();
+
+        // 업무 처리
+    }
+}
+
+
+39.14 세션과 JWT 사용 기준
+구분
+세션
+JWT
+주 사용 대상
+WebTopSuite, 내부 업무 화면
+외부 API, Gateway 연동
+상태 관리
+SESSIONDB에 상태 저장
+Token 자체에 인증 정보 포함
+강제 로그아웃
+쉬움
+DenyList 또는 Token 폐기 필요
+다중 WAR 공유
+Spring Session JDBC로 공유
+Resource Server 검증 필요
+NSIGHT 기본
+업무 화면은 세션 우선
+API는 JWT 병행 가능
+NSIGHT 기준에서 JWT는 TCF를 대체하지 않는다. JWT는 인증 수단이고, TCF는 세션/JWT 검증 이후에도 Header 검증, 권한, 거래통제, Timeout, 로그, 감사 처리를 계속 수행해야 한다.
+
+39.15 개발자 체크리스트
+점검 항목
+확인
+업무 Service에서 HttpSession을 직접 사용하지 않는가
+□
+세션 정보는 SessionContext로 전달받는가
+□
+DAO / Mapper에 세션 객체 전체를 넘기지 않는가
+□
+필요한 값만 파라미터로 전달하는가
+□
+고객정보, 목록조회 결과, 파일 원본을 세션에 저장하지 않는가
+□
+Header user / branch / channel과 세션 값을 비교하는가
+□
+세션 만료 시 표준 오류코드를 반환하는가
+□
+로그인, 로그아웃, 강제종료 이력을 감사로그에 남기는가
+□
+다중 WAR가 동일 SESSIONDB를 바라보는가
+□
+Cookie의 HttpOnly, Secure, SameSite 기준을 준수하는가
+□
+
+39.16 마무리말
+세션 사용 기준의 핵심은 “어디서나 편하게 꺼내 쓰는 것”이 아니라, TCF 전처리에서 한 번 검증하고 업무 계층에는 검증된 사용자 컨텍스트만 전달하는 것이다.
+세션을 업무 데이터 저장소처럼 사용하면 WAS Heap, SESSIONDB, 보안, 장애 대응이 모두 어려워진다. NSIGHT에서는 세션을 로그인 상태와 권한 판단을 위한 최소 정보 저장소로 제한해야 한다.
+39.17 시사점
+관점
+시사점
+개발 관점
+업무 개발자는 HttpSession이 아니라 SessionContext를 사용한다
+운영 관점
+세션은 SESSIONDB 기준으로 조회·만료·강제종료·중복 로그인 관리가 가능해야 한다
+아키텍처 관점
+Spring Session JDBC가 세션 원천이고, Sticky Session과 DeltaManager는 보조 수단이다
+

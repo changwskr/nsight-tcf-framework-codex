@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM Thread 분석</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+  <style>
+    .om-row-warn td { background: rgba(251, 191, 36, 0.06); }
+  </style>
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260711a"></script>
+  <script>
+    function formatPct(value) {
+      if (value == null || value === '') return '-';
+      return `${value}%`;
+    }
+
+    function formatNum(value) {
+      if (value == null || value === '') return '-';
+      return value;
+    }
+
+    function formatBool(value, trueLabel, falseLabel) {
+      return value ? trueLabel : falseLabel;
+    }
+
+    function formatSqlExternal(row) {
+      const sql = OmAdmin.field(row, 'sqlId');
+      const ext = OmAdmin.field(row, 'externalSystemCode');
+      const step = OmAdmin.field(row, 'currentStep');
+      if (sql && sql !== '-') return sql;
+      if (ext && ext !== '-') return ext;
+      if (step === 'WAIT_DB_CONNECTION') return '-';
+      if (step === 'WAIT_EXTERNAL') return ext !== '-' ? ext : '-';
+      return '-';
+    }
+
+    function formatElapsed(ms) {
+      const value = Number(ms);
+      if (Number.isNaN(value)) return '-';
+      if (value >= 1000) return `${(value / 1000).toFixed(1)}초`;
+      return `${value}ms`;
+    }
+
+    function renderRows(rows, columns, emptyText) {
+      if (!rows.length) {
+        return `<tr><td colspan="${columns}" class="om-empty">${emptyText}</td></tr>`;
+      }
+      return rows.join('');
+    }
+
+    function stepChip(step) {
+      if (!step || step === '-') return '-';
+      const warnSteps = ['WAIT_DB_CONNECTION', 'EXECUTING_SQL', 'WAIT_EXTERNAL'];
+      if (warnSteps.includes(step)) {
+        return `<span class="om-chip warn">${step}</span>`;
+      }
+      return `<span class="om-chip">${step}</span>`;
+    }
+
+    async function load(el) {
+      const { body, relay } = await OmAdmin.inquiry('runtimeDiagnostics', { includeDetails: 'Y' });
+      const analysis = body.threadAnalysis || {};
+      const pool = analysis.sharedTomcatPool || {};
+      const saturation = analysis.saturation || {};
+
+      document.getElementById('rtmStatus').textContent =
+        `${relay.elapsedMs}ms · 점검 ${body.checkedAt || '-'}`;
+      document.getElementById('linkDiagnostics').href = '/om/admin/runtime-diagnostics.html';
+
+      const satDetected = Boolean(saturation.detected);
+      const satClass = satDetected ? 'warn' : 'normal';
+      document.getElementById('saturationBanner').className = `om-status-banner ${satClass}`;
+      document.getElementById('saturationMain').className = `om-status-main ${satClass}`;
+      document.getElementById('saturationMain').textContent =
+        satDetected ? 'Thread 포화 징후: THREAD_SATURATION' : 'Thread 상태: 정상 범위';
+      document.getElementById('saturationMessage').textContent = saturation.message || '-';
+      document.getElementById('saturationCriteria').textContent =
+        `판정 조건: ${saturation.criteria || 'busyRatio >= 85 AND slowTransactionCount >= 5'} · ${saturation.note || ''}`;
+
+      document.getElementById('statMax').textContent = formatNum(pool.max);
+      document.getElementById('statCurrent').textContent = formatNum(pool.current);
+      document.getElementById('statBusy').textContent = formatNum(pool.busy);
+      document.getElementById('statBusyRatio').textContent = formatPct(pool.busyRatio);
+      document.getElementById('statBlocked').textContent = formatNum(pool.blocked);
+      document.getElementById('statDeadlock').textContent = formatBool(pool.deadlock, '발견', '없음');
+      document.getElementById('statPoolMeta').textContent =
+        `Tomcat Connector 공유 · ${pool.poolName || 'http pool'} · 출처 ${pool.maxSource || '-'}`;
+
+      document.getElementById('statActiveTx').textContent =
+        formatNum(sumActiveTx(analysis.warMetrics));
+      document.getElementById('statSlowTx').textContent =
+        formatNum(analysis.aggregateSlowTransactionCount ?? sumSlowTx(analysis.warMetrics));
+
+      const warRows = (analysis.warMetrics || []).map(w => `
+        <tr class="${w.threadSaturation ? 'om-row-warn' : ''}">
+          <td>${OmAdmin.field(w, 'businessCode')}</td>
+          <td>${w.reachable === false ? OmAdmin.chipForHealth('UNKNOWN') : OmAdmin.chipForHealth(OmAdmin.field(w, 'status'))}</td>
+          <td>${formatNum(w.activeTransactionCount)}</td>
+          <td>${formatNum(w.slowTransactionCount)}</td>
+          <td>${formatPct(w.busyRatio)}</td>
+          <td>${w.threadSaturation ? '<span class="om-chip warn">THREAD_SATURATION</span>' : '-'}</td>
+          <td class="om-mono">${OmAdmin.field(w, 'causeCode')}</td>
+        </tr>`);
+
+      const threadRows = (body.threads || []).map(r => `
+        <tr>
+          <td class="om-mono">${OmAdmin.field(r, 'threadName')}</td>
+          <td>${OmAdmin.field(r, 'businessCode')}</td>
+          <td class="om-mono">${OmAdmin.field(r, 'serviceId')}</td>
+          <td>${formatElapsed(r.elapsedMs)}</td>
+          <td>${stepChip(OmAdmin.field(r, 'currentStep'))}</td>
+          <td class="om-mono">${formatSqlExternal(r)}</td>
+        </tr>`);
+
+      document.getElementById('warMetricsBody').innerHTML =
+        renderRows(warRows, 7, '업무 WAR Thread 데이터 없음');
+      document.getElementById('threadDetailBody').innerHTML =
+        renderRows(threadRows, 6, '현재 실행 중인 TCF 거래 Thread 없음');
+    }
+
+    function sumActiveTx(warMetrics) {
+      return (warMetrics || []).reduce((sum, row) => sum + Number(row.activeTransactionCount || 0), 0);
+    }
+
+    function sumSlowTx(warMetrics) {
+      return (warMetrics || []).reduce((sum, row) => sum + Number(row.slowTransactionCount || 0), 0);
+    }
+
+    OmAdmin.initPage('runtime-thread-analysis', 'Thread 분석', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">
+          설계 7장 Thread 분석 — Tomcat Connector(공유) + WAR별 Active/Slow 거래 + <strong>현재 거래 Thread 상세</strong>.
+          <a id="linkDiagnostics" href="/om/admin/runtime-diagnostics.html" style="margin-left:8px">← 런타임 진단 통합</a>
+          <a href="/om/admin/runtime-jvm-analysis.html" style="margin-left:8px">JVM 분석</a>
+          <a href="/om/admin/runtime-dbpool-analysis.html" style="margin-left:8px">DB Pool 분석</a>
+          <a href="/om/admin/runtime-sql-analysis.html" style="margin-left:8px">SQL 분석</a>
+          <a href="/om/admin/runtime-dominance-analysis.html" style="margin-left:8px">자원 독점 분석</a>
+          <a href="/om/admin/runtime-transaction-detail.html" style="margin-left:8px">거래·Thread 상세</a>
+        </div>
+        <section class="om-filter-bar">
+          <button class="btn-primary" id="refreshBtn" type="button">새로고침</button>
+          <span id="rtmStatus" style="color:var(--muted);font-size:0.85rem;align-self:center">조회 중...</span>
+        </section>
+
+        <section class="om-status-banner normal" id="saturationBanner" style="margin-bottom:16px">
+          <div>
+            <div class="om-status-main normal" id="saturationMain">Thread 상태: -</div>
+            <div id="saturationMessage" style="margin-top:8px">-</div>
+            <div id="saturationCriteria" style="margin-top:4px;color:var(--muted);font-size:0.85rem">-</div>
+          </div>
+        </section>
+
+        <div class="om-card" style="margin-bottom:16px">
+          <div class="om-card-head">7.1 Tomcat Thread (공유 JVM)</div>
+          <div class="om-card-body">
+            <div class="om-stat-grid">
+              <div class="om-stat-card"><div class="label">Max Thread</div><div class="value" id="statMax">-</div></div>
+              <div class="om-stat-card"><div class="label">Current Thread</div><div class="value" id="statCurrent">-</div></div>
+              <div class="om-stat-card"><div class="label">Busy Thread</div><div class="value" id="statBusy">-</div></div>
+              <div class="om-stat-card"><div class="label">Busy Ratio</div><div class="value" id="statBusyRatio">-</div></div>
+              <div class="om-stat-card"><div class="label">Blocked Thread</div><div class="value" id="statBlocked">-</div></div>
+              <div class="om-stat-card"><div class="label">Deadlock</div><div class="value" id="statDeadlock">-</div></div>
+              <div class="om-stat-card"><div class="label">Active Transaction (전체)</div><div class="value" id="statActiveTx">-</div></div>
+              <div class="om-stat-card"><div class="label">Slow Transaction (전체)</div><div class="value" id="statSlowTx">-</div></div>
+            </div>
+            <div id="statPoolMeta" style="color:var(--muted);font-size:0.85rem">-</div>
+          </div>
+        </div>
+
+        <div class="om-card" style="margin-bottom:16px">
+          <div class="om-card-head">WAR별 Active · Slow 거래</div>
+          <div class="om-card-body om-table-wrap">
+            <table class="om-table">
+              <thead>
+                <tr>
+                  <th>업무</th><th>상태</th><th>Active TX</th><th>Slow TX</th>
+                  <th>Busy Ratio</th><th>포화</th><th>원인코드</th>
+                </tr>
+              </thead>
+              <tbody id="warMetricsBody"><tr><td colspan="7" class="om-empty">조회 중...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="om-card">
+          <div class="om-card-head">7.3 Thread 상세 — 현재 거래가 왜 느린가</div>
+          <div class="om-card-body om-table-wrap">
+            <table class="om-table">
+              <thead>
+                <tr>
+                  <th>Thread</th><th>업무</th><th>ServiceId</th>
+                  <th>실행시간</th><th>현재 단계</th><th>SQL·외부</th>
+                </tr>
+              </thead>
+              <tbody id="threadDetailBody"><tr><td colspan="6" class="om-empty">조회 중...</td></tr></tbody>
+            </table>
+          </div>
+        </div>`;
+
+      document.getElementById('refreshBtn').addEventListener('click', () => {
+        load(el).catch(err => OmAdmin.showErrorBanner(el, err.message));
+      });
+      await load(el);
+      window.setInterval(() => {
+        load(el).catch(() => {});
+      }, 30000);
+    });
+  </script>
+</body>
+</html>

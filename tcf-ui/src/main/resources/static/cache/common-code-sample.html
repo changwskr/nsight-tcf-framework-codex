@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>tcf-cache 공통코드 캐시 샘플</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/cache-common-code-sample.css">
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>tcf-cache — 공통코드 EhCache 샘플</h1>
+      <p>
+        localStorage DB + <code>commonCode</code> 캐시 시뮬레이션.
+        tcf-om 기동 시 OM Relay로 실제 DB·EhCache도 연동할 수 있습니다.
+      </p>
+      <nav class="nav-links">
+        <a href="/index.html">업무 허브</a>
+        <a href="/om/admin/common-code.html">OM 공통코드 관리</a>
+        <a href="/om/admin/cache.html">OM Cache 관리</a>
+      </nav>
+    </header>
+
+    <div class="alert">
+      Java 샘플: <code>com.nh.nsight.tcf.cache.sample.application.service.CommonCodeCacheSampleService</code>
+      · 소스 위치: <code>tcf-cache/samples/common-code-cache/</code>
+    </div>
+
+    <section class="panel" id="omPanel" hidden style="margin-bottom:16px">
+      <div class="panel-head">OM 연동 (tcf-om + EhCache)</div>
+      <div class="panel-body">
+        <div class="toolbar">
+          <button class="primary" id="btnOmSave" type="button">OM DB 저장</button>
+          <button id="btnOmLoad" type="button">OM 조회 (캐시 warm)</button>
+          <button id="btnOmCache" type="button">실제 EhCache 스냅샷</button>
+        </div>
+        <div class="status">OM 로그인 후 사용 · OM.CommonCode.save / OM.Cache.inquiry</div>
+      </div>
+    </section>
+
+    <div class="grid-3">
+      <section class="panel">
+        <div class="panel-head">1. 공통코드 저장 (로컬 시뮬 DB)</div>
+        <div class="panel-body">
+          <div class="field"><label>코드그룹</label><input id="fGroup" placeholder="CHANNEL_CODE"></div>
+          <div class="field"><label>코드</label><input id="fCode" placeholder="WEB"></div>
+          <div class="field"><label>코드명</label><input id="fName" placeholder="웹 채널"></div>
+          <div class="field"><label>정렬</label><input id="fSort" type="number" value="0"></div>
+          <div class="field"><label>사용</label>
+            <select id="fUse"><option value="Y">Y</option><option value="N">N</option></select>
+          </div>
+          <div class="field"><label>설명</label><textarea id="fDesc" rows="2"></textarea></div>
+          <div class="toolbar">
+            <button class="primary" id="btnSave" type="button">저장 + Cache Evict</button>
+            <button id="btnReset" type="button">샘플 초기화</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">2. EhCache 조회 (commonCode)</div>
+        <div class="panel-body">
+          <div class="field"><label>코드그룹</label><select id="qGroup"></select></div>
+          <div class="toolbar">
+            <button class="primary" id="btnLoad" type="button">조회 (Cacheable)</button>
+            <button id="btnForceMiss" type="button">Evict 후 MISS</button>
+            <button class="warn" id="btnEvict" type="button">그룹 Evict</button>
+          </div>
+          <div class="status" id="cacheStatus">EhCache commonCode · 0 entry</div>
+          <table>
+            <thead><tr><th>cacheName</th><th>cacheKey</th><th>건수</th></tr></thead>
+            <tbody id="cacheBody"><tr><td colspan="3" style="text-align:center;color:var(--muted)">캐시 비어 있음</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">3. DB 데이터 (로컬)</div>
+        <div class="panel-body">
+          <div class="status" id="dbStatus">DB · 0건</div>
+          <table>
+            <thead><tr><th>그룹</th><th>코드</th><th>명칭</th><th>정렬</th><th>사용</th><th>설명</th></tr></thead>
+            <tbody id="dbBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head">이벤트 로그</div>
+      <div class="panel-body">
+        <div class="log" id="eventLog">준비 중...</div>
+      </div>
+    </section>
+  </div>
+  <script src="/_shared/om-admin-bootstrap.js"></script>
+  <script src="/_shared/om-admin.js"></script>
+  <script src="/_shared/cache-common-code-sample.js"></script>
+  <script>CacheCommonCodeSample.init();</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nh.nsight.marketing.eb.persistence.mapper.EbEventMapper">
+
+    <sql id="eventColumns">
+        EVENT_ID AS eventId,
+        USER_ID AS userId,
+        EVENT_TYPE AS eventType,
+        EVENT_STATUS AS eventStatus,
+        RETRY_COUNT AS retryCount,
+        CREATED_AT AS createdAt,
+        SENT_AT AS sentAt
+    </sql>
+
+    <insert id="insertEvent" parameterType="com.nh.nsight.marketing.eb.persistence.dto.event.EventInsertRow">
+        INSERT INTO EB_EVENT (EVENT_ID, USER_ID, EVENT_TYPE, EVENT_STATUS, RETRY_COUNT)
+        VALUES (#{eventId}, #{userId}, #{eventType}, #{eventStatus}, #{retryCount})
+    </insert>
+
+    <update id="updateEventStatus">
+        UPDATE EB_EVENT
+           SET EVENT_STATUS = #{eventStatus},
+               SENT_AT = CASE WHEN #{eventStatus} = 'SENT' THEN CURRENT_TIMESTAMP ELSE SENT_AT END
+         WHERE EVENT_ID = #{eventId}
+    </update>
+
+    <select id="selectReadyEvents" resultType="com.nh.nsight.marketing.eb.persistence.dto.event.EventRow">
+        SELECT <include refid="eventColumns"/>
+          FROM EB_EVENT
+         WHERE EVENT_STATUS = 'READY'
+         ORDER BY CREATED_AT
+         FETCH FIRST #{limit} ROWS ONLY
+    </select>
+
+    <sql id="eventSearchWhere">
+        <where>
+            <if test="eventId != null and eventId != ''">
+                AND EVENT_ID LIKE CONCAT('%', #{eventId}, '%')
+            </if>
+            <if test="userId != null and userId != ''">
+                AND USER_ID LIKE CONCAT('%', #{userId}, '%')
+            </if>
+            <if test="eventType != null and eventType != ''">
+                AND EVENT_TYPE = #{eventType}
+            </if>
+            <if test="eventStatus != null and eventStatus != ''">
+                AND EVENT_STATUS = #{eventStatus}
+            </if>
+        </where>
+    </sql>
+
+    <select id="searchEvents"
+            parameterType="com.nh.nsight.marketing.eb.application.dto.event.EventSearchCriteria"
+            resultType="com.nh.nsight.marketing.eb.persistence.dto.event.EventRow">
+        SELECT <include refid="eventColumns"/>
+          FROM EB_EVENT
+        <include refid="eventSearchWhere"/>
+         ORDER BY CREATED_AT DESC
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+
+    <select id="countEvents"
+            parameterType="com.nh.nsight.marketing.eb.application.dto.event.EventSearchCriteria"
+            resultType="int">
+        SELECT COUNT(1)
+          FROM EB_EVENT
+        <include refid="eventSearchWhere"/>
+    </select>
+
+    <select id="countEventsByStatus"
+            resultType="com.nh.nsight.marketing.eb.persistence.dto.event.EventStatusCountRow">
+        SELECT EVENT_STATUS AS eventStatus,
+               COUNT(1) AS count
+          FROM EB_EVENT
+         GROUP BY EVENT_STATUS
+         ORDER BY EVENT_STATUS
+    </select>
+
+</mapper>

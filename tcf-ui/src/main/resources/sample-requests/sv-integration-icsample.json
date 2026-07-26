@@ -1,0 +1,23 @@
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "SV",
+    "serviceId": "SV.Integration.icSample",
+    "serviceName": "SV→IC 연동 샘플 조회",
+    "transactionCode": "SV-INT-0001",
+    "processingType": "INQUIRY",
+    "guid": "",
+    "traceId": "",
+    "channelId": "WEBTOP",
+    "userId": "U123456",
+    "branchId": "001234",
+    "centerId": "DC1",
+    "requestTime": "2026-07-03T10:30:00+09:00",
+    "systemDate": "20260703",
+    "bizDate": "20260703",
+    "clientIp": "10.10.10.10"
+  },
+  "body": {
+    "sampleKey": "SV-CALL"
+  }
+}

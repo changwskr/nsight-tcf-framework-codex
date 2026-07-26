@@ -1,0 +1,32 @@
+// OC(Operation Capacity) 업무 서비스
+// 빌드: gradle :tcf-oc:bootWar
+// 실행: gradle :tcf-oc:bootRun  (포트 8094)
+
+plugins {
+    id 'org.springframework.boot'
+    id 'war'
+}
+
+dependencies {
+    implementation project(':tcf-util')
+    implementation project(':tcf-core')
+    implementation project(':tcf-web')
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation 'org.springframework.session:spring-session-jdbc'
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'
+    runtimeOnly 'com.h2database:h2'
+    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+}
+
+bootWar {
+    archiveFileName = 'oc.war'
+}
+
+war {
+    archiveFileName = 'oc.war'
+}

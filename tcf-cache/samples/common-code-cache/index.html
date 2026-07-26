@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>tcf-cache 공통코드 캐시 샘플</title>
+  <link rel="stylesheet" href="common-code-cache-sample.css">
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>tcf-cache — 공통코드 EhCache 샘플</h1>
+      <p>
+        브라우저 localStorage를 DB, 메모리 Map을 <code>commonCode</code> EhCache로 시뮬레이션합니다.
+        Java 샘플: <code>CommonCodeCacheSampleService</code>
+      </p>
+      <nav class="nav-links">
+        <a href="../../../README.md">tcf-cache README</a>
+        <a href="../../src/main/java/com/nh/nsight/tcf/cache/sample/application/service/CommonCodeCacheSampleService.java">샘플 서비스 소스</a>
+      </nav>
+    </header>
+
+    <div class="alert">
+      캐시 영역 <code>commonCode</code> · 키 = <code>codeGroup</code> · 그룹 목록 키 = <code>__ALL_GROUPS__</code> ·
+      저장 시 해당 그룹 + 그룹 목록 Evict (OM <code>OmCommonCodeCacheService</code> 와 동일)
+    </div>
+
+    <div class="grid-3">
+      <section class="panel">
+        <div class="panel-head">1. 공통코드 저장 (DB)</div>
+        <div class="panel-body">
+          <div class="field"><label>코드그룹</label><input id="fGroup" placeholder="CHANNEL_CODE"></div>
+          <div class="field"><label>코드</label><input id="fCode" placeholder="WEB"></div>
+          <div class="field"><label>코드명</label><input id="fName" placeholder="웹 채널"></div>
+          <div class="field"><label>정렬</label><input id="fSort" type="number" value="0"></div>
+          <div class="field"><label>사용</label>
+            <select id="fUse"><option value="Y">Y</option><option value="N">N</option></select>
+          </div>
+          <div class="field"><label>설명</label><textarea id="fDesc" rows="2"></textarea></div>
+          <div class="toolbar">
+            <button class="primary" id="btnSave" type="button">저장 + Cache Evict</button>
+            <button id="btnReset" type="button">샘플 초기화</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">2. EhCache 조회 (commonCode)</div>
+        <div class="panel-body">
+          <div class="field"><label>코드그룹</label>
+            <select id="qGroup"></select>
+          </div>
+          <div class="toolbar">
+            <button class="primary" id="btnLoad" type="button">조회 (Cacheable)</button>
+            <button id="btnForceMiss" type="button">Evict 후 MISS 조회</button>
+            <button class="warn" id="btnEvict" type="button">그룹 Evict</button>
+          </div>
+          <div class="status" id="cacheStatus">EhCache commonCode · 0 entry</div>
+          <table>
+            <thead><tr><th>cacheName</th><th>cacheKey</th><th>건수</th></tr></thead>
+            <tbody id="cacheBody"><tr><td colspan="3" style="text-align:center;color:var(--muted)">캐시 비어 있음</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">3. DB 데이터</div>
+        <div class="panel-body">
+          <div class="status" id="dbStatus">DB · 0건</div>
+          <table>
+            <thead><tr><th>그룹</th><th>코드</th><th>명칭</th><th>정렬</th><th>사용</th><th>설명</th></tr></thead>
+            <tbody id="dbBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head">이벤트 로그</div>
+      <div class="panel-body">
+        <div class="log" id="eventLog">준비 중...</div>
+      </div>
+    </section>
+  </div>
+  <script src="common-code-cache-sample.js"></script>
+  <script>CacheCommonCodeSample.init();</script>
+</body>
+</html>

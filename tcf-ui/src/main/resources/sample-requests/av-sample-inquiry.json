@@ -1,0 +1,25 @@
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "AV",
+    "serviceId": "AV.Sample.inquiry",
+    "transactionCode": "AV-INQ-0001",
+    "processingType": "INQUIRY",
+    "guid": "",
+    "traceId": "",
+    "channelId": "WEBTOP",
+    "userId": "U123456",
+    "branchId": "001234",
+    "centerId": "DC1",
+    "requestTime": "2026-07-26T10:30:00+09:00",
+    "transactionIntime": "2026-07-26T10:30:00+09:00",
+    "transactionOuttime": "",
+    "systemDate": "20260726",
+    "bizDate": "20260726",
+    "clientIp": "10.10.10.10"
+  },
+  "body": {
+    "pageNo": 1,
+    "pageSize": 15
+  }
+}

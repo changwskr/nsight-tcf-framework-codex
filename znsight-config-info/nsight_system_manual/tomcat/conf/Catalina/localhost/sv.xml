@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SV - Single View -->
+<Context path="/sv"
+         docBase="/app/nsight/war/sv.war"
+         reloadable="false"
+         sessionCookieName="JSESSIONID">
+</Context>

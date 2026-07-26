@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 공통코드 관리</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260627c"></script>
+  <script>
+    const PAGE_SIZE = 10;
+    let currentPage = 1;
+    let editMode = false;
+
+    function readFilters() {
+      const v = id => document.getElementById(id).value.trim();
+      const f = { pageNo: currentPage, pageSize: PAGE_SIZE };
+      if (v('filterGroup')) f.codeGroup = v('filterGroup');
+      if (v('filterCode')) f.code = v('filterCode');
+      if (v('filterName')) f.codeName = v('filterName');
+      if (v('filterUse')) f.useYn = v('filterUse');
+      return f;
+    }
+
+    function clearForm() {
+      editMode = false;
+      document.getElementById('fGroup').readOnly = false;
+      document.getElementById('fCode').readOnly = false;
+      ['fGroup', 'fCode', 'fName', 'fDesc', 'fReason'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      document.getElementById('fSort').value = '0';
+      document.getElementById('fUse').value = 'Y';
+      document.getElementById('formMode').textContent = '신규 등록';
+    }
+
+    function fillForm(row) {
+      editMode = true;
+      document.getElementById('fGroup').value = OmAdmin.field(row, 'codeGroup', '');
+      document.getElementById('fCode').value = OmAdmin.field(row, 'code', '');
+      document.getElementById('fName').value = OmAdmin.field(row, 'codeName', '');
+      document.getElementById('fSort').value = OmAdmin.field(row, 'sortOrder', '0');
+      document.getElementById('fUse').value = OmAdmin.field(row, 'useYn', 'Y');
+      document.getElementById('fDesc').value = OmAdmin.field(row, 'description', '');
+      document.getElementById('fGroup').readOnly = true;
+      document.getElementById('fCode').readOnly = true;
+      document.getElementById('formMode').textContent = '수정 / 삭제';
+    }
+
+    function formPayload() {
+      return {
+        codeGroup: document.getElementById('fGroup').value.trim(),
+        code: document.getElementById('fCode').value.trim(),
+        codeName: document.getElementById('fName').value.trim(),
+        sortOrder: Number(document.getElementById('fSort').value || 0),
+        useYn: document.getElementById('fUse').value,
+        description: document.getElementById('fDesc').value.trim(),
+        changeReason: document.getElementById('fReason').value.trim()
+      };
+    }
+
+    async function loadList(page, el) {
+      currentPage = page;
+      const statusEl = document.getElementById('listStatus');
+      const tbody = document.getElementById('codeBody');
+      tbody.innerHTML = '<tr><td colspan="8" class="om-empty">조회 중...</td></tr>';
+      statusEl.textContent = '조회 중...';
+
+      const { body } = await OmAdmin.inquiry('commonCode', readFilters());
+      const rows = body.rows || [];
+      const pageSize = body.pageSize || PAGE_SIZE;
+      const totalCount = body.totalCount ?? 0;
+      const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+      statusEl.textContent = `페이지 ${body.pageNo || page} / ${totalPages} · 총 ${totalCount}건 · 페이지당 ${pageSize}건`;
+
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="om-empty">조건에 맞는 공통코드가 없습니다.</td></tr>';
+      } else {
+        tbody.innerHTML = rows.map(r => `
+          <tr class="om-row-selectable" data-group="${OmAdmin.field(r,'codeGroup')}" data-code="${OmAdmin.field(r,'code')}">
+            <td>${OmAdmin.field(r,'codeGroup')}</td>
+            <td class="om-mono">${OmAdmin.field(r,'code')}</td>
+            <td>${OmAdmin.field(r,'codeName')}</td>
+            <td>${OmAdmin.field(r,'sortOrder')}</td>
+            <td>${OmAdmin.field(r,'useYn')}</td>
+            <td>${OmAdmin.field(r,'description')}</td>
+            <td class="om-mono">${OmAdmin.field(r,'createdAt')}</td>
+            <td class="om-mono">${OmAdmin.field(r,'updatedAt')}</td>
+          </tr>`).join('');
+        tbody.querySelectorAll('tr.om-row-selectable').forEach(tr => {
+          tr.addEventListener('click', async () => {
+            tbody.querySelectorAll('tr.om-row-selected').forEach(r => r.classList.remove('om-row-selected'));
+            tr.classList.add('om-row-selected');
+            try {
+              const { body: detail } = await OmAdmin.inquiry('commonCodeDetail', {
+                codeGroup: tr.dataset.group,
+                code: tr.dataset.code
+              });
+              fillForm(detail.row || {});
+            } catch (e) {
+              OmAdmin.showErrorBanner(el, e.message);
+            }
+          });
+        });
+      }
+
+      OmAdmin.renderPagination(
+        document.getElementById('pagination'),
+        body.pageNo || page,
+        body.pageSize || PAGE_SIZE,
+        body.totalCount || 0,
+        p => loadList(p, el).catch(e => OmAdmin.showErrorBanner(el, e.message)),
+        true
+      );
+    }
+
+    OmAdmin.initPage('common-code', '공통코드 관리', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">코드그룹·코드·코드명으로 검색합니다. 행을 클릭하면 단건 조회 후 수정/삭제할 수 있습니다. 삭제는 물리 삭제 없이 USE_YN=N 처리합니다.</div>
+        <section class="om-filter-bar">
+          <div class="field"><label for="filterGroup">코드그룹</label>
+            <select id="filterGroup">
+              <option value="">전체</option>
+              <option>BUSINESS_CODE</option><option>AUTH_CODE</option><option>CHANNEL_CODE</option><option>CENTER_CODE</option>
+              <option>CUSTOMER_TYPE</option><option>USE_YN</option><option>RESULT_STATUS</option><option>BRANCH_TYPE</option>
+            </select>
+          </div>
+          <div class="field"><label for="filterCode">코드</label><input id="filterCode" type="text" placeholder="부분 검색"></div>
+          <div class="field"><label for="filterName">코드명</label><input id="filterName" type="text" placeholder="부분 검색"></div>
+          <div class="field"><label for="filterUse">사용여부</label>
+            <select id="filterUse"><option value="">전체</option><option>Y</option><option>N</option></select>
+          </div>
+          <div class="actions" style="display:flex;gap:8px;align-items:end">
+            <button class="btn-primary" id="searchBtn" type="button">조회</button>
+            <button class="btn-secondary" id="resetFilterBtn" type="button">초기화</button>
+          </div>
+        </section>
+
+        <div class="om-form-panel">
+          <h3 id="formMode">신규 등록</h3>
+          <div class="om-form-grid">
+            <div class="field"><label for="fGroup">코드그룹</label><input id="fGroup" type="text" placeholder="CUSTOMER_TYPE"></div>
+            <div class="field"><label for="fCode">코드</label><input id="fCode" type="text" placeholder="01"></div>
+            <div class="field"><label for="fName">코드명</label><input id="fName" type="text"></div>
+            <div class="field"><label for="fSort">정렬</label><input id="fSort" type="number" value="0"></div>
+            <div class="field"><label for="fUse">사용</label><select id="fUse"><option>Y</option><option>N</option></select></div>
+            <div class="field field-wide"><label for="fDesc">설명</label><input id="fDesc" type="text"></div>
+            <div class="field field-wide"><label for="fReason">변경 사유 (5자+)</label><input id="fReason" type="text" placeholder="승인 후 반영"></div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-secondary" id="newBtn" type="button">신규</button>
+            <button class="btn-primary" id="saveBtn" type="button">등록</button>
+            <button class="btn-primary" id="updateBtn" type="button">수정</button>
+            <button class="btn-secondary" id="deleteBtn" type="button">삭제(USE_YN=N)</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:10px;color:var(--muted);font-size:0.85rem" id="listStatus">-</div>
+        <div class="om-card"><div class="om-card-head">공통코드 목록</div><div class="om-card-body om-table-wrap">
+          <table class="om-table"><thead><tr>
+            <th>그룹</th><th>코드</th><th>명칭</th><th>정렬</th><th>사용</th><th>설명</th><th>등록일시</th><th>수정일시</th>
+          </tr></thead>
+          <tbody id="codeBody"><tr><td colspan="8" class="om-empty">조회 버튼을 누르세요.</td></tr></tbody></table>
+          <div class="om-pagination" id="pagination" hidden></div>
+        </div></div>`;
+
+      document.getElementById('searchBtn').addEventListener('click', () =>
+        loadList(1, el).catch(e => OmAdmin.showErrorBanner(el, e.message)));
+      document.getElementById('resetFilterBtn').addEventListener('click', () => {
+        document.getElementById('filterGroup').value = '';
+        document.getElementById('filterCode').value = '';
+        document.getElementById('filterName').value = '';
+        document.getElementById('filterUse').value = '';
+      });
+      document.getElementById('newBtn').addEventListener('click', clearForm);
+      document.getElementById('saveBtn').addEventListener('click', async () => {
+        try {
+          const { body } = await OmAdmin.mutate('commonCodeSave', formPayload(), 'UPDATE');
+          alert(`등록 완료: ${body.codeGroup}/${body.code}`);
+          OmAdmin.invalidateCommonCodeCache(body.codeGroup);
+          clearForm();
+          await loadList(currentPage, el);
+        } catch (e) { alert(e.message); }
+      });
+      document.getElementById('updateBtn').addEventListener('click', async () => {
+        if (!editMode) { alert('수정할 행을 선택하거나 코드그룹/코드를 입력하세요.'); return; }
+        try {
+          const { body } = await OmAdmin.mutate('commonCodeUpdate', formPayload(), 'UPDATE');
+          alert(`수정 완료: ${body.codeGroup}/${body.code}`);
+          OmAdmin.invalidateCommonCodeCache(body.codeGroup);
+          await loadList(currentPage, el);
+        } catch (e) { alert(e.message); }
+      });
+      document.getElementById('deleteBtn').addEventListener('click', async () => {
+        const payload = formPayload();
+        if (!payload.codeGroup || !payload.code) { alert('삭제할 코드그룹/코드를 입력하세요.'); return; }
+        if (!confirm(`${payload.codeGroup}/${payload.code} 를 미사용(USE_YN=N) 처리하시겠습니까?`)) return;
+        try {
+          await OmAdmin.mutate('commonCodeDelete', payload, 'DELETE');
+          alert('삭제(미사용) 처리 완료');
+          OmAdmin.invalidateCommonCodeCache(payload.codeGroup);
+          clearForm();
+          await loadList(currentPage, el);
+        } catch (e) { alert(e.message); }
+      });
+
+      await loadList(1, el).catch(e => OmAdmin.showErrorBanner(el, e.message));
+    });
+  </script>
+</body>
+</html>

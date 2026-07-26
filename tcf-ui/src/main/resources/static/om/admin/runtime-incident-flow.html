@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 장애 흐름</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+  <style>
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .flow-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+    .flow-card.active { border-color: #f59e0b; box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.2); }
+    .flow-card.primary { border-color: #ef4444; box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.25); }
+    .flow-card-head {
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .flow-steps { flex: 1; }
+    .flow-step {
+      position: relative;
+      padding: 8px 10px 8px 12px;
+      margin-bottom: 4px;
+      border-radius: 6px;
+      border-left: 3px solid var(--border);
+      background: var(--panel-2);
+      font-size: 0.88rem;
+    }
+    .flow-step.on { border-left-color: #f59e0b; background: rgba(251, 191, 36, 0.08); }
+    .flow-step.verdict { border-left-color: #ef4444; font-weight: 500; }
+    .flow-step .detail {
+      color: var(--muted);
+      font-size: 0.8rem;
+      margin-top: 4px;
+    }
+    .flow-arrow {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.75rem;
+      line-height: 1;
+      margin: 2px 0;
+    }
+    .flow-links {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .flow-links a {
+      font-size: 0.8rem;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      text-decoration: none;
+      color: var(--text);
+    }
+    .flow-links a:hover { border-color: #3b82f6; color: #3b82f6; }
+  </style>
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260711k"></script>
+  <script>
+    function renderFlow(flow) {
+      const cardClass = flow.primary ? 'primary' : (flow.active ? 'active' : '');
+      const badge = flow.primary
+        ? '<span class="om-chip critical">PRIMARY</span>'
+        : (flow.active ? '<span class="om-chip warn">징후</span>' : '<span class="om-chip">대기</span>');
+
+      const stepsHtml = (flow.steps || []).map((step, idx) => {
+        const arrow = idx < (flow.steps.length - 1)
+          ? '<div class="flow-arrow">↓</div>' : '';
+        const stepClass = step.order === (flow.steps.length) ? 'flow-step verdict' : 'flow-step';
+        const onClass = step.active ? ' on' : '';
+        return `
+          <div class="${stepClass}${onClass}">
+            <div>${step.label}</div>
+            <div class="detail">${step.detail || '-'}</div>
+          </div>${arrow}`;
+      }).join('');
+
+      const linksHtml = (flow.links || []).map(l =>
+        `<a href="${l.href}">${l.label}</a>`).join('');
+
+      return `
+        <div class="flow-card ${cardClass}">
+          <div class="flow-card-head">
+            <span>${flow.section} ${flow.title}</span>
+            ${badge}
+            <span class="om-cause-code" style="font-family:monospace;font-size:0.8rem;color:var(--muted)">${flow.causeCode || ''}</span>
+          </div>
+          <div class="flow-steps">${stepsHtml}</div>
+          <div class="flow-links">${linksHtml}</div>
+        </div>`;
+    }
+
+    async function load(el) {
+      const { body, relay } = await OmAdmin.inquiry('runtimeDiagnostics', { includeDetails: 'Y' });
+      const incident = body.incidentFlowAnalysis || {};
+
+      document.getElementById('rtmStatus').textContent =
+        `${relay.elapsedMs}ms · 점검 ${body.checkedAt || '-'} · PRIMARY ${incident.primaryCauseCode || body.primaryCauseCode || 'NORMAL'}`;
+      document.getElementById('scopeNote').textContent = incident.scopeNote || '-';
+
+      const primary = incident.primaryCauseCode || body.primaryCauseCode;
+      document.getElementById('flowBanner').className =
+        `om-status-banner ${primary && primary !== 'NORMAL' ? 'warn' : 'normal'}`;
+      document.getElementById('flowMain').textContent =
+        primary && primary !== 'NORMAL'
+          ? `현재 장애 흐름: ${primary}`
+          : '활성 장애 흐름 없음 — 각 시나리오 징후 모니터링';
+      document.getElementById('flowMessage').textContent = body.primaryMessage || '-';
+
+      const html = (incident.flows || []).map(renderFlow).join('');
+      document.getElementById('flowGrid').innerHTML =
+        html || '<div class="om-empty">장애 흐름 데이터 없음</div>';
+    }
+
+    OmAdmin.initPage('runtime-incident-flow', '장애 흐름', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">
+          설계 19장 장애 흐름 — 단계별 징후와 tcf-om 판정 · 관련 분석 화면 링크.
+          <a href="/om/admin/runtime-cause-analysis.html" style="margin-left:8px">자동 원인판정</a>
+          <a href="/om/admin/runtime-diagnostics.html" style="margin-left:8px">← 런타임 진단</a>
+        </div>
+        <section class="om-filter-bar">
+          <button class="btn-primary" id="refreshBtn" type="button">새로고침</button>
+          <span id="rtmStatus" style="color:var(--muted);font-size:0.85rem;align-self:center">조회 중...</span>
+        </section>
+
+        <section class="om-status-banner normal" id="flowBanner" style="margin-bottom:16px">
+          <div>
+            <div class="om-status-main normal" id="flowMain">장애 흐름: -</div>
+            <div id="flowMessage" style="margin-top:8px;color:var(--muted);font-size:0.9rem">-</div>
+            <div id="scopeNote" style="margin-top:4px;color:var(--muted);font-size:0.85rem">-</div>
+          </div>
+        </section>
+
+        <div class="flow-grid" id="flowGrid">
+          <div class="om-empty">조회 중...</div>
+        </div>`;
+
+      document.getElementById('refreshBtn').addEventListener('click', () => {
+        load(el).catch(err => OmAdmin.showErrorBanner(el, err.message));
+      });
+      await load(el);
+      window.setInterval(() => {
+        load(el).catch(() => {});
+      }, 30000);
+    });
+  </script>
+</body>
+</html>

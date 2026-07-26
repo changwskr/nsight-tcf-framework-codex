@@ -1,0 +1,1043 @@
+32. 예외처리 기준
+32.1 도입 전 안내말
+예외처리는 단순히 try-catch를 많이 작성하는 것이 아니다.NSIGHT TCF Framework에서 예외처리는 오류를 표준 오류코드로 변환하고, 표준 응답 전문으로 조립하며, 거래로그·감사로그·모니터링 지표에 남기는 공통 처리 기준이다.
+NSIGHT 예외처리 설계 기준에서도 모든 예외는 TCF 공통 후처리에서 표준 오류코드로 변환하고, StandardResponse로 조립하며, 거래로그·감사로그·모니터링 지표에 남기도록 정의되어 있다. 또한 예외처리 위치는 tcf-core의 ETF와 tcf-web의 Global Exception Handler로 분리하고, 업무 예외는 BusinessException, 시스템 예외는 SystemException 또는 미처리 RuntimeException으로 처리하는 구조를 기준으로 한다.
+기본 흐름은 다음과 같다.
+업무 처리 중 오류 발생
+        ↓
+BusinessException / SystemException 발생
+        ↓
+TCF / ETF / GlobalExceptionHandler에서 수신
+        ↓
+표준 오류코드 매핑
+        ↓
+사용자 메시지 / 운영자 메시지 분리
+        ↓
+StandardResponse 조립
+        ↓
+거래로그 상태 갱신
+        ↓
+감사로그 / 성능메트릭 / 오류율 기록
+        ↓
+화면에 표준 오류 응답 반환
+
+핵심 문장은 다음이다.
+업무 개발자는 임의 문자열로 오류를 반환하지 않는다.모든 오류는 표준 예외와 표준 오류코드로 표현한다.
+
+32.2 예외처리 기준 결론
+구분
+기준
+예외처리 중심
+ETF 후처리 + Global Exception Handler
+업무 예외
+BusinessException
+시스템 예외
+SystemException
+미처리 예외
+RuntimeException → 공통 시스템 오류로 변환
+입력값 오류
+ValidationException 또는 BusinessException
+권한 오류
+BusinessException, 감사로그 필수
+DB 오류
+SystemException, SQL ID 운영로그 기록
+Timeout 오류
+일반 시스템 오류와 분리
+연계 오류
+통신 오류, Timeout, 업무 오류로 구분
+응답 구조
+StandardResponse.header + result + body
+오류코드
+E-{DOMAIN}-{CATEGORY}-{NNNN}
+사용자 메시지
+기술정보 제거
+운영자 메시지
+GUID, TraceId, ServiceId, SQL ID, Exception Type 포함
+거래로그
+PROCESSING → SUCCESS / FAIL / TIMEOUT / UNKNOWN
+보안 원칙
+StackTrace, SQL, DB 정보, 서버 IP, 개인정보 응답 노출 금지
+운영관리
+OM_ERROR_CODE 기준 오류코드 관리
+
+32.3 예외처리 목표
+목표
+설명
+표준 응답 보장
+성공·실패와 관계없이 항상 같은 응답 구조를 반환
+장애 추적성 확보
+GUID, TraceId, ServiceId, SQL ID 기준으로 원인 추적
+사용자 보호
+사용자에게 기술 오류 상세를 노출하지 않음
+운영자 지원
+운영자는 오류코드와 거래로그로 원인 파악
+감사 대응
+권한 위반, 고객정보 조회 실패, 관리자 오류를 감사로그로 남김
+장애 확산 방지
+Timeout, DB 오류, 연계 오류를 구분해 빠르게 차단
+개발 표준화
+개발자가 임의 응답·임의 오류코드·임의 로그 포맷을 사용하지 못하게 함
+전처리·후처리 요구사항에서도 표준 응답 전문 생성, 결과코드 매핑, 오류코드 변환, 사용자 메시지와 운영 메시지 분리, 거래 종료 로그, 성능 로그, 감사 로그, Timeout 상태 처리, 모니터링 메트릭 전송, MDC 정리를 후처리 필수 기준으로 정의한다.
+
+32.4 예외 유형 분류
+예외 유형
+대표 오류
+발생 위치
+Java 예외
+거래상태
+Header 예외
+ServiceId 누락, BusinessCode 불일치
+STF
+BusinessException
+FAIL
+입력값 예외
+필수값 누락, 날짜 형식 오류
+Rule / Validator
+BusinessException
+FAIL
+인증 예외
+세션 만료, 미인증 사용자
+STF / Security
+BusinessException
+FAIL
+권한 예외
+메뉴·기능·데이터 권한 없음
+STF / Authorization
+BusinessException
+FAIL
+거래통제 예외
+미등록 거래, 차단 거래
+STF
+BusinessException
+FAIL
+ServiceId 예외
+Handler 없음, 미등록 ServiceId
+Dispatcher
+BusinessException
+FAIL
+업무 예외
+조회 결과 없음, 업무 조건 불일치
+Rule / Service
+BusinessException
+FAIL
+DB 예외
+SQL 오류, Connection 오류
+DAO / Mapper
+SystemException
+FAIL
+Query Timeout
+SQL 실행시간 초과
+MyBatis
+SystemException
+TIMEOUT
+Transaction Timeout
+온라인 거래 제한시간 초과
+Facade / TCF
+SystemException
+TIMEOUT
+연계 예외
+대상 서비스 오류, 통신 실패
+Integration Adapter
+SystemException
+FAIL / TIMEOUT
+파일 예외
+파일 크기 초과, 다운로드 실패
+UD / OM
+BusinessException 또는 SystemException
+FAIL
+시스템 예외
+NullPointer, 설정 오류
+전체
+SystemException
+FAIL
+미처리 예외
+예상하지 못한 RuntimeException
+전체
+공통 시스템 오류 변환
+FAIL / UNKNOWN
+
+32.5 계층별 예외처리 책임
+계층
+예외처리 책임
+금지 사항
+Controller
+TCF로 요청 전달, 직접 예외처리 최소화
+업무별 try-catch 남발
+STF
+Header, 세션, 인증, 권한, 거래통제 오류 발생
+업무 로직 오류 처리
+Dispatcher
+ServiceId 미등록, Handler 없음 처리
+업무 예외 판단
+Handler
+요청 변환 실패, Facade 호출
+DB 오류 직접 처리
+Facade
+트랜잭션 경계, Timeout, Rollback 기준
+오류 응답 직접 조립
+Service
+업무 흐름 중 업무 예외 발생
+SQL 오류 상세 응답
+Rule
+입력값·업무 규칙 오류 발생
+DB 접근
+DAO
+Mapper 오류를 상위로 전달 또는 SystemException 변환
+사용자 메시지 생성
+Mapper
+SQL 실행
+예외 직접 처리 불가
+Integration Adapter
+연계 Timeout, 통신오류, 대상 업무오류 구분
+오류 무시
+ETF
+표준 응답 조립, 오류코드 매핑, 거래로그 갱신
+업무 로직 수행
+GlobalExceptionHandler
+TCF 밖 미처리 예외를 표준 응답으로 변환
+StackTrace 응답 노출
+
+32.6 오류코드 기준
+오류코드는 다음 형식을 사용한다.
+E-{DOMAIN}-{CATEGORY}-{NNNN}
+
+구분
+의미
+예시
+E
+Error
+E
+DOMAIN
+오류 발생 영역
+TCF, COM, SV, OM, GW, JWT, UD
+CATEGORY
+오류 분류
+HDR, VAL, AUTHN, AUTHZ, CTL, DB, IF, TIME, SYS
+NNNN
+일련번호
+0001
+오류코드 설계안에서도 오류코드와 메시지는 TCF 공통 후처리 ETF에서 일원화하고, 운영관리는 OM 오류코드 관리 화면에서 수행하는 구조가 적합하다고 정의한다. 오류코드 형식도 E-{DOMAIN}-{CATEGORY}-{NNNN}을 기준으로 한다.
+
+32.7 오류 분류 기준
+CATEGORY
+의미
+예시 오류코드
+설명
+HDR
+Header 오류
+E-TCF-HDR-0001
+ServiceId, ChannelId, UserId 누락
+VAL
+입력값 오류
+E-SV-VAL-0001
+필수값, 형식, 범위 오류
+SVC
+ServiceId 오류
+E-TCF-SVC-0001
+미등록 ServiceId, Handler 없음
+CTL
+거래통제 오류
+E-TCF-CTL-0001
+차단 거래, 미등록 거래
+SES
+세션 오류
+E-TCF-SES-0001
+세션 만료, 중복 로그인
+AUTHN
+인증 오류
+E-TCF-AUTHN-0001
+미인증 사용자
+AUTHZ
+권한 오류
+E-TCF-AUTHZ-0001
+메뉴·기능·데이터 권한 없음
+BIZ
+업무 오류
+E-SV-BIZ-0001
+조회 결과 없음, 업무 조건 불일치
+DB
+DB 오류
+E-COM-DB-0001
+SQL 오류, Connection 오류
+IF
+연계 오류
+E-COM-IF-0001
+대상 서비스 오류
+TIME
+Timeout 오류
+E-COM-TIME-0001
+온라인, DB, 연계 Timeout
+SYS
+시스템 오류
+E-COM-SYS-0001
+NullPointer, 설정 오류
+SEC
+보안 오류
+E-COM-SEC-0001
+접근 IP 차단, 위변조 의심
+FILE
+파일 오류
+E-UD-FILE-0001
+업로드·다운로드 실패
+
+32.8 BusinessException 기준
+BusinessException은 업무적으로 예측 가능한 실패에 사용한다.
+예시는 다음과 같다.
+상황
+예외
+조회 결과 없음
+BusinessException
+입력값 오류
+BusinessException
+업무 조건 불일치
+BusinessException
+권한 없음
+BusinessException
+미등록 거래
+BusinessException
+다운로드 권한 없음
+BusinessException
+예시 코드:
+public class BusinessException extends RuntimeException {
+
+    private final String errorCode;
+    private final String userMessage;
+    private final String operatorMessage;
+    private final boolean auditRequired;
+    private final boolean retryAllowed;
+
+    public BusinessException(
+            String errorCode,
+            String userMessage,
+            String operatorMessage) {
+        super(operatorMessage);
+        this.errorCode = errorCode;
+        this.userMessage = userMessage;
+        this.operatorMessage = operatorMessage;
+        this.auditRequired = false;
+        this.retryAllowed = false;
+    }
+
+    public String getErrorCode() {
+        return errorCode;
+    }
+
+    public String getUserMessage() {
+        return userMessage;
+    }
+
+    public String getOperatorMessage() {
+        return operatorMessage;
+    }
+
+    public boolean isAuditRequired() {
+        return auditRequired;
+    }
+
+    public boolean isRetryAllowed() {
+        return retryAllowed;
+    }
+}
+
+Rule에서 사용하는 예시는 다음과 같다.
+@Component
+public class SvCustomerRule {
+
+    public void validateCustomerNo(String customerNo) {
+        if (customerNo == null || customerNo.isBlank()) {
+            throw new BusinessException(
+                    "E-SV-VAL-0001",
+                    "고객번호를 입력해 주십시오.",
+                    "customerNo is blank"
+            );
+        }
+
+        if (customerNo.length() > 20) {
+            throw new BusinessException(
+                    "E-SV-VAL-0002",
+                    "고객번호 형식이 올바르지 않습니다.",
+                    "customerNo length exceeds 20"
+            );
+        }
+    }
+}
+
+
+32.9 SystemException 기준
+SystemException은 기술적 실패 또는 시스템 장애성 오류에 사용한다.
+예시는 다음과 같다.
+상황
+예외
+DB Connection 오류
+SystemException
+SQL Timeout
+SystemException
+외부 연계 Timeout
+SystemException
+파일시스템 오류
+SystemException
+Cache 장애
+SystemException
+시스템 설정 오류
+SystemException
+예상하지 못한 RuntimeException
+SystemException으로 변환
+예시 코드:
+public class SystemException extends RuntimeException {
+
+    private final String errorCode;
+    private final String operatorMessage;
+    private final String sqlId;
+    private final String interfaceId;
+
+    public SystemException(
+            String errorCode,
+            String operatorMessage,
+            Throwable cause) {
+        super(operatorMessage, cause);
+        this.errorCode = errorCode;
+        this.operatorMessage = operatorMessage;
+        this.sqlId = null;
+        this.interfaceId = null;
+    }
+
+    public String getErrorCode() {
+        return errorCode;
+    }
+
+    public String getOperatorMessage() {
+        return operatorMessage;
+    }
+
+    public String getSqlId() {
+        return sqlId;
+    }
+
+    public String getInterfaceId() {
+        return interfaceId;
+    }
+}
+
+DAO에서 변환하는 예시는 다음과 같다.
+@Repository
+@RequiredArgsConstructor
+public class SvCustomerDao {
+
+    private final SvCustomerMapper mapper;
+
+    public SvCustomerSummaryRow selectCustomerSummary(SvCustomerQuery query) {
+        try {
+            return mapper.selectCustomerSummary(query);
+        } catch (DataAccessException e) {
+            throw new SystemException(
+                    "E-COM-DB-0001",
+                    "DB 조회 중 오류가 발생했습니다. sqlId=SV.Customer.selectSummary",
+                    e
+            );
+        }
+    }
+}
+
+
+32.10 입력값 검증 예외 기준
+입력값 검증 오류는 업무 오류와 구분해서 관리한다.
+검증 유형
+오류 예시
+오류코드 예시
+필수값
+고객번호 누락
+E-SV-VAL-0001
+길이
+고객번호 20자리 초과
+E-SV-VAL-0002
+형식
+날짜 형식 오류
+E-SV-VAL-0003
+범위
+조회기간 초과
+E-SV-VAL-0004
+코드값
+허용되지 않은 코드
+E-SV-VAL-0005
+금지문자
+SQL Injection 의심 문자
+E-SV-VAL-0006
+페이지
+pageSize 최대값 초과
+E-SV-VAL-0007
+전처리 요구사항에서도 입력값 검증은 필수값, 길이, 날짜, 코드값, 허용 범위, 금지 문자를 검증해야 하며, 페이지 검증과 다운로드 가능 건수·권한 검증도 포함된다.
+
+32.11 권한 예외 기준
+권한 예외는 일반 업무 예외보다 더 엄격하게 관리한다.
+항목
+기준
+사용자 메시지
+“접근 권한이 없습니다.” 수준으로 단순화
+운영자 메시지
+userId, branchId, menuId, functionId, serviceId 포함
+감사로그
+필수
+거래로그
+FAIL
+알림
+반복 위반 또는 중요정보 접근 시 보안 담당 알림
+응답 보안
+내부 권한 구조 상세 노출 금지
+예시:
+throw new BusinessException(
+        "E-TCF-AUTHZ-0001",
+        "접근 권한이 없습니다.",
+        "userId=U123456 has no data permission for branchId=009999"
+);
+
+권한 실패는 사용자에게 내부 정보를 노출하지 않아야 하며, 고객정보 조회, 다운로드, 권한 위반은 감사 대상으로 식별되어야 한다.
+
+32.12 DB 예외 기준
+DB 예외는 사용자에게 SQL이나 테이블명, 서버 정보를 노출하지 않는다.
+구분
+사용자 메시지
+운영자 로그
+SQL 오류
+일시적으로 처리할 수 없습니다.
+SQL ID, Mapper ID, ErrorCode, SQLException
+Query Timeout
+조회가 지연되고 있습니다.
+SQL ID, Timeout Sec, DB, elapsedTime
+Connection 오류
+일시적으로 조회가 지연되고 있습니다.
+DataSource, Hikari Pool 상태, Exception Type
+Deadlock
+일시적으로 처리할 수 없습니다.
+Lock 정보, Transaction ID, SQL ID
+Constraint 오류
+입력값을 확인해 주십시오.
+Constraint 명, Key 정보
+예시:
+catch (QueryTimeoutException e) {
+    throw new SystemException(
+            "E-COM-TIME-DB-0001",
+            "SQL Timeout occurred. sqlId=SV.Customer.selectList, timeout=3s",
+            e
+    );
+}
+
+주의할 점은 사용자 응답에는 SQL ID도 노출하지 않는 것이다. SQL ID는 운영 로그와 거래로그에 남긴다.
+
+32.13 Timeout 예외 기준
+Timeout은 일반 시스템 오류와 분리한다.
+Timeout 유형
+발생 위치
+오류코드 예시
+거래상태
+Online Transaction Timeout
+TCF / Facade
+E-COM-TIME-ONL-0001
+TIMEOUT / UNKNOWN
+Spring Transaction Timeout
+Transaction
+E-COM-TIME-TX-0001
+TIMEOUT
+MyBatis Query Timeout
+DAO / Mapper
+E-COM-TIME-DB-0001
+TIMEOUT
+Hikari Connection Timeout
+HikariCP
+E-COM-TIME-POOL-0001
+FAIL / TIMEOUT
+External Connect Timeout
+Integration
+E-COM-TIME-IF-0001
+TIMEOUT
+External Read Timeout
+Integration
+E-COM-TIME-IF-0002
+TIMEOUT
+Timeout 오류는 처리 상태가 명확하지 않을 수 있으므로 사용자에게는 다음과 같이 응답한다.
+처리 상태를 확인해 주십시오.
+
+Timeout 후처리에서는 거래 상태를 TIMEOUT 또는 UNKNOWN으로 남기고, 상태조회 후 재처리 여부를 판단해야 한다. Timeout 설계 기준에서도 Client, DB, 연계 Timeout은 일반 오류와 분리하고, 처리 상태 조회가 필요하다고 정의한다.
+
+32.14 연계 예외 기준
+서비스 간 연동 또는 외부 시스템 연계 오류는 다음처럼 구분한다.
+오류 유형
+예시
+예외
+처리 기준
+통신 오류
+Connection refused
+IntegrationConnectionException
+시스템 예외
+Connect Timeout
+대상 연결 지연
+IntegrationTimeoutException
+Timeout 예외
+Read Timeout
+응답 지연
+IntegrationTimeoutException
+Timeout 예외
+대상 업무 오류
+대상 서비스 FAIL 응답
+IntegrationBusinessException
+업무 예외
+응답 파싱 오류
+JSON 구조 오류
+SystemException
+시스템 예외
+인증 오류
+대상 인증 실패
+SystemException 또는 BusinessException
+보안 오류
+예시:
+try {
+    return svIntegrationClient.selectCustomerSummary(customerNo);
+} catch (IntegrationTimeoutException e) {
+    throw new SystemException(
+            "E-COM-TIME-IF-0001",
+            "SV service timeout. targetServiceId=SV.Customer.selectSummary",
+            e
+    );
+} catch (IntegrationBusinessException e) {
+    throw new BusinessException(
+            e.getErrorCode(),
+            e.getUserMessage(),
+            e.getOperatorMessage()
+    );
+}
+
+
+32.15 Global Exception Handler 기준
+TCF 파이프라인 밖에서 발생한 예외는 GlobalExceptionHandler에서 표준 응답으로 변환한다.
+@RestControllerAdvice
+@RequiredArgsConstructor
+public class GlobalStandardExceptionHandler {
+
+    private final StandardErrorResponseFactory responseFactory;
+
+    @ExceptionHandler(BusinessException.class)
+    public StandardResponse<Void> handleBusinessException(BusinessException e) {
+        return responseFactory.fromBusinessException(e);
+    }
+
+    @ExceptionHandler(SystemException.class)
+    public StandardResponse<Void> handleSystemException(SystemException e) {
+        return responseFactory.fromSystemException(e);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public StandardResponse<Void> handleUnknownException(Exception e) {
+        return responseFactory.fromUnknownException(
+                new SystemException(
+                        "E-COM-SYS-0001",
+                        "Unhandled exception occurred.",
+                        e
+                )
+        );
+    }
+}
+
+주의할 점은 @RestControllerAdvice가 있더라도 업무 개발자가 Controller에서 임의 응답을 만들면 안 된다는 것이다.온라인 거래의 기본 예외처리는 TCF / ETF 흐름을 우선한다.
+
+32.16 ETF 오류 응답 조립 기준
+ETF는 예외를 받아 표준 응답으로 조립한다.
+Exception 수신
+  ↓
+ErrorCode 확인
+  ↓
+OM_ERROR_CODE 조회
+  ↓
+사용자 메시지 / 운영자 메시지 분리
+  ↓
+StandardResponse.result 조립
+  ↓
+거래로그 상태 갱신
+  ↓
+감사로그 / 메트릭 기록
+  ↓
+응답 반환
+
+예시 응답:
+{
+  "header": {
+    "businessCode": "SV",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "guid": "GUID-20260704-000001",
+    "traceId": "TRACE-20260704-000001",
+    "responseDateTime": "2026-07-04T18:30:00+09:00"
+  },
+  "result": {
+    "resultStatus": "FAIL",
+    "resultCode": "E0001",
+    "resultMessage": "처리할 수 없습니다.",
+    "errorCode": "E-SV-BIZ-0001",
+    "errorMessage": "조회 결과가 없습니다."
+  },
+  "body": null
+}
+
+표준 응답 전문은 Header, Body, Control, Security, Error 영역을 포함하며, 오류 영역에는 resultCode, resultMessage, errorCode, errorMessage, errorDetail, errorSystemId, errorDateTime을 담도록 정의되어 있다.
+
+32.17 HTTP Status 기준
+NSIGHT는 업무 성공·실패 판단을 HTTP Status만으로 하지 않는다.기본적으로 HTTP는 정상 수신되었고, 업무 결과는 표준 응답의 result로 판단한다.
+상황
+HTTP Status
+resultStatus
+설명
+정상 처리
+200
+SUCCESS
+업무 정상
+업무 실패
+200
+FAIL
+조회 결과 없음, 업무 조건 불일치
+입력값 오류
+200 또는 400
+FAIL
+내부 표준에 따라 결정
+인증 오류
+200 또는 401
+FAIL
+Gateway/API 정책에 따라 결정
+권한 오류
+200 또는 403
+FAIL
+감사로그 필수
+시스템 오류
+200 또는 500
+FAIL
+운영 정책에 따라 결정
+Timeout
+200 또는 504
+TIMEOUT / UNKNOWN
+처리 상태 확인 필요
+NSIGHT 내부 온라인 전문 방식에서는 HTTP Status보다 표준 응답의 resultStatus, resultCode, errorCode를 우선으로 본다. 다만 외부 API 또는 Gateway 연계에서는 HTTP Status도 함께 사용한다.
+
+32.18 거래로그 상태 기준
+예외 발생 시 거래로그 상태를 반드시 갱신한다.
+상황
+거래로그 상태
+설명
+요청 수신
+PROCESSING
+STF 전처리에서 생성
+정상 처리
+SUCCESS
+ETF 성공 후처리
+업무 예외
+FAIL
+BusinessException
+시스템 예외
+FAIL
+SystemException
+Timeout
+TIMEOUT
+제한시간 초과
+상태 불명확
+UNKNOWN
+응답 실패, 후처리 실패
+중복요청 기존 처리 중
+PROCESSING
+재처리 보류
+재처리 필요
+STATUS_CHECK
+상태 확인 필요
+거래로그는 PROCESSING → SUCCESS / FAIL / TIMEOUT / UNKNOWN 상태로 갱신해야 하며, 예외처리 설계에서도 이 구조를 기준으로 삼는다.
+
+32.19 사용자 메시지 / 운영자 메시지 분리
+구분
+사용자 메시지
+운영자 메시지
+목적
+사용자 안내
+장애 분석
+표현
+짧고 이해 가능
+상세 원인 포함
+포함 가능
+조치 안내
+GUID, TraceId, SQL ID, Exception Type
+포함 금지
+SQL, 서버 IP, StackTrace
+개인정보 원문 노출 주의
+관리 위치
+OM_ERROR_CODE
+OM_ERROR_CODE + 운영 로그
+예시는 다음과 같다.
+오류
+사용자 메시지
+운영자 메시지
+입력값 누락
+입력값을 확인해 주십시오.
+customerNo is blank
+권한 없음
+접근 권한이 없습니다.
+userId has no data permission
+DB Timeout
+일시적으로 조회가 지연되고 있습니다.
+SQL timeout, sqlId=SV.Customer.selectList
+연계 Timeout
+연계 시스템 응답이 지연되고 있습니다.
+target=SV, readTimeout=3000ms
+시스템 오류
+시스템 처리 중 오류가 발생했습니다.
+NullPointerException at ...
+전처리·후처리 비기능 요구사항에서도 로그와 응답에 개인정보, SQL, 서버 IP, StackTrace를 노출하지 않아야 하며, 업무 개발자가 임의 응답·임의 오류코드·임의 로그 포맷을 사용할 수 없어야 한다고 정의한다.
+
+32.20 예외 발생 위치별 개발 기준
+32.20.1 Rule
+Rule은 입력값과 업무 규칙 오류를 발생시킨다.
+if (request.getPageSize() > 500) {
+    throw new BusinessException(
+            "E-SV-VAL-0007",
+            "조회 건수가 허용 범위를 초과했습니다.",
+            "pageSize exceeds max value. pageSize=" + request.getPageSize()
+    );
+}
+
+32.20.2 Service
+Service는 업무 흐름상 실패를 표현한다.
+SvCustomerSummaryRow row = dao.selectCustomerSummary(query)
+        .orElseThrow(() -> new BusinessException(
+                "E-SV-BIZ-0001",
+                "조회 결과가 없습니다.",
+                "customer summary not found. customerNo=" + query.getCustomerNo()
+        ));
+
+32.20.3 DAO
+DAO는 DB 오류를 시스템 예외로 변환한다.
+try {
+    return mapper.searchCustomers(criteria);
+} catch (QueryTimeoutException e) {
+    throw new SystemException(
+            "E-COM-TIME-DB-0001",
+            "Query timeout. sqlId=SV.Customer.searchCustomers",
+            e
+    );
+} catch (DataAccessException e) {
+    throw new SystemException(
+            "E-COM-DB-0001",
+            "Data access error. sqlId=SV.Customer.searchCustomers",
+            e
+    );
+}
+
+32.20.4 Integration Adapter
+연계 오류를 구분한다.
+try {
+    return integrationClient.call(...);
+} catch (SocketTimeoutException e) {
+    throw new SystemException(
+            "E-COM-TIME-IF-0001",
+            "Integration read timeout. targetServiceId=SV.Customer.selectSummary",
+            e
+    );
+} catch (IOException e) {
+    throw new SystemException(
+            "E-COM-IF-0001",
+            "Integration connection error. targetBusinessCode=SV",
+            e
+    );
+}
+
+
+32.21 Rollback 기준
+예외 유형에 따라 트랜잭션 Rollback 기준을 명확히 한다.
+예외 유형
+Rollback
+기준
+입력값 오류
+N/A
+거래 미수행
+조회 결과 없음
+일반적으로 N
+조회성 거래
+업무 조건 불일치
+Y/N
+업무 성격에 따라 결정
+등록·수정 중 업무 예외
+Y
+데이터 정합성 보호
+DB 예외
+Y
+필수
+Timeout
+Y 또는 UNKNOWN
+처리상태 확인 필요
+외부 연계 실패
+Y/N
+보상처리 정책 필요
+시스템 예외
+Y
+필수
+감사로그 실패
+본거래 영향 최소화
+비동기 또는 별도 트랜잭션 검토
+Facade에서 트랜잭션 경계를 관리한다.
+@Service
+@RequiredArgsConstructor
+public class SvCustomerFacade {
+
+    private final SvCustomerService service;
+
+    @Transactional(readOnly = true, timeout = 3)
+    public SvCustomerSummaryResponse selectCustomerSummary(SvCustomerSummaryRequest request) {
+        return service.selectCustomerSummary(request);
+    }
+
+    @Transactional(timeout = 5, rollbackFor = Exception.class)
+    public SvCustomerMemoResponse saveCustomerMemo(SvCustomerMemoRequest request) {
+        return service.saveCustomerMemo(request);
+    }
+}
+
+
+32.22 로그 기준
+예외 발생 시 로그에는 다음 항목을 남긴다.
+로그 항목
+설명
+guid
+거래 식별자
+traceId
+End-to-End 추적 ID
+serviceId
+실행 서비스
+transactionCode
+거래코드
+businessCode
+업무코드
+userId
+사용자 ID
+branchId
+지점 ID
+errorCode
+표준 오류코드
+exceptionType
+예외 클래스
+sqlId
+DB 오류 시 SQL ID
+interfaceId
+연계 오류 시 인터페이스 ID
+elapsedTime
+처리시간
+targetServiceId
+서비스 간 연동 대상
+resultStatus
+FAIL / TIMEOUT / UNKNOWN
+로그에는 다음을 남기지 않는다.
+금지 항목
+사유
+고객명 원문
+개인정보
+주민번호 / 계좌번호 원문
+민감정보
+SQL 전체문
+보안·운영 위험
+DB 접속정보
+보안 위험
+서버 내부 IP
+보안 위험
+StackTrace 사용자 응답
+정보 노출
+
+32.23 금지 규칙
+금지 항목
+이유
+catch (Exception e) { return null; }
+오류 은폐
+printStackTrace()
+운영 로그 표준 위반
+사용자 응답에 StackTrace 포함
+보안 위험
+사용자 응답에 SQL 포함
+보안 위험
+임의 문자열 오류코드 사용
+운영 추적 불가
+Service에서 StandardResponse 직접 생성
+ETF 책임 침범
+DAO에서 사용자 메시지 작성
+계층 책임 위반
+Mapper 오류 무시
+데이터 정합성 위험
+Timeout을 일반 오류로 처리
+상태 불명확 거래 추적 불가
+권한 오류 감사로그 누락
+감사 대응 실패
+연계 오류를 모두 시스템 오류로 통합
+재처리 판단 불가
+미처리 RuntimeException 방치
+표준 응답 불일치
+
+32.24 개발 체크리스트
+점검 항목
+확인
+업무 오류는 BusinessException으로 발생시키는가
+□
+시스템 오류는 SystemException으로 변환하는가
+□
+모든 예외에 표준 오류코드가 있는가
+□
+오류코드가 E-{DOMAIN}-{CATEGORY}-{NNNN} 형식인가
+□
+사용자 메시지와 운영자 메시지를 분리했는가
+□
+사용자 응답에 StackTrace, SQL, 서버 IP가 노출되지 않는가
+□
+DB 오류에 SQL ID가 운영 로그로 남는가
+□
+Timeout 오류가 일반 시스템 오류와 분리되는가
+□
+권한 오류가 감사로그에 남는가
+□
+거래로그가 PROCESSING 후 최종 상태로 갱신되는가
+□
+GUID, TraceId, ServiceId가 로그에 포함되는가
+□
+연계 오류를 통신 오류, Timeout, 업무 오류로 구분하는가
+□
+Handler, Service, DAO에서 임의 응답을 만들지 않는가
+□
+GlobalExceptionHandler가 미처리 예외를 표준 응답으로 변환하는가
+□
+OM에서 오류코드와 메시지를 조회·관리할 수 있는가
+□
+
+32.25 마무리말
+예외처리 기준의 핵심은 오류를 숨기는 것이 아니다.오류를 운영 가능한 정보로 바꾸는 것이다.
+NSIGHT에서는 다음 구조를 표준으로 삼는다.
+Exception
+  ↓
+ErrorCode
+  ↓
+UserMessage / OperatorMessage
+  ↓
+StandardResponse
+  ↓
+TransactionLog
+  ↓
+AuditLog / Metrics
+  ↓
+OM ErrorCode Management
+
+업무 개발자는 오류가 발생했을 때 임의 메시지를 반환하지 않고, 반드시 표준 예외와 표준 오류코드를 사용해야 한다. TCF는 이를 ETF와 Global Exception Handler에서 표준 응답, 거래로그, 감사로그, 메트릭으로 변환한다.
+
+32.26 시사점
+예외처리가 표준화되면 운영자는 장애 발생 시 다음 순서로 추적할 수 있다.
+GUID
+  ↓
+거래로그
+  ↓
+ServiceId / TransactionCode
+  ↓
+ErrorCode
+  ↓
+OM_ERROR_CODE
+  ↓
+운영자 메시지 / 조치 가이드
+  ↓
+담당팀 조치
+
+따라서 NSIGHT 예외처리 기준은 단순 개발 편의 기능이 아니라 운영 안정성, 장애 추적성, 감사 대응, PMO 설명 가능성을 확보하는 핵심 아키텍처 기준이다.
+
+

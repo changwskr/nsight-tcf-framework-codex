@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 파일 관리</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+  <style>
+    .om-tab-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+    .om-tab-btn {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .om-tab-btn.active {
+      background: linear-gradient(135deg, var(--accent), #818cf8);
+      color: #0f172a;
+      border-color: transparent;
+    }
+    .om-upload-box {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+    .om-file-actions { display: flex; gap: 4px; flex-wrap: wrap; }
+    .om-file-actions button { padding: 4px 8px; font-size: 0.8rem; }
+    .om-desc-cell {
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .om-type-cell {
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .om-modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      display: none; align-items: center; justify-content: center; z-index: 200; padding: 20px;
+    }
+    .om-modal-backdrop.open { display: flex; }
+    .om-modal {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      width: min(520px, 100%);
+      max-height: 90vh;
+      overflow: auto;
+    }
+    .om-modal h3 { margin: 0 0 14px; }
+    .om-detail-row { display: flex; gap: 10px; margin-bottom: 8px; font-size: 0.9rem; }
+    .om-detail-row dt { width: 96px; color: var(--muted); flex-shrink: 0; }
+    .om-detail-row dd { margin: 0; word-break: break-all; }
+    .om-modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260627c"></script>
+  <script>
+    const FILE_PAGE_SIZE = 10;
+    const LOG_PAGE_SIZE = 20;
+    let filePageNo = 1;
+    let logPageNo = 1;
+    let activeTab = 'files';
+    let currentFileId = null;
+    let businessCodes = [];
+
+    function formatSize(bytes) {
+      const n = Number(bytes);
+      if (!n && n !== 0) return '-';
+      if (n < 1024) return `${n} B`;
+      if (n < 1048576) return `${(n / 1024).toFixed(1)} KB`;
+      return `${(n / 1048576).toFixed(1)} MB`;
+    }
+
+    function shortId(id) {
+      if (!id || id === '-') return '-';
+      const s = String(id);
+      return s.length <= 16 ? s : `${s.slice(0, 8)}…${s.slice(-4)}`;
+    }
+
+    function readFileFilters() {
+      return {
+        originalName: document.getElementById('filterFileName').value.trim(),
+        uploadUser: document.getElementById('filterUploadUser').value.trim(),
+        fromDate: document.getElementById('filterFromDate').value.trim(),
+        toDate: document.getElementById('filterToDate').value.trim(),
+        businessCode: document.getElementById('filterBusinessCode').value.trim(),
+        pageNo: String(filePageNo),
+        pageSize: String(FILE_PAGE_SIZE)
+      };
+    }
+
+    function resetFileFilters() {
+      ['filterFileName', 'filterUploadUser', 'filterFromDate', 'filterToDate']
+        .forEach(id => { document.getElementById(id).value = ''; });
+      document.getElementById('filterBusinessCode').value = '';
+      filePageNo = 1;
+    }
+
+    function defaultUploadBizCode() {
+      if (!businessCodes.length) return '';
+      const om = businessCodes.find(r => OmAdmin.field(r, 'code') === 'OM');
+      return om ? 'OM' : OmAdmin.field(businessCodes[0], 'code', '');
+    }
+
+    async function loadBusinessCodeCombos(el) {
+      businessCodes = await OmAdmin.loadCommonCodes('BUSINESS_CODE', { useYn: 'Y' });
+      if (!businessCodes.length) {
+        throw new Error('BUSINESS_CODE 공통코드가 없습니다. 공통코드 관리에서 등록하세요.');
+      }
+      OmAdmin.fillCodeSelect(document.getElementById('uploadBizCode'), businessCodes, {
+        selected: defaultUploadBizCode()
+      });
+      OmAdmin.fillCodeSelect(document.getElementById('filterBusinessCode'), businessCodes, {
+        includeAll: true,
+        selected: ''
+      });
+      OmAdmin.fillCodeSelect(document.getElementById('logFilterBusinessCode'), businessCodes, {
+        includeAll: true,
+        selected: ''
+      });
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.add('open');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('open');
+    }
+
+    function switchTab(tab, el) {
+      activeTab = tab;
+      document.querySelectorAll('.om-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+      });
+      document.getElementById('panelFiles').hidden = tab !== 'files';
+      document.getElementById('panelLogs').hidden = tab !== 'logs';
+      if (tab === 'files') loadFiles(el).catch(err => OmAdmin.showErrorBanner(el, err.message));
+      else loadLogs(1, el).catch(err => OmAdmin.showErrorBanner(el, err.message));
+    }
+
+    async function showFileDetail(fileId, el) {
+      currentFileId = fileId;
+      const file = await OmAdmin.updownloadDetail(fileId);
+      const rows = [
+        ['fileId', OmAdmin.field(file, 'fileId')],
+        ['파일명', OmAdmin.field(file, 'originalName')],
+        ['크기', formatSize(OmAdmin.field(file, 'fileSize', 0))],
+        ['유형', OmAdmin.field(file, 'contentType')],
+        ['설명', OmAdmin.field(file, 'description')],
+        ['업로더', OmAdmin.field(file, 'uploadUser')],
+        ['업로드시각', OmAdmin.field(file, 'uploadTime')],
+        ['업무코드', OmAdmin.formatCodeLabel(businessCodes, OmAdmin.field(file, 'businessCode'))]
+      ];
+      document.getElementById('detailContent').innerHTML = rows.map(([k, v]) =>
+        `<div class="om-detail-row"><dt>${k}</dt><dd>${v}</dd></div>`
+      ).join('');
+      openModal('detailModal');
+    }
+
+    function openFileEdit(fileId, desc) {
+      document.getElementById('editFileId').value = fileId;
+      document.getElementById('editDescription').value = desc === '-' ? '' : desc;
+      openModal('editModal');
+    }
+
+    async function loadFiles(el) {
+      document.getElementById('fileListStatus').textContent = '조회 중...';
+      const data = await OmAdmin.updownloadList(readFileFilters());
+      filePageNo = data.pageNo || filePageNo;
+      const rows = data.files || [];
+      const total = data.totalCount ?? 0;
+      const totalPages = Math.max(1, Math.ceil(total / FILE_PAGE_SIZE));
+      document.getElementById('fileListStatus').textContent =
+        `${filePageNo} / ${totalPages} 페이지 · 총 ${total}건`;
+
+      const tbody = document.getElementById('fileBody');
+      tbody.innerHTML = rows.length ? rows.map(r => {
+        const fileId = OmAdmin.field(r, 'fileId');
+        const desc = OmAdmin.field(r, 'description');
+        const contentType = OmAdmin.field(r, 'contentType');
+        return `
+        <tr>
+          <td class="om-mono" title="${fileId}">${shortId(fileId)}</td>
+          <td>${OmAdmin.field(r, 'originalName')}</td>
+          <td>${formatSize(OmAdmin.field(r, 'fileSize', 0))}</td>
+          <td class="om-type-cell" title="${contentType}">${contentType}</td>
+          <td class="om-desc-cell" title="${desc}">${desc}</td>
+          <td>${OmAdmin.field(r, 'uploadUser')}</td>
+          <td>${OmAdmin.field(r, 'uploadTime')}</td>
+          <td title="${OmAdmin.field(r, 'businessCode')}">${OmAdmin.formatCodeLabel(businessCodes, OmAdmin.field(r, 'businessCode'))}</td>
+          <td>
+            <div class="om-file-actions">
+              <button type="button" class="btn-secondary om-file-detail" data-id="${fileId}">상세</button>
+              <button type="button" class="btn-secondary om-file-edit" data-id="${fileId}" data-desc="${desc === '-' ? '' : desc}">수정</button>
+              <button type="button" class="btn-secondary om-file-dl" data-id="${fileId}">다운</button>
+              <button type="button" class="btn-secondary om-file-del" data-id="${fileId}">삭제</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('') : '<tr><td colspan="9" class="om-empty">조건에 맞는 파일이 없습니다.</td></tr>';
+
+      tbody.querySelectorAll('.om-file-detail').forEach(btn => btn.addEventListener('click', () => {
+        showFileDetail(btn.dataset.id, el).catch(e => alert(e.message));
+      }));
+      tbody.querySelectorAll('.om-file-edit').forEach(btn => btn.addEventListener('click', () => {
+        openFileEdit(btn.dataset.id, btn.dataset.desc || '');
+      }));
+      tbody.querySelectorAll('.om-file-dl').forEach(btn => btn.addEventListener('click', () => {
+        window.open(OmAdmin.updownloadDownloadUrl(btn.dataset.id), '_blank');
+      }));
+      tbody.querySelectorAll('.om-file-del').forEach(btn => btn.addEventListener('click', async () => {
+        if (!confirm(`파일 ${shortId(btn.dataset.id)} 을(를) 삭제하시겠습니까?`)) return;
+        try {
+          await OmAdmin.updownloadDelete(btn.dataset.id);
+          await loadFiles(el);
+        } catch (e) {
+          alert(e.message);
+        }
+      }));
+
+      OmAdmin.renderPagination(document.getElementById('filePagination'), filePageNo, FILE_PAGE_SIZE,
+        total, p => { filePageNo = p; loadFiles(el).catch(err => OmAdmin.showErrorBanner(el, err.message)); });
+    }
+
+    async function loadLogs(page, el) {
+      logPageNo = page;
+      const body = { pageNo: page, pageSize: LOG_PAGE_SIZE };
+      const userId = document.getElementById('logFilterUserId').value.trim();
+      const fileName = document.getElementById('logFilterFileName').value.trim();
+      const businessCode = document.getElementById('logFilterBusinessCode').value.trim();
+      const resultStatus = document.getElementById('logFilterResultStatus').value;
+      if (userId) body.userId = userId;
+      if (fileName) body.fileName = fileName;
+      if (businessCode) body.businessCode = businessCode;
+      if (resultStatus) body.resultStatus = resultStatus;
+
+      const tbody = document.getElementById('logBody');
+      tbody.innerHTML = '<tr><td colspan="8" class="om-empty">조회 중...</td></tr>';
+      const { body: data, relay } = await OmAdmin.inquiry('fileDownload', body);
+      const total = data.totalCount ?? 0;
+      const totalPages = Math.max(1, Math.ceil(total / LOG_PAGE_SIZE));
+      document.getElementById('logListStatus').textContent =
+        `${relay.elapsedMs}ms · ${data.pageNo || page} / ${totalPages} 페이지 · 총 ${total}건`;
+
+      const rows = data.rows || [];
+      tbody.innerHTML = rows.length ? rows.map(r => `
+        <tr>
+          <td>${OmAdmin.field(r, 'downloadTime')}</td>
+          <td>${OmAdmin.field(r, 'userId')}</td>
+          <td>${OmAdmin.formatCodeLabel(businessCodes, OmAdmin.field(r, 'businessCode'))}</td>
+          <td class="om-mono">${OmAdmin.field(r, 'fileName')}</td>
+          <td>${formatSize(OmAdmin.field(r, 'fileSize', 0))}</td>
+          <td>${OmAdmin.chipForResult(OmAdmin.field(r, 'resultStatus'))}</td>
+          <td>${OmAdmin.field(r, 'clientIp')}</td>
+          <td class="om-mono" title="${OmAdmin.field(r, 'logId')}">${shortId(OmAdmin.field(r, 'logId'))}</td>
+        </tr>`).join('') : '<tr><td colspan="8" class="om-empty">이력 없음</td></tr>';
+
+      OmAdmin.renderPagination(document.getElementById('logPagination'), data.pageNo || page, LOG_PAGE_SIZE,
+        total, p => loadLogs(p, el).catch(err => OmAdmin.showErrorBanner(el, err.message)));
+    }
+
+    OmAdmin.initPage('file-management', '파일 관리', async (el) => {
+      const base = await OmAdmin.updownloadBaseUrl().catch(() => ({ baseUrl: '-' }));
+      el.innerHTML = `
+        <div class="om-alert info">
+          UD 파일 메타(<code>UD_FILE_META</code>) 기준 업·다운로드 API(<code>/ud/files</code>)와
+          다운로드 감사 이력(<code>OM_FILE_DOWNLOAD_LOG</code>)을 관리합니다.
+          서비스: <code>${base.baseUrl || '-'}</code>
+        </div>
+        <div class="om-tab-bar">
+          <button type="button" class="om-tab-btn active" data-tab="files">파일 업·다운로드</button>
+          <button type="button" class="om-tab-btn" data-tab="logs">다운로드 이력</button>
+        </div>
+        <div id="panelFiles">
+          <div class="om-card" style="margin-bottom:16px">
+            <div class="om-card-head">파일 업로드</div>
+            <div class="om-card-body om-upload-box">
+              <div class="field"><label for="uploadFile">파일</label><input id="uploadFile" type="file"></div>
+              <div class="field"><label for="uploadDesc">설명</label><input id="uploadDesc" type="text" placeholder="선택 입력"></div>
+              <div class="field"><label for="uploadBizCode">업무코드</label><select id="uploadBizCode"></select></div>
+              <button class="btn-primary" id="uploadBtn" type="button">업로드</button>
+            </div>
+          </div>
+          <section class="om-filter-bar">
+            <div class="field"><label for="filterFileName">파일명</label><input id="filterFileName" type="text" placeholder="부분 검색"></div>
+            <div class="field"><label for="filterUploadUser">업로더</label><input id="filterUploadUser" type="text" placeholder="userId"></div>
+            <div class="field"><label for="filterFromDate">업로드 시작</label><input id="filterFromDate" type="text" placeholder="yyyy-MM-dd"></div>
+            <div class="field"><label for="filterToDate">업로드 종료</label><input id="filterToDate" type="text" placeholder="yyyy-MM-dd"></div>
+            <div class="field"><label for="filterBusinessCode">업무코드</label><select id="filterBusinessCode"></select></div>
+            <button class="btn-primary" id="fileSearchBtn" type="button">조회</button>
+            <button class="btn-secondary" id="fileResetBtn" type="button">초기화</button>
+            <button class="btn-secondary" id="fileRefreshBtn" type="button">새로고침</button>
+          </section>
+          <div style="margin-bottom:10px;color:var(--muted);font-size:0.85rem" id="fileListStatus">-</div>
+          <div class="om-card">
+            <div class="om-card-head">파일 목록</div>
+            <div class="om-card-body om-table-wrap">
+              <table class="om-table">
+                <thead><tr>
+                  <th>fileId</th><th>파일명</th><th>크기</th><th>유형</th><th>설명</th>
+                  <th>업로더</th><th>업로드시각</th><th>업무</th><th>관리</th>
+                </tr></thead>
+                <tbody id="fileBody"><tr><td colspan="9" class="om-empty">조회 중...</td></tr></tbody>
+              </table>
+              <div class="om-pagination" id="filePagination" hidden></div>
+            </div>
+          </div>
+        </div>
+        <div id="panelLogs" hidden>
+          <section class="om-filter-bar">
+            <div class="field"><label for="logFilterUserId">사용자ID</label><input id="logFilterUserId" type="text"></div>
+            <div class="field"><label for="logFilterFileName">파일명</label><input id="logFilterFileName" type="text"></div>
+            <div class="field"><label for="logFilterBusinessCode">업무코드</label><select id="logFilterBusinessCode"></select></div>
+            <div class="field"><label for="logFilterResultStatus">결과</label>
+              <select id="logFilterResultStatus"><option value="">전체</option><option value="SUCCESS">SUCCESS</option><option value="FAIL">FAIL</option></select>
+            </div>
+            <button class="btn-primary" id="logSearchBtn" type="button">조회</button>
+          </section>
+          <div style="margin-bottom:10px;color:var(--muted);font-size:0.85rem" id="logListStatus">-</div>
+          <div class="om-card">
+            <div class="om-card-head">다운로드 이력</div>
+            <div class="om-card-body om-table-wrap">
+              <table class="om-table">
+                <thead><tr>
+                  <th>일시</th><th>사용자</th><th>업무</th><th>파일명</th><th>크기</th><th>결과</th><th>IP</th><th>logId</th>
+                </tr></thead>
+                <tbody id="logBody"></tbody>
+              </table>
+              <div class="om-pagination" id="logPagination" hidden></div>
+            </div>
+          </div>
+        </div>
+        <div class="om-modal-backdrop" id="detailModal">
+          <div class="om-modal">
+            <h3>파일 상세 (UD_FILE_META)</h3>
+            <div id="detailContent"></div>
+            <div class="om-modal-footer">
+              <button type="button" class="btn-secondary" id="detailCloseBtn">닫기</button>
+              <button type="button" class="btn-primary" id="detailDownloadBtn">다운로드</button>
+            </div>
+          </div>
+        </div>
+        <div class="om-modal-backdrop" id="editModal">
+          <div class="om-modal">
+            <h3>설명 수정</h3>
+            <input type="hidden" id="editFileId">
+            <div class="field"><label for="editDescription">설명</label><input id="editDescription" type="text"></div>
+            <div class="om-modal-footer">
+              <button type="button" class="btn-secondary" id="editCancelBtn">취소</button>
+              <button type="button" class="btn-primary" id="editSaveBtn">저장</button>
+            </div>
+          </div>
+        </div>`;
+
+      el.querySelectorAll('.om-tab-btn').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab, el)));
+      document.getElementById('uploadBtn').addEventListener('click', async () => {
+        const input = document.getElementById('uploadFile');
+        if (!input.files || !input.files.length) {
+          alert('업로드할 파일을 선택하세요.');
+          return;
+        }
+        try {
+          const bizCode = document.getElementById('uploadBizCode').value.trim();
+          if (!bizCode) {
+            alert('업무코드를 선택하세요.');
+            return;
+          }
+          await OmAdmin.updownloadUpload(input.files[0], document.getElementById('uploadDesc').value.trim(), bizCode);
+          input.value = '';
+          document.getElementById('uploadDesc').value = '';
+          filePageNo = 1;
+          await loadFiles(el);
+          alert('업로드 완료');
+        } catch (e) {
+          alert(e.message);
+        }
+      });
+      document.getElementById('fileSearchBtn').addEventListener('click', () => {
+        filePageNo = 1;
+        loadFiles(el).catch(err => OmAdmin.showErrorBanner(el, err.message));
+      });
+      document.getElementById('fileResetBtn').addEventListener('click', () => {
+        resetFileFilters();
+        loadFiles(el).catch(err => OmAdmin.showErrorBanner(el, err.message));
+      });
+      document.getElementById('fileRefreshBtn').addEventListener('click', () => loadFiles(el).catch(err => OmAdmin.showErrorBanner(el, err.message)));
+      document.getElementById('logSearchBtn').addEventListener('click', () => loadLogs(1, el).catch(err => OmAdmin.showErrorBanner(el, err.message)));
+
+      document.getElementById('detailCloseBtn').addEventListener('click', () => closeModal('detailModal'));
+      document.getElementById('detailDownloadBtn').addEventListener('click', () => {
+        if (currentFileId) window.open(OmAdmin.updownloadDownloadUrl(currentFileId), '_blank');
+      });
+      document.getElementById('editCancelBtn').addEventListener('click', () => closeModal('editModal'));
+      document.getElementById('editSaveBtn').addEventListener('click', async () => {
+        const fileId = document.getElementById('editFileId').value;
+        const description = document.getElementById('editDescription').value;
+        try {
+          await OmAdmin.updownloadUpdate(fileId, description);
+          closeModal('editModal');
+          await loadFiles(el);
+          alert('설명이 수정되었습니다.');
+        } catch (e) {
+          alert(e.message);
+        }
+      });
+      ['detailModal', 'editModal'].forEach(id => {
+        document.getElementById(id).addEventListener('click', e => {
+          if (e.target.id === id) closeModal(id);
+        });
+      });
+
+      try {
+        await loadBusinessCodeCombos(el);
+      } catch (e) {
+        OmAdmin.showErrorBanner(el, e.message);
+      }
+
+      const params = new URLSearchParams(location.search);
+      if (params.get('tab') === 'logs') switchTab('logs', el);
+      else await loadFiles(el);
+    });
+  </script>
+</body>
+</html>

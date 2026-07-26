@@ -1,0 +1,933 @@
+44. 파일 업다운로드 기준
+44.1 도입 전 안내말
+파일 업다운로드는 단순히 파일을 서버에 올리고 내려받는 기능이 아니다.NSIGHT TCF Framework에서는 파일이 고객정보, 엑셀 다운로드, 리포트, 배치 결과, 운영 증적, 첨부자료, 감사 대상 데이터와 연결될 수 있으므로 보안·권한·감사·성능 기준을 함께 설계해야 한다.
+NSIGHT 기준에서 파일관리는 OM(Operation Management) 안에 포함된 UD, Upload/Download 기능으로 설계하는 것이 맞다. 설계 방향은 OM 파일관리 = 파일 메타 관리 + 업로드 + 다운로드 + 다운로드 감사로그 + 권한통제 + 보관/삭제 정책, UD 파일 API = 실제 파일 Stream 처리로 분리한다. 또한 파일 원본은 DB와 Session에 저장하지 않고, DB에는 파일 메타정보만 저장하며 실제 파일은 전용 Storage, 파일시스템, NAS 또는 Object Storage에 저장하는 것이 핵심 원칙이다.
+핵심 문장은 다음이다.
+파일 원본은 DB와 Session에 저장하지 않는다.DB에는 메타정보와 감사이력만 저장하고, 파일 Stream은 UD 전용 API에서 처리한다.
+
+44.2 파일 업다운로드 기준 결론
+구분
+기준
+관리 주체
+OM(Operation Management)
+실행 기능
+UD(Upload/Download)
+화면 위치
+OM 파일관리 화면
+Stream 처리
+/ud/files 전용 API
+메타 관리
+UD_FILE_META
+다운로드 이력
+OM_FILE_DOWNLOAD_LOG
+감사로그
+OM_AUDIT_LOG, TCF_TX_LOG 연계
+파일 저장
+Local/dev는 파일시스템, 운영은 NAS/Object Storage 권장
+DB 저장
+파일 원본 저장 금지, 메타정보만 저장
+Session 저장
+파일 원본, 조회 결과, 다운로드 데이터 저장 금지
+권한 기준
+조회, 업로드, 다운로드, 수정, 삭제, 이력조회 권한 분리
+보안 기준
+확장자, MIME, 파일명, 크기, 경로, 악성코드 검사
+대용량 기준
+일반 업로드와 대용량 다운로드 경로 분리
+운영 기준
+보관기간, 논리삭제, 물리삭제 배치, 감사이력 관리
+
+44.3 전체 구조
+[사용자 / 운영자 / 업무화면]
+        ↓
+[WebTopSuite / tcf-ui]
+        ↓
+[Apache / Gateway]
+        ↓
+[tcf-om / UD API]
+        ├─ 파일 메타 관리
+        ├─ 업로드 검증
+        ├─ 다운로드 권한 검증
+        ├─ 다운로드 감사로그
+        ├─ 보관기간 / 삭제정책
+        ↓
+[Storage]
+        ├─ Local FileSystem, dev
+        ├─ NAS, prod
+        └─ Object Storage, 선택
+        ↓
+[DB]
+        ├─ UD_FILE_META
+        ├─ OM_FILE_DOWNLOAD_LOG
+        ├─ OM_AUDIT_LOG
+        └─ TCF_TX_LOG
+
+전처리·후처리 기준에서도 적용 거래에는 다운로드가 포함되며, 적용 공통기능은 전문, GUID, 인증, 권한, 검증, 오류, 로그, 감사, Timeout, 재처리, 모니터링까지 포함된다. 즉 파일 업다운로드도 일반 부가기능이 아니라 TCF 운영통제 대상 거래로 관리해야 한다.
+
+44.4 파일 유형별 처리 기준
+파일 유형
+예시
+처리 기준
+업무 첨부파일
+증빙자료, 신청서, 안내문
+UD API 업로드, 메타 저장, 권한 통제
+운영 증적 파일
+점검결과, 승인자료, 장애증적
+OM 파일관리에서 관리
+엑셀 다운로드
+고객목록, 거래로그, 권한목록
+다운로드 감사로그 필수
+리포트 파일
+PDF, RD 결과물
+생성 이력, 다운로드 이력 관리
+배치 결과 파일
+배치 실행결과, 오류목록
+보관기간 후 자동 삭제
+임시 파일
+화면 임시 다운로드 파일
+짧은 TTL, 자동 삭제
+대용량 파일
+대량 고객목록, 대용량 리포트
+온라인 응답과 분리, 비동기 생성 후 다운로드
+
+44.5 업로드 기준
+파일 업로드는 반드시 다음 단계를 통과해야 한다.
+[화면]
+  파일 선택
+  업무코드 선택
+  설명 입력
+        ↓
+[UD Upload API]
+  Multipart 요청 수신
+        ↓
+[Upload Validator]
+  파일명 검증
+  확장자 검증
+  MIME Type 검증
+  Magic Byte 검증
+  파일 크기 검증
+  권한 검증
+  업무코드 검증
+        ↓
+[Storage Service]
+  저장 파일명 생성
+  파일 저장
+  SHA-256 Hash 계산
+        ↓
+[UD_FILE_META INSERT]
+        ↓
+[감사로그 / 거래로그 기록]
+        ↓
+[응답]
+
+검증 항목
+기준
+파일명
+경로문자, 제어문자, 특수문자 제한
+확장자
+허용 확장자 Whitelist 방식
+MIME Type
+확장자와 MIME Type 일치 확인
+Magic Byte
+주요 파일은 실제 파일 시그니처 확인
+파일 크기
+업무별 최대 크기 제한
+파일 수
+1회 업로드 파일 수 제한
+업무코드
+허용된 업무코드인지 확인
+업로드 권한
+UPLOAD 기능권한 확인
+파일 Hash
+중복 또는 무결성 확인용 저장
+악성코드
+운영환경은 백신 또는 보안 솔루션 연계
+
+44.6 다운로드 기준
+다운로드는 단순히 fileId로 파일을 찾아 내려주는 방식이면 안 된다.다운로드 전에는 반드시 권한, 파일 상태, 보관기간, 감사 대상 여부를 확인한다.
+[화면]
+  다운로드 클릭
+        ↓
+[Download API]
+  fileId 수신
+        ↓
+[Download Validator]
+  fileId 존재 확인
+  USE_YN 확인
+  DELETE_YN 확인
+  만료 여부 확인
+  다운로드 권한 확인
+  데이터권한 확인
+  다운로드 사유 확인
+        ↓
+[Storage Service]
+  파일 존재 확인
+  Stream 반환
+        ↓
+[OM_FILE_DOWNLOAD_LOG INSERT]
+[OM_AUDIT_LOG INSERT]
+        ↓
+[파일 응답]
+
+검증 항목
+기준
+파일 존재
+UD_FILE_META에 등록된 파일만 다운로드
+파일 상태
+사용중, 삭제 아님, 만료 아님
+사용자 권한
+다운로드 기능권한 필요
+데이터권한
+본인 업무·지점·권한 범위 파일만 허용
+다운로드 사유
+고객정보·대량파일은 사유 입력 권장
+감사로그
+다운로드 사용자, 파일명, 사유, IP, 시간 기록
+파일명 응답
+Content-Disposition에 안전한 파일명 사용
+직접경로 차단
+Storage 실제 경로 노출 금지
+URL 공유 차단
+인증 없는 직접 URL 다운로드 금지
+전처리·후처리 요구사항에서도 고객정보 조회, 다운로드, 권한 위반 거래는 감사 대상으로 식별해야 하며, 후처리에서는 고객정보 조회, 다운로드, 권한 위반 등 감사 대상 거래를 기록해야 한다.
+
+44.7 API 기준
+파일 Stream은 표준 JSON 전문 안에 넣지 않고 UD 전용 API로 분리한다.
+기능
+Method
+URL
+설명
+파일 업로드
+POST
+/ud/files
+Multipart 업로드
+파일 목록 조회
+GET
+/ud/files
+메타 목록 조회
+파일 상세 조회
+GET
+/ud/files/{fileId}
+파일 메타 조회
+파일 메타 수정
+PUT
+/ud/files/{fileId}
+설명, 업무코드 등 수정
+파일 다운로드
+GET
+/ud/files/{fileId}/download
+파일 Stream
+파일 삭제
+DELETE
+/ud/files/{fileId}
+논리삭제
+다운로드 이력 조회
+POST
+/om/online
+OM.FileDownload.inquiry
+권장 기준은 다음처럼 나눈다.
+구분
+처리 방식
+파일 Stream
+/ud/files REST API
+메타 조회/관리
+UD API 또는 OM ServiceId
+다운로드 이력 조회
+OM.FileDownload.inquiry
+권한·감사·로그
+TCF/OM 공통 기준 적용
+대용량 파일 생성
+비동기 Job + 다운로드 링크 제공
+
+44.8 DB 테이블 기준
+44.8.1 UD_FILE_META
+컬럼
+설명
+FILE_ID
+파일 식별자
+ORIGINAL_NAME
+원본 파일명
+STORED_NAME
+저장 파일명
+STORAGE_TYPE
+LOCAL, NAS, OBJECT
+STORAGE_PATH
+실제 저장 경로
+CONTENT_TYPE
+MIME Type
+EXTENSION
+확장자
+FILE_SIZE
+파일 크기
+FILE_HASH
+SHA-256 Hash
+DESCRIPTION
+파일 설명
+UPLOAD_USER
+업로드 사용자
+UPLOAD_TIME
+업로드 시각
+BUSINESS_CODE
+업무코드
+SECURITY_LEVEL
+보안등급
+VIRUS_SCAN_STATUS
+WAIT, PASS, FAIL
+DOWNLOAD_COUNT
+다운로드 횟수
+RETENTION_DAYS
+보관일수
+EXPIRE_TIME
+만료시각
+USE_YN
+사용여부
+DELETE_YN
+삭제여부
+DELETE_USER
+삭제자
+DELETE_TIME
+삭제시각
+44.8.2 OM_FILE_DOWNLOAD_LOG
+컬럼
+설명
+LOG_ID
+다운로드 로그 ID
+FILE_ID
+파일 ID
+FILE_NAME
+다운로드 파일명
+FILE_SIZE
+파일 크기
+USER_ID
+다운로드 사용자
+BRANCH_ID
+지점
+BUSINESS_CODE
+업무코드
+SERVICE_ID
+ServiceId
+GUID
+GUID
+TRACE_ID
+TraceId
+DOWNLOAD_REASON
+다운로드 사유
+RESULT_STATUS
+SUCCESS / FAIL
+RESULT_MESSAGE
+결과 메시지
+CLIENT_IP
+접속 IP
+USER_AGENT
+사용자 Agent
+DOWNLOAD_TIME
+다운로드 시각
+
+44.9 저장소 기준
+환경
+저장소 기준
+설명
+Local
+로컬 파일시스템
+개발자 테스트
+Dev
+개발 서버 파일시스템 또는 NAS
+통합 테스트
+Stg
+운영 유사 NAS/Object Storage
+성능·보안 검증
+Prd
+NAS 또는 Object Storage 권장
+운영 기준
+DR
+운영 Storage 복제 또는 별도 DR 저장소
+재해복구 기준
+운영 저장소 기준은 다음과 같다.
+항목
+기준
+Web Root 저장
+금지
+서버 임의 경로 저장
+금지
+업무별 디렉터리
+권장
+날짜별 디렉터리
+권장
+저장 파일명
+UUID 또는 FileId 기반
+원본 파일명
+DB 메타에만 저장
+경로 노출
+사용자 응답에 노출 금지
+권한
+WAS 실행계정만 읽기/쓰기
+백업
+보관정책에 따라 백업
+삭제
+논리삭제 후 배치 물리삭제
+
+44.10 파일 크기 기준
+구분
+권장 크기
+처리 기준
+일반 첨부
+10MB 이하
+동기 업로드 가능
+일반 운영 파일
+50MB 이하
+기본 UD API 처리
+중간 규모 파일
+50MB ~ 500MB
+별도 Timeout, Stream 처리
+대용량 다운로드
+500MB 이상
+비동기 생성 후 다운로드
+초대용량 파일
+수 GB 이상
+WAS 직접 처리 지양, 전용 파일서버 검토
+현재 기본 업로드 제한은 50MB 수준으로 두는 것이 적절하다. 다만 대량 엑셀, 리포트, 배치 결과 파일은 일반 온라인 거래와 분리해 비동기 생성 후 다운로드하는 구조가 안전하다.
+
+44.11 권한 기준
+파일 기능은 기능권한을 분리한다.
+기능
+권한코드
+설명
+파일 조회
+ROLE_OM_FIL_INQ
+목록·상세 조회
+파일 업로드
+ROLE_OM_FIL_UPL
+파일 업로드
+파일 다운로드
+ROLE_OM_FIL_DWN
+파일 다운로드
+파일 수정
+ROLE_OM_FIL_UPD
+설명·업무코드 수정
+파일 삭제
+ROLE_OM_FIL_DEL
+논리삭제
+이력 조회
+ROLE_OM_FIL_LOG
+다운로드 이력 조회
+물리삭제
+ROLE_OM_FIL_PURGE
+운영관리자 전용
+
+권한그룹
+조회
+업로드
+다운로드
+수정
+삭제
+이력조회
+시스템관리자
+Y
+Y
+Y
+Y
+Y
+Y
+운영담당자
+Y
+Y
+Y
+Y
+N
+Y
+감사담당자
+Y
+N
+Y
+N
+N
+Y
+업무담당자
+Y
+Y
+Y
+N
+N
+N
+조회자
+Y
+N
+N
+N
+N
+N
+
+44.12 보안 기준
+보안 항목
+기준
+파일명 검증
+../, \, /, 제어문자 제거
+확장자 검증
+Whitelist 방식
+MIME 검증
+Content-Type + Magic Byte
+저장명
+UUID 기반 저장명 사용
+경로 접근
+fileId 기반 접근만 허용
+직접 URL
+인증 없는 직접 접근 금지
+악성코드
+운영환경 백신 연계 권장
+압축파일
+Zip Slip 방지, 압축 해제 제한
+다운로드 감사
+사용자, 파일, 사유, IP, 결과 기록
+개인정보 파일
+다운로드 사유 필수, 보관기간 제한
+Token / Secret 파일
+업로드 금지 또는 보안등급 강화
+로그
+파일 원문·경로·민감내용 로그 금지
+파일명 정규화 예시
+public String sanitizeFileName(String originalFileName) {
+    String fileName = Paths.get(originalFileName).getFileName().toString();
+
+    if (!fileName.matches("^[a-zA-Z0-9가-힣._ -]{1,150}$")) {
+        throw new BusinessException(
+                "E-FILE-SEC-0001",
+                "허용되지 않은 파일명입니다."
+        );
+    }
+
+    return fileName;
+}
+
+저장 파일명 생성 예시
+public String generateStoredName(String originalName) {
+    String extension = extractExtension(originalName);
+    String uuid = UUID.randomUUID().toString().replace("-", "");
+
+    return uuid + "." + extension;
+}
+
+
+44.13 성능 기준
+항목
+기준
+다운로드 방식
+전체 메모리 적재 금지, Stream 처리
+업로드 방식
+Multipart Stream 처리
+대용량 파일
+온라인 Thread 장시간 점유 금지
+Heap 사용
+파일 byte[] 전체 보관 금지
+DB 저장
+BLOB 저장 지양, 메타만 저장
+Timeout
+일반 파일과 대용량 파일 Timeout 분리
+다운로드 속도
+필요 시 Rate Limit 적용
+동시 다운로드
+사용자·업무별 동시 건수 제한
+파일 생성
+대량 엑셀은 비동기 Job 처리
+모니터링
+파일 처리시간, 실패율, 크기, 건수 수집
+금지 코드
+byte[] bytes = multipartFile.getBytes();
+
+대용량 파일에서 getBytes()는 Heap을 급격히 사용하므로 지양한다.
+권장 코드
+try (InputStream in = multipartFile.getInputStream()) {
+    storageService.store(fileId, in, multipartFile.getSize());
+}
+
+
+44.14 대용량 다운로드 기준
+대량 조회 결과를 즉시 파일로 만들어 응답하면 WAS Thread와 Heap을 오래 점유한다.따라서 대용량 다운로드는 다음 구조를 권장한다.
+[화면]
+  다운로드 요청
+        ↓
+[TCF 거래]
+  다운로드 Job 등록
+        ↓
+[Batch / Async Worker]
+  데이터 조회
+  파일 생성
+  Storage 저장
+  UD_FILE_META 저장
+        ↓
+[화면]
+  생성 상태 조회
+        ↓
+[다운로드]
+  생성 완료된 파일 Stream 다운로드
+
+구분
+기준
+소량 다운로드
+즉시 생성 가능
+대량 다운로드
+비동기 생성
+생성 상태
+WAIT, PROCESSING, SUCCESS, FAIL
+다운로드 가능 시점
+SUCCESS 이후
+파일 보관기간
+업무별 1~30일
+감사로그
+요청 시점과 다운로드 시점 모두 기록
+
+44.15 보관 / 삭제 기준
+파일 상태
+의미
+처리 기준
+ACTIVE
+사용 가능
+다운로드 가능
+EXPIRED
+보관기간 만료
+다운로드 차단
+DELETED
+논리삭제
+화면 비노출
+PURGED
+물리삭제 완료
+Storage 삭제 완료
+VIRUS_DETECTED
+악성코드 의심
+다운로드 차단
+QUARANTINED
+격리
+관리자만 조회
+삭제는 바로 물리삭제하지 않고 논리삭제를 우선한다.
+삭제 요청
+   ↓
+권한 확인
+   ↓
+UD_FILE_META.DELETE_YN = Y
+   ↓
+감사로그 기록
+   ↓
+보관기간 경과
+   ↓
+배치에서 Storage 물리삭제
+   ↓
+PURGED 상태 기록
+
+
+44.16 application.yml 예시
+nsight:
+  file:
+    enabled: true
+
+    upload:
+      max-file-size: 50MB
+      max-request-size: 60MB
+      max-file-count: 5
+      allowed-extensions:
+        - xlsx
+        - csv
+        - pdf
+        - txt
+        - zip
+      blocked-extensions:
+        - exe
+        - sh
+        - bat
+        - js
+        - jsp
+        - class
+      mime-check-enabled: true
+      magic-byte-check-enabled: true
+      virus-scan-enabled: true
+
+    storage:
+      type: NAS
+      base-path: /data/nsight/updownload
+      temp-path: /data/nsight/updownload/tmp
+      use-date-path: true
+      expose-real-path: false
+
+    download:
+      audit-required: true
+      reason-required-for-sensitive-file: true
+      max-sync-download-size: 50MB
+      async-threshold-size: 100MB
+      content-disposition: attachment
+      rate-limit-enabled: true
+
+    retention:
+      default-days: 30
+      temp-file-days: 1
+      report-file-days: 7
+      batch-result-days: 30
+      purge-cron: "0 0 2 * * *"
+
+
+44.17 오류코드 기준
+오류코드
+오류명
+발생 위치
+사용자 메시지
+E-FILE-UPL-0001
+파일 누락
+Upload API
+업로드할 파일이 없습니다.
+E-FILE-UPL-0002
+파일 크기 초과
+Upload Validator
+파일 크기가 허용 범위를 초과했습니다.
+E-FILE-UPL-0003
+허용되지 않은 확장자
+Upload Validator
+허용되지 않은 파일 형식입니다.
+E-FILE-UPL-0004
+MIME 검증 실패
+Upload Validator
+파일 형식이 올바르지 않습니다.
+E-FILE-UPL-0005
+악성코드 의심
+Virus Scan
+파일 보안검사에 실패했습니다.
+E-FILE-DWN-0001
+파일 없음
+Download API
+파일을 찾을 수 없습니다.
+E-FILE-DWN-0002
+다운로드 권한 없음
+Download Validator
+다운로드 권한이 없습니다.
+E-FILE-DWN-0003
+만료된 파일
+Download Validator
+다운로드 가능 기간이 만료되었습니다.
+E-FILE-DWN-0004
+삭제된 파일
+Download Validator
+삭제된 파일입니다.
+E-FILE-SEC-0001
+파일명 보안 오류
+Upload Validator
+허용되지 않은 파일명입니다.
+E-FILE-STO-0001
+저장소 오류
+Storage Service
+파일 저장소 처리 중 오류가 발생했습니다.
+E-FILE-AUD-0001
+감사로그 저장 실패
+Audit
+다운로드 이력 저장 중 오류가 발생했습니다.
+
+44.18 Java 구현 예시
+44.18.1 Upload Service
+@Service
+@RequiredArgsConstructor
+public class UdFileUploadService {
+
+    private final FileUploadValidator validator;
+    private final FileStorageService storageService;
+    private final UdFileMetaMapper fileMetaMapper;
+    private final AuditLogService auditLogService;
+
+    @Transactional(timeout = 10)
+    public FileUploadResponse upload(
+            MultipartFile file,
+            FileUploadCommand command,
+            TransactionContext context
+    ) {
+        validator.validate(file, command, context);
+
+        String fileId = UUID.randomUUID().toString();
+        String originalName = validator.sanitizeFileName(file.getOriginalFilename());
+        String storedName = storageService.generateStoredName(originalName);
+
+        StoredFile storedFile = storageService.store(
+                fileId,
+                storedName,
+                file
+        );
+
+        UdFileMeta meta = UdFileMeta.builder()
+                .fileId(fileId)
+                .originalName(originalName)
+                .storedName(storedName)
+                .storageType(storedFile.getStorageType())
+                .storagePath(storedFile.getStoragePath())
+                .contentType(file.getContentType())
+                .fileSize(file.getSize())
+                .fileHash(storedFile.getSha256Hash())
+                .description(command.getDescription())
+                .businessCode(command.getBusinessCode())
+                .uploadUser(context.getSessionContext().getUserId())
+                .useYn("Y")
+                .deleteYn("N")
+                .build();
+
+        fileMetaMapper.insert(meta);
+
+        auditLogService.writeFileUpload(meta, context);
+
+        return FileUploadResponse.from(meta);
+    }
+}
+
+44.18.2 Download Service
+@Service
+@RequiredArgsConstructor
+public class UdFileDownloadService {
+
+    private final UdFileMetaMapper fileMetaMapper;
+    private final FileStorageService storageService;
+    private final FileDownloadValidator validator;
+    private final FileDownloadLogService downloadLogService;
+
+    @Transactional(timeout = 5)
+    public FileDownloadResource download(
+            String fileId,
+            FileDownloadCommand command,
+            TransactionContext context
+    ) {
+        UdFileMeta meta = fileMetaMapper.selectByFileId(fileId);
+
+        validator.validateDownload(meta, command, context);
+
+        InputStreamResource resource =
+                storageService.loadAsResource(meta);
+
+        downloadLogService.insertSuccess(meta, command, context);
+
+        return FileDownloadResource.builder()
+                .fileName(meta.getOriginalName())
+                .contentType(meta.getContentType())
+                .contentLength(meta.getFileSize())
+                .resource(resource)
+                .build();
+    }
+}
+
+
+44.19 금지 기준
+금지 항목
+사유
+파일 원본 DB 저장
+DB 비대화, 성능 저하
+파일 원본 Session 저장
+SESSIONDB 비대화, 장애 위험
+파일 byte[] 전체 메모리 적재
+Heap 고갈 위험
+실제 Storage 경로 응답
+내부 경로 노출
+사용자 파일명 그대로 저장
+경로 조작·충돌 위험
+확장자 검증 없이 업로드
+악성파일 업로드 위험
+다운로드 권한 없이 fileId만으로 다운로드
+정보유출 위험
+고객정보 다운로드 감사로그 생략
+감사 대응 불가
+Web Root 하위 파일 저장
+직접 접근 위험
+대량 다운로드를 동기 온라인 거래로 처리
+WAS Thread 장시간 점유
+삭제 즉시 물리삭제만 수행
+감사·복구 어려움
+파일 다운로드 URL 장기 노출
+무단 공유 위험
+
+44.20 테스트 케이스
+No
+테스트 케이스
+기대 결과
+1
+정상 PDF 업로드
+메타 저장, 파일 저장, 감사로그 기록
+2
+파일 없이 업로드
+E-FILE-UPL-0001
+3
+50MB 초과 파일 업로드
+E-FILE-UPL-0002
+4
+exe 파일 업로드
+E-FILE-UPL-0003
+5
+확장자와 MIME 불일치
+E-FILE-UPL-0004
+6
+../test.txt 파일명 업로드
+E-FILE-SEC-0001
+7
+권한 없는 사용자 다운로드
+E-FILE-DWN-0002
+8
+만료 파일 다운로드
+E-FILE-DWN-0003
+9
+삭제 파일 다운로드
+E-FILE-DWN-0004
+10
+고객정보 파일 다운로드
+다운로드 사유 + 감사로그 필수
+11
+Storage 파일 없음
+저장소 오류 또는 파일 없음 처리
+12
+대용량 다운로드 요청
+비동기 생성 방식으로 전환
+13
+동일 파일 중복 업로드
+정책에 따라 허용 또는 중복 안내
+14
+물리삭제 배치 실행
+만료·삭제 파일만 제거
+15
+로그에 실제 파일경로 노출 여부
+노출 금지
+
+44.21 개발자 체크리스트
+점검 항목
+확인
+파일 원본을 DB에 저장하지 않는가
+□
+파일 원본을 Session에 저장하지 않는가
+□
+실제 파일은 Storage에 저장하고 DB에는 메타만 저장하는가
+□
+파일명, 확장자, MIME, 크기 검증을 수행하는가
+□
+저장 파일명은 UUID 기반으로 재생성하는가
+□
+다운로드는 fileId 기준으로만 수행하는가
+□
+실제 Storage 경로를 응답에 노출하지 않는가
+□
+다운로드 권한과 데이터권한을 검증하는가
+□
+다운로드 이력과 감사로그를 저장하는가
+□
+고객정보·대량파일 다운로드 사유를 기록하는가
+□
+대용량 파일은 비동기 생성 방식으로 분리하는가
+□
+논리삭제와 물리삭제를 분리하는가
+□
+파일 보관기간과 자동삭제 배치가 있는가
+□
+악성코드 검사 또는 보안 솔루션 연계 기준이 있는가
+□
+장애 시 저장소 오류와 DB 오류를 구분해서 처리하는가
+□
+
+44.22 마무리말
+파일 업다운로드 기준의 핵심은 파일 Stream 처리와 운영통제를 분리하는 것이다.파일 원본은 UD API와 Storage가 처리하고, OM은 메타·권한·감사·보관·삭제 정책을 관리해야 한다.
+파일은 고객정보와 운영증적을 포함할 수 있기 때문에 일반 데이터 조회보다 더 강한 보안과 감사 기준이 필요하다. 따라서 NSIGHT에서는 파일 업다운로드를 단순 API가 아니라 권한검증, 감사로그, 보관정책, 삭제정책이 결합된 운영관리 기능으로 설계해야 한다.
+44.23 시사점
+관점
+시사점
+개발 관점
+업무 개발자는 파일 원본을 DB나 Session에 넣지 않고 UD 공통 API를 사용한다
+운영 관점
+OM에서 파일 목록, 다운로드 이력, 삭제, 보관기간, 감사로그를 관리해야 한다
+보안 관점
+파일명·확장자·MIME·권한·감사·악성코드 검증이 필수이다
+아키텍처 관점
+대용량 파일은 온라인 거래와 분리하고, Storage + Metadata + Audit 구조로 관리해야 한다
+

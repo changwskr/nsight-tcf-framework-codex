@@ -1,0 +1,4 @@
+# prod — 운영 txlog / 공유 DB 경로
+nsight:
+  txlog:
+    path: ${NSIGHT_TXLOG_PATH:/var/nsight/txlog}

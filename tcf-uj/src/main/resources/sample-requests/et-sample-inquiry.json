@@ -1,0 +1,27 @@
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "ET",
+    "serviceId": "ET.TransactionIo.list",
+    "transactionCode": "ET-LST-0001",
+    "processingType": "INQUIRY",
+    "guid": "",
+    "traceId": "",
+    "channelId": "WEBTOP",
+    "userId": "U123456",
+    "branchId": "001234",
+    "centerId": "DC1",
+    "requestTime": "2026-06-14T10:30:00+09:00",
+    "transactionIntime": "2026-06-14T10:30:00+09:00",
+    "transactionOuttime": "",
+    "systemDate": "20260614",
+    "bizDate": "20260614",
+    "clientIp": "10.10.10.10"
+  },
+  "body": {
+    "businessCode": "SV",
+    "systemDate": "20260614",
+    "page": 1,
+    "pageSize": 3
+  }
+}

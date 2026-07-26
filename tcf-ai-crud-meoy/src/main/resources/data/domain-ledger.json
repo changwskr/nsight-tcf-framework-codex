@@ -1,0 +1,1206 @@
+{
+  "version": "0.1.0",
+  "generatedAt": "2026-07-26",
+  "sourceNote": "BusinessModuleDefinitions + *Handler.java ServiceId scan [실제 소스 확인]",
+  "moduleCount": 22,
+  "domainCount": 50,
+  "serviceIdCount": 118,
+  "modules": [
+    {
+      "businessCode": "CC",
+      "moduleName": "Common",
+      "group": "공통",
+      "localPort": 8081,
+      "gradleModule": null,
+      "status": "CATALOG_ONLY",
+      "domainCount": 0,
+      "serviceIdCount": 0,
+      "domains": []
+    },
+    {
+      "businessCode": "IC",
+      "moduleName": "Integration Customer",
+      "group": "고객",
+      "localPort": 8082,
+      "gradleModule": "ic-service",
+      "status": "ACTIVE",
+      "domainCount": 2,
+      "serviceIdCount": 2,
+      "domains": [
+        {
+          "domainCode": "Customer",
+          "domainName": "고객",
+          "handler": "IcCustomerHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "IC.Customer.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "Sample",
+          "domainName": "샘플",
+          "handler": "IcSampleHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "IC.Sample.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "businessCode": "PC",
+      "moduleName": "Private Customer",
+      "group": "고객",
+      "localPort": 8083,
+      "gradleModule": "pc-service",
+      "status": "ACTIVE",
+      "domainCount": 1,
+      "serviceIdCount": 1,
+      "domains": [
+        {
+          "domainCode": "Sample",
+          "domainName": "샘플",
+          "handler": "PcSampleHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "PC.Sample.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "businessCode": "BC",
+      "moduleName": "Business Customer",
+      "group": "고객",
+      "localPort": 8084,
+      "gradleModule": null,
+      "status": "CATALOG_ONLY",
+      "domainCount": 0,
+      "serviceIdCount": 0,
+      "domains": []
+    },
+    {
+      "businessCode": "MS",
+      "moduleName": "Mini Single View",
+      "group": "고객",
+      "localPort": 8085,
+      "gradleModule": "ms-service",
+      "status": "ACTIVE",
+      "domainCount": 1,
+      "serviceIdCount": 1,
+      "domains": [
+        {
+          "domainCode": "Sample",
+          "domainName": "샘플",
+          "handler": "MsSampleHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "MS.Sample.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "businessCode": "SV",
+      "moduleName": "Single View",
+      "group": "마케팅",
+      "localPort": 8086,
+      "gradleModule": "sv-service",
+      "status": "ACTIVE",
+      "domainCount": 3,
+      "serviceIdCount": 3,
+      "domains": [
+        {
+          "domainCode": "Customer",
+          "domainName": "고객",
+          "handler": "SvCustomerHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "SV.Customer.selectSummary",
+              "action": "selectSummary",
+              "operation": "SELECT_ONE"
+            }
+          ]
+        },
+        {
+          "domainCode": "Integration",
+          "domainName": "연계",
+          "handler": "SvIntegrationHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "SV.Integration.icSample",
+              "action": "icSample",
+              "operation": "OTHER"
+            }
+          ]
+        },
+        {
+          "domainCode": "Sample",
+          "domainName": "샘플",
+          "handler": "SvSampleHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "SV.Sample.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "businessCode": "PD",
+      "moduleName": "Product",
+      "group": "마케팅",
+      "localPort": 8087,
+      "gradleModule": "pd-service",
+      "status": "ACTIVE",
+      "domainCount": 1,
+      "serviceIdCount": 1,
+      "domains": [
+        {
+          "domainCode": "Sample",
+          "domainName": "샘플",
+          "handler": "PdSampleHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "PD.Sample.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "businessCode": "CM",
+      "moduleName": "Campaign",
+      "group": "마케팅",
+      "localPort": 8088,
+      "gradleModule": null,
+      "status": "CATALOG_ONLY",
+      "domainCount": 0,
+      "serviceIdCount": 0,
+      "domains": []
+    },
+    {
+      "businessCode": "EB",
+      "moduleName": "EBM",
+      "group": "마케팅",
+      "localPort": 8089,
+      "gradleModule": "eb-service",
+      "status": "ACTIVE",
+      "domainCount": 5,
+      "serviceIdCount": 6,
+      "domains": [
+        {
+          "domainCode": "Batch",
+          "domainName": "배치",
+          "handler": "EbBatchHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "EB.Batch.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "Event",
+          "domainName": "이벤트",
+          "handler": "EbEventHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "EB.Event.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "Sample",
+          "domainName": "샘플",
+          "handler": "EbSampleHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "EB.Sample.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "SystemTx",
+          "domainName": "시스템거래",
+          "handler": "EbSystemTxHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "EB.SystemTx.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "User",
+          "domainName": "사용자",
+          "handler": "EbUserHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "EB.User.create",
+              "action": "create",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "EB.User.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "businessCode": "AV",
+      "moduleName": "AV Service",
+      "group": "마케팅",
+      "localPort": 8101,
+      "gradleModule": "av-service",
+      "status": "ACTIVE",
+      "domainCount": 1,
+      "serviceIdCount": 1,
+      "domains": [
+        {
+          "domainCode": "Sample",
+          "domainName": "샘플",
+          "handler": "AvSampleHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "AV.Sample.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "businessCode": "LN",
+      "moduleName": "Loan / Customer Contact (시범)",
+      "group": "마케팅",
+      "localPort": 8103,
+      "gradleModule": "ln-service",
+      "status": "ACTIVE",
+      "domainCount": 1,
+      "serviceIdCount": 2,
+      "domains": [
+        {
+          "domainCode": "CustomerContact",
+          "domainName": "고객연락처",
+          "handler": "LnCustomerContactHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "LN.CustomerContact.selectDetail",
+              "action": "selectDetail",
+              "operation": "SELECT_ONE"
+            },
+            {
+              "serviceId": "LN.CustomerContact.selectList",
+              "action": "selectList",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "businessCode": "EP",
+      "moduleName": "Event Processing",
+      "group": "실시간",
+      "localPort": 8090,
+      "gradleModule": "ep-service",
+      "status": "ACTIVE",
+      "domainCount": 2,
+      "serviceIdCount": 3,
+      "domains": [
+        {
+          "domainCode": "Sample",
+          "domainName": "샘플",
+          "handler": "EpSampleHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "EP.Sample.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "UserEvent",
+          "domainName": "사용자이벤트",
+          "handler": "EpUserEventHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "EP.UserEvent.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            },
+            {
+              "serviceId": "EP.UserEvent.receive",
+              "action": "receive",
+              "operation": "INSERT"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "businessCode": "BP",
+      "moduleName": "Behavior Processing",
+      "group": "실시간",
+      "localPort": 8091,
+      "gradleModule": null,
+      "status": "CATALOG_ONLY",
+      "domainCount": 0,
+      "serviceIdCount": 0,
+      "domains": []
+    },
+    {
+      "businessCode": "BD",
+      "moduleName": "Behavior Data",
+      "group": "데이터",
+      "localPort": 8092,
+      "gradleModule": null,
+      "status": "CATALOG_ONLY",
+      "domainCount": 0,
+      "serviceIdCount": 0,
+      "domains": []
+    },
+    {
+      "businessCode": "SS",
+      "moduleName": "Sales Support",
+      "group": "지원",
+      "localPort": 8093,
+      "gradleModule": "ss-service",
+      "status": "ACTIVE",
+      "domainCount": 1,
+      "serviceIdCount": 1,
+      "domains": [
+        {
+          "domainCode": "Sample",
+          "domainName": "샘플",
+          "handler": "SsSampleHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "SS.Sample.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "businessCode": "OC",
+      "moduleName": "Operation Capacity (tcf-oc)",
+      "group": "운영",
+      "localPort": 8094,
+      "gradleModule": "tcf-oc",
+      "status": "ACTIVE",
+      "domainCount": 1,
+      "serviceIdCount": 1,
+      "domains": [
+        {
+          "domainCode": "Hello",
+          "domainName": "Hello",
+          "handler": "OcHelloHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OC.Hello.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "businessCode": "CS",
+      "moduleName": "Common Service",
+      "group": "지원",
+      "localPort": 8094,
+      "gradleModule": null,
+      "status": "CATALOG_ONLY",
+      "domainCount": 0,
+      "serviceIdCount": 0,
+      "domains": []
+    },
+    {
+      "businessCode": "CT",
+      "moduleName": "Contents",
+      "group": "지원",
+      "localPort": 8095,
+      "gradleModule": null,
+      "status": "CATALOG_ONLY",
+      "domainCount": 0,
+      "serviceIdCount": 0,
+      "domains": []
+    },
+    {
+      "businessCode": "MG",
+      "moduleName": "Message",
+      "group": "지원",
+      "localPort": 8096,
+      "gradleModule": "mg-service",
+      "status": "ACTIVE",
+      "domainCount": 1,
+      "serviceIdCount": 1,
+      "domains": [
+        {
+          "domainCode": "Sample",
+          "domainName": "샘플",
+          "handler": "MgSampleHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "MG.Sample.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "businessCode": "OM",
+      "moduleName": "Operation Management (tcf-om)",
+      "group": "운영",
+      "localPort": 8097,
+      "gradleModule": "tcf-om",
+      "status": "ACTIVE",
+      "domainCount": 25,
+      "serviceIdCount": 84,
+      "domains": [
+        {
+          "domainCode": "AuditLog",
+          "domainName": "감사로그",
+          "handler": "OmAuditLogHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.AuditLog.deleteAll",
+              "action": "deleteAll",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.AuditLog.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "Auth",
+          "domainName": "인증",
+          "handler": "OmAuthHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.Auth.login",
+              "action": "login",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "OM.Auth.logout",
+              "action": "logout",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.Auth.session",
+              "action": "session",
+              "operation": "SELECT_ONE"
+            },
+            {
+              "serviceId": "OM.Auth.ssoLogin",
+              "action": "ssoLogin",
+              "operation": "INSERT"
+            }
+          ]
+        },
+        {
+          "domainCode": "AuthGroup",
+          "domainName": "권한그룹",
+          "handler": "OmAuthGroupHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.AuthGroup.delete",
+              "action": "delete",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.AuthGroup.detail",
+              "action": "detail",
+              "operation": "SELECT_ONE"
+            },
+            {
+              "serviceId": "OM.AuthGroup.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            },
+            {
+              "serviceId": "OM.AuthGroup.save",
+              "action": "save",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "OM.AuthGroup.update",
+              "action": "update",
+              "operation": "UPDATE"
+            }
+          ]
+        },
+        {
+          "domainCode": "AuthHistory",
+          "domainName": "인증이력",
+          "handler": "OmAuthHistoryHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.AuthHistory.deleteAll",
+              "action": "deleteAll",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.AuthHistory.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "Batch",
+          "domainName": "배치",
+          "handler": "OmBatchHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.Batch.deleteAll",
+              "action": "deleteAll",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.Batch.execute",
+              "action": "execute",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "OM.Batch.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "Cache",
+          "domainName": "캐시",
+          "handler": "OmCacheHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.Cache.delete",
+              "action": "delete",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.Cache.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "CommonCode",
+          "domainName": "공통코드",
+          "handler": "OmCommonCodeHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.CommonCode.delete",
+              "action": "delete",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.CommonCode.detail",
+              "action": "detail",
+              "operation": "SELECT_ONE"
+            },
+            {
+              "serviceId": "OM.CommonCode.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            },
+            {
+              "serviceId": "OM.CommonCode.save",
+              "action": "save",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "OM.CommonCode.update",
+              "action": "update",
+              "operation": "UPDATE"
+            }
+          ]
+        },
+        {
+          "domainCode": "Dashboard",
+          "domainName": "대시보드",
+          "handler": "OmDashboardHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.Dashboard.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            },
+            {
+              "serviceId": "OM.Dashboard.reset",
+              "action": "reset",
+              "operation": "INSERT"
+            }
+          ]
+        },
+        {
+          "domainCode": "DataAuth",
+          "domainName": "데이터권한",
+          "handler": "OmDataAuthHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.DataAuth.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "Deploy",
+          "domainName": "배포",
+          "handler": "OmDeployHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.Deploy.approve",
+              "action": "approve",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "OM.Deploy.buildRequest",
+              "action": "buildRequest",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "OM.Deploy.buildStatus",
+              "action": "buildStatus",
+              "operation": "SELECT_ONE"
+            },
+            {
+              "serviceId": "OM.Deploy.deleteAll",
+              "action": "deleteAll",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.Deploy.deployRequest",
+              "action": "deployRequest",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "OM.Deploy.execute",
+              "action": "execute",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "OM.Deploy.healthCheck",
+              "action": "healthCheck",
+              "operation": "SELECT_ONE"
+            },
+            {
+              "serviceId": "OM.Deploy.history",
+              "action": "history",
+              "operation": "SELECT_LIST"
+            },
+            {
+              "serviceId": "OM.Deploy.logInquiry",
+              "action": "logInquiry",
+              "operation": "SELECT_LIST"
+            },
+            {
+              "serviceId": "OM.Deploy.rollbackRequest",
+              "action": "rollbackRequest",
+              "operation": "INSERT"
+            }
+          ]
+        },
+        {
+          "domainCode": "ErrorCode",
+          "domainName": "오류코드",
+          "handler": "OmErrorCodeHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.ErrorCode.delete",
+              "action": "delete",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.ErrorCode.detail",
+              "action": "detail",
+              "operation": "SELECT_ONE"
+            },
+            {
+              "serviceId": "OM.ErrorCode.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            },
+            {
+              "serviceId": "OM.ErrorCode.save",
+              "action": "save",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "OM.ErrorCode.update",
+              "action": "update",
+              "operation": "UPDATE"
+            }
+          ]
+        },
+        {
+          "domainCode": "FileDownload",
+          "domainName": "파일다운로드",
+          "handler": "OmFileDownloadHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.FileDownload.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "FunctionAuth",
+          "domainName": "기능권한",
+          "handler": "OmFunctionAuthHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.FunctionAuth.delete",
+              "action": "delete",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.FunctionAuth.detail",
+              "action": "detail",
+              "operation": "SELECT_ONE"
+            },
+            {
+              "serviceId": "OM.FunctionAuth.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            },
+            {
+              "serviceId": "OM.FunctionAuth.save",
+              "action": "save",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "OM.FunctionAuth.update",
+              "action": "update",
+              "operation": "UPDATE"
+            }
+          ]
+        },
+        {
+          "domainCode": "HealthCheck",
+          "domainName": "헬스체크",
+          "handler": "OmHealthCheckHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.HealthCheck.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "Menu",
+          "domainName": "메뉴",
+          "handler": "OmMenuHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.Menu.delete",
+              "action": "delete",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.Menu.detail",
+              "action": "detail",
+              "operation": "SELECT_ONE"
+            },
+            {
+              "serviceId": "OM.Menu.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            },
+            {
+              "serviceId": "OM.Menu.save",
+              "action": "save",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "OM.Menu.update",
+              "action": "update",
+              "operation": "UPDATE"
+            }
+          ]
+        },
+        {
+          "domainCode": "MessageStructure",
+          "domainName": "메시지구조",
+          "handler": "OmMessageStructureHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.MessageStructure.delete",
+              "action": "delete",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.MessageStructure.detail",
+              "action": "detail",
+              "operation": "SELECT_ONE"
+            },
+            {
+              "serviceId": "OM.MessageStructure.frameworkInquiry",
+              "action": "frameworkInquiry",
+              "operation": "SELECT_LIST"
+            },
+            {
+              "serviceId": "OM.MessageStructure.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            },
+            {
+              "serviceId": "OM.MessageStructure.save",
+              "action": "save",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "OM.MessageStructure.update",
+              "action": "update",
+              "operation": "UPDATE"
+            }
+          ]
+        },
+        {
+          "domainCode": "Runtime",
+          "domainName": "런타임",
+          "handler": "OmRuntimeHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.Runtime.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "Sample",
+          "domainName": "샘플",
+          "handler": "OmSampleHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.Sample.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "ServiceCatalog",
+          "domainName": "서비스카탈로그",
+          "handler": "OmServiceCatalogHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.ServiceCatalog.delete",
+              "action": "delete",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.ServiceCatalog.detail",
+              "action": "detail",
+              "operation": "SELECT_ONE"
+            },
+            {
+              "serviceId": "OM.ServiceCatalog.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            },
+            {
+              "serviceId": "OM.ServiceCatalog.save",
+              "action": "save",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "OM.ServiceCatalog.update",
+              "action": "update",
+              "operation": "UPDATE"
+            }
+          ]
+        },
+        {
+          "domainCode": "Session",
+          "domainName": "세션",
+          "handler": "OmSessionHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.Session.delete",
+              "action": "delete",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.Session.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "SystemConfig",
+          "domainName": "시스템설정",
+          "handler": "OmSystemConfigHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.SystemConfig.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "TimeoutPolicy",
+          "domainName": "Timeout정책",
+          "handler": "OmTimeoutPolicyHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.TimeoutPolicy.delete",
+              "action": "delete",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.TimeoutPolicy.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            },
+            {
+              "serviceId": "OM.TimeoutPolicy.save",
+              "action": "save",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "OM.TimeoutPolicy.update",
+              "action": "update",
+              "operation": "UPDATE"
+            }
+          ]
+        },
+        {
+          "domainCode": "TransactionControl",
+          "domainName": "거래통제",
+          "handler": "OmTransactionControlHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.TransactionControl.delete",
+              "action": "delete",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.TransactionControl.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            },
+            {
+              "serviceId": "OM.TransactionControl.save",
+              "action": "save",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "OM.TransactionControl.update",
+              "action": "update",
+              "operation": "UPDATE"
+            }
+          ]
+        },
+        {
+          "domainCode": "TransactionLog",
+          "domainName": "거래로그",
+          "handler": "OmTransactionLogHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.TransactionLog.deleteAll",
+              "action": "deleteAll",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.TransactionLog.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "User",
+          "domainName": "사용자",
+          "handler": "OmUserHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "OM.User.delete",
+              "action": "delete",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "OM.User.detail",
+              "action": "detail",
+              "operation": "SELECT_ONE"
+            },
+            {
+              "serviceId": "OM.User.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            },
+            {
+              "serviceId": "OM.User.save",
+              "action": "save",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "OM.User.update",
+              "action": "update",
+              "operation": "UPDATE"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "businessCode": "UD",
+      "moduleName": "Common UpDownload (tcf-om)",
+      "group": "공통",
+      "localPort": 8097,
+      "gradleModule": "tcf-om",
+      "status": "MODULE_EMPTY",
+      "domainCount": 0,
+      "serviceIdCount": 0,
+      "domains": []
+    },
+    {
+      "businessCode": "JWT",
+      "moduleName": "JWT Auth (tcf-jwt)",
+      "group": "인증",
+      "localPort": 8110,
+      "gradleModule": "tcf-jwt",
+      "status": "ACTIVE",
+      "domainCount": 5,
+      "serviceIdCount": 11,
+      "domains": [
+        {
+          "domainCode": "Auth",
+          "domainName": "인증",
+          "handler": "JwtAuthSsoIssueHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "JWT.Auth.login",
+              "action": "login",
+              "operation": "INSERT"
+            },
+            {
+              "serviceId": "JWT.Auth.logout",
+              "action": "logout",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "JWT.Auth.refresh",
+              "action": "refresh",
+              "operation": "OTHER"
+            },
+            {
+              "serviceId": "JWT.Auth.revoke",
+              "action": "revoke",
+              "operation": "DELETE"
+            },
+            {
+              "serviceId": "JWT.Auth.ssoIssue",
+              "action": "ssoIssue",
+              "operation": "INSERT"
+            }
+          ]
+        },
+        {
+          "domainCode": "LoginHistory",
+          "domainName": "로그인이력",
+          "handler": "JwtLoginHistoryInquiryHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "JWT.LoginHistory.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "RefreshToken",
+          "domainName": "Refresh토큰",
+          "handler": "JwtRefreshTokenInquiryHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "JWT.RefreshToken.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            }
+          ]
+        },
+        {
+          "domainCode": "SecurityPolicy",
+          "domainName": "보안정책",
+          "handler": "JwtSecurityPolicyUpdateHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "JWT.SecurityPolicy.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            },
+            {
+              "serviceId": "JWT.SecurityPolicy.update",
+              "action": "update",
+              "operation": "UPDATE"
+            }
+          ]
+        },
+        {
+          "domainCode": "Token",
+          "domainName": "토큰",
+          "handler": "JwtTokenRevokeHandler.java",
+          "serviceIds": [
+            {
+              "serviceId": "JWT.Token.inquiry",
+              "action": "inquiry",
+              "operation": "SELECT_LIST"
+            },
+            {
+              "serviceId": "JWT.Token.revoke",
+              "action": "revoke",
+              "operation": "DELETE"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+# tcf-core — EnvironmentPostProcessor (NsightTxlogPathEnvironmentPostProcessor)
+spring:
+  profiles:
+    default: local

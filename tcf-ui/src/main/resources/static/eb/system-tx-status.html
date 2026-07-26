@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>19410 시스템 거래 현황</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/eb-admin.css">
+  <style>
+    .stx-topbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .stx-screen-meta {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .stx-filter-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(220px, 1fr));
+      gap: 14px 16px;
+      width: 100%;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 980px) {
+      .stx-filter-grid { grid-template-columns: 1fr; }
+    }
+    .stx-filter-grid .field {
+      min-width: 0;
+      flex: none;
+    }
+    .stx-lookup {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.1fr);
+      gap: 6px;
+      align-items: center;
+    }
+    .stx-lookup input[readonly] {
+      background: #111827;
+      color: var(--muted);
+    }
+    .stx-datetime-range {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+    }
+    .stx-datetime-range .sep { color: var(--muted); }
+    .stx-filter-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .eb-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    .eb-modal-backdrop.is-open {
+      display: flex;
+    }
+    .eb-modal {
+      width: min(560px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .eb-modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+    }
+    .eb-modal-body { padding: 14px 16px; }
+    .eb-modal-body .hint {
+      margin: 0 0 12px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .eb-modal table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .eb-modal th, .eb-modal td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+    .eb-modal tr { cursor: pointer; }
+    .eb-modal tr:hover { background: rgba(56, 189, 248, 0.08); }
+    .stx-field-hint {
+      margin-top: 4px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .stx-table-wrap { overflow-x: auto; }
+    .stx-table-wrap .eb-table { min-width: 1400px; }
+    .stx-table-wrap .eb-table th { text-transform: none; letter-spacing: 0; }
+    .stx-hint {
+      margin: 0 0 12px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="eb-admin-wrap">
+    <header>
+      <div class="stx-topbar">
+        <div>
+          <h1>시스템 거래 현황</h1>
+          <p class="stx-screen-meta">화면번호 <strong>19410</strong> · <code>EB.SystemTx.inquiry</code> (EB-STX-0001)</p>
+        </div>
+        <div class="eb-actions">
+          <button type="button" class="btn-secondary" id="btnScreenReset">화면초기화</button>
+          <button type="button" class="btn-secondary" id="btnHelp">도움말</button>
+        </div>
+      </div>
+      <div class="nav-links">
+        <a class="nav-link" href="/index.html">← 업무 목록</a>
+        <a class="nav-link" href="/eb/index.html">EB 거래 테스트</a>
+        <a class="nav-link" href="/eb/user-management.html">사용자 관리</a>
+        <a class="nav-link" href="/eb/event-monitor.html">이벤트·배치 모니터</a>
+      </div>
+    </header>
+
+    <section class="eb-meta-bar">
+      <div class="eb-meta-card">
+        <div class="label">연결 대상</div>
+        <div class="value" id="metaTargetUrl">-</div>
+      </div>
+      <div class="eb-meta-card">
+        <div class="label">조회 거래</div>
+        <div class="value">EB.SystemTx.inquiry</div>
+      </div>
+      <div class="eb-meta-card">
+        <div class="label">상태</div>
+        <div class="value" id="listStatus">대기</div>
+      </div>
+    </section>
+
+    <section class="eb-filter-bar" style="align-items:stretch; display:block">
+      <p class="stx-hint">기본 조건: 샘플 기준일 2026-03-05 09:00 ~ 23:59 · 거래구분 전체. 오류만 보려면 거래구분을 「오류」로 변경하세요.</p>
+      <div class="stx-filter-grid">
+        <div class="field">
+          <label>거래일자</label>
+          <div class="stx-datetime-range">
+            <input id="filterFrom" type="datetime-local">
+            <span class="sep">~</span>
+            <input id="filterTo" type="datetime-local">
+          </div>
+        </div>
+        <div class="field">
+          <label for="filterTxType">거래구분</label>
+          <select id="filterTxType">
+            <option value="" selected>전체</option>
+            <option value="NORMAL">정상</option>
+            <option value="ERROR">오류</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="filterTxSeqNo">거래일련번호</label>
+          <input id="filterTxSeqNo" type="text" placeholder="부분 일치" maxlength="40">
+        </div>
+        <div class="field">
+          <label for="filterEmpNo">직원번호</label>
+          <div class="stx-lookup">
+            <input id="filterEmpNo" type="text" placeholder="직접 입력 또는 찾기" maxlength="20">
+            <button type="button" class="btn-secondary" id="btnEmpPopup" title="직원 목록에서 선택">찾기</button>
+            <input id="filterEmpName" type="text" placeholder="선택한 직원명" readonly>
+          </div>
+          <div class="stx-field-hint">조회 조건용 직원번호입니다. 「찾기」는 입력 보조(목록에서 선택)입니다.</div>
+        </div>
+        <div class="field">
+          <label for="filterScreenId">화면번호</label>
+          <div class="stx-lookup">
+            <input id="filterScreenId" type="text" placeholder="예: 19410" maxlength="20">
+            <button type="button" class="btn-secondary" id="btnScreenPopup" title="화면 목록에서 선택">찾기</button>
+            <input id="filterScreenName" type="text" placeholder="선택한 화면명" readonly>
+          </div>
+          <div class="stx-field-hint">조회 조건용 화면번호입니다. 「찾기」로 목록에서 고르면 번호·화면명이 채워집니다.</div>
+        </div>
+        <div class="field">
+          <label for="filterServiceId">서비스ID</label>
+          <input id="filterServiceId" type="text" placeholder="EB.SystemTx.inquiry" maxlength="80">
+        </div>
+      </div>
+      <div class="stx-filter-actions">
+        <button type="button" class="btn-primary" id="btnSearch">조회</button>
+        <button type="button" class="btn-secondary" id="btnRefresh">새로고침</button>
+      </div>
+    </section>
+
+    <section class="eb-table-panel">
+      <h2>시스템 거래 현황 <span id="totalLabel">(총건수 0 건)</span></h2>
+      <div class="stx-table-wrap">
+        <table class="eb-table">
+          <thead>
+            <tr>
+              <th>순번</th>
+              <th>거래일련번호</th>
+              <th>거래일자</th>
+              <th>마감화면ID</th>
+              <th>거래서비스ID</th>
+              <th>글로벌ID</th>
+              <th>요청일시</th>
+              <th>응답일시</th>
+              <th>거래소요시간(초)</th>
+              <th>거래입력내용</th>
+              <th>거래자개인번호</th>
+              <th>거래사무소코드</th>
+              <th>거래단말기IP주소</th>
+            </tr>
+          </thead>
+          <tbody id="txBody">
+            <tr><td colspan="13" class="eb-empty">조회 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="pagination" class="eb-pagination" hidden></div>
+    </section>
+  </div>
+
+  <div id="lookupModal" class="eb-modal-backdrop" aria-hidden="true">
+    <div class="eb-modal" role="dialog" aria-modal="true" aria-labelledby="lookupTitle">
+      <div class="eb-modal-head">
+        <span id="lookupTitle">목록에서 선택</span>
+        <button type="button" class="btn-secondary" id="btnLookupClose">닫기</button>
+      </div>
+      <div class="eb-modal-body">
+        <p class="hint" id="lookupHint">행을 클릭하면 조회조건에 반영됩니다.</p>
+        <table>
+          <thead>
+            <tr>
+              <th id="lookupColCode">번호</th>
+              <th id="lookupColName">이름</th>
+            </tr>
+          </thead>
+          <tbody id="lookupBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/_shared/ui-context.js"></script>
+  <script src="/_shared/eb-admin.js?v=20260714b"></script>
+  <script>
+    const PAGE_SIZE = 20;
+    let currentPage = 1;
+    let lookupMode = null;
+
+    const EMP_ROWS = [
+      { code: 'E1001', name: '김운영' },
+      { code: 'E1002', name: '이거래' },
+      { code: 'E1003', name: '박시스템' },
+      { code: 'E1099', name: '배치계정' }
+    ];
+    const SCREEN_ROWS = [
+      { code: '19410', name: '시스템 거래 현황' },
+      { code: '19101', name: 'EB 사용자 관리' },
+      { code: '19200', name: 'EB 이벤트·배치 모니터' }
+    ];
+
+    function defaultFilters() {
+      // 샘플 시드와 동일 기준일 — 오늘 날짜면 조회 0건처럼 보임
+      document.getElementById('filterFrom').value = '2026-03-05T09:00';
+      document.getElementById('filterTo').value = '2026-03-05T23:59';
+      document.getElementById('filterTxType').value = '';
+      document.getElementById('filterTxSeqNo').value = '';
+      document.getElementById('filterEmpNo').value = '';
+      document.getElementById('filterEmpName').value = '';
+      document.getElementById('filterScreenId').value = '';
+      document.getElementById('filterScreenName').value = '';
+      document.getElementById('filterServiceId').value = '';
+    }
+
+    function readFilters() {
+      const body = { pageNo: currentPage, pageSize: PAGE_SIZE };
+      const from = document.getElementById('filterFrom').value.trim();
+      const to = document.getElementById('filterTo').value.trim();
+      const txType = document.getElementById('filterTxType').value.trim();
+      const txSeqNo = document.getElementById('filterTxSeqNo').value.trim();
+      const empNo = document.getElementById('filterEmpNo').value.trim();
+      const screenId = document.getElementById('filterScreenId').value.trim();
+      const serviceId = document.getElementById('filterServiceId').value.trim();
+      if (from) body.txDateFrom = from;
+      if (to) body.txDateTo = to;
+      if (txType) body.txType = txType;
+      if (txSeqNo) body.txSeqNo = txSeqNo;
+      if (empNo) body.empNo = empNo;
+      if (screenId) body.screenId = screenId;
+      if (serviceId) body.serviceId = serviceId;
+      return body;
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function openLookup(mode) {
+      lookupMode = mode;
+      const rows = mode === 'emp' ? EMP_ROWS : SCREEN_ROWS;
+      const modal = document.getElementById('lookupModal');
+      document.getElementById('lookupTitle').textContent =
+        mode === 'emp' ? '직원 찾기' : '화면 찾기';
+      document.getElementById('lookupHint').textContent =
+        mode === 'emp'
+          ? '직원을 선택하면 조회조건 「직원번호」에 반영됩니다. (오른쪽 직원명은 확인용 표시)'
+          : '화면을 선택하면 조회조건 「화면번호」에 반영됩니다. (오른쪽 화면명은 확인용 표시)';
+      document.getElementById('lookupColCode').textContent =
+        mode === 'emp' ? '직원번호' : '화면번호';
+      document.getElementById('lookupColName').textContent =
+        mode === 'emp' ? '직원명' : '화면명';
+      document.getElementById('lookupBody').innerHTML = rows.map(r => `
+        <tr data-code="${r.code}" data-name="${r.name}">
+          <td class="eb-mono">${r.code}</td>
+          <td>${r.name}</td>
+        </tr>`).join('');
+      document.getElementById('lookupBody').querySelectorAll('tr').forEach(tr => {
+        tr.addEventListener('click', () => {
+          if (lookupMode === 'emp') {
+            document.getElementById('filterEmpNo').value = tr.dataset.code;
+            document.getElementById('filterEmpName').value = tr.dataset.name;
+          } else {
+            document.getElementById('filterScreenId').value = tr.dataset.code;
+            document.getElementById('filterScreenName').value = tr.dataset.name;
+          }
+          closeLookup();
+        });
+      });
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeLookup() {
+      const modal = document.getElementById('lookupModal');
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+      lookupMode = null;
+    }
+
+    async function loadList(page) {
+      currentPage = page;
+      const statusEl = document.getElementById('listStatus');
+      const tbody = document.getElementById('txBody');
+      statusEl.textContent = '조회 중...';
+      tbody.innerHTML = '<tr><td colspan="13" class="eb-empty">조회 중...</td></tr>';
+      try {
+        const { body, relay } = await EbAdmin.inquiry('systemTxInquiry', readFilters());
+        const rows = body.rows || [];
+        const totalCount = body.totalCount ?? 0;
+        document.getElementById('totalLabel').textContent = `(총건수 ${totalCount} 건)`;
+        statusEl.textContent = `${relay.elapsedMs}ms · ${rows.length}건`;
+        if (!rows.length) {
+          tbody.innerHTML = '<tr><td colspan="13" class="eb-empty">조회 결과 없음 — 총 0건</td></tr>';
+        } else {
+          tbody.innerHTML = rows.map(r => {
+            const input = EbAdmin.field(r, 'inputContent', '');
+            return `
+            <tr>
+              <td>${EbAdmin.field(r, 'rowNo')}</td>
+              <td class="eb-mono">${EbAdmin.field(r, 'txSeqNo')}</td>
+              <td>${EbAdmin.field(r, 'txDate')}</td>
+              <td class="eb-mono">${EbAdmin.field(r, 'screenId')}</td>
+              <td class="eb-mono">${EbAdmin.field(r, 'serviceId')}</td>
+              <td class="eb-mono">${EbAdmin.field(r, 'globalId')}</td>
+              <td class="eb-mono">${EbAdmin.formatTs(EbAdmin.field(r, 'requestAt', ''))}</td>
+              <td class="eb-mono">${EbAdmin.formatTs(EbAdmin.field(r, 'responseAt', ''))}</td>
+              <td>${EbAdmin.field(r, 'elapsedSec')}</td>
+              <td title="${escapeHtml(input)}">${escapeHtml(input)}</td>
+              <td class="eb-mono">${EbAdmin.field(r, 'empNo')}</td>
+              <td class="eb-mono">${EbAdmin.field(r, 'branchCode')}</td>
+              <td class="eb-mono">${EbAdmin.field(r, 'terminalIp')}</td>
+            </tr>`;
+          }).join('');
+        }
+        EbAdmin.renderPagination(
+          document.getElementById('pagination'),
+          body.pageNo || page,
+          body.pageSize || PAGE_SIZE,
+          totalCount,
+          p => loadList(p)
+        );
+      } catch (e) {
+        statusEl.textContent = '실패';
+        tbody.innerHTML = `<tr><td colspan="13" class="eb-empty">${escapeHtml(e.message)}</td></tr>`;
+      }
+    }
+
+    async function boot() {
+      await EbAdmin.loadConfig();
+      document.getElementById('metaTargetUrl').textContent = EbAdmin.getTargetUrl();
+      defaultFilters();
+      document.getElementById('btnSearch').addEventListener('click', () => loadList(1));
+      document.getElementById('btnRefresh').addEventListener('click', () => loadList(currentPage));
+      document.getElementById('btnScreenReset').addEventListener('click', () => {
+        currentPage = 1;
+        defaultFilters();
+        loadList(1);
+      });
+      document.getElementById('btnHelp').addEventListener('click', () => {
+        alert([
+          '화면번호: 19410 시스템 거래 현황',
+          '',
+          '· 거래일자/거래구분/일련번호/직원번호/화면번호/서비스ID로 시스템 거래를 조회합니다.',
+          '· 「찾기」: 직원·화면 번호를 몰라도 목록에서 고르기 위한 입력 보조입니다.',
+          '· 오른쪽 직원명·화면명 칸은 조회 API에 보내지 않으며, 선택한 값을 확인하는 표시용입니다.',
+          '',
+          '백엔드: EB.SystemTx.inquiry → EB_SYSTEM_TX',
+          '샘플 데이터 기준일: 2026-03-05 ~ 2026-03-06'
+        ].join('\n'));
+      });
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeLookup();
+      });
+      document.getElementById('btnEmpPopup').addEventListener('click', () => openLookup('emp'));
+      document.getElementById('btnScreenPopup').addEventListener('click', () => openLookup('screen'));
+      document.getElementById('btnLookupClose').addEventListener('click', closeLookup);
+      document.getElementById('lookupModal').addEventListener('click', e => {
+        if (e.target.id === 'lookupModal') closeLookup();
+      });
+      await loadList(1);
+    }
+
+    boot().catch(err => {
+      document.getElementById('listStatus').textContent = err.message;
+      document.getElementById('txBody').innerHTML =
+        `<tr><td colspan="13" class="eb-empty">${escapeHtml(err.message)}</td></tr>`;
+    });
+  </script>
+</body>
+</html>

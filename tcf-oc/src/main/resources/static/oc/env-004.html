@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ENV-004 계층 · NSIGHT OC</title>
+  <script src="/_shared/ui-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css"/>
+  <link rel="stylesheet" href="/_shared/oc-capacity.css"/>
+  <link rel="stylesheet" href="/_shared/oc-env.css"/>
+</head>
+<body class="tcf-env-page" data-env-page="env004" data-env-title="ENV-004 계층 · NSIGHT OC" data-env-subtitle="ENV-004 — 계층별 설정 점검">
+<div id="envPageShell"></div>
+<div id="statusBar" class="status-bar hidden" role="status"></div>
+
+<main class="env-layout">
+    <div id="envNoDataBanner" class="env-no-data-banner">
+        <p>산정 결과가 없습니다. <a href="/oc/env-002.html">ENV-002</a>에서 「산정 실행」 후 다시 열어 주세요.</p>
+    </div>
+
+    <section class="card env-screen" id="env004Section">
+        <div class="card-title row-title">
+            <div class="env-env004-criteria-wrap">
+                <h2>ENV-004 계층별 설정 점검</h2>
+                <p class="env-env004-criteria__stack-hint">스택: UI → GSLB → L4 → Apache → Tomcat → <strong>JVM</strong> → Spring Boot → MyBatis</p>
+                <div id="env004CriteriaPanel" class="env-env004-criteria env-env004-criteria--empty" role="region" aria-label="점검 기준값">
+                    <p class="env-env004-criteria__placeholder">ENV-002 산정 실행 후 점검 기준값이 표시됩니다.</p>
+                </div>
+            </div>
+            <button type="button" class="secondary env-export-excel-btn" data-env-export="ENV004">Excel 다운로드</button>
+        </div>
+
+        <div class="env-env004-tabs" id="env004LayerTabs">
+            <p class="env-env004-tabs__hint">계층 탭을 선택하면 해당 스택의 권장값·현재값·조치 가이드를 확인합니다.</p>
+            <div class="env-env004-tabs__nav-wrap">
+                <div class="env-env004-tabs__nav" id="env004TabNav" role="tablist" aria-label="스택 계층"></div>
+            </div>
+            <div class="env-env004-tabs__panels" id="env004TabPanels">
+                <p class="env-empty-cell">산정 실행 후 계층별 설정이 표시됩니다.</p>
+            </div>
+        </div>
+
+        <p class="env-screen-footer-hint"><a href="/oc/env-003.html">← ENV-003 TPS·VM</a> · <a href="/oc/check.html">종합 보고서 →</a></p>
+    </section>
+</main>
+
+  <script src="/_shared/oc-env-layout.js"></script>
+  <script src="/_shared/oc-env-planner.js"></script>
+  <script src="/_shared/oc-env-export.js"></script>
+</body>
+</html>

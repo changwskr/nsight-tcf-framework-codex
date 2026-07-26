@@ -1,0 +1,26 @@
+# sv-service Service — ClusterIP on port 8086
+#
+# Apply:
+#   kubectl apply -f sv-service/scripts/k8s/service.yaml
+#
+# In-cluster URL:
+#   http://nsight-sv.nsight.svc.cluster.local:8086/sv/online
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: nsight-sv
+  namespace: nsight
+  labels:
+    app: nsight-sv
+    app.kubernetes.io/name: sv-service
+    app.kubernetes.io/part-of: nsight-tcf-framework
+spec:
+  type: ClusterIP
+  selector:
+    app: nsight-sv
+  ports:
+    - name: http
+      port: 8086
+      targetPort: http
+      protocol: TCP

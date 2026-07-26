@@ -1,0 +1,10 @@
+[
+  {
+    "label": "Sample Inquiry",
+    "sampleFile": "ic-sample-inquiry.json"
+  },
+  {
+    "label": "Customer Inquiry (SV 연동)",
+    "sampleFile": "ic-customer-inquiry.json"
+  }
+]

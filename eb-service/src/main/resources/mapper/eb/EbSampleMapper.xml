@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nh.nsight.marketing.eb.persistence.mapper.EbSampleMapper">
+    <select id="selectSample"
+            parameterType="com.nh.nsight.marketing.eb.application.dto.sample.SampleSearchCriteria"
+            resultType="com.nh.nsight.marketing.eb.persistence.dto.sample.SampleRow">
+        SELECT
+            #{sampleKey} AS SAMPLE_KEY,
+            'EB Sample' AS SAMPLE_NAME
+    </select>
+</mapper>

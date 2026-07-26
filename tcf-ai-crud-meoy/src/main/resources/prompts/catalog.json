@@ -1,0 +1,630 @@
+{
+  "version": "0.1.0",
+  "sourceNote": "Synced from ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트 — runtime SoT is classpath prompts/",
+  "masterId": "C-MASTER",
+  "steps": [
+    {
+      "id": "C-MASTER",
+      "title": "대화원칙",
+      "order": -1,
+      "promptFile": "C-MASTER-대화원칙.md",
+      "resultFile": null,
+      "nextId": "C00",
+      "outcome": "C-MASTER 원칙 확인 후 C00 시작",
+      "requiresGate": false,
+      "isGate": false,
+      "gateChecks": [
+        "한 단계=질문 1개씩",
+        "단계 끝마다 결과/원장 갱신",
+        "C14 Gate 전 코드 생성 금지"
+      ],
+      "questions": [
+        {
+          "id": "master_ack",
+          "text": "C-MASTER 원칙(질문 1개씩·원장 갱신·C14 전 코드 금지)을 적용합니까?",
+          "type": "single",
+          "ledgerKey": "master.ack",
+          "recommended": "1",
+          "options": [
+            { "value": "1", "label": "예 — 적용" },
+            { "value": "2", "label": "아니오" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C00",
+      "title": "개발방식·기준소스",
+      "order": 0,
+      "promptFile": "C00-개발방식-기준소스.md",
+      "resultFile": "결과/C00-개발방식-기준소스.md",
+      "nextId": "C01",
+      "outcome": "개발유형·기준모듈·실행방식",
+      "requiresGate": false,
+      "isGate": false,
+      "gateChecks": ["신규·기존 구분", "기준 소스/모듈 확정"],
+      "questions": [
+        {
+          "id": "dev_mode",
+          "text": "이번 CRUD는 기존 업무 모듈에 추가합니까, 아니면 신규 업무 모듈을 생성합니까?",
+          "type": "single",
+          "ledgerKey": "c00.devMode",
+          "recommended": "1",
+          "options": [
+            { "value": "1", "label": "기존 업무 모듈에 추가" },
+            { "value": "2", "label": "신규 업무 모듈 생성" },
+            { "value": "3", "label": "아직 모르므로 구조를 먼저 추천" }
+          ]
+        },
+        {
+          "id": "base_module",
+          "text": "기준(또는 대상) 모듈명은?",
+          "type": "text",
+          "ledgerKey": "c00.baseModule",
+          "recommended": "av-service 또는 ln-service",
+          "placeholder": "예: av-service"
+        },
+        {
+          "id": "run_mode",
+          "text": "실행 기준은?",
+          "type": "single",
+          "ledgerKey": "c00.runMode",
+          "recommended": "1",
+          "options": [
+            { "value": "1", "label": "bootRun 우선" },
+            { "value": "2", "label": "WAR(Tomcat) 우선" },
+            { "value": "3", "label": "둘 다 동등" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C01",
+      "title": "업무·도메인",
+      "order": 1,
+      "promptFile": "C01-업무-도메인.md",
+      "resultFile": "결과/C01-업무-도메인.md",
+      "nextId": "C02",
+      "outcome": "업무코드·도메인·BASE 패키지",
+      "requiresGate": false,
+      "isGate": false,
+      "gateChecks": ["업무코드·도메인 확정"],
+      "questions": [
+        {
+          "id": "business_code",
+          "text": "업무코드(2~3자)는?",
+          "type": "text",
+          "ledgerKey": "c01.businessCode",
+          "recommended": "AV 또는 LN",
+          "placeholder": "예: LN"
+        },
+        {
+          "id": "domain_code",
+          "text": "도메인 영문 ID(UpperCamelCase)는?",
+          "type": "text",
+          "ledgerKey": "c01.domainCode",
+          "recommended": "CustomerContact",
+          "placeholder": "예: CustomerContact"
+        },
+        {
+          "id": "domain_name",
+          "text": "도메인 한글명은?",
+          "type": "text",
+          "ledgerKey": "c01.domainName",
+          "placeholder": "예: 고객연락처"
+        }
+      ]
+    },
+    {
+      "id": "C02",
+      "title": "CRUD 범위",
+      "order": 2,
+      "promptFile": "C02-CRUD-범위.md",
+      "resultFile": "결과/C02-CRUD-범위.md",
+      "nextId": "C03",
+      "outcome": "CRUD 범위·ServiceId 후보",
+      "requiresGate": false,
+      "isGate": false,
+      "gateChecks": ["범위 Explicit", "선도 조회 권장 반영"],
+      "questions": [
+        {
+          "id": "crud_scope",
+          "text": "이번 범위는?",
+          "type": "single",
+          "ledgerKey": "c02.scope",
+          "recommended": "2",
+          "options": [
+            { "value": "1", "label": "목록·상세·등록·변경·삭제 전체" },
+            { "value": "2", "label": "조회만 (선도 권장)" },
+            { "value": "3", "label": "등록·변경 중심" }
+          ]
+        },
+        {
+          "id": "service_ids",
+          "text": "ServiceId 목록(쉼표 구분)",
+          "type": "text",
+          "ledgerKey": "c02.serviceIds",
+          "recommended": "{BC}.{Domain}.selectList,selectDetail",
+          "placeholder": "예: LN.CustomerContact.selectList, LN.CustomerContact.selectDetail"
+        }
+      ]
+    },
+    {
+      "id": "C03",
+      "title": "화면·이벤트",
+      "order": 3,
+      "promptFile": "C03-화면-이벤트.md",
+      "resultFile": "결과/C03-화면-이벤트.md",
+      "nextId": "C04",
+      "outcome": "화면·이벤트 → ServiceId 매핑",
+      "requiresGate": false,
+      "isGate": false,
+      "gateChecks": ["화면/이벤트 추적"],
+      "questions": [
+        {
+          "id": "screen_id",
+          "text": "화면 ID(또는 경로)는?",
+          "type": "text",
+          "ledgerKey": "c03.screenId",
+          "placeholder": "예: /ln/contact-list.html"
+        },
+        {
+          "id": "events",
+          "text": "주요 이벤트 → ServiceId 매핑",
+          "type": "text",
+          "ledgerKey": "c03.events",
+          "placeholder": "예: 조회버튼→selectList, 행클릭→selectDetail"
+        }
+      ]
+    },
+    {
+      "id": "C04",
+      "title": "데이터 모델",
+      "order": 4,
+      "promptFile": "C04-데이터-모델.md",
+      "resultFile": "결과/C04-데이터-모델.md",
+      "nextId": "C05",
+      "outcome": "테이블·PK·컬럼",
+      "requiresGate": false,
+      "isGate": false,
+      "gateChecks": ["소유 WAR 테이블", "PK Explicit"],
+      "questions": [
+        {
+          "id": "table_info",
+          "text": "테이블명·PK 등 테이블 정보를 이미 알고 있습니까?",
+          "type": "single",
+          "ledgerKey": "c04.tableInfo",
+          "recommended": "1",
+          "options": [
+            { "value": "1", "label": "예 — 알고 있음 → 테이블명·PK 직접 입력" },
+            { "value": "2", "label": "아니오 — 모름 → 전략(기존/신규/확장)으로 진행" }
+          ]
+        },
+        {
+          "id": "table_mode",
+          "text": "테이블 전략은?",
+          "type": "single",
+          "ledgerKey": "c04.tableMode",
+          "recommended": "2",
+          "showWhen": { "questionId": "table_info", "equals": "2" },
+          "options": [
+            { "value": "1", "label": "기존 테이블 사용" },
+            { "value": "2", "label": "신규 테이블 생성" },
+            { "value": "3", "label": "기존 테이블 확장" }
+          ]
+        },
+        {
+          "id": "table_name",
+          "text": "테이블명은? (알고 있으면 확정값 직접 입력, 모르면 전략에 맞게 제안 후 확정)",
+          "type": "text",
+          "ledgerKey": "c04.tableName",
+          "placeholder": "예: AV_CUSTOMER_CONTACT"
+        },
+        {
+          "id": "pk",
+          "text": "PK 컬럼은? (알고 있으면 직접 입력)",
+          "type": "text",
+          "ledgerKey": "c04.pk",
+          "placeholder": "예: CONTACT_ID"
+        }
+      ]
+    },
+    {
+      "id": "C05",
+      "title": "업무규칙·상태",
+      "order": 5,
+      "promptFile": "C05-업무규칙-상태.md",
+      "resultFile": "결과/C05-업무규칙-상태.md",
+      "nextId": "C06",
+      "outcome": "Rule·상태 전이",
+      "requiresGate": false,
+      "isGate": false,
+      "gateChecks": ["규칙 Explicit 또는 없음"],
+      "questions": [
+        {
+          "id": "rules",
+          "text": "필수 업무규칙은? (없으면 없음)",
+          "type": "text",
+          "ledgerKey": "c05.rules",
+          "recommended": "없음 또는 필수값·중복 금지",
+          "placeholder": "예: CONTACT_VALUE 필수 / 없음"
+        }
+      ]
+    },
+    {
+      "id": "C06",
+      "title": "ServiceId·거래코드",
+      "order": 6,
+      "promptFile": "C06-ServiceId-거래코드.md",
+      "resultFile": "결과/C06-ServiceId-거래코드.md",
+      "nextId": "C07",
+      "outcome": "ServiceId·거래코드 확정",
+      "requiresGate": false,
+      "isGate": false,
+      "gateChecks": ["{BC}.{Domain}.{action} 형식"],
+      "questions": [
+        {
+          "id": "service_id_final",
+          "text": "확정 ServiceId 목록",
+          "type": "text",
+          "ledgerKey": "c06.serviceIds",
+          "placeholder": "예: LN.CustomerContact.selectList"
+        },
+        {
+          "id": "tx_code",
+          "text": "거래코드(없으면 미확정)",
+          "type": "text",
+          "ledgerKey": "c06.txCode",
+          "placeholder": "미확정 가능"
+        }
+      ]
+    },
+    {
+      "id": "C07",
+      "title": "요청·응답 DTO",
+      "order": 7,
+      "promptFile": "C07-요청-응답-DTO.md",
+      "resultFile": "결과/C07-요청-응답-DTO.md",
+      "nextId": "C08",
+      "outcome": "Request/Response/Criteria",
+      "requiresGate": false,
+      "isGate": false,
+      "gateChecks": ["DTO 필드 Explicit"],
+      "questions": [
+        {
+          "id": "dto_note",
+          "text": "주요 Request/Response 필드 요약",
+          "type": "text",
+          "ledgerKey": "c07.dtoSummary",
+          "placeholder": "예: selectList(req:keyword) → list[{id,name}]"
+        }
+      ]
+    },
+    {
+      "id": "C08",
+      "title": "패키지·프로그램구조",
+      "order": 8,
+      "promptFile": "C08-패키지-프로그램구조.md",
+      "resultFile": "결과/C08-패키지-프로그램구조.md",
+      "nextId": "C09",
+      "outcome": "entry/application/persistence 구조",
+      "requiresGate": false,
+      "isGate": false,
+      "gateChecks": ["업무 Controller 금지", "Handler→…→Mapper"],
+      "questions": [
+        {
+          "id": "package_layout",
+          "text": "패키지 레이아웃을 기준 모듈과 동일하게 합니까?",
+          "type": "single",
+          "ledgerKey": "c08.layout",
+          "recommended": "1",
+          "options": [
+            { "value": "1", "label": "예 — entry/handler·facade, application/service·rule, persistence/dao·mapper" },
+            { "value": "2", "label": "소스 확인 후 결정" },
+            { "value": "3", "label": "직접 지정" }
+          ]
+        },
+        {
+          "id": "handler_name",
+          "text": "Handler 클래스명",
+          "type": "text",
+          "ledgerKey": "c08.handler",
+          "placeholder": "예: LnCustomerContactHandler"
+        }
+      ]
+    },
+    {
+      "id": "C09",
+      "title": "SQL·Mapper",
+      "order": 9,
+      "promptFile": "C09-SQL-Mapper.md",
+      "resultFile": "결과/C09-SQL-Mapper.md",
+      "nextId": "C10",
+      "outcome": "Mapper id·SQL 초안 범위",
+      "requiresGate": false,
+      "isGate": false,
+      "gateChecks": ["Mapper 직호출 금지", "SQL SoT"],
+      "questions": [
+        {
+          "id": "mapper_ids",
+          "text": "Mapper statement id 목록",
+          "type": "text",
+          "ledgerKey": "c09.mapperIds",
+          "placeholder": "예: selectList, selectDetail"
+        }
+      ]
+    },
+    {
+      "id": "C10",
+      "title": "트랜잭션·오류·Timeout",
+      "order": 10,
+      "promptFile": "C10-트랜잭션-오류-Timeout.md",
+      "resultFile": "결과/C10-트랜잭션-오류-Timeout.md",
+      "nextId": "C11",
+      "outcome": "TX·Timeout 정책",
+      "requiresGate": false,
+      "isGate": false,
+      "gateChecks": ["Facade TX", "Timeout Explicit"],
+      "questions": [
+        {
+          "id": "tx_policy",
+          "text": "트랜잭션 경계는?",
+          "type": "single",
+          "ledgerKey": "c10.tx",
+          "recommended": "1",
+          "options": [
+            { "value": "1", "label": "예 — Facade 단일 로컬 트랜잭션" },
+            { "value": "2", "label": "조회만이라 TX 불필요(권장 아님 — readOnly 권장)" },
+            { "value": "3", "label": "직접 설명" }
+          ]
+        },
+        {
+          "id": "timeout_sec",
+          "text": "Timeout(초, 미확정이면 빈칸)",
+          "type": "text",
+          "ledgerKey": "c10.timeoutSec",
+          "placeholder": "예: 5"
+        }
+      ]
+    },
+    {
+      "id": "C11",
+      "title": "보안·개인정보·감사",
+      "order": 11,
+      "promptFile": "C11-보안-개인정보-감사.md",
+      "resultFile": "결과/C11-보안-개인정보-감사.md",
+      "nextId": "C12",
+      "outcome": "개인정보·감사 규칙",
+      "requiresGate": false,
+      "isGate": false,
+      "gateChecks": ["사람 승인 항목 Explicit"],
+      "questions": [
+        {
+          "id": "pii",
+          "text": "개인정보 컬럼이 있습니까?",
+          "type": "single",
+          "ledgerKey": "c11.pii",
+          "recommended": "3",
+          "options": [
+            { "value": "1", "label": "예" },
+            { "value": "2", "label": "아니오" },
+            { "value": "3", "label": "미확정 — 컬럼 단위로 나중에" }
+          ]
+        },
+        {
+          "id": "pii_cols",
+          "text": "개인정보/민감 컬럼 (없으면 없음)",
+          "type": "text",
+          "ledgerKey": "c11.piiCols",
+          "placeholder": "예: CONTACT_VALUE"
+        }
+      ]
+    },
+    {
+      "id": "C12",
+      "title": "테스트 시나리오",
+      "order": 12,
+      "promptFile": "C12-테스트-시나리오.md",
+      "resultFile": "결과/C12-테스트-시나리오.md",
+      "nextId": "C13",
+      "outcome": "자동/수동 시험 경계",
+      "requiresGate": false,
+      "isGate": false,
+      "gateChecks": ["미실행≠성공"],
+      "questions": [
+        {
+          "id": "test_scope",
+          "text": "자동 검증 상한은?",
+          "type": "single",
+          "ledgerKey": "c12.testScope",
+          "recommended": "1",
+          "options": [
+            { "value": "1", "label": "컴파일·단위·구조/명명 (권장)" },
+            { "value": "2", "label": "DB·거래 통합까지 자동 목표" },
+            { "value": "3", "label": "직접 지정" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C13",
+      "title": "OM·운영기준",
+      "order": 13,
+      "promptFile": "C13-OM-운영기준.md",
+      "resultFile": "결과/C13-OM-운영기준.md",
+      "nextId": "C14",
+      "outcome": "OM Catalog/Timeout 계획",
+      "requiresGate": false,
+      "isGate": false,
+      "gateChecks": ["OM Gap Explicit 가능"],
+      "questions": [
+        {
+          "id": "om_plan",
+          "text": "OM 등록 계획은?",
+          "type": "single",
+          "ledgerKey": "c13.omPlan",
+          "recommended": "1",
+          "options": [
+            { "value": "1", "label": "data.sql/시드에 초안 작성 (AA 승인 후)" },
+            { "value": "2", "label": "운영화면 등록 절차만 문서화" },
+            { "value": "3", "label": "1차 생략 — Gap으로 남김" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C14",
+      "title": "설계 Gate",
+      "order": 14,
+      "promptFile": "C14-설계-Gate.md",
+      "resultFile": "결과/C14-설계-Gate.md",
+      "nextId": "C15",
+      "outcome": "코드 생성 전 Gate 판정",
+      "requiresGate": false,
+      "isGate": true,
+      "gateChecks": ["Gate 판정문", "보완 시 C15 금지"],
+      "questions": [
+        {
+          "id": "gate_verdict",
+          "text": "C00~C13 설계 Gate 판정",
+          "type": "single",
+          "ledgerKey": "c14.gate",
+          "recommended": "2",
+          "options": [
+            { "value": "PASS", "label": "통과" },
+            { "value": "CONDITIONAL", "label": "조건부 통과" },
+            { "value": "HOLD", "label": "보완 필요" },
+            { "value": "STOP", "label": "중단" }
+          ]
+        },
+        {
+          "id": "gate_note",
+          "text": "판정 사유 / Open Issue",
+          "type": "text",
+          "ledgerKey": "c14.note",
+          "placeholder": "조건부면 Gap Explicit"
+        }
+      ]
+    },
+    {
+      "id": "C15",
+      "title": "소스·설정·문서생성",
+      "order": 15,
+      "promptFile": "C15-소스-설정-문서생성.md",
+      "resultFile": "결과/C15-소스-설정-문서생성.md",
+      "nextId": "C16",
+      "outcome": "구현 체크리스트 (코드 ZIP 자동생성 없음)",
+      "requiresGate": true,
+      "isGate": false,
+      "gateChecks": ["C14 통과/조건부만"],
+      "questions": [
+        {
+          "id": "impl_plan",
+          "text": "구현 방식은? (v1: 외부 Cursor/수동 구현 안내)",
+          "type": "single",
+          "ledgerKey": "c15.impl",
+          "recommended": "1",
+          "options": [
+            { "value": "1", "label": "Export ZIP + Cursor/개발자 구현" },
+            { "value": "2", "label": "이미 구현됨 — 경로만 기록" },
+            { "value": "3", "label": "보류" }
+          ]
+        },
+        {
+          "id": "impl_note",
+          "text": "구현 메모 / 경로",
+          "type": "text",
+          "ledgerKey": "c15.note",
+          "placeholder": "예: ln-service CustomerContact"
+        }
+      ]
+    },
+    {
+      "id": "C16",
+      "title": "빌드·기동·거래검증",
+      "order": 16,
+      "promptFile": "C16-빌드-기동-거래검증.md",
+      "resultFile": "결과/C16-빌드-기동-거래검증.md",
+      "nextId": "C17",
+      "outcome": "검증 증적 (미실행≠성공)",
+      "requiresGate": true,
+      "isGate": false,
+      "gateChecks": ["증적 Explicit"],
+      "questions": [
+        {
+          "id": "verify_level",
+          "text": "이번 검증 범위는?",
+          "type": "single",
+          "ledgerKey": "c16.verify",
+          "recommended": "1",
+          "options": [
+            { "value": "1", "label": "정적(패키지·Mapper·ServiceId)" },
+            { "value": "2", "label": "gradlew :{모듈}:build" },
+            { "value": "3", "label": "bootRun + POST /online" }
+          ]
+        },
+        {
+          "id": "verify_result",
+          "text": "결과 (성공/실패/미실행)",
+          "type": "text",
+          "ledgerKey": "c16.result",
+          "placeholder": "미실행 가능"
+        }
+      ]
+    },
+    {
+      "id": "C17",
+      "title": "추적성·변경영향",
+      "order": 17,
+      "promptFile": "C17-추적성-변경영향.md",
+      "resultFile": "결과/C17-추적성-변경영향.md",
+      "nextId": "C18",
+      "outcome": "추적성 매트릭스",
+      "requiresGate": true,
+      "isGate": false,
+      "gateChecks": ["화면→ServiceId→SQL 축"],
+      "questions": [
+        {
+          "id": "trace_note",
+          "text": "추적성 요약 (화면→ServiceId→Handler→SQL)",
+          "type": "text",
+          "ledgerKey": "c17.trace",
+          "placeholder": "한 줄 요약"
+        }
+      ]
+    },
+    {
+      "id": "C18",
+      "title": "최종 완료보고",
+      "order": 18,
+      "promptFile": "C18-최종-완료보고.md",
+      "resultFile": "결과/C18-최종-완료보고.md",
+      "nextId": null,
+      "outcome": "완료 보고·Open Issue",
+      "requiresGate": true,
+      "isGate": false,
+      "gateChecks": ["완료≠운영승인"],
+      "questions": [
+        {
+          "id": "completion",
+          "text": "완료 판정",
+          "type": "single",
+          "ledgerKey": "c18.completion",
+          "recommended": "2",
+          "options": [
+            { "value": "1", "label": "완료" },
+            { "value": "2", "label": "조건부 완료" },
+            { "value": "3", "label": "미완료" }
+          ]
+        },
+        {
+          "id": "open_issues",
+          "text": "Open Issue",
+          "type": "text",
+          "ledgerKey": "c18.openIssues",
+          "placeholder": "OM·NFR 등"
+        }
+      ]
+    }
+  ]
+}

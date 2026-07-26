@@ -1,0 +1,43 @@
+# sv-service compose
+#
+# From this directory:
+#   docker compose up -d --build
+#   docker compose logs -f
+#   docker compose down
+#
+# Or use helper:
+#   docker-compose.bat up -d --build
+
+name: nsight-sv
+
+services:
+  sv-service:
+    container_name: nsight-sv
+    image: ${IMAGE_TAG:-nsight-sv:local}
+    build:
+      context: ../../..
+      dockerfile: sv-service/scripts/docker/Dockerfile
+    ports:
+      # Bind explicitly so host can reach the container (Docker Desktop / WSL)
+      - "0.0.0.0:${HOST_PORT:-8086}:8086"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+      SERVER_PORT: "8086"
+      NSIGHT_TXLOG_PATH: /app/data/nsight-txlog
+      NSIGHT_INTEGRATION_SERVICES_IC_BASE_URL: ${IC_BASE_URL:-http://host.docker.internal:8082}
+      JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=75.0 -Dfile.encoding=UTF-8}
+    volumes:
+      - nsight-sv-data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8086/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  nsight-sv-data:
+    name: nsight-sv-data

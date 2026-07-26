@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nh.nsight.marketing.eb.persistence.mapper.EbSystemTxMapper">
+
+    <sql id="systemTxColumns">
+        TX_SEQ_NO AS txSeqNo,
+        TX_DATE AS txDate,
+        SCREEN_ID AS screenId,
+        SERVICE_ID AS serviceId,
+        GLOBAL_ID AS globalId,
+        REQUEST_AT AS requestAt,
+        RESPONSE_AT AS responseAt,
+        ELAPSED_SEC AS elapsedSec,
+        INPUT_CONTENT AS inputContent,
+        EMP_NO AS empNo,
+        BRANCH_CODE AS branchCode,
+        TERMINAL_IP AS terminalIp,
+        TX_TYPE AS txType
+    </sql>
+
+    <sql id="systemTxSearchWhere">
+        <where>
+            <if test="txDateFrom != null and txDateFrom != ''">
+                AND REQUEST_AT &gt;= CAST(#{txDateFrom} AS TIMESTAMP)
+            </if>
+            <if test="txDateTo != null and txDateTo != ''">
+                AND REQUEST_AT &lt;= CAST(#{txDateTo} AS TIMESTAMP)
+            </if>
+            <if test="txType != null and txType != ''">
+                AND TX_TYPE = #{txType}
+            </if>
+            <if test="txSeqNo != null and txSeqNo != ''">
+                AND TX_SEQ_NO LIKE CONCAT('%', #{txSeqNo}, '%')
+            </if>
+            <if test="empNo != null and empNo != ''">
+                AND EMP_NO LIKE CONCAT('%', #{empNo}, '%')
+            </if>
+            <if test="screenId != null and screenId != ''">
+                AND SCREEN_ID LIKE CONCAT('%', #{screenId}, '%')
+            </if>
+            <if test="serviceId != null and serviceId != ''">
+                AND SERVICE_ID LIKE CONCAT('%', #{serviceId}, '%')
+            </if>
+        </where>
+    </sql>
+
+    <select id="search"
+            parameterType="com.nh.nsight.marketing.eb.application.dto.systemtx.SystemTxSearchCriteria"
+            resultType="com.nh.nsight.marketing.eb.persistence.dto.systemtx.SystemTxRow">
+        SELECT <include refid="systemTxColumns"/>
+          FROM EB_SYSTEM_TX
+        <include refid="systemTxSearchWhere"/>
+         ORDER BY REQUEST_AT DESC, TX_SEQ_NO DESC
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+
+    <select id="count"
+            parameterType="com.nh.nsight.marketing.eb.application.dto.systemtx.SystemTxSearchCriteria"
+            resultType="int">
+        SELECT COUNT(1)
+          FROM EB_SYSTEM_TX
+        <include refid="systemTxSearchWhere"/>
+    </select>
+
+</mapper>

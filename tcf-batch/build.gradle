@@ -1,0 +1,34 @@
+// TCF Batch — OM 대시보드 데이터 수집 배치
+// bootRun: gradle :tcf-batch:bootRun (포트 8098)
+// WAR:     gradle :tcf-batch:bootWar → ztomcat zz-batch.war (/batch, Tomcat deploy last)
+
+plugins {
+    id 'org.springframework.boot'
+    id 'war'
+}
+
+dependencies {
+    implementation project(':tcf-core')
+    implementation project(':tcf-web')
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    runtimeOnly 'com.h2database:h2'
+    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+}
+
+bootJar {
+    archiveFileName = 'tcf-batch.jar'
+}
+
+bootWar {
+    archiveFileName = 'tcf-batch.war'
+}
+
+war {
+    archiveFileName = 'tcf-batch.war'
+}
+
+bootRun {
+    systemProperty 'spring.profiles.active', 'local'
+}

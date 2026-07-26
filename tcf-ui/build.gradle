@@ -1,0 +1,39 @@
+// TCF 테스트 UI
+// bootRun: gradle :tcf-ui:bootRun (포트 8099)
+// WAR:     gradle :tcf-ui:bootWar → ztomcat ui.war (/ui)
+
+plugins {
+    id 'org.springframework.boot'
+    id 'war'
+}
+
+dependencies {
+    implementation project(':tcf-core')
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+}
+
+bootJar {
+    archiveFileName = 'tcf-ui.jar'
+}
+
+bootWar {
+    archiveFileName = 'tcf-ui.war'
+}
+
+war {
+    archiveFileName = 'tcf-ui.war'
+}
+
+def exportHelp = tasks.register('exportHelpDocs') {
+    dependsOn ':tcf-help:exportHelp'
+}
+
+processResources {
+    dependsOn exportHelp
+    from(project(':tcf-help').layout.buildDirectory.dir('help')) {
+        into 'static/help'
+    }
+}

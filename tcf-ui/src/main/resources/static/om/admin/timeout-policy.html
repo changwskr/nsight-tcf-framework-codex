@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM Timeout 정책</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260701c"></script>
+  <script>
+    const PAGE = 20;
+    const ACTIONS = ['FAIL', 'UNKNOWN', 'STATUS_CHECK'];
+    let selected = null, editMode = false;
+    let businessCodes = [];
+
+    function defaultBusinessCode() {
+      if (!businessCodes.length) return '';
+      const om = businessCodes.find(r => OmAdmin.field(r, 'code') === 'OM');
+      return om ? 'OM' : OmAdmin.field(businessCodes[0], 'code', '');
+    }
+
+    function setSelectValue(selectEl, value, codes, options) {
+      const opts = options || {};
+      OmAdmin.fillCodeSelect(selectEl, codes, { ...opts, selected: value || '' });
+      if (opts.placeholder) {
+        selectEl.insertAdjacentHTML('afterbegin', `<option value="">${opts.placeholder}</option>`);
+        selectEl.value = value || '';
+      }
+      if (value && selectEl.value !== value) {
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = `${value} (미등록)`;
+        selectEl.appendChild(opt);
+        selectEl.value = value;
+      }
+    }
+
+    async function loadBusinessCodeCombos() {
+      businessCodes = await OmAdmin.loadCommonCodes('BUSINESS_CODE', { useYn: 'Y' });
+      if (!businessCodes.length) {
+        throw new Error('BUSINESS_CODE 공통코드가 없습니다. 공통코드 관리에서 등록하세요.');
+      }
+      OmAdmin.fillCodeSelect(document.getElementById('filterBusiness'), businessCodes, {
+        includeAll: true,
+        selected: ''
+      });
+      setSelectValue(document.getElementById('fBusinessCode'), defaultBusinessCode(), businessCodes);
+    }
+
+    function readForm() {
+      const v = id => document.getElementById(id).value.trim();
+      return {
+        serviceId: v('fServiceId'),
+        transactionCode: v('fTransactionCode'),
+        businessCode: v('fBusinessCode'),
+        serviceName: v('fServiceName') || '-',
+        onlineTimeoutSec: Number(v('fOnlineSec') || 5),
+        txTimeoutSec: Number(v('fTxSec') || 5),
+        dbQueryTimeoutSec: Number(v('fDbSec') || 3),
+        externalConnectTimeoutMs: Number(v('fExtConnMs') || 3000),
+        externalReadTimeoutMs: Number(v('fExtReadMs') || 5000),
+        timeoutAction: v('fAction') || 'FAIL',
+        useYn: v('fUseYn') || 'Y',
+        description: v('fDescription'),
+        changeReason: v('fReason')
+      };
+    }
+
+    function fillForm(row) {
+      const set = (id, val) => { document.getElementById(id).value = val ?? ''; };
+      set('fServiceId', OmAdmin.field(row, 'serviceId'));
+      set('fTransactionCode', OmAdmin.field(row, 'transactionCode'));
+      setSelectValue(document.getElementById('fBusinessCode'), OmAdmin.field(row, 'businessCode'), businessCodes);
+      set('fServiceName', OmAdmin.field(row, 'serviceName'));
+      set('fOnlineSec', OmAdmin.field(row, 'onlineTimeoutSec', '5'));
+      set('fTxSec', OmAdmin.field(row, 'txTimeoutSec', '5'));
+      set('fDbSec', OmAdmin.field(row, 'dbQueryTimeoutSec', '3'));
+      set('fExtConnMs', OmAdmin.field(row, 'externalConnectTimeoutMs', '3000'));
+      set('fExtReadMs', OmAdmin.field(row, 'externalReadTimeoutMs', '5000'));
+      set('fAction', OmAdmin.field(row, 'timeoutAction', 'FAIL'));
+      set('fUseYn', OmAdmin.field(row, 'useYn', 'Y'));
+      set('fDescription', OmAdmin.field(row, 'description'));
+      set('fReason', '');
+      document.getElementById('fServiceId').readOnly = editMode;
+      document.getElementById('fTransactionCode').readOnly = editMode;
+      document.getElementById('fBusinessCode').disabled = editMode;
+    }
+
+    function resetForm() {
+      selected = null;
+      editMode = false;
+      ['fServiceId', 'fTransactionCode', 'fServiceName', 'fDescription', 'fReason'].forEach(id => {
+        const el = document.getElementById(id);
+        el.value = '';
+        el.readOnly = false;
+      });
+      setSelectValue(document.getElementById('fBusinessCode'), defaultBusinessCode(), businessCodes);
+      document.getElementById('fBusinessCode').disabled = false;
+      document.getElementById('fOnlineSec').value = '5';
+      document.getElementById('fTxSec').value = '5';
+      document.getElementById('fDbSec').value = '3';
+      document.getElementById('fExtConnMs').value = '3000';
+      document.getElementById('fExtReadMs').value = '5000';
+      document.getElementById('fAction').value = 'FAIL';
+      document.getElementById('fUseYn').value = 'Y';
+      document.getElementById('formTitle').textContent = '정책 등록';
+    }
+
+    async function load(page, el) {
+      const body = { pageNo: page, pageSize: PAGE };
+      const bc = document.getElementById('filterBusiness').value.trim();
+      const sid = document.getElementById('filterServiceId').value.trim();
+      if (bc) body.businessCode = bc;
+      if (sid) body.serviceId = sid;
+      const { body: data } = await OmAdmin.inquiry('timeoutPolicy', body);
+      const rows = data.rows || [];
+      document.getElementById('listStatus').textContent = `총 ${data.totalCount ?? 0}건`;
+      document.getElementById('policyBody').innerHTML = rows.length ? rows.map(r => `
+        <tr data-key="${OmAdmin.field(r,'serviceId')}|${OmAdmin.field(r,'transactionCode')}|${OmAdmin.field(r,'businessCode')}" class="${selected && selected.key === `${OmAdmin.field(r,'serviceId')}|${OmAdmin.field(r,'transactionCode')}|${OmAdmin.field(r,'businessCode')}` ? 'selected' : ''}">
+          <td>${OmAdmin.formatCodeLabel(businessCodes, OmAdmin.field(r,'businessCode'))}</td>
+          <td class="om-mono">${OmAdmin.field(r,'serviceId')}</td>
+          <td>${OmAdmin.field(r,'transactionCode')}</td>
+          <td>${OmAdmin.field(r,'onlineTimeoutSec')}s</td>
+          <td>${OmAdmin.field(r,'txTimeoutSec')}s</td>
+          <td>${OmAdmin.field(r,'dbQueryTimeoutSec')}s</td>
+          <td>${OmAdmin.field(r,'timeoutAction')}</td>
+          <td>${OmAdmin.field(r,'useYn')}</td>
+        </tr>`).join('') : '<tr><td colspan="8" class="om-empty">등록된 정책이 없습니다.</td></tr>';
+      document.querySelectorAll('#policyBody tr[data-key]').forEach(tr => {
+        tr.addEventListener('click', () => {
+          const key = tr.dataset.key;
+          const row = rows.find(r => `${OmAdmin.field(r,'serviceId')}|${OmAdmin.field(r,'transactionCode')}|${OmAdmin.field(r,'businessCode')}` === key);
+          selected = { key, row };
+          editMode = true;
+          document.getElementById('formTitle').textContent = '정책 수정';
+          fillForm(row);
+          load(page, el).catch(e => OmAdmin.showError(el, e.message));
+        });
+      });
+      OmAdmin.renderPagination(document.getElementById('pagination'), data.pageNo || page, PAGE, data.totalCount || 0,
+        p => load(p, el).catch(e => OmAdmin.showError(el, e.message)));
+    }
+
+    OmAdmin.initPage('timeout-policy', 'Timeout 정책 관리', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">거래 허용(거래통제)과 분리된 서비스별 Timeout 정책입니다. STF에서 조회 후 TransactionContext에 바인딩됩니다.</div>
+        <section class="om-filter-bar">
+          <div class="field"><label for="filterBusiness">업무코드</label><select id="filterBusiness"></select></div>
+          <div class="field"><label for="filterServiceId">serviceId</label><input id="filterServiceId" type="text" placeholder="SV.Sample.inquiry"></div>
+          <button class="btn-primary" id="searchBtn" type="button">조회</button>
+        </section>
+        <div id="listStatus" style="margin-bottom:8px;color:var(--muted);font-size:.85rem">-</div>
+        <div class="om-card" style="margin-bottom:14px">
+          <div class="om-card-head" id="formTitle">정책 등록</div>
+          <div class="om-card-body" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">
+            <div class="field"><label for="fServiceId">serviceId</label><input id="fServiceId" type="text"></div>
+            <div class="field"><label for="fTransactionCode">transactionCode</label><input id="fTransactionCode" type="text"></div>
+            <div class="field"><label for="fBusinessCode">업무코드</label><select id="fBusinessCode"></select></div>
+            <div class="field"><label for="fServiceName">serviceName</label><input id="fServiceName" type="text"></div>
+            <div class="field"><label for="fOnlineSec">online(sec)</label><input id="fOnlineSec" type="number" min="1" value="5"></div>
+            <div class="field"><label for="fTxSec">tx(sec)</label><input id="fTxSec" type="number" min="1" value="5"></div>
+            <div class="field"><label for="fDbSec">db query(sec)</label><input id="fDbSec" type="number" min="1" value="3"></div>
+            <div class="field"><label for="fExtConnMs">ext connect(ms)</label><input id="fExtConnMs" type="number" min="100" value="3000"></div>
+            <div class="field"><label for="fExtReadMs">ext read(ms)</label><input id="fExtReadMs" type="number" min="100" value="5000"></div>
+            <div class="field"><label for="fAction">timeoutAction</label>
+              <select id="fAction">${ACTIONS.map(a => `<option>${a}</option>`).join('')}</select></div>
+            <div class="field"><label for="fUseYn">useYn</label>
+              <select id="fUseYn"><option value="Y">Y</option><option value="N">N</option></select></div>
+            <div class="field" style="grid-column:1/-1"><label for="fDescription">description</label><input id="fDescription" type="text"></div>
+            <div class="field" style="grid-column:1/-1"><label for="fReason">변경 사유 (5자+)</label><input id="fReason" type="text"></div>
+            <div style="grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn-primary" id="saveBtn" type="button">저장</button>
+              <button class="btn-secondary" id="newBtn" type="button">신규</button>
+              <button class="btn-secondary" id="deleteBtn" type="button">삭제</button>
+            </div>
+          </div>
+        </div>
+        <div class="om-card">
+          <div class="om-card-head">Timeout 정책 목록</div>
+          <div class="om-card-body om-table-wrap">
+            <table class="om-table"><thead><tr>
+              <th>업무</th><th>serviceId</th><th>거래코드</th><th>Online</th><th>TX</th><th>DB</th><th>Action</th><th>사용</th>
+            </tr></thead><tbody id="policyBody"></tbody></table>
+            <div class="om-pagination" id="pagination" hidden></div>
+          </div>
+        </div>`;
+
+      document.getElementById('searchBtn').addEventListener('click', () => load(1, el).catch(e => OmAdmin.showError(el, e.message)));
+      document.getElementById('newBtn').addEventListener('click', resetForm);
+      document.getElementById('saveBtn').addEventListener('click', async () => {
+        const payload = readForm();
+        if (!payload.changeReason || payload.changeReason.length < 5) {
+          alert('변경 사유를 5자 이상 입력하세요.');
+          return;
+        }
+        try {
+          const key = editMode ? 'timeoutPolicyUpdate' : 'timeoutPolicySave';
+          const method = editMode ? 'UPDATE' : 'UPDATE';
+          await OmAdmin.mutate(key, payload, method);
+          alert('저장 완료');
+          resetForm();
+          await load(1, el);
+        } catch (e) {
+          OmAdmin.showErrorBanner(el, e.message);
+        }
+      });
+      document.getElementById('deleteBtn').addEventListener('click', async () => {
+        if (!editMode || !selected) {
+          alert('목록에서 정책을 선택하세요.');
+          return;
+        }
+        if (!confirm('선택한 Timeout 정책을 삭제할까요?')) return;
+        const reason = prompt('삭제 사유 (5자 이상):');
+        if (!reason || reason.trim().length < 5) {
+          alert('삭제 사유를 5자 이상 입력해야 합니다.');
+          return;
+        }
+        try {
+          const payload = readForm();
+          payload.changeReason = reason.trim();
+          await OmAdmin.mutate('timeoutPolicyDelete', payload, 'DELETE');
+          alert('삭제 완료');
+          resetForm();
+          await load(1, el);
+        } catch (e) {
+          OmAdmin.showErrorBanner(el, e.message);
+        }
+      });
+      await loadBusinessCodeCombos();
+      await load(1, el);
+    });
+  </script>
+</body>
+</html>

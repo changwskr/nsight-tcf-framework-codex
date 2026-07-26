@@ -1,0 +1,537 @@
+J. 운영전환 체크리스트
+J.1 도입 전 안내말
+운영전환 체크리스트는 개발이 완료된 프로그램을 운영환경에 반영하기 전에 기능, 품질, 보안, 성능, 배포, 장애대응, 운영절차가 모두 준비되었는지 확인하는 최종 점검표이다.
+NSIGHT TCF Framework에서는 단순히 WAR 파일이 정상 빌드되었다고 운영전환이 가능한 것은 아니다.운영전환 대상은 다음 항목을 모두 포함한다.
+소스
++ 설정
++ DB 스키마
++ ServiceId
++ 거래통제
++ Timeout 정책
++ 오류코드
++ 권한
++ 로그
++ 배포절차
++ Rollback 절차
++ 운영 모니터링
+
+운영전환의 핵심 기준은 다음 한 문장으로 정리한다.
+운영자가 장애 발생 시 원인을 찾고, 서비스를 우회하고, 필요하면 즉시 Rollback할 수 있는 상태여야 운영전환이 가능하다.
+
+J.2 운영전환 전체 흐름
+개발 완료
+   ↓
+개발 완료 체크리스트 확인
+   ↓
+코드 리뷰 완료
+   ↓
+품질 게이트 통과
+   ↓
+통합 테스트 완료
+   ↓
+성능 / 보안 검증 완료
+   ↓
+운영 설정 확인
+   ↓
+배포 계획 수립
+   ↓
+Rollback 계획 수립
+   ↓
+운영자 인수인계
+   ↓
+운영 반영 승인
+   ↓
+운영 배포
+   ↓
+Health Check
+   ↓
+Smoke Test
+   ↓
+운영전환 완료
+
+
+J.3 운영전환 체크리스트 총괄
+구분
+점검 영역
+통과 기준
+1
+소스 / 빌드
+운영 반영 대상 소스가 Git 기준으로 확정되었고 WAR 빌드가 성공해야 함
+2
+TCF 거래
+ServiceId, 거래코드, 업무코드, Handler 매핑이 정상이어야 함
+3
+DB / Mapper
+테이블, 컬럼, Mapper SQL, 실행계획이 검증되어야 함
+4
+운영 기준정보
+ServiceId, 거래통제, Timeout, 오류코드, 공통코드가 OM 또는 기준정보에 등록되어야 함
+5
+보안 / 권한
+인증, 세션, 권한, 마스킹, 감사로그 기준을 만족해야 함
+6
+로그 / 모니터링
+GUID, TraceId, 거래로그, 오류로그, Health Check가 확인되어야 함
+7
+성능 / 안정성
+p95 응답시간, SQL 응답시간, Thread, Pool 기준을 만족해야 함
+8
+배포 / Rollback
+배포 절차, 담당자, Rollback 절차, 이전 WAR 보관이 준비되어야 함
+9
+운영 인수인계
+운영 매뉴얼, 장애 대응 절차, 담당자 연락체계가 공유되어야 함
+10
+최종 승인
+개발, 업무, 아키텍처, DBA, 보안, 운영, PMO 승인 완료
+
+J.4 소스 / 빌드 체크리스트
+점검 항목
+확인 기준
+확인
+Git Branch 확정
+운영 반영 대상 Branch / Tag가 확정되었는가
+□
+Merge Request 승인
+코드 리뷰와 승인 이력이 남아 있는가
+□
+Gradle Build 성공
+gradle clean build 또는 CI 빌드가 성공했는가
+□
+Unit Test 성공
+단위 테스트 실패 건이 없는가
+□
+정적 분석 통과
+Blocker / Critical 이슈가 없는가
+□
+WAR 생성 확인
+업무별 WAR 파일이 정상 생성되었는가
+□
+Artifact 보관
+배포 대상 WAR가 저장소에 보관되었는가
+□
+버전 식별
+WAR 파일명 또는 배포 이력에서 버전 확인이 가능한가
+□
+
+J.5 TCF 거래 등록 체크리스트
+점검 항목
+확인 기준
+확인
+업무코드
+업무코드가 표준 업무코드 체계에 맞는가
+□
+Context Path
+/sv, /om, /cm 등 Context가 표준과 일치하는가
+□
+Endpoint
+POST /{businessCode}/online 방식으로 호출되는가
+□
+ServiceId
+ServiceId가 표준 명명규칙에 맞는가
+□
+거래코드
+거래코드가 업무코드와 처리유형 기준으로 채번되었는가
+□
+Handler 등록
+ServiceId와 Handler가 정상 매핑되었는가
+□
+Facade 연결
+Handler가 Facade를 호출하는 구조인가
+□
+응답 전문
+StandardResponse.header + result + body 구조인가
+□
+오류 응답
+오류 발생 시 표준 오류코드로 응답하는가
+□
+
+J.6 운영 기준정보 체크리스트
+기준정보
+확인 기준
+확인
+ServiceId Master
+신규 ServiceId가 등록되었는가
+□
+거래통제
+TCF_TRANSACTION_CONTROL 또는 OM 거래통제에 허용 거래가 등록되었는가
+□
+Timeout 정책
+TCF_SERVICE_TIMEOUT_POLICY 또는 설정 파일에 Timeout이 등록되었는가
+□
+오류코드
+신규 오류코드가 OM 오류코드 기준에 등록되었는가
+□
+공통코드
+화면 / 업무에서 사용하는 공통코드가 등록되었는가
+□
+권한정보
+메뉴권한, 기능권한, 데이터권한이 등록되었는가
+□
+Gateway Route
+Gateway 사용 시 업무코드별 Route가 등록되었는가
+□
+Cache 정책
+캐시 대상 기준정보의 TTL, Evict 정책이 정의되었는가
+□
+
+J.7 DB / MyBatis 체크리스트
+점검 항목
+확인 기준
+확인
+테이블 생성
+운영 DB 반영 대상 DDL이 확정되었는가
+□
+컬럼 정의
+컬럼 타입, 길이, Nullable, 기본값이 검토되었는가
+□
+인덱스
+조회 조건에 필요한 인덱스가 생성되었는가
+□
+Mapper XML
+Mapper XML 위치와 namespace가 표준에 맞는가
+□
+SQL ID
+SQL ID가 표준 명명규칙에 맞는가
+□
+실행계획
+주요 SQL 실행계획을 확인했는가
+□
+Full Scan
+온라인 주요 SQL에 불필요한 Full Scan이 없는가
+□
+Paging
+목록 조회는 Page Size 제한이 있는가
+□
+Query Timeout
+MyBatis Query Timeout이 적용되는가
+□
+DB 권한
+운영 DB 계정 권한이 최소 권한으로 설정되었는가
+□
+
+J.8 환경설정 체크리스트
+점검 항목
+확인 기준
+확인
+Profile
+local, dev, stg, prd 설정이 분리되었는가
+□
+Server Port
+운영 Tomcat Port와 충돌이 없는가
+□
+Context Path
+WAR Context와 Apache/Gateway 라우팅이 일치하는가
+□
+DataSource
+RDW, ADW, SESSIONDB, LOGDB 연결정보가 정확한가
+□
+HikariCP
+maximumPoolSize, connectionTimeout, maxLifetime 기준이 적정한가
+□
+MyBatis
+Mapper 위치, Query Timeout이 설정되었는가
+□
+Session
+Spring Session JDBC 설정이 운영 SESSIONDB를 바라보는가
+□
+Cookie
+Secure, HttpOnly, SameSite 설정이 적용되었는가
+□
+Logging
+운영 로그 경로, 파일명, 보관주기가 설정되었는가
+□
+Actuator
+Health, Metrics, Prometheus 노출 범위가 제한되었는가
+□
+Secret
+DB Password, Token Key, API Key가 Git에 포함되지 않았는가
+□
+
+J.9 보안 / 권한 체크리스트
+점검 항목
+확인 기준
+확인
+인증
+미인증 사용자가 업무 ServiceId를 호출할 수 없는가
+□
+세션
+세션 만료, 위조, 중복 로그인 정책이 적용되는가
+□
+JWT
+JWT 사용 시 만료, 변조, 폐기 Token 검증이 되는가
+□
+메뉴권한
+메뉴 접근 권한이 검증되는가
+□
+기능권한
+조회, 등록, 수정, 삭제, 다운로드 버튼 권한이 검증되는가
+□
+데이터권한
+지점, 부서, 사용자 범위별 데이터 접근이 통제되는가
+□
+마스킹
+고객번호, 계좌번호, 전화번호, 식별정보가 마스킹되는가
+□
+감사로그
+고객정보 조회, 다운로드, 권한 위반이 감사로그에 기록되는가
+□
+입력값 검증
+SQL Injection, Script, 특수문자 입력 방어가 되는가
+□
+오류 노출
+StackTrace, SQL, 서버 경로, 내부 IP가 응답에 노출되지 않는가
+□
+
+J.10 로그 / 모니터링 체크리스트
+점검 항목
+확인 기준
+확인
+GUID
+요청부터 응답까지 동일 GUID로 추적 가능한가
+□
+TraceId
+서비스 간 호출 시 TraceId가 전달되는가
+□
+거래로그
+거래 시작 시 PROCESSING 로그가 생성되는가
+□
+거래상태
+종료 시 SUCCESS / FAIL / TIMEOUT 상태가 갱신되는가
+□
+오류로그
+오류 발생 시 오류코드, ServiceId, GUID가 남는가
+□
+감사로그
+권한, 다운로드, 개인정보 조회 이벤트가 기록되는가
+□
+성능로그
+응답시간, DB 처리시간, 외부연계 시간이 기록되는가
+□
+Health Check
+Liveness / Readiness / Deep Check가 가능한가
+□
+Dashboard
+OM 운영 대시보드에서 상태 확인이 가능한가
+□
+Alert
+주요 장애 조건에 대한 알림 기준이 정의되었는가
+□
+
+J.11 성능 / 안정성 체크리스트
+점검 항목
+기준
+확인
+응답시간
+주요 온라인 거래 p95 3초 이내
+□
+SQL 응답시간
+주요 조회 SQL 100~300ms 목표
+□
+Tomcat Thread
+Busy Thread 70% 이하 권장
+□
+Hikari Pool
+Pool 사용률 70~80% 이하 권장
+□
+JVM Heap
+Heap 사용률 70% 이하 권장
+□
+GC
+Full GC 빈발 없음
+□
+DB Session
+DB Session 한계 초과 없음
+□
+Timeout
+온라인 / SQL / 외부연계 Timeout 적용
+□
+대량조회
+온라인 무제한 조회 없음
+□
+다운로드
+대용량 다운로드는 별도 ServiceId 또는 비동기 방식 적용
+□
+
+J.12 배포 체크리스트
+점검 항목
+확인 기준
+확인
+배포 일정
+배포 일시와 작업 시간이 확정되었는가
+□
+배포 대상
+서버, Tomcat, WAR, Context가 명확한가
+□
+배포 순서
+Gateway, OM, 업무 WAR, Batch 순서가 정의되었는가
+□
+사전 백업
+기존 WAR, 설정파일, DB Script가 백업되었는가
+□
+L4 제외
+배포 대상 WAS를 L4 Pool에서 제외할 수 있는가
+□
+Apache 라우팅
+신규 Context 또는 Route가 반영되었는가
+□
+Tomcat 기동
+WAR 배포 후 Tomcat 기동이 정상인가
+□
+Health Check
+배포 후 Health Check가 성공하는가
+□
+Smoke Test
+대표 ServiceId 호출이 성공하는가
+□
+L4 복귀
+정상 확인 후 트래픽 복귀가 가능한가
+□
+배포 이력
+OM 또는 배포대장에 배포 이력이 기록되었는가
+□
+
+J.13 Rollback 체크리스트
+점검 항목
+확인 기준
+확인
+이전 WAR 보관
+직전 정상 WAR가 보관되어 있는가
+□
+이전 설정 보관
+직전 application 설정이 보관되어 있는가
+□
+DB Rollback
+DDL / DML 변경에 대한 Rollback Script가 있는가
+□
+라우팅 복구
+Apache / Gateway Route 원복 방법이 있는가
+□
+L4 우회
+장애 WAS를 즉시 제외할 수 있는가
+□
+Rollback 기준
+어떤 상황에서 Rollback할지 기준이 명확한가
+□
+Rollback 담당
+수행자와 승인자가 지정되었는가
+□
+Rollback 검증
+원복 후 Health Check와 Smoke Test 절차가 있는가
+□
+
+J.14 운영자 인수인계 체크리스트
+인수인계 항목
+내용
+확인
+운영 매뉴얼
+기동, 중지, 배포, 장애 대응 절차 제공
+□
+업무 설명
+신규 ServiceId, 주요 기능, 호출 경로 설명
+□
+설정 설명
+운영 설정값, Timeout, Pool, DB 연결정보 설명
+□
+로그 위치
+App Log, Error Log, 거래로그, 감사로그 위치 공유
+□
+모니터링
+Health Check, Dashboard, Alert 기준 공유
+□
+장애 대응
+주요 오류코드와 조치 방법 공유
+□
+Rollback
+원복 절차와 담당자 공유
+□
+연락체계
+개발, 운영, DBA, 보안, 인프라 담당자 연락처 공유
+□
+
+J.15 운영전환 승인 기준
+운영전환은 다음 조건을 모두 만족해야 승인한다.
+승인 조건
+기준
+기능 검증
+핵심 업무 시나리오 정상
+품질 게이트
+빌드, 테스트, 정적 분석 통과
+보안 검증
+인증, 권한, 마스킹, 감사로그 통과
+성능 검증
+응답시간, SQL, Thread, Pool 기준 충족
+운영 설정
+prd Profile, DB, Session, Log 설정 확인
+배포 계획
+배포 순서, 담당자, 작업시간 확정
+Rollback 계획
+이전 WAR, 설정, DB 원복 방안 준비
+운영 인수인계
+운영자 매뉴얼과 장애 대응 절차 공유
+최종 승인
+개발 / 업무 / 아키텍처 / DBA / 보안 / 운영 / PMO 승인
+
+J.16 운영전환 최종 판정표
+판정
+의미
+조치
+Go
+운영전환 가능
+예정된 일정에 운영 배포
+Conditional Go
+경미한 보완 후 가능
+보완 항목 조치 후 승인
+Hold
+운영전환 보류
+필수 미비사항 조치 후 재심의
+No-Go
+운영전환 불가
+배포 중단, 원인 제거 후 재검증
+No-Go 기준은 다음과 같다.
+No-Go 조건
+설명
+운영 빌드 실패
+운영 WAR 생성 또는 배포 불가
+핵심 기능 실패
+대표 ServiceId 정상 호출 실패
+인증 / 권한 우회
+미권한 사용자가 업무 실행 가능
+개인정보 노출
+응답 또는 로그에 민감정보 평문 노출
+주요 SQL 성능 미달
+온라인 거래에서 장시간 SQL 발생
+Health Check 실패
+운영 기동 후 정상 상태 확인 불가
+Rollback 불가
+장애 시 원복 방법 없음
+운영자 인수인계 미완료
+장애 발생 시 운영자가 조치 불가
+
+J.17 운영전환 완료 후 점검
+점검 시점
+점검 항목
+배포 직후
+Health Check, Smoke Test, 오류로그 확인
+30분 이내
+거래로그 SUCCESS / FAIL 비율 확인
+1시간 이내
+Thread, Heap, Hikari Pool, SQL 응답시간 확인
+당일 업무 종료 전
+사용자 문의, 오류코드, Timeout 발생 여부 확인
+익일 오전
+야간 배치, 세션 정리, 로그 적재, Dashboard 상태 확인
+1주일 이내
+성능 추이, 장애 이력, 개선사항 정리
+
+J.18 마무리말
+운영전환 체크리스트는 배포 직전 형식적으로 작성하는 문서가 아니다.NSIGHT TCF Framework에서는 운영전환 체크리스트가 다음 의미를 가진다.
+운영전환 체크리스트
+= 개발 완료 증빙
++ 품질 게이트 통과 증빙
++ 운영 준비 완료 증빙
++ 장애 대응 가능성 증빙
++ PMO / 감사 대응 증빙
+
+따라서 운영전환은 “개발이 끝났다”가 아니라, 운영자가 안정적으로 운영할 수 있는 상태가 되었다는 의미로 판단해야 한다.
+

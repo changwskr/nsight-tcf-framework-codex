@@ -1,0 +1,149 @@
+// tcf-help — HELP 마크다운 문서 (리소스 전용, Java 없음)
+
+tasks.named('compileJava') { enabled = false }
+tasks.named('compileTestJava') { enabled = false }
+tasks.named('jar') { enabled = false }
+
+def helpOutDir = layout.buildDirectory.dir('help')
+def libraryMirrorDir = layout.buildDirectory.dir('library-mirror')
+
+tasks.register('scanDocCatalog') {
+    group = 'help'
+    description = 'Scan all repo markdown into doc-catalog.json'
+    inputs.file('catalog-overrides.yml')
+    outputs.file('doc-catalog.json')
+    doLast {
+        exec {
+            workingDir = projectDir
+            commandLine 'node', '_scripts/scan-repo-docs.mjs'
+        }
+    }
+}
+
+tasks.register('scanBusinessScreens') {
+    group = 'help'
+    description = 'Scan tcf-ui static HTML into help-business-map.json'
+    inputs.dir('../tcf-ui/src/main/resources/static')
+    inputs.file('help-screen-overrides.yml')
+    outputs.file('help-business-map.json')
+    doLast {
+        exec {
+            workingDir = projectDir
+            commandLine 'node', '_scripts/scan-ui-screens.mjs'
+        }
+    }
+}
+
+tasks.register('buildHelpIndex') {
+    group = 'help'
+    description = 'Generate help-index.json from help-index.yml'
+    dependsOn scanDocCatalog, scanBusinessScreens
+    inputs.file('help-index.yml')
+    inputs.file('help-screen-overrides.yml')
+    inputs.dir('meta')
+    outputs.file('help-index.json')
+    outputs.file('help-screen-map.json')
+    doLast {
+        exec {
+            workingDir = projectDir
+            commandLine 'node', '_scripts/build-index.mjs'
+        }
+    }
+}
+
+tasks.register('checkHelpLinks') {
+    group = 'help'
+    description = 'Check HELP markdown links and screen mapping'
+    dependsOn buildHelpIndex
+    inputs.file('help-screen-overrides.yml')
+    outputs.file('help-link-report.json')
+    doLast {
+        exec {
+            workingDir = projectDir
+            commandLine 'node', '_scripts/check-help-links.mjs'
+        }
+    }
+}
+
+tasks.register('mirrorLibrary') {
+    group = 'help'
+    description = 'Mirror all cataloged markdown to build/library-mirror'
+    dependsOn scanDocCatalog
+    inputs.file('doc-catalog.json')
+    outputs.dir(libraryMirrorDir)
+    doLast {
+        exec {
+            workingDir = projectDir
+            commandLine 'node', '_scripts/mirror-library.mjs'
+        }
+    }
+}
+
+tasks.register('exportHelp') {
+    group = 'help'
+    description = 'Export HELP docs + catalog + library mirror for tcf-ui'
+    dependsOn buildHelpIndex, mirrorLibrary, checkHelpLinks
+    inputs.dir('docs')
+    inputs.dir('meta')
+    inputs.file('help-index.json')
+    inputs.file('help-screen-map.json')
+    inputs.file('help-business-map.json')
+    inputs.file('help-link-report.json')
+    inputs.file('doc-catalog.json')
+    outputs.dir(helpOutDir)
+    doLast {
+        def out = helpOutDir.get().asFile
+        delete out
+        out.mkdirs()
+        copy {
+            from('docs')
+            into(new File(out, 'docs'))
+        }
+        copy {
+            from('meta')
+            into(new File(out, 'meta'))
+        }
+        copy {
+            from('help-index.json')
+            into(out)
+        }
+        copy {
+            from('help-screen-map.json')
+            into(out)
+        }
+        copy {
+            from('help-business-map.json')
+            into(out)
+        }
+        copy {
+            from('doc-catalog.json')
+            into(out)
+        }
+        copy {
+            from('help-link-report.json')
+            into(out)
+        }
+        copy {
+            from(libraryMirrorDir)
+            into(new File(out, 'library'))
+        }
+    }
+}
+
+tasks.register('verifyHelp') {
+    group = 'help'
+    description = 'Verify HELP catalogs, maps, links, and export bundle'
+    dependsOn exportHelp
+    doLast {
+        exec {
+            workingDir = projectDir
+            commandLine 'node', '_scripts/verify-help.mjs'
+        }
+        exec {
+            workingDir = projectDir
+            commandLine 'node', '_scripts/check-help-links.mjs', '--fail-on-error'
+        }
+    }
+}
+
+build.dependsOn exportHelp

@@ -1,0 +1,80 @@
+# sv-service Deployment
+#
+# Prerequisites:
+#   1) Build/push image (example): nsight-sv:local
+#   2) kubectl create namespace nsight --dry-run=client -o yaml | kubectl apply -f -
+#   3) kubectl apply -f sv-service/scripts/k8s/
+#
+# Image pull:
+#   - local kind/minikube: load image into cluster, or set imagePullPolicy: IfNotPresent
+#   - remote registry: change image to your registry path
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nsight-sv
+  namespace: nsight
+  labels:
+    app: nsight-sv
+    app.kubernetes.io/name: sv-service
+    app.kubernetes.io/part-of: nsight-tcf-framework
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nsight-sv
+  template:
+    metadata:
+      labels:
+        app: nsight-sv
+        app.kubernetes.io/name: sv-service
+        app.kubernetes.io/part-of: nsight-tcf-framework
+    spec:
+      containers:
+        - name: sv-service
+          image: nsight-sv:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8086
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: nsight-sv-config
+            - secretRef:
+                name: nsight-sv-secret
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1536Mi
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 40
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: sv-data
+              mountPath: /app/data
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+      volumes:
+        - name: sv-data
+          emptyDir: {}
+      restartPolicy: Always

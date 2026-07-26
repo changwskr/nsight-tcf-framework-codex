@@ -1,0 +1,22 @@
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "SV",
+    "serviceId": "SV.Sample.inquiry",
+    "transactionCode": "SV-INQ-0001",
+    "processingType": "INQUIRY",
+    "guid": "",
+    "traceId": "",
+    "channelId": "WEBTOP",
+    "userId": "U123456",
+    "branchId": "001234",
+    "centerId": "DC1",
+    "requestTime": "2026-06-15T10:30:00+09:00",
+    "clientIp": "10.10.10.10",
+    "idempotencyKey": "SV-INQ-0001-U123456-001"
+  },
+  "body": {
+    "sampleKey": "A001",
+    "customerId": "CUST0000001"
+  }
+}

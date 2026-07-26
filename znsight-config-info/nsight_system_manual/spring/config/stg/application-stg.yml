@@ -1,0 +1,15 @@
+spring:
+  profiles:
+    active: stg
+
+logging:
+  level:
+    root: INFO
+    com.nh.nsight: INFO
+    org.mybatis: INFO
+    org.springframework.session: INFO
+
+nsight:
+  monitoring:
+    response-warning-ms: 2000
+    response-critical-ms: 3000

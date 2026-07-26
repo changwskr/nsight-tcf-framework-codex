@@ -1,0 +1,850 @@
+42. 보안코딩 기준
+42.1 도입 전 안내말
+보안코딩은 개발 마지막에 취약점만 점검하는 활동이 아니다.NSIGHT TCF Framework에서는 입력값 검증, 인증·권한, 세션/JWT, SQL 작성, 로그 마스킹, 오류응답, 파일처리, 외부연계, 설정정보 관리가 모두 코드 작성 단계에서 통제되어야 한다.
+NSIGHT Java 코딩 스타일 기준에서도 코딩 스타일은 단순 문법 규칙이 아니라 업무 책임 경계, 데이터 접근 통제, 오류 추적성, 보안 감사, 운영 가능성을 코드 수준에서 일관되게 보장하는 표준이며, 최상위 원칙 중 하나로 민감정보를 코드·로그·응답에 노출하지 않고, 마스킹·접근권한·입력검증·SQL Injection 방지를 적용해야 한다고 정리되어 있다.
+핵심 문장은 다음이다.
+NSIGHT 보안코딩은 “취약점 제거”가 아니라, 모든 온라인 거래가 TCF 전처리·업무계층·후처리를 통과하면서 안전하게 검증·실행·기록되도록 만드는 개발 기준이다.
+
+42.2 보안코딩 기준 결론
+구분
+기준
+기본 원칙
+입력은 신뢰하지 않고, 출력은 마스킹하며, 권한은 서버에서 검증한다
+적용 위치
+Controller, STF, Handler, Facade, Service, Rule, DAO/Mapper, Adapter, ETF
+인증 기준
+Spring Session JDBC, JWT, SSO 인증 결과를 서버에서 재검증
+권한 기준
+ServiceId + 메뉴 + 기능권한 + 데이터권한 + 거래통제 기준
+입력 검증
+DTO Bean Validation + Rule 업무검증 + Header 검증
+SQL 보안
+MyBatis #{} 사용, ${} 금지 또는 Whitelist 제한
+로그 보안
+GUID/TraceId 중심 기록, 개인정보·Token·전문 원문 로그 금지
+응답 보안
+StackTrace, SQL, 서버 IP, 내부 테이블명 노출 금지
+파일 보안
+확장자, MIME, 크기, 경로, 바이러스, 다운로드 권한 검증
+외부연계 보안
+허용된 URL, Timeout, 인증 Header, 응답 검증 적용
+Secret 관리
+application.yml 직접 저장 금지, 환경변수/Secret 저장소 사용
+검증 도구
+SonarQube, Checkstyle, PMD, Dependency Check, 단위·통합 테스트
+
+42.3 보안코딩 적용 구조
+[Client / WebTopSuite / API]
+        ↓
+[Controller / Gateway]
+  - Content-Type 검증
+  - 요청 크기 제한
+  - 표준 전문 수신
+        ↓
+[STF.preProcess()]
+  - Header 필수값 검증
+  - GUID / TraceId 생성
+  - 세션 검증
+  - JWT Claim 검증
+  - 권한 검증
+  - 거래통제
+  - Idempotency
+  - Timeout 정책 조회
+        ↓
+[Handler]
+  - 요청 Body → 업무 DTO 변환
+  - 직접 권한 판단 금지
+        ↓
+[Facade / Service / Rule]
+  - 업무 입력값 검증
+  - 데이터권한 검증
+  - 업무 규칙 검증
+        ↓
+[DAO / Mapper]
+  - MyBatis 파라미터 바인딩
+  - SQL Injection 방지
+  - Query Timeout
+        ↓
+[ETF.postProcess()]
+  - 표준 응답 조립
+  - 오류코드 매핑
+  - 개인정보 마스킹
+  - 감사로그 / 거래로그
+
+TCF 전문처리 구조는 STF.preProcess()에서 Header 검증, GUID/TraceId 생성, 세션·인증·권한 검증, 거래통제, Idempotency, Timeout, 거래 시작 로그를 수행하고, 후처리에서 표준 응답 조립, 오류코드 매핑, 데이터 마스킹, 감사로그, 성능 메트릭, 거래상태 갱신을 수행하는 구조로 정의되어 있다.
+
+42.4 보안코딩 기본 원칙
+원칙
+설명
+개발 기준
+입력 불신
+클라이언트 Header, Body, Cookie, Token을 그대로 믿지 않는다
+서버 세션·권한 DB와 비교
+최소 권한
+필요한 권한만 부여하고 실행 전 검증한다
+ServiceId 권한, 기능권한, 데이터권한
+민감정보 보호
+개인정보, Token, 비밀번호, 계좌정보를 노출하지 않는다
+마스킹, 암호화, 로그 금지
+SQL 안전성
+문자열 결합 SQL을 금지한다
+MyBatis #{} 사용
+오류정보 통제
+내부 오류정보를 사용자에게 노출하지 않는다
+표준 오류코드 사용
+상태 추적
+모든 거래는 GUID/TraceId로 추적한다
+MDC, 거래로그, 감사로그
+설정 외부화
+Secret은 코드와 Git에 저장하지 않는다
+환경변수, Vault, Secret
+재처리 통제
+Retry는 중복처리 위험을 고려한다
+Idempotency Key 사용
+검증 자동화
+취약점은 수동 리뷰만 믿지 않는다
+정적분석, 테스트, 품질 게이트
+
+42.5 입력값 검증 기준
+입력값 검증은 Controller에서 끝나지 않는다.NSIGHT는 전문 Header 검증 + DTO 형식 검증 + Rule 업무 검증을 분리한다.
+검증 단계
+위치
+검증 내용
+Header 검증
+STF
+serviceId, businessCode, transactionCode, user, channelId, branch
+형식 검증
+DTO
+필수값, 길이, 날짜형식, 숫자범위, 코드값
+업무 검증
+Rule
+업무 상태, 권한범위, 데이터범위, 처리 가능 여부
+DB 검증
+DAO/Mapper
+존재 여부, 중복 여부, 참조 무결성
+외부연계 검증
+Adapter
+요청값, 응답값, 상태코드, 전문 구조
+입력 검증 예시
+@Getter
+@Setter
+public class SvCustomerMemoSaveRequest {
+
+    @NotBlank(message = "고객번호는 필수입니다.")
+    @Size(max = 20, message = "고객번호는 20자를 초과할 수 없습니다.")
+    private String customerNo;
+
+    @NotBlank(message = "메모 내용은 필수입니다.")
+    @Size(max = 1000, message = "메모는 1000자를 초과할 수 없습니다.")
+    private String memo;
+
+    @Pattern(regexp = "^[A-Z0-9_]{1,30}$", message = "메모 유형이 올바르지 않습니다.")
+    private String memoType;
+}
+
+업무 Rule 검증 예시
+@Component
+public class SvCustomerMemoRule {
+
+    public void validateSave(
+            SvCustomerMemoSaveRequest request,
+            TransactionContext context
+    ) {
+        if (!context.getDataAccessScope().canAccessCustomer(request.getCustomerNo())) {
+            throw new BusinessException(
+                    "E-AUTH-0008",
+                    "해당 고객정보에 접근할 권한이 없습니다."
+            );
+        }
+
+        if (containsForbiddenText(request.getMemo())) {
+            throw new BusinessException(
+                    "E-SV-VAL-0002",
+                    "허용되지 않는 문자가 포함되어 있습니다."
+            );
+        }
+    }
+
+    private boolean containsForbiddenText(String text) {
+        return text != null && text.contains("<script");
+    }
+}
+
+
+42.6 Header 보안 검증 기준
+전문 Header는 업무 실행의 핵심 기준이므로 반드시 서버에서 재검증한다.
+Header 항목
+보안 검증 기준
+serviceId
+OM_SERVICE_CATALOG 등록 여부, 사용 여부 확인
+businessCode
+URL Path 업무코드와 일치하는지 확인
+transactionCode
+ServiceId에 등록된 거래코드와 일치하는지 확인
+user
+SessionContext 또는 JWT Claim과 일치하는지 확인
+branch
+SessionContext 또는 데이터권한 범위와 일치하는지 확인
+channelId
+허용 채널인지 확인
+menuId
+메뉴-ServiceId 매핑 확인
+idempotencyKey
+등록·변경·삭제 거래는 필수
+guid, traceId
+없으면 서버에서 생성, 있으면 형식 검증
+JWT 적용 시에도 Header 값을 그대로 신뢰하면 안 된다. JWT 설계 기준에서도 JWT 인증 이후 TCF STF 전처리에서 JWT 인증 결과 확인, 전문 Header 검증, Token Claim과 Header 비교, ServiceId 권한 확인, 거래통제 확인을 수행하도록 정리되어 있다.
+
+42.7 SQL Injection 방지 기준
+MyBatis Mapper에서는 문자열 결합을 금지하고, 기본적으로 #{} 파라미터 바인딩을 사용한다.
+항목
+기준
+일반 조건
+#{} 사용
+동적 정렬
+Whitelist 검증 후 제한적으로만 허용
+테이블명 동적 변경
+원칙적 금지
+컬럼명 동적 변경
+Whitelist 방식만 허용
+LIKE 검색
+입력값 Escape 처리
+IN 조건
+Collection 바인딩 사용
+SQL 로그
+바인딩값 중 개인정보 마스킹
+Query Timeout
+온라인 조회는 짧게 통제
+좋은 예
+<select id="selectCustomerSummary"
+        parameterType="SvCustomerSummaryQuery"
+        resultType="SvCustomerSummary">
+    SELECT
+        CUSTOMER_NO,
+        CUSTOMER_NAME,
+        BRANCH_ID,
+        CUSTOMER_GRADE
+    FROM SV_CUSTOMER_SUMMARY
+    WHERE CUSTOMER_NO = #{customerNo}
+      AND BRANCH_ID = #{branchId}
+</select>
+
+나쁜 예
+<select id="selectCustomerSummary"
+        parameterType="map"
+        resultType="SvCustomerSummary">
+    SELECT *
+    FROM SV_CUSTOMER_SUMMARY
+    WHERE CUSTOMER_NO = '${customerNo}'
+</select>
+
+'${customerNo}'는 문자열 치환이므로 SQL Injection 위험이 있다.업무 Mapper에서는 기본적으로 금지한다.
+동적 정렬 허용 예시
+public class SortWhitelist {
+
+    private static final Map<String, String> ALLOWED_COLUMNS = Map.of(
+            "customerName", "CUSTOMER_NAME",
+            "baseDate", "BASE_DATE",
+            "branchId", "BRANCH_ID"
+    );
+
+    public String resolveColumn(String sortKey) {
+        String column = ALLOWED_COLUMNS.get(sortKey);
+
+        if (column == null) {
+            throw new BusinessException(
+                    "E-SEC-SQL-0001",
+                    "허용되지 않은 정렬 조건입니다."
+            );
+        }
+
+        return column;
+    }
+}
+
+
+42.8 XSS / 응답 데이터 보안 기준
+NSIGHT는 주로 HTTP/JSON 전문 방식이지만, 화면에 표시되는 문자열은 XSS 위험을 고려해야 한다.
+구분
+기준
+JSON 응답
+HTML 실행 가능 문자열을 그대로 화면에 출력하지 않도록 UI에서 Escape
+서버 응답
+사용자 입력값을 메시지에 그대로 포함하지 않음
+오류 메시지
+표준 메시지만 반환
+파일명
+다운로드 Header에 들어가는 파일명 검증
+HTML 생성
+서버에서 HTML 조립 지양
+스크립트
+사용자 입력으로 Script 생성 금지
+금지 예시
+throw new BusinessException(
+        "E-SV-VAL-0001",
+        "입력값 오류: " + request.getMemo()
+);
+
+권장 예시
+throw new BusinessException(
+        "E-SV-VAL-0001",
+        "입력값이 올바르지 않습니다."
+);
+
+운영 로그에는 필요한 경우 원문 대신 마스킹 또는 요약값을 남긴다.
+
+42.9 인증 / 권한 보안 기준
+인증과 권한은 업무 Service에 흩뿌리지 않고 TCF 공통 전처리에서 수행한다.
+보안 항목
+기준
+세션 검증
+Spring Session JDBC 기준
+JWT 검증
+서명, 만료, issuer, audience, denylist 확인
+Header-Session 비교
+사용자, 지점, 채널 비교
+Header-Token 비교
+sub, branchId, channelId 비교
+ServiceId 권한
+OM_SERVICE_CATALOG 기준
+메뉴권한
+OM_MENU, OM_MENU_SERVICE_MAP 기준
+기능권한
+조회, 등록, 수정, 삭제, 다운로드, 업로드, 실행, 승인
+데이터권한
+지점, 고객등급, 채널, 다운로드 권한
+거래통제
+TCF_TRANSACTION_CONTROL 기준
+NSIGHT TCF는 JWT를 인증 수단으로 사용하더라도 TCF가 거래통제·권한·로그·감사·Timeout·표준응답을 계속 담당하는 구조이다.
+
+42.10 세션 / Cookie 보안 기준
+항목
+기준
+Cookie 이름
+NSIGHTSID 또는 표준명 사용
+HttpOnly
+필수
+Secure
+운영 HTTPS 환경 필수
+SameSite
+기본 Lax, SSO/iframe 구조는 별도 검토
+Session Timeout
+Idle Timeout 60분 기준
+Absolute Timeout
+8~12시간 권장
+세션 저장
+Spring Session JDBC
+세션 원천
+SESSIONDB
+세션 저장 정보
+사용자, 지점, 채널, 권한그룹 등 최소 정보
+세션 저장 금지
+고객정보, 목록결과, 파일원본, Token 원문
+
+42.11 JWT / Token 보안 기준
+항목
+기준
+Access Token
+짧게 유지, 기본 15분
+Refresh Token
+서버 DB에 Hash 저장
+Token 원문 저장
+금지
+JWT Claim
+최소 정보만 포함
+고객정보 Claim
+금지
+Token 로그
+금지
+Token 폐기
+jti 기준 Denylist 또는 Token DB 상태 관리
+내부 발급 API
+외부 직접 호출 금지
+알고리즘
+운영 표준 알고리즘 고정, none 허용 금지
+Header 비교
+Token Claim과 전문 Header 반드시 비교
+JWT 설계 기준에서도 Access Token은 짧게, Refresh Token은 서버에서 Hash로 관리하며, JWT에는 사용자ID·지점·채널·권한그룹·만료시간 같은 최소 정보만 저장하고 고객명·고객번호·계좌·조회결과는 저장하지 않도록 정리되어 있다.
+
+42.12 로그 / 감사 보안 기준
+로그는 디버깅 출력이 아니라 거래 증적이다.NSIGHT 로그는 GUID 기준으로 추적 가능해야 하지만, 개인정보 원문이나 Token을 남기면 안 된다.
+로그 유형
+필수 필드
+보안 주의사항
+거래로그
+guid, traceId, serviceId, userId, branchId, elapsedMs, resultCode
+개인정보 원문 금지
+오류로그
+guid, errorCode, exceptionType, message
+사용자 메시지와 운영 메시지 분리
+SQL 로그
+guid, sqlId, elapsedMs, rowCount
+바인딩값 개인정보 마스킹
+연계로그
+guid, interfaceId, targetSystem, timeout, retryCount
+요청/응답 전문 원문 저장 통제
+감사로그
+userId, roleId, accessPurpose, dataGrade, maskingLevel
+고객정보 조회/다운로드 필수
+NSIGHT Java 코딩 스타일 기준에서도 사용자 응답에는 SQL, 서버 IP, Stack Trace, 개인정보를 노출하지 않고, 운영 로그에는 GUID, traceId, errorCode, interfaceId, sqlId를 함께 남기며, SQL 로그의 바인딩값 중 개인정보는 마스킹하도록 정리되어 있다.
+로그 작성 예시
+MDC.put("guid", context.getGuid());
+MDC.put("serviceId", context.getServiceId());
+MDC.put("userId", MaskingUtils.maskUserId(context.getUserId()));
+
+try {
+    log.info("SV customer summary inquiry started");
+    return service.selectCustomerSummary(request, context);
+} finally {
+    MDC.clear();
+}
+
+금지 예시
+log.info("request body = {}", request);
+log.info("accessToken = {}", accessToken);
+log.info("customerNo = {}, customerName = {}", customerNo, customerName);
+
+
+42.13 오류 응답 보안 기준
+오류 응답은 사용자 메시지와 운영자 메시지를 분리한다.
+구분
+사용자 응답
+운영 로그
+SQL 오류
+“처리 중 오류가 발생했습니다.”
+SQL ID, errorCode, DB Error Code
+권한 오류
+“권한이 없습니다.”
+userId, serviceId, menuId, authGroupId
+세션 오류
+“로그인이 필요합니다.”
+sessionId, userId, clientIp
+시스템 오류
+“시스템 오류가 발생했습니다.”
+exceptionType, stackTrace, guid
+외부연계 오류
+“연계 시스템 처리 중 오류가 발생했습니다.”
+targetSystem, timeout, statusCode
+금지 응답
+{
+  "result": {
+    "resultCode": "FAIL",
+    "errorMessage": "ORA-00942: table SV_CUSTOMER_SUMMARY does not exist",
+    "errorDetail": "com.nh.nsight.sv.mapper.SvCustomerMapper.select..."
+  }
+}
+
+권장 응답
+{
+  "result": {
+    "resultCode": "FAIL",
+    "errorCode": "E-SV-SYS-0001",
+    "errorMessage": "처리 중 오류가 발생했습니다.",
+    "errorDetail": null
+  }
+}
+
+
+42.14 파일 업로드 / 다운로드 보안 기준
+항목
+업로드 기준
+파일 크기
+업무별 최대 크기 제한
+확장자
+허용 확장자 Whitelist
+MIME Type
+확장자와 MIME Type 동시 확인
+파일명
+경로 문자 제거, 서버 저장명 재생성
+저장 위치
+Web Root 외부
+바이러스 검사
+운영환경 연계 권장
+메타 저장
+DB에는 파일 메타만 저장
+원본 저장
+파일시스템/NAS/Object Storage
+다운로드 권한
+ServiceId + 기능권한 + 데이터권한 검증
+다운로드 감사
+사용자, 사유, 파일ID, 시간 기록
+파일명 정규화 예시
+public String sanitizeFileName(String originalFileName) {
+    String fileName = Paths.get(originalFileName).getFileName().toString();
+
+    if (!fileName.matches("^[a-zA-Z0-9._-]{1,100}$")) {
+        throw new BusinessException(
+                "E-SEC-FILE-0001",
+                "허용되지 않은 파일명입니다."
+        );
+    }
+
+    return fileName;
+}
+
+금지 기준
+금지 항목
+사유
+사용자가 보낸 파일명을 그대로 저장
+Path Traversal 위험
+../ 포함 경로 허용
+임의 파일 접근 위험
+Web Root 하위 저장
+직접 다운로드 위험
+확장자만 검사
+MIME 위조 가능
+다운로드 권한 없이 파일ID만으로 다운로드
+정보유출 위험
+파일 원본 DB 저장
+DB 비대화, 성능 저하
+
+42.15 외부연계 / 서비스 간 호출 보안 기준
+서비스 간 연동은 공통 Client를 통해 수행하고, URL·Header·Timeout·응답 검증을 표준화한다.
+항목
+기준
+대상 URL
+환경별 Whitelist 또는 Gateway Route 기준
+직접 URL 입력
+금지
+Timeout
+연결, 읽기, 전체 Timeout 분리
+인증
+내부 Token, mTLS, HMAC 등 정책 적용
+Header
+GUID, TraceId, serviceId 전달
+요청 로그
+전문 원문 저장 금지
+응답 검증
+resultCode, errorCode, body 구조 검증
+Retry
+기본 금지, Idempotency 있는 거래만 제한 허용
+SSRF 방지
+내부 IP, Metadata URL, 임의 Host 차단
+
+42.16 Secret / 설정정보 보안 기준
+항목
+기준
+DB 비밀번호
+application.yml 직접 저장 금지
+JWT Private Key
+Git 저장 금지
+API Key
+환경변수 또는 Secret 저장소
+암호화 Key
+KMS/HSM 또는 기관 표준 Key 관리
+운영 설정
+Git 형상관리 + 배포 승인
+로그 출력
+Secret 값 마스킹
+테스트 코드
+실제 운영 Secret 사용 금지
+샘플 파일
+더미 값 사용
+금지 예시
+spring:
+  datasource:
+    password: realProdPassword123!
+
+권장 예시
+spring:
+  datasource:
+    password: ${NSIGHT_DB_PASSWORD}
+
+
+42.17 암호화 / 해시 기준
+대상
+기준
+비밀번호
+단방향 해시 + Salt, 원문 저장 금지
+Refresh Token
+Hash 저장
+Access Token
+원문 저장 금지
+개인정보
+기관 보안정책에 따른 암호화 또는 마스킹
+파일
+민감 파일은 저장소 암호화 검토
+전문 로그
+원문 저장 금지, 필요 시 암호화 저장
+Hash 용도
+무결성 확인과 비밀번호 저장을 구분
+Key 관리
+코드 내부 하드코딩 금지
+비밀번호와 Token은 복호화가 필요 없는 정보이므로 원문을 저장하지 않는다.업무상 복호화가 필요한 개인정보는 기관 표준 암호화 정책과 Key 관리 체계를 따른다.
+
+42.18 안전하지 않은 코드 금지 기준
+금지 코드
+사유
+Runtime.exec() 직접 사용
+Command Injection 위험
+사용자 입력 기반 파일 경로 조립
+Path Traversal 위험
+사용자 입력 기반 SQL 문자열 조립
+SQL Injection 위험
+ObjectInputStream 역직렬화
+Deserialization 취약점 위험
+Header 사용자값 직접 신뢰
+위변조 가능
+Token 원문 로그 출력
+인증정보 유출
+e.printStackTrace()
+운영 로그 표준 위반
+catch (Exception e) {} 빈 처리
+오류 은폐
+System.out.println()
+운영 로그 통제 불가
+운영 Secret 하드코딩
+보안 사고 위험
+
+42.19 보안 예외코드 기준
+오류코드
+의미
+발생 위치
+E-SEC-VAL-0001
+입력값 형식 오류
+DTO / Rule
+E-SEC-HDR-0001
+Header 위변조 의심
+STF
+E-SEC-SQL-0001
+허용되지 않은 SQL 조건
+DAO / Rule
+E-SEC-XSS-0001
+허용되지 않은 스크립트 입력
+Rule
+E-SEC-FILE-0001
+허용되지 않은 파일명
+File Service
+E-SEC-FILE-0002
+허용되지 않은 파일 형식
+File Service
+E-SEC-AUTH-0001
+인증 실패
+Security Filter / STF
+E-SEC-AUTH-0002
+권한 없음
+STF
+E-SEC-TOKEN-0001
+Token 검증 실패
+JWT Filter
+E-SEC-CONFIG-0001
+보안 설정 오류
+Startup Check
+
+42.20 개발자 구현 예시
+42.20.1 Security Validator
+@Component
+@RequiredArgsConstructor
+public class SecurityValidator {
+
+    private final ServiceCatalogService serviceCatalogService;
+    private final AuthorizationValidator authorizationValidator;
+
+    public SecurityValidationResult validate(
+            StandardRequest<?> request,
+            SessionContext session,
+            JwtPrincipal jwtPrincipal
+    ) {
+        StandardHeader header = request.getHeader();
+
+        validateHeaderConsistency(header, session, jwtPrincipal);
+        validateServiceCatalog(header);
+        AuthorizationResult authorization =
+                authorizationValidator.validate(header, session);
+
+        return SecurityValidationResult.builder()
+                .authorizationResult(authorization)
+                .build();
+    }
+
+    private void validateHeaderConsistency(
+            StandardHeader header,
+            SessionContext session,
+            JwtPrincipal jwtPrincipal
+    ) {
+        if (!header.getUser().equals(session.getUserId())) {
+            throw new BusinessException(
+                    "E-SEC-HDR-0001",
+                    "사용자 정보가 일치하지 않습니다."
+            );
+        }
+
+        if (jwtPrincipal != null && !header.getUser().equals(jwtPrincipal.getUserId())) {
+            throw new BusinessException(
+                    "E-SEC-TOKEN-0001",
+                    "Token 사용자 정보가 일치하지 않습니다."
+            );
+        }
+    }
+
+    private void validateServiceCatalog(StandardHeader header) {
+        ServiceCatalog service =
+                serviceCatalogService.getEnabledService(header.getServiceId());
+
+        if (!service.getBusinessCode().equals(header.getBusinessCode())) {
+            throw new BusinessException(
+                    "E-SEC-HDR-0001",
+                    "업무코드가 일치하지 않습니다."
+            );
+        }
+    }
+}
+
+42.20.2 Masking Utility
+public final class MaskingUtils {
+
+    private MaskingUtils() {
+    }
+
+    public static String maskUserId(String userId) {
+        if (userId == null || userId.length() <= 3) {
+            return "***";
+        }
+        return userId.substring(0, 3) + "***";
+    }
+
+    public static String maskCustomerNo(String customerNo) {
+        if (customerNo == null || customerNo.length() < 6) {
+            return "******";
+        }
+        return customerNo.substring(0, 3) + "******";
+    }
+
+    public static String maskToken(String token) {
+        if (token == null || token.length() < 10) {
+            return "***";
+        }
+        return token.substring(0, 6) + "...";
+    }
+}
+
+
+42.21 보안 테스트 케이스
+No
+테스트 케이스
+기대 결과
+1
+Header user와 세션 user 불일치
+거래 차단
+2
+JWT Claim과 Header user 불일치
+거래 차단
+3
+미등록 ServiceId 호출
+거래 차단
+4
+SQL Injection 문자열 입력
+정상 바인딩 또는 입력 차단
+5
+<script> 포함 입력
+저장 또는 응답 전 차단/Escape
+6
+권한 없는 다운로드 호출
+거래 차단, 감사로그 기록
+7
+파일명 ../../etc/passwd 업로드
+차단
+8
+허용되지 않은 확장자 업로드
+차단
+9
+만료 Token으로 호출
+인증 오류
+10
+Refresh Token 재사용
+차단
+11
+오류 발생 시 StackTrace 응답 노출 여부
+노출 금지
+12
+로그에 고객번호·Token 원문 출력 여부
+출력 금지
+13
+운영 Secret Git 포함 여부
+검출 시 빌드 실패
+14
+권한 변경 후 Cache 반영 여부
+변경 권한 반영
+15
+외부연계 URL 임의 변경
+차단
+
+42.22 코드 리뷰 체크리스트
+점검 항목
+확인
+모든 입력 DTO에 필수값·길이·형식 검증이 있는가
+□
+Header 값을 세션/JWT와 비교하는가
+□
+ServiceId 권한과 거래통제를 STF에서 수행하는가
+□
+MyBatis SQL에서 ${}를 사용하지 않는가
+□
+동적 정렬·컬럼은 Whitelist 검증을 하는가
+□
+고객정보·Token·비밀번호가 로그에 남지 않는가
+□
+사용자 응답에 SQL, 서버 IP, StackTrace가 노출되지 않는가
+□
+다운로드 권한과 감사로그가 분리되어 있는가
+□
+파일 업로드 시 확장자·MIME·크기·경로를 검증하는가
+□
+외부연계 URL이 Whitelist 기준인가
+□
+Retry 거래에 Idempotency Key가 적용되어 있는가
+□
+Secret이 코드나 Git에 포함되어 있지 않은가
+□
+예외를 빈 catch로 삼키지 않는가
+□
+보안 실패가 거래로그·감사로그에 기록되는가
+□
+SonarQube / PMD / Dependency Check를 통과하는가
+□
+
+42.23 금지 기준 요약
+금지 항목
+대체 기준
+업무 Service에서 인증·권한 직접 구현
+STF 공통 검증
+Header 사용자값 직접 신뢰
+Session/JWT Claim 비교
+SQL 문자열 결합
+MyBatis #{} 바인딩
+Token 원문 저장·로그
+Hash 저장, 마스킹
+StackTrace 사용자 응답
+표준 오류코드
+파일 경로 직접 조립
+서버 저장명 재생성
+업무 데이터 세션 저장
+DB 또는 업무 저장소 사용
+운영 Secret 하드코딩
+환경변수/Secret 저장소
+무조건 Retry
+Idempotency + 상태조회
+개인정보 원문 로그
+마스킹 또는 미기록
+
+42.24 마무리말
+보안코딩 기준의 핵심은 개발자가 각자 보안 로직을 흩어서 구현하는 것이 아니라, TCF 공통 파이프라인에서 인증·권한·거래통제·마스킹·오류응답·로그 기준을 일관되게 적용하는 것이다.
+업무 개발자는 기능 구현과 함께 다음 질문을 항상 확인해야 한다.
+이 입력값은 검증되었는가?
+이 사용자는 이 ServiceId를 실행할 권한이 있는가?
+이 데이터는 이 사용자에게 보여도 되는가?
+이 오류가 사용자에게 내부정보를 노출하지 않는가?
+이 로그가 개인정보나 Token을 남기지 않는가?
+
+42.25 시사점
+관점
+시사점
+개발 관점
+보안은 공통 모듈에만 맡기는 것이 아니라 DTO, Rule, Mapper, Adapter 코드 전체에 반영해야 한다
+운영 관점
+보안 실패도 GUID, TraceId, userId, serviceId 기준으로 추적 가능해야 한다
+감사 관점
+고객정보 조회, 다운로드, 권한 실패, Token 발급·폐기는 감사로그 대상이다
+아키텍처 관점
+NSIGHT 보안코딩은 Session/JWT + ServiceId + 권한 + 거래통제 + 마스킹 + 로그가 함께 동작할 때 완성된다
+

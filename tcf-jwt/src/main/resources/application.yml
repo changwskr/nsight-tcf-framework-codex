@@ -1,0 +1,96 @@
+server:
+  servlet:
+    context-path: /
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+    session:
+      cookie:
+        name: NSIGHTSID
+        path: /
+        http-only: true
+        secure: false
+        same-site: Lax
+
+spring:
+  profiles:
+    default: local
+  datasource:
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 3000
+      validation-timeout: 3000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      keepalive-time: 300000
+      auto-commit: false
+  transaction:
+    default-timeout: 5
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${nsight.security.jwt.issuer-uri:}
+          jwk-set-uri: ${nsight.security.jwt.jwk-set-uri:}
+
+mybatis:
+  mapper-locations:
+    - classpath:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    default-statement-timeout: 3
+    jdbc-type-for-null: NULL
+    call-setters-on-nulls: true
+    default-fetch-size: 500
+    cache-enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,threaddump
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+nsight:
+  system-id: NSIGHT-AUTH
+  domain: nh.marketing.com
+  security:
+    auth-type: jwt
+    jwt:
+      issuer: NSIGHT-AUTH
+      audience: NSIGHT-MP
+      access-token-valid-minutes: 15
+      refresh-token-valid-hours: 8
+      clock-skew-seconds: 60
+      algorithm: RS256
+      issuer-uri: http://127.0.0.1:8100/jwt
+      jwk-set-uri: http://127.0.0.1:8100/jwt/.well-known/jwks.json
+      denylist-check-enabled: true
+      refresh-token-rotation-enabled: true
+      header-name: Authorization
+      token-prefix: Bearer
+      cookie-mode-enabled: false
+      access-token-cookie-name: NSIGHT_AT
+      refresh-token-cookie-name: NSIGHT_RT
+      schema-auto-init: true
+  tcf:
+    session-validation-enabled: false
+    authorization-validation-enabled: false
+    idempotency-enabled: true
+    audit-enabled: true
+    transaction-log-enabled: true
+    runtime-monitor-enabled: true
+    runtime-slow-sql-threshold-ms: 1000
+    runtime:
+      business-code: JWT
+  timeout:
+    online-transaction-seconds: 5
+    db-query-seconds: 3

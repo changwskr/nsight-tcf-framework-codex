@@ -1,0 +1,23 @@
+# local - bootRun (port 8086)
+server:
+  port: 8086
+
+spring:
+  application:
+    name: nsight-sv-service
+  datasource:
+    url: jdbc:h2:mem:nsight_sv;MODE=Oracle;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false
+    hikari:
+      pool-name: nsight-sv-hikari-local
+  h2:
+    console:
+      enabled: true
+
+nsight:
+  tcf:
+    transaction-log-schema-auto-init: true
+    transaction-log-datasource:
+      url: jdbc:h2:file:${nsight.txlog.path:./data/nsight-txlog}/nsight_om;MODE=Oracle;AUTO_SERVER=TRUE;DATABASE_TO_UPPER=false
+      username: sa
+      password:
+      driver-class-name: org.h2.Driver

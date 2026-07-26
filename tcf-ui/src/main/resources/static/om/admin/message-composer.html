@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 공통 전문 조립</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260627c"></script>
+  <script>
+    const HEADER_IDS = {
+      systemId: 'hSystemId',
+      businessCode: 'hBusinessCode',
+      serviceId: 'hServiceId',
+      transactionCode: 'hTransactionCode',
+      processingType: 'hProcessingType',
+      guid: 'hGuid',
+      traceId: 'hTraceId',
+      channelId: 'hChannelId',
+      userId: 'hUserId',
+      branchId: 'hBranchId',
+      centerId: 'hCenterId',
+      requestTime: 'hRequestTime',
+      transactionIntime: 'hTransactionIntime',
+      systemDate: 'hSystemDate',
+      bizDate: 'hBizDate',
+      clientIp: 'hClientIp',
+      idempotencyKey: 'hIdempotencyKey'
+    };
+
+    let modules = [];
+    let transactions = [];
+    let catalogRows = [];
+    let targetUrl = '-';
+
+    function readHeaderFromForm() {
+      const header = {};
+      Object.entries(HEADER_IDS).forEach(([key, id]) => {
+        const el = document.getElementById(id);
+        header[key] = el ? el.value.trim() : '';
+      });
+      return header;
+    }
+
+    function applyHeaderToForm(header) {
+      Object.entries(HEADER_IDS).forEach(([key, id]) => {
+        const el = document.getElementById(id);
+        if (el && header && header[key] != null) {
+          el.value = header[key];
+        }
+      });
+    }
+
+    function refreshHeaderDefaults() {
+      const biz = document.getElementById('hBusinessCode').value.trim() || 'OM';
+      const header = OmAdmin.buildStandardHeader({
+        businessCode: biz,
+        serviceId: document.getElementById('hServiceId').value.trim(),
+        transactionCode: document.getElementById('hTransactionCode').value.trim(),
+        processingType: document.getElementById('hProcessingType').value,
+        userId: document.getElementById('hUserId').value.trim(),
+        branchId: document.getElementById('hBranchId').value.trim(),
+        centerId: document.getElementById('hCenterId').value.trim(),
+        channelId: document.getElementById('hChannelId').value.trim(),
+        clientIp: document.getElementById('hClientIp').value.trim(),
+        idempotencyKey: document.getElementById('hIdempotencyKey').value.trim()
+      });
+      applyHeaderToForm(header);
+      refreshPreviews();
+    }
+
+    function readBodyJson() {
+      const raw = document.getElementById('bodyJson').value.trim();
+      if (!raw) return {};
+      return JSON.parse(raw);
+    }
+
+    function buildRequest() {
+      return {
+        header: readHeaderFromForm(),
+        body: readBodyJson()
+      };
+    }
+
+    function refreshPreviews() {
+      try {
+        const req = buildRequest();
+        document.getElementById('requestPreview').value = JSON.stringify(req, null, 2);
+        document.getElementById('bodyError').hidden = true;
+      } catch (e) {
+        document.getElementById('bodyError').hidden = false;
+        document.getElementById('bodyError').textContent = `Body JSON 오류: ${e.message}`;
+      }
+    }
+
+    function showResponse(payload, relay) {
+      const meta = document.getElementById('responseMeta');
+      const ok = relay.httpStatus >= 200 && relay.httpStatus < 300
+        && payload && payload.result && payload.result.resultCode === 'S0000';
+      meta.innerHTML = `
+        <span class="om-chip ${ok ? 'ok' : 'warn'}">HTTP ${relay.httpStatus}</span>
+        <span>${relay.elapsedMs}ms</span>
+        <span class="om-mono">${relay.targetUrl || targetUrl}</span>`;
+
+      if (!payload) {
+        document.getElementById('respHeaderJson').value = '';
+        document.getElementById('respResultJson').value = relay.responseBody || relay.errorMessage || '';
+        document.getElementById('respBodyJson').value = '';
+        document.getElementById('responseFull').value = relay.responseBody || '';
+        return;
+      }
+
+      document.getElementById('respHeaderJson').value = JSON.stringify(payload.header || {}, null, 2);
+      document.getElementById('respResultJson').value = JSON.stringify(payload.result || {}, null, 2);
+      document.getElementById('respBodyJson').value = JSON.stringify(payload.body != null ? payload.body : {}, null, 2);
+      document.getElementById('responseFull').value = JSON.stringify(payload, null, 2);
+
+      const resultEl = document.getElementById('respResultSummary');
+      if (payload.result) {
+        const cls = payload.result.resultCode === 'S0000' ? 'om-result-ok' : 'om-result-fail';
+        resultEl.innerHTML = `<span class="${cls}">${payload.result.resultCode}</span> · ${payload.result.resultMessage || ''}`;
+      } else {
+        resultEl.textContent = '-';
+      }
+    }
+
+    async function loadModules() {
+      const res = await fetch('/api/business-modules');
+      modules = await res.json();
+      const sel = document.getElementById('bizModule');
+      sel.innerHTML = modules.map(m =>
+        `<option value="${m.code}">${m.code} · ${m.name}</option>`).join('');
+    }
+
+    async function loadTransactions(code) {
+      const res = await fetch(`/api/multi/business-modules/${code}`);
+      if (!res.ok) {
+        transactions = [];
+        return;
+      }
+      const data = await res.json();
+      transactions = data.transactions || [];
+      const sel = document.getElementById('sampleTx');
+      sel.innerHTML = '<option value="">샘플 거래 선택...</option>' + transactions.map(tx =>
+        `<option value="${tx.id}">${tx.label} (${tx.serviceId})</option>`).join('');
+    }
+
+    async function loadCatalog(businessCode) {
+      try {
+        const { body } = await OmAdmin.inquiry('serviceCatalog', {
+          businessCode: businessCode || undefined,
+          useYn: 'Y',
+          pageNo: 1,
+          pageSize: 500
+        });
+        catalogRows = body.rows || [];
+      } catch (e) {
+        catalogRows = [];
+      }
+      const sel = document.getElementById('catalogTx');
+      sel.innerHTML = '<option value="">ServiceId 카탈로그 선택...</option>' + catalogRows.map((r, i) =>
+        `<option value="${i}">${OmAdmin.field(r, 'serviceId')} · ${OmAdmin.field(r, 'transactionCode')}</option>`).join('');
+    }
+
+    async function refreshTargetUrl(code) {
+      const q = new URLSearchParams({
+        deploymentMode: OmAdmin.config.deploymentMode,
+        bootrunHost: OmAdmin.config.bootrunHost,
+        tomcatGatewayUrl: OmAdmin.config.tomcatGatewayUrl
+      });
+      const res = await fetch(`/api/business-modules/${code}/target-url?${q}`);
+      if (res.ok) {
+        const data = await res.json();
+        targetUrl = data.targetUrl || '-';
+      }
+      document.getElementById('targetUrl').textContent = targetUrl;
+    }
+
+    function applySampleRequest(sample) {
+      if (!sample) return;
+      const header = sample.header || {};
+      const body = sample.body || {};
+      applyHeaderToForm(header);
+      document.getElementById('bodyJson').value = JSON.stringify(body, null, 2);
+      refreshHeaderDefaults();
+    }
+
+    function applyCatalogRow(row) {
+      if (!row) return;
+      document.getElementById('hBusinessCode').value = OmAdmin.field(row, 'businessCode', 'OM');
+      document.getElementById('hServiceId').value = OmAdmin.field(row, 'serviceId', '');
+      document.getElementById('hTransactionCode').value = OmAdmin.field(row, 'transactionCode', '');
+      document.getElementById('hProcessingType').value = OmAdmin.field(row, 'processingType', 'INQUIRY');
+      refreshHeaderDefaults();
+    }
+
+    function findMatchingSample(serviceId, transactionCode) {
+      return transactions.find(tx =>
+        tx.serviceId === serviceId && tx.transactionCode === transactionCode);
+    }
+
+    OmAdmin.initPage('message-composer', '공통 전문 조립 / 테스트', async (el) => {
+      el.innerHTML = `
+        <div class="om-alert info">
+          TCF 표준 JSON 전문 구조입니다. <strong>Header</strong>는 공통 필드, <strong>Body</strong>는 업무별 전문입니다.
+          ServiceId 카탈로그 또는 샘플 거래를 선택한 뒤 Body JSON을 편집하고 전송하세요.
+        </div>
+
+        <section class="om-msg-toolbar om-filter-bar">
+          <div class="field"><label for="bizModule">대상 업무</label><select id="bizModule"></select></div>
+          <div class="field field-wide"><label for="catalogTx">ServiceId 카탈로그</label><select id="catalogTx"></select></div>
+          <div class="field field-wide"><label for="sampleTx">샘플 거래 (Body 포함)</label><select id="sampleTx"></select></div>
+          <div class="actions" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
+            <button class="btn-secondary" id="refreshGuidBtn" type="button">GUID 갱신</button>
+            <button class="btn-secondary" id="loadSampleBtn" type="button">샘플 Body</button>
+            <button class="btn-primary" id="sendBtn" type="button">전문 전송</button>
+          </div>
+        </section>
+
+        <div style="margin-bottom:12px;color:var(--muted);font-size:0.85rem">
+          요청 URL: <span class="om-mono" id="targetUrl">-</span>
+        </div>
+
+        <div class="om-form-panel">
+          <h3>Header (공통 전문)</h3>
+          <div class="om-form-grid">
+            <div class="field"><label for="hSystemId">systemId</label><input id="hSystemId" type="text"></div>
+            <div class="field"><label for="hBusinessCode">businessCode</label><input id="hBusinessCode" type="text"></div>
+            <div class="field field-wide"><label for="hServiceId">serviceId</label><input id="hServiceId" type="text" class="om-mono"></div>
+            <div class="field"><label for="hTransactionCode">transactionCode</label><input id="hTransactionCode" type="text"></div>
+            <div class="field"><label for="hProcessingType">processingType</label>
+              <select id="hProcessingType">
+                <option>INQUIRY</option><option>UPDATE</option><option>DELETE</option><option>EXECUTE</option><option>CREATE</option>
+              </select>
+            </div>
+            <div class="field field-wide"><label for="hGuid">guid</label><input id="hGuid" type="text" class="om-mono"></div>
+            <div class="field"><label for="hTraceId">traceId</label><input id="hTraceId" type="text"></div>
+            <div class="field"><label for="hChannelId">channelId</label><input id="hChannelId" type="text"></div>
+            <div class="field"><label for="hUserId">userId</label><input id="hUserId" type="text"></div>
+            <div class="field"><label for="hBranchId">branchId</label><input id="hBranchId" type="text"></div>
+            <div class="field"><label for="hCenterId">centerId</label><input id="hCenterId" type="text"></div>
+            <div class="field field-wide"><label for="hRequestTime">requestTime</label><input id="hRequestTime" type="text"></div>
+            <div class="field field-wide"><label for="hTransactionIntime">transactionIntime</label><input id="hTransactionIntime" type="text"></div>
+            <div class="field"><label for="hSystemDate">systemDate</label><input id="hSystemDate" type="text"></div>
+            <div class="field"><label for="hBizDate">bizDate</label><input id="hBizDate" type="text"></div>
+            <div class="field"><label for="hClientIp">clientIp</label><input id="hClientIp" type="text"></div>
+            <div class="field field-wide"><label for="hIdempotencyKey">idempotencyKey</label><input id="hIdempotencyKey" type="text"></div>
+          </div>
+        </div>
+
+        <div class="om-msg-layout">
+          <div class="om-json-panel">
+            <div class="om-json-panel-head">
+              <span>Body (업무 전문)</span>
+              <span class="om-muted">JSON 객체</span>
+            </div>
+            <textarea id="bodyJson" spellcheck="false">{}</textarea>
+          </div>
+          <div class="om-json-panel">
+            <div class="om-json-panel-head">
+              <span>요청 전문 미리보기</span>
+              <span class="om-muted">header + body</span>
+            </div>
+            <textarea id="requestPreview" readonly spellcheck="false"></textarea>
+          </div>
+        </div>
+        <div id="bodyError" hidden style="margin-bottom:16px;padding:12px 16px;border-radius:10px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.35);color:#fecaca;font-size:0.88rem"></div>
+
+        <div class="om-card" style="margin-bottom:16px">
+          <div class="om-card-head">응답</div>
+          <div class="om-card-body">
+            <div id="responseMeta" style="margin-bottom:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;color:var(--muted);font-size:0.85rem">
+              <span class="om-empty">아직 전송하지 않았습니다.</span>
+            </div>
+            <div style="margin-bottom:10px;font-size:0.88rem">결과: <span id="respResultSummary">-</span></div>
+            <div class="om-msg-layout">
+              <div class="om-json-panel">
+                <div class="om-json-panel-head"><span>응답 Header</span></div>
+                <textarea id="respHeaderJson" readonly spellcheck="false"></textarea>
+              </div>
+              <div class="om-json-panel">
+                <div class="om-json-panel-head"><span>응답 Result</span></div>
+                <textarea id="respResultJson" readonly spellcheck="false"></textarea>
+              </div>
+            </div>
+            <div class="om-msg-layout" style="margin-top:16px">
+              <div class="om-json-panel">
+                <div class="om-json-panel-head"><span>응답 Body</span></div>
+                <textarea id="respBodyJson" readonly spellcheck="false"></textarea>
+              </div>
+              <div class="om-json-panel">
+                <div class="om-json-panel-head"><span>응답 전문 (전체)</span></div>
+                <textarea id="responseFull" readonly spellcheck="false"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>`;
+
+      await loadModules();
+      const initialCode = 'OM';
+      document.getElementById('bizModule').value = initialCode;
+      await Promise.all([
+        loadTransactions(initialCode),
+        loadCatalog(initialCode),
+        refreshTargetUrl(initialCode)
+      ]);
+
+      refreshHeaderDefaults();
+      if (transactions.length) {
+        applySampleRequest(transactions[0].sampleRequest);
+      }
+
+      Object.values(HEADER_IDS).forEach(id => {
+        document.getElementById(id).addEventListener('input', refreshPreviews);
+      });
+      document.getElementById('bodyJson').addEventListener('input', refreshPreviews);
+
+      document.getElementById('bizModule').addEventListener('change', async () => {
+        const code = document.getElementById('bizModule').value;
+        document.getElementById('hBusinessCode').value = code;
+        await Promise.all([loadTransactions(code), loadCatalog(code), refreshTargetUrl(code)]);
+        refreshHeaderDefaults();
+        if (transactions.length) {
+          applySampleRequest(transactions[0].sampleRequest);
+        }
+      });
+
+      document.getElementById('catalogTx').addEventListener('change', () => {
+        const idx = document.getElementById('catalogTx').value;
+        if (idx === '') return;
+        const row = catalogRows[Number(idx)];
+        applyCatalogRow(row);
+        const match = findMatchingSample(OmAdmin.field(row, 'serviceId'), OmAdmin.field(row, 'transactionCode'));
+        if (match && match.sampleRequest) {
+          document.getElementById('bodyJson').value = JSON.stringify(match.sampleRequest.body || {}, null, 2);
+          refreshPreviews();
+        }
+      });
+
+      document.getElementById('sampleTx').addEventListener('change', () => {
+        const id = document.getElementById('sampleTx').value;
+        if (!id) return;
+        const tx = transactions.find(t => t.id === id);
+        if (tx) applySampleRequest(tx.sampleRequest);
+      });
+
+      document.getElementById('refreshGuidBtn').addEventListener('click', refreshHeaderDefaults);
+      document.getElementById('loadSampleBtn').addEventListener('click', () => {
+        const id = document.getElementById('sampleTx').value;
+        const tx = id ? transactions.find(t => t.id === id) : transactions[0];
+        if (tx && tx.sampleRequest) {
+          document.getElementById('bodyJson').value = JSON.stringify(tx.sampleRequest.body || {}, null, 2);
+          refreshPreviews();
+        } else {
+          alert('샘플 거래를 선택하세요.');
+        }
+      });
+
+      document.getElementById('sendBtn').addEventListener('click', async () => {
+        let request;
+        try {
+          request = buildRequest();
+        } catch (e) {
+          alert(`Body JSON 형식 오류: ${e.message}`);
+          return;
+        }
+        if (!request.header.serviceId || !request.header.transactionCode) {
+          alert('serviceId와 transactionCode를 입력하세요.');
+          return;
+        }
+        document.getElementById('responseMeta').innerHTML = '<span class="om-empty">전송 중...</span>';
+        try {
+          const code = request.header.businessCode || 'OM';
+          const { payload, relay } = await OmAdmin.relayMessage(code, request);
+          showResponse(payload, relay);
+        } catch (e) {
+          OmAdmin.showErrorBanner(el, e.message);
+        }
+      });
+    }).catch(err => alert(err.message));
+  </script>
+</body>
+</html>

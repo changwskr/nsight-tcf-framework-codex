@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 임계치·수집설정</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+  <link rel="stylesheet" href="/_shared/om-runtime-threshold-policy.css?v=20260712f">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260712f"></script>
+  <script src="/_shared/om-runtime.js?v=20260712f"></script>
+  <script src="/_shared/om-runtime-threshold.js?v=20260712f"></script>
+  <script>
+    let screenData = null;
+    let metrics = [];
+    let pendingChange = null;
+
+    function el(id) { return document.getElementById(id); }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.rtm090-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
+      document.querySelectorAll('.rtm090-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tabId));
+    }
+
+    function renderCategories(categories) {
+      el('catGrid').innerHTML = (categories || []).map(c => `
+        <div class="rtm090-cat-card">
+          <strong>${c.label}</strong>
+          <span class="om-muted">${c.description || ''}</span>
+        </div>`).join('');
+    }
+
+    function renderMetrics() {
+      el('metricBody').innerHTML = metrics.length ? metrics.map((m, i) => `
+        <tr>
+          <td>${m.metricLabel}</td>
+          <td>${m.normalDisplay || '-'}</td>
+          <td><input class="rtm090-threshold-input" type="number" data-idx="${i}" data-field="warnValue" value="${m.warnValue}">${m.unit === '%' ? '%' : ''}</td>
+          <td><input class="rtm090-threshold-input" type="number" data-idx="${i}" data-field="criticalValue" value="${m.criticalValue}">${m.unit === '%' ? '%' : ''}</td>
+          <td><input class="rtm090-threshold-input" type="number" data-idx="${i}" data-field="consecutiveCount" value="${m.consecutiveCount}" style="width:48px"></td>
+          <td>${m.scope || '-'}</td>
+          <td><button type="button" class="btn-secondary btn-sm btn-change-req" data-idx="${i}">변경 요청</button></td>
+        </tr>`).join('') : '<tr><td colspan="7" class="om-empty">임계치 없음</td></tr>';
+
+      el('metricBody').querySelectorAll('input').forEach(inp => {
+        inp.addEventListener('change', e => {
+          const idx = Number(e.target.dataset.idx);
+          const field = e.target.dataset.field;
+          metrics[idx][field] = Number(e.target.value);
+          OmRuntimeThreshold.saveEffective(metrics);
+        });
+      });
+      el('metricBody').querySelectorAll('.btn-change-req').forEach(btn => {
+        btn.addEventListener('click', () => openChangeModal(Number(btn.dataset.idx)));
+      });
+    }
+
+    function renderCollection(coll, ret, runtime) {
+      el('collectionBody').innerHTML = `
+        <tr><td>진단 API 폴링</td><td>${coll.diagnosticsPollSec || 10}초</td><td>OM.Runtime.inquiry 호출 주기(화면)</td></tr>
+        <tr><td>워크스페이스 자동갱신</td><td>${coll.workspaceAutoRefreshSec || 10}초</td><td>RTM 워크스페이스</td></tr>
+        <tr><td>Slow SQL 이력</td><td>최대 ${coll.slowSqlTrackerMax || 200}건</td><td>tcf-web 인메모리</td></tr>
+        <tr><td>Slow 거래 이력</td><td>최대 ${coll.slowTransactionMax || 50}건</td><td>WAR별 수집</td></tr>
+        <tr><td>진단 이력(브라우저)</td><td>최대 ${coll.historyMax || 30}건</td><td>localStorage</td></tr>
+        <tr><td>runtime Slow SQL</td><td>${runtime.slowSqlThresholdDisplay || '-'}</td><td>${runtime.source || '-'}</td></tr>
+        <tr><td>Online Timeout</td><td>${runtime.onlineTimeoutSec != null ? runtime.onlineTimeoutSec + '초' : '-'}</td><td>거래 Timeout 기본값</td></tr>`;
+      el('retentionBody').innerHTML = `
+        <tr><td>Slow SQL 보관</td><td>${ret.slowSqlRetentionHours || 24}시간</td><td>인메모리 기준</td></tr>
+        <tr><td>보고서 초안</td><td>${ret.incidentDraftRetentionDays || 7}일</td><td>RTM-070 localStorage</td></tr>
+        <tr><td>승인된 변경</td><td>${ret.approvedChangeRetentionDays || 90}일</td><td>RTM-090 localStorage</td></tr>`;
+      el('collectionNote').textContent = (coll.note || '') + ' ' + (ret.note || '');
+    }
+
+    function renderExtended(screen) {
+      const svc = screen.serviceSlowRules || [];
+      el('serviceSlowBody').innerHTML = svc.length ? svc.map(r => `
+        <tr><td>${OmAdmin.field(r, 'type')}</td><td>${r.designThresholdMs != null ? r.designThresholdMs + 'ms' : '-'}</td>
+        <td>${r.appliedThresholdMs}ms</td><td>${OmAdmin.field(r, 'scope')}</td></tr>`).join('')
+        : '<tr><td colspan="4" class="om-empty">-</td></tr>';
+      el('sqlSlowBody').innerHTML = (screen.sqlSlowRules || []).map(r =>
+        `<tr><td>${r.scope}</td><td>${r.status}</td><td>${r.note}</td></tr>`).join('');
+      el('externalBody').innerHTML = (screen.externalTimeoutRules || []).map(r =>
+        `<tr><td>${r.scope}</td><td>${r.status}</td><td>${r.note}</td></tr>`).join('');
+    }
+
+    function renderPending() {
+      const pending = OmRuntimeThreshold.loadPending();
+      const approved = OmRuntimeThreshold.loadApproved().slice(0, 10);
+      el('pendingBody').innerHTML = pending.length ? pending.map(r => `
+        <tr>
+          <td class="om-mono">${r.id}</td>
+          <td>${r.applyTarget || '-'}</td>
+          <td>${r.changeReason || '-'}</td>
+          <td>${r.requester || '-'}</td>
+          <td>${(r.requestedAt || '').slice(0, 16).replace('T', ' ')}</td>
+          <td>
+            <button type="button" class="btn-primary btn-sm btn-approve" data-id="${r.id}">승인</button>
+            <button type="button" class="btn-secondary btn-sm btn-reject" data-id="${r.id}">반려</button>
+          </td>
+        </tr>`).join('') : '<tr><td colspan="6" class="om-empty">승인 대기 변경 없음</td></tr>';
+
+      el('approvedBody').innerHTML = approved.length ? approved.map(r => `
+        <tr>
+          <td class="om-mono">${r.id}</td>
+          <td>${r.applyTarget || '-'}</td>
+          <td>${r.beforeValue || '-'}</td>
+          <td>${r.afterValue || '-'}</td>
+          <td>${r.approver || '-'}</td>
+          <td>${(r.approvedAt || '').slice(0, 16).replace('T', ' ')}</td>
+        </tr>`).join('') : '<tr><td colspan="6" class="om-empty">승인 이력 없음</td></tr>';
+
+      const canApprove = OmRuntimeThreshold.canApprove(OmAdmin.getSession());
+      el('pendingBody').querySelectorAll('.btn-approve').forEach(btn => {
+        btn.disabled = !canApprove;
+        btn.addEventListener('click', () => {
+          OmRuntimeThreshold.approveRequest(btn.dataset.id, OmRuntimeThreshold.getRequester(OmAdmin.getSession()));
+          metrics = OmRuntimeThreshold.loadEffective(screenData.metricThresholds);
+          renderMetrics();
+          renderPending();
+          alert('승인되었습니다. 운영 반영은 배포·설정 파이프라인 후속 Phase입니다.');
+        });
+      });
+      el('pendingBody').querySelectorAll('.btn-reject').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (confirm('변경 요청을 반려할까요?')) {
+            OmRuntimeThreshold.rejectRequest(btn.dataset.id);
+            renderPending();
+          }
+        });
+      });
+      el('approvePermNote').textContent = canApprove
+        ? '승인 권한: 가능 (관리·승인 권한 그룹)'
+        : '승인 권한: 없음 — 관리자·승인 권한 그룹 필요';
+    }
+
+    function openChangeModal(idx) {
+      const m = metrics[idx];
+      pendingChange = { idx, metric: { ...m } };
+      const cm = screenData.changeManagement || {};
+      const labels = cm.fieldLabels || {};
+      el('modalTitle').textContent = `임계치 변경 요청 — ${m.metricLabel}`;
+      el('chgApplyTarget').value = `${m.metricLabel} (${m.scope})`;
+      el('chgBefore').value = OmRuntimeThreshold.formatMetricValues(m);
+      el('chgAfter').value = '';
+      el('chgRollback').value = OmRuntimeThreshold.formatMetricValues(m);
+      el('chgReason').value = '';
+      el('chgApplyDate').value = new Date().toISOString().slice(0, 10);
+      el('chgEvidence').value = '';
+      el('chgRequester').value = OmRuntimeThreshold.getRequester(OmAdmin.getSession());
+      el('chgApprover').value = '';
+      el('chgAfterWarn').value = m.warnValue;
+      el('chgAfterCritical').value = m.criticalValue;
+      el('chgAfterConsecutive').value = m.consecutiveCount;
+      el('modalBackdrop').classList.add('open');
+      el('modalNote').textContent = cm.workflowNote || '';
+    }
+
+    function closeModal() {
+      el('modalBackdrop').classList.remove('open');
+      pendingChange = null;
+    }
+
+    function submitChangeRequest() {
+      if (!pendingChange) return;
+      const reason = el('chgReason').value.trim();
+      const evidence = el('chgEvidence').value.trim();
+      const approver = el('chgApprover').value.trim();
+      if (!reason) { alert('변경 사유는 필수입니다.'); return; }
+      if (!evidence) { alert('성능시험 또는 운영 근거는 필수입니다.'); return; }
+      if (!approver) { alert('승인자는 필수입니다.'); return; }
+
+      const m = pendingChange.metric;
+      const afterWarn = Number(el('chgAfterWarn').value);
+      const afterCritical = Number(el('chgAfterCritical').value);
+      const afterConsecutive = Number(el('chgAfterConsecutive').value);
+      const afterValue = `주의 ${afterWarn}${m.unit === '%' ? '%' : ''} / 위험 ${afterCritical}${m.unit === '%' ? '%' : ''} / 연속 ${afterConsecutive}`;
+
+      OmRuntimeThreshold.addPendingRequest({
+        metricKey: m.metricKey,
+        metricLabel: m.metricLabel,
+        applyTarget: el('chgApplyTarget').value.trim(),
+        changeReason: reason,
+        beforeValue: el('chgBefore').value.trim(),
+        afterValue,
+        afterWarn,
+        afterCritical,
+        afterConsecutive,
+        applyDate: el('chgApplyDate').value,
+        rollbackValue: el('chgRollback').value.trim(),
+        evidence,
+        requester: el('chgRequester').value.trim(),
+        approver,
+        metricSnapshot: { ...m, warnValue: afterWarn, criticalValue: afterCritical, consecutiveCount: afterConsecutive }
+      });
+      closeModal();
+      renderPending();
+      switchTab('changes');
+      alert('변경 요청이 등록되었습니다. 승인 후 적용됩니다.');
+    }
+
+    async function load() {
+      const { body, relay } = await OmRuntime.loadDiagnostics({ includeDetails: 'Y' });
+      screenData = body.thresholdPolicyScreen || {};
+      el('scopeNote').textContent = screenData.scopeNote || '';
+      el('rtmStatus').textContent = `${relay.elapsedMs}ms · 점검 ${body.checkedAt || '-'}`;
+
+      renderCategories(screenData.categories);
+      metrics = OmRuntimeThreshold.loadEffective(screenData.metricThresholds);
+      renderMetrics();
+      renderCollection(screenData.collectionSettings || {}, screenData.retentionSettings || {}, screenData.runtimeConfig || {});
+      renderExtended(screenData);
+      renderPending();
+    }
+
+    OmAdmin.initPage('runtime-threshold-policy', '임계치·수집설정', async (root) => {
+      root.innerHTML = `
+        <div class="om-alert info">
+          RTM-090 임계치·수집설정 — 판정 임계치 조회·변경 요청·승인 워크플로.
+          <a href="/om/admin/timeout-policy.html" style="margin-left:8px">Timeout 정책</a>
+          <a href="/om/admin/system-config.html" style="margin-left:8px">환경설정</a>
+          <a href="/om/admin/runtime-workspace.html?tab=rtm010" style="margin-left:8px">통합 진단</a>
+        </div>
+        <section class="om-filter-bar">
+          <button type="button" class="btn-primary" id="refreshBtn">갱신</button>
+          <span id="rtmStatus" class="om-muted" style="font-size:0.85rem"></span>
+        </section>
+        <p class="om-muted" id="scopeNote" style="font-size:0.88rem"></p>
+
+        <nav class="rtm090-tabs" id="tabNav">
+          <button type="button" class="rtm090-tab active" data-tab="common">공통 임계치</button>
+          <button type="button" class="rtm090-tab" data-tab="extended">확장 기준</button>
+          <button type="button" class="rtm090-tab" data-tab="collection">수집·보관</button>
+          <button type="button" class="rtm090-tab" data-tab="changes">변경관리</button>
+        </nav>
+
+        <div id="panel-common" class="rtm090-panel active">
+          <div class="rtm090-cat-grid" id="catGrid"></div>
+          <div class="om-card">
+            <div class="om-card-head">12.2 설정 화면 — 지표 임계치</div>
+            <div class="om-card-body om-table-wrap">
+              <table class="om-table">
+                <thead><tr><th>지표</th><th>정상</th><th>주의</th><th>위험</th><th>연속횟수</th><th>적용범위</th><th></th></tr></thead>
+                <tbody id="metricBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="panel-extended" class="rtm090-panel">
+          <div class="om-card" style="margin-bottom:12px">
+            <div class="om-card-head">ServiceId별 Slow 기준</div>
+            <div class="om-card-body om-table-wrap">
+              <table class="om-table"><thead><tr><th>유형</th><th>설계</th><th>적용</th><th>범위</th></tr></thead>
+              <tbody id="serviceSlowBody"></tbody></table>
+            </div>
+          </div>
+          <div class="om-grid-2">
+            <div class="om-card">
+              <div class="om-card-head">SQL별 Slow 기준</div>
+              <div class="om-card-body om-table-wrap">
+                <table class="om-table"><thead><tr><th>범위</th><th>상태</th><th>비고</th></tr></thead>
+                <tbody id="sqlSlowBody"></tbody></table>
+              </div>
+            </div>
+            <div class="om-card">
+              <div class="om-card-head">외부시스템별 Timeout</div>
+              <div class="om-card-body om-table-wrap">
+                <table class="om-table"><thead><tr><th>범위</th><th>상태</th><th>비고</th></tr></thead>
+                <tbody id="externalBody"></tbody></table>
+              </div>
+            </div>
+          </div>
+          <div class="om-card" style="margin-top:12px">
+            <div class="om-card-head">정책 연계</div>
+            <div class="om-card-body om-link-grid">
+              <a href="/om/admin/timeout-policy.html">Timeout 정책</a>
+              <a href="/om/admin/service-catalog.html">ServiceId 관리</a>
+              <a href="/om/admin/system-config.html">환경설정 (runtime.*)</a>
+            </div>
+          </div>
+        </div>
+
+        <div id="panel-collection" class="rtm090-panel">
+          <p class="om-muted" id="collectionNote" style="font-size:0.85rem;margin-bottom:12px"></p>
+          <div class="om-grid-2">
+            <div class="om-card">
+              <div class="om-card-head">수집주기</div>
+              <div class="om-card-body om-table-wrap">
+                <table class="om-table"><thead><tr><th>항목</th><th>값</th><th>설명</th></tr></thead>
+                <tbody id="collectionBody"></tbody></table>
+              </div>
+            </div>
+            <div class="om-card">
+              <div class="om-card-head">보관기간</div>
+              <div class="om-card-body om-table-wrap">
+                <table class="om-table"><thead><tr><th>항목</th><th>값</th><th>설명</th></tr></thead>
+                <tbody id="retentionBody"></tbody></table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="panel-changes" class="rtm090-panel">
+          <p class="om-muted" id="approvePermNote" style="font-size:0.85rem;margin-bottom:10px"></p>
+          <div class="om-card" style="margin-bottom:12px">
+            <div class="om-card-head">12.3 승인 대기</div>
+            <div class="om-card-body om-table-wrap">
+              <table class="om-table">
+                <thead><tr><th>요청ID</th><th>적용 대상</th><th>변경 사유</th><th>요청자</th><th>요청일</th><th></th></tr></thead>
+                <tbody id="pendingBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="om-card">
+            <div class="om-card-head">승인 이력</div>
+            <div class="om-card-body om-table-wrap">
+              <table class="om-table">
+                <thead><tr><th>요청ID</th><th>적용 대상</th><th>변경 전</th><th>변경 후</th><th>승인자</th><th>승인일</th></tr></thead>
+                <tbody id="approvedBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="rtm090-modal-backdrop" id="modalBackdrop">
+          <div class="rtm090-modal">
+            <h3 id="modalTitle">변경 요청</h3>
+            <p class="om-muted" id="modalNote" style="font-size:0.85rem"></p>
+            <div class="rtm090-form-grid">
+              <label>변경 사유 *<textarea id="chgReason" rows="2"></textarea></label>
+              <label>적용 대상 *<input id="chgApplyTarget" type="text" readonly></label>
+              <label>변경 전 값<input id="chgBefore" type="text" readonly></label>
+              <label>변경 후 — 주의<input id="chgAfterWarn" type="number"></label>
+              <label>변경 후 — 위험<input id="chgAfterCritical" type="number"></label>
+              <label>변경 후 — 연속횟수<input id="chgAfterConsecutive" type="number"></label>
+              <label>변경 후 값(요약)<input id="chgAfter" type="text" readonly></label>
+              <label>Rollback 값<input id="chgRollback" type="text"></label>
+              <label>적용일<input id="chgApplyDate" type="date"></label>
+              <label>성능시험 또는 운영 근거 *<textarea id="chgEvidence" rows="2"></textarea></label>
+              <label>요청자<input id="chgRequester" type="text"></label>
+              <label>승인자 *<input id="chgApprover" type="text" placeholder="승인 담당자"></label>
+            </div>
+            <div class="rtm090-modal-actions">
+              <button type="button" class="btn-secondary" id="modalCancel">취소</button>
+              <button type="button" class="btn-primary" id="modalSubmit">변경 요청 등록</button>
+            </div>
+          </div>
+        </div>`;
+
+      el('tabNav').addEventListener('click', e => {
+        const tab = e.target.closest('.rtm090-tab');
+        if (tab) switchTab(tab.dataset.tab);
+      });
+      el('refreshBtn').addEventListener('click', () => load().catch(err => OmAdmin.showErrorBanner(root, err.message)));
+      el('modalCancel').addEventListener('click', closeModal);
+      el('modalSubmit').addEventListener('click', submitChangeRequest);
+      ['chgAfterWarn', 'chgAfterCritical', 'chgAfterConsecutive'].forEach(id => {
+        el(id).addEventListener('input', () => {
+          const m = pendingChange && pendingChange.metric;
+          if (!m) return;
+          const u = m.unit === '%' ? '%' : '';
+          el('chgAfter').value = `주의 ${el('chgAfterWarn').value}${u} / 위험 ${el('chgAfterCritical').value}${u} / 연속 ${el('chgAfterConsecutive').value}`;
+        });
+      });
+      el('modalBackdrop').addEventListener('click', e => {
+        if (e.target === el('modalBackdrop')) closeModal();
+      });
+
+      await load();
+    });
+  </script>
+</body>
+</html>

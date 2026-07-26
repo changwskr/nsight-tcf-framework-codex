@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OM 환경설정 조회</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+</head>
+<body>
+  <script src="/_shared/om-admin.js?v=20260627c"></script>
+  <script>
+    function isTomcatMode() {
+      if (typeof OmAdmin.isTomcatUiDeployment === 'function') {
+        return OmAdmin.isTomcatUiDeployment();
+      }
+      const cfg = OmAdmin.config || {};
+      return (cfg.deploymentMode || '') === 'tomcat'
+          || location.pathname.startsWith('/uj/') || location.pathname === '/uj';
+    }
+
+    function deploymentCategories(tomcat) {
+      if (tomcat) {
+        return [
+          { value: '', label: '전체' },
+          { value: 'deployment', label: 'deployment' },
+          { value: 'gateway', label: 'gateway' },
+          { value: 'application', label: 'application' },
+          { value: 'hikari', label: 'hikari' },
+          { value: 'mybatis', label: 'mybatis' }
+        ];
+      }
+      return [
+        { value: '', label: '전체' },
+        { value: 'deployment', label: 'deployment' },
+        { value: 'local', label: 'local' },
+        { value: 'application', label: 'application' },
+        { value: 'hikari', label: 'hikari' },
+        { value: 'mybatis', label: 'mybatis' }
+      ];
+    }
+
+    function deploymentBanner(tomcat, data) {
+      const mode = data.deploymentMode || (tomcat ? 'tomcat' : 'spring');
+      if (mode === 'tomcat') {
+        return `<div class="om-alert info"><strong>Tomcat WAR</strong> 배포 환경입니다. 게이트웨이 <code>${OmAdmin.config.tomcatGatewayUrl || 'http://localhost:8080'}</code> · tcf-om <code>/om</code> context 기준 런타임 값을 표시합니다. ${data.readOnlyNotice || ''}</div>`;
+      }
+      return `<div class="om-alert info"><strong>Spring bootRun</strong> 배포 환경입니다. tcf-om 개별 포트·내장 Tomcat 기준 런타임 값을 표시합니다. ${data.readOnlyNotice || ''}</div>`;
+    }
+
+    async function load(el) {
+      const category = document.getElementById('filterCategory').value;
+      const body = category ? { configCategory: category } : {};
+      const tbody = document.getElementById('cfgBody');
+      tbody.innerHTML = '<tr><td colspan="5" class="om-empty">조회 중...</td></tr>';
+
+      const { body: data, relay } = await OmAdmin.inquiry('systemConfig', body);
+      const tomcat = (data.deploymentMode || '') === 'tomcat' || isTomcatMode();
+      document.getElementById('modeBanner').innerHTML = deploymentBanner(tomcat, data);
+      document.getElementById('listStatus').textContent = `${relay.elapsedMs}ms · ${data.totalCount ?? 0}건 · ${tomcat ? 'Tomcat' : 'Spring bootRun'}`;
+
+      const rows = data.rows || [];
+      tbody.innerHTML = rows.length ? rows.map(r => `
+        <tr>
+          <td>${OmAdmin.field(r, 'configCategory')}</td>
+          <td class="om-mono">${OmAdmin.field(r, 'configKey')}</td>
+          <td class="om-mono">${OmAdmin.field(r, 'configValue')}</td>
+          <td>${OmAdmin.field(r, 'editableYn') === 'Y' ? '<span class="om-chip warn">수정가능</span>' : '<span class="om-chip muted">조회전용</span>'}</td>
+          <td>${OmAdmin.field(r, 'description')}</td>
+        </tr>`).join('') : '<tr><td colspan="5" class="om-empty">설정 없음</td></tr>';
+    }
+
+    OmAdmin.initPage('system-config', '환경설정 조회', async (el) => {
+      await OmAdmin.loadConfig();
+      const tomcat = isTomcatMode();
+      const categoryOptions = deploymentCategories(tomcat).map(c =>
+        `<option value="${c.value}">${c.label}</option>`).join('');
+
+      el.innerHTML = `
+        <div id="modeBanner"></div>
+        <section class="om-filter-bar">
+          <div class="field"><label for="filterCategory">카테고리</label>
+            <select id="filterCategory">${categoryOptions}</select>
+          </div>
+          <div class="actions" style="display:flex;gap:8px;align-items:end">
+            <button class="btn-primary" id="searchBtn" type="button">조회</button>
+          </div>
+        </section>
+        <div style="margin-bottom:10px;color:var(--muted);font-size:0.85rem" id="listStatus">-</div>
+        <div class="om-card">
+          <div class="om-card-head">환경설정 목록</div>
+          <div class="om-card-body om-table-wrap">
+            <table class="om-table">
+              <thead><tr><th>카테고리</th><th>키</th><th>값</th><th>편집</th><th>설명</th></tr></thead>
+              <tbody id="cfgBody"></tbody>
+            </table>
+          </div>
+        </div>`;
+      document.getElementById('searchBtn').addEventListener('click', () => load(el).catch(e => OmAdmin.showError(el, e.message)));
+      await load(el);
+    });
+  </script>
+</body>
+</html>

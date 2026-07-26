@@ -1,0 +1,17 @@
+# ARC05 / ztomcat context map (참고용). 각 WAR는 server.servlet.context-path=/ 이고
+# Tomcat 배포명(war 파일명)이 URL context(/sv 등)를 결정한다.
+nsight:
+  war-contexts:
+    ic-service: /ic
+    pc-service: /pc
+    ms-service: /ms
+    sv-service: /sv
+    pd-service: /pd
+    eb-service: /eb
+    ep-service: /ep
+    ss-service: /ss
+    mg-service: /mg
+    tcf-om: /om
+    tcf-batch: /batch
+    tcf-ui: /ui
+    tcf-jwt: /jwt

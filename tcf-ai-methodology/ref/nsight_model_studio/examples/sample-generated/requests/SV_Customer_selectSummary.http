@@ -1,0 +1,20 @@
+### 고객 종합정보 조회
+POST http://localhost:8080/sv/online
+Content-Type: application/json
+Authorization: Bearer {accessToken}
+
+{
+  "header": {
+    "businessCode": "SV",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "screenId": "SV-CUS-0001",
+    "channelId": "WEBTOP",
+    "userId": "TEST_USER",
+    "branchId": "000001"
+  },
+  "body": {
+    "customerNo": "C0000000000000000001",
+    "baseDate": "20260725"
+  }
+}

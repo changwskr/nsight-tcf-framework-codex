@@ -1,0 +1,1082 @@
+77. 오류처리 샘플
+77.1 도입 전 안내말
+NSIGHT TCF에서 오류처리는 try-catch를 많이 넣는 방식이 아니다.오류처리는 업무 예외, 입력값 오류, 권한 오류, DB 오류, 외부연계 오류, Timeout, 시스템 오류를 표준 오류코드로 변환하고, ETF 후처리에서 표준 응답 전문으로 조립하는 구조로 통일해야 한다.
+NSIGHT 전처리·후처리 기준에서도 모든 거래는 표준 전문으로 수신되고, 전처리에서 Header 검증, GUID/Trace 생성, 세션·인증·권한 확인, 거래 시작 로그를 수행한 뒤, 후처리에서 오류코드 매핑, 응답 전문 조립, 거래 종료 로그, 감사로그, 성능 메트릭, 거래상태 저장을 수행하도록 정의되어 있다.
+
+77.2 오류처리 기본 구조
+[업무 Handler / Facade / Service / DAO]
+        ↓
+BusinessException / ValidationException / SystemException 발생
+        ↓
+[TCF.process()]
+        ↓
+catch
+        ↓
+[ETF.error()]
+        ↓
+ErrorCodeResolver
+        ↓
+OM_ERROR_CODE 조회
+        ↓
+ErrorResponseAssembler
+        ↓
+StandardResponse 생성
+        ↓
+TCF_TX_LOG 갱신
+        ↓
+감사로그 / 성능메트릭 / 모니터링 전송
+        ↓
+화면에 표준 오류 응답 반환
+
+오류코드와 메시지는 TCF 공통 후처리 ETF에서 일원화하고, 운영관리는 OM 오류코드 관리 화면에서 수행하는 구조가 적합하다. 오류 발생 시 Exception을 표준 오류코드로 변환하고, OM_ERROR_CODE에서 사용자 메시지와 운영자 메시지를 조회한 뒤 StandardResponse로 조립하는 방식이다.
+
+77.3 오류 유형 분류
+오류 유형
+발생 예
+예외 클래스
+오류코드 예시
+사용자 메시지
+입력값 오류
+필수값 누락, 날짜 형식 오류
+ValidationException
+E-TCF-VAL-0001
+입력값을 확인해 주십시오.
+Header 오류
+ServiceId 누락, 업무코드 불일치
+HeaderException
+E-TCF-HDR-0001
+요청 정보가 올바르지 않습니다.
+인증 오류
+세션 만료, 미인증 사용자
+AuthenticationException
+E-TCF-AUTHN-0001
+다시 로그인해 주십시오.
+권한 오류
+타 지점 고객 조회
+AuthorizationException
+E-TCF-AUTHZ-0001
+접근 권한이 없습니다.
+거래통제 오류
+미등록 거래
+TransactionControlException
+E-TCF-CTL-0001
+해당 거래를 수행할 수 없습니다.
+업무 오류
+조회 결과 없음, 업무 조건 불일치
+BusinessException
+E-SV-BIZ-0001
+조회 결과가 없습니다.
+DB 오류
+SQL Timeout, Connection 오류
+DatabaseException
+E-TCF-DB-0001
+일시적으로 처리가 지연되고 있습니다.
+연계 오류
+외부 API Timeout
+IntegrationException
+E-TCF-IF-0001
+연계 시스템 응답이 지연되고 있습니다.
+Timeout
+온라인 거래 제한시간 초과
+TcfTimeoutException
+E-TCF-TIME-0001
+처리 상태를 확인해 주십시오.
+시스템 오류
+NullPointer, 설정 오류
+SystemException
+E-TCF-SYS-9999
+시스템 처리 중 오류가 발생했습니다.
+NSIGHT 오류처리 요구사항도 업무 오류, 입력 오류, 권한 오류, 인증 오류, DB 오류, 연계 오류, 시스템 오류, Timeout 오류를 구분하고, 오류 유형별 사용자 메시지와 시스템 처리를 다르게 정의한다.
+
+77.4 오류코드 명명 규칙
+E-{DOMAIN}-{CATEGORY}-{NNNN}
+
+구분
+의미
+예시
+E
+Error
+오류
+DOMAIN
+오류 발생 영역
+TCF, SV, OM, UD, BT
+CATEGORY
+오류 분류
+HDR, VAL, BIZ, DB, IF, TIME, SYS
+NNNN
+일련번호
+0001, 0002
+예시는 다음과 같다.
+E-TCF-HDR-0001    Header.serviceId 누락
+E-TCF-VAL-0001    필수 입력값 누락
+E-TCF-CTL-0001    미등록 거래
+E-SV-BIZ-0001     고객정보 없음
+E-TCF-DB-0001     DB 조회 오류
+E-TCF-IF-0001     외부 연계 Timeout
+E-TCF-TIME-0001   온라인 거래 Timeout
+E-TCF-SYS-9999    시스템 오류
+
+오류코드 설계 기준에서도 E-{DOMAIN}-{CATEGORY}-{NNNN} 형식을 권장하고, DOMAIN은 TCF·업무·OM·UD·Batch 등 오류 발생 영역을, CATEGORY는 Header·Validation·업무·DB·연계·Timeout·시스템 오류 분류를 나타내도록 정리되어 있다.
+
+77.5 예외 클래스 구조
+tcf-core
+└─ error
+   ├─ TcfException
+   ├─ BusinessException
+   ├─ ValidationException
+   ├─ HeaderException
+   ├─ TransactionControlException
+   ├─ AuthenticationException
+   ├─ AuthorizationException
+   ├─ IntegrationException
+   ├─ DatabaseException
+   ├─ TcfTimeoutException
+   └─ SystemException
+
+기준은 다음과 같다.
+예외 클래스
+사용 위치
+설명
+TcfException
+공통 부모
+모든 표준 예외의 상위 클래스
+BusinessException
+Service / Rule
+업무 조건 불일치
+ValidationException
+STF / Handler / Rule
+입력값 검증 실패
+HeaderException
+STF
+Header 누락·형식 오류
+TransactionControlException
+STF
+거래통제 실패
+AuthenticationException
+STF / Security
+인증 실패
+AuthorizationException
+STF / Service
+권한 실패
+IntegrationException
+Integration Adapter
+외부 연계 실패
+DatabaseException
+DAO / Mapper Adapter
+DB 처리 실패
+TcfTimeoutException
+Timeout Executor
+제한시간 초과
+SystemException
+공통
+시스템 오류
+
+77.6 TcfException 기본 클래스
+@Getter
+public abstract class TcfException extends RuntimeException {
+
+    private final String errorCode;
+    private final String userMessage;
+    private final String operatorMessage;
+    private final boolean retryable;
+    private final boolean auditRequired;
+
+    protected TcfException(
+            String errorCode,
+            String userMessage,
+            String operatorMessage,
+            boolean retryable,
+            boolean auditRequired
+    ) {
+        super(operatorMessage);
+        this.errorCode = errorCode;
+        this.userMessage = userMessage;
+        this.operatorMessage = operatorMessage;
+        this.retryable = retryable;
+        this.auditRequired = auditRequired;
+    }
+
+    protected TcfException(
+            String errorCode,
+            String userMessage,
+            String operatorMessage,
+            Throwable cause,
+            boolean retryable,
+            boolean auditRequired
+    ) {
+        super(operatorMessage, cause);
+        this.errorCode = errorCode;
+        this.userMessage = userMessage;
+        this.operatorMessage = operatorMessage;
+        this.retryable = retryable;
+        this.auditRequired = auditRequired;
+    }
+}
+
+
+77.7 업무 예외 샘플
+public class BusinessException extends TcfException {
+
+    public BusinessException(String errorCode, String userMessage) {
+        super(
+                errorCode,
+                userMessage,
+                userMessage,
+                false,
+                false
+        );
+    }
+
+    public BusinessException(
+            String errorCode,
+            String userMessage,
+            String operatorMessage
+    ) {
+        super(
+                errorCode,
+                userMessage,
+                operatorMessage,
+                false,
+                false
+        );
+    }
+}
+
+업무 예외는 시스템 장애가 아니다.예를 들어 조회 결과 없음, 대상 고객 아님, 업무 조건 불일치처럼 정상적으로 판단 가능한 실패에 사용한다.
+@Service
+@RequiredArgsConstructor
+public class SvCustomerService {
+
+    private final SvCustomerDao svCustomerDao;
+
+    public SvCustomerSummaryResponse selectCustomerSummary(String customerNo) {
+
+        SvCustomerInfo customerInfo =
+                svCustomerDao.selectCustomerInfo(customerNo);
+
+        if (customerInfo == null) {
+            throw new BusinessException(
+                    "E-SV-BIZ-0001",
+                    "조회 결과가 없습니다.",
+                    "SV 고객요약조회 결과 없음. customerNo=" + customerNo
+            );
+        }
+
+        return SvCustomerSummaryResponse.from(customerInfo);
+    }
+}
+
+
+77.8 입력값 검증 오류 샘플
+public class ValidationException extends TcfException {
+
+    private final List<FieldErrorDetail> fieldErrors;
+
+    public ValidationException(
+            String errorCode,
+            String userMessage,
+            List<FieldErrorDetail> fieldErrors
+    ) {
+        super(
+                errorCode,
+                userMessage,
+                "입력값 검증 실패",
+                false,
+                false
+        );
+        this.fieldErrors = fieldErrors;
+    }
+
+    public List<FieldErrorDetail> getFieldErrors() {
+        return fieldErrors;
+    }
+}
+
+@Component
+public class SvCustomerRequestValidator {
+
+    public void validate(SvCustomerSummaryRequest request) {
+
+        List<FieldErrorDetail> errors = new ArrayList<>();
+
+        if (request.getCustomerNo() == null || request.getCustomerNo().isBlank()) {
+            errors.add(new FieldErrorDetail(
+                    "customerNo",
+                    "고객번호는 필수입니다."
+            ));
+        }
+
+        if (request.getBaseDate() != null
+                && !request.getBaseDate().matches("\\d{8}")) {
+            errors.add(new FieldErrorDetail(
+                    "baseDate",
+                    "기준일자는 yyyyMMdd 형식이어야 합니다."
+            ));
+        }
+
+        if (!errors.isEmpty()) {
+            throw new ValidationException(
+                    "E-TCF-VAL-0001",
+                    "입력값을 확인해 주십시오.",
+                    errors
+            );
+        }
+    }
+}
+
+입력값 검증은 필수값, 타입, 길이, 코드값, 범위, 금지문자, 페이지, 다운로드 가능 건수까지 포함해야 한다.
+
+77.9 권한 오류 샘플
+public class AuthorizationException extends TcfException {
+
+    public AuthorizationException(
+            String errorCode,
+            String userMessage,
+            String operatorMessage
+    ) {
+        super(
+                errorCode,
+                userMessage,
+                operatorMessage,
+                false,
+                true
+        );
+    }
+}
+
+@Service
+@RequiredArgsConstructor
+public class CustomerDataAccessPolicyService {
+
+    private final UserPermissionService userPermissionService;
+
+    public void validateCustomerAccess(String userId, String branchId, String customerBranchId) {
+
+        boolean sameBranch = branchId.equals(customerBranchId);
+        boolean hasCrossBranchPermission =
+                userPermissionService.hasPermission(userId, "CUSTOMER_CROSS_BRANCH_VIEW");
+
+        if (!sameBranch && !hasCrossBranchPermission) {
+            throw new AuthorizationException(
+                    "E-TCF-AUTHZ-0001",
+                    "접근 권한이 없습니다.",
+                    "타 지점 고객 조회 권한 없음. userId=" + userId
+                            + ", branchId=" + branchId
+                            + ", customerBranchId=" + customerBranchId
+            );
+        }
+    }
+}
+
+권한 오류는 감사 대상이다.사용자에게는 내부 권한 구조를 노출하지 않고, 감사로그에는 사용자ID, 요청 메뉴, 요청 기능, 실패사유를 남긴다.
+
+77.10 외부 연계 오류 샘플
+public class IntegrationException extends TcfException {
+
+    private final String targetSystemId;
+
+    public IntegrationException(
+            String errorCode,
+            String userMessage,
+            String operatorMessage,
+            String targetSystemId,
+            Throwable cause
+    ) {
+        super(
+                errorCode,
+                userMessage,
+                operatorMessage,
+                cause,
+                true,
+                false
+        );
+        this.targetSystemId = targetSystemId;
+    }
+
+    public String getTargetSystemId() {
+        return targetSystemId;
+    }
+}
+
+@Component
+@RequiredArgsConstructor
+public class ExternalCustomerGradeClient {
+
+    private final WebClient webClient;
+
+    public CustomerGradeResponse inquiryCustomerGrade(String customerNo) {
+
+        try {
+            return webClient.post()
+                    .uri("/api/v1/customer/grade")
+                    .bodyValue(Map.of("customerNo", customerNo))
+                    .retrieve()
+                    .bodyToMono(CustomerGradeResponse.class)
+                    .timeout(Duration.ofSeconds(3))
+                    .block();
+
+        } catch (TimeoutException e) {
+            throw new IntegrationException(
+                    "E-TCF-IF-0001",
+                    "연계 시스템 응답이 지연되고 있습니다.",
+                    "외부 고객등급 서비스 Timeout. customerNo=" + customerNo,
+                    "EXT-CUSTOMER",
+                    e
+            );
+
+        } catch (Exception e) {
+            throw new IntegrationException(
+                    "E-TCF-IF-0002",
+                    "연계 시스템 처리 중 오류가 발생했습니다.",
+                    "외부 고객등급 서비스 호출 실패. customerNo=" + customerNo,
+                    "EXT-CUSTOMER",
+                    e
+            );
+        }
+    }
+}
+
+
+77.11 DB 오류 처리 샘플
+DAO나 Mapper에서 발생한 DB 상세 오류를 사용자에게 그대로 반환하면 안 된다.SQL, 테이블명, DB 접속정보, 서버 IP, StackTrace는 사용자 응답에 노출 금지다.
+public class DatabaseException extends TcfException {
+
+    public DatabaseException(
+            String errorCode,
+            String userMessage,
+            String operatorMessage,
+            Throwable cause
+    ) {
+        super(
+                errorCode,
+                userMessage,
+                operatorMessage,
+                cause,
+                true,
+                false
+        );
+    }
+}
+
+@Repository
+@RequiredArgsConstructor
+public class SvCustomerDao {
+
+    private final SvCustomerMapper mapper;
+
+    public SvCustomerInfo selectCustomerInfo(String customerNo) {
+
+        try {
+            return mapper.selectCustomerInfo(customerNo);
+
+        } catch (QueryTimeoutException e) {
+            throw new DatabaseException(
+                    "E-TCF-DB-0002",
+                    "일시적으로 조회가 지연되고 있습니다.",
+                    "SV 고객정보 조회 SQL Timeout. sqlId=SvCustomerMapper.selectCustomerInfo",
+                    e
+            );
+
+        } catch (DataAccessException e) {
+            throw new DatabaseException(
+                    "E-TCF-DB-0001",
+                    "일시적으로 처리할 수 없습니다.",
+                    "SV 고객정보 조회 DB 오류. sqlId=SvCustomerMapper.selectCustomerInfo",
+                    e
+            );
+        }
+    }
+}
+
+
+77.12 Timeout 오류 처리 샘플
+Timeout은 실패인지 성공인지 즉시 알 수 없는 경우가 있다.따라서 Timeout 거래는 FAIL로 단순 처리하지 말고, 거래 유형에 따라 TIMEOUT 또는 UNKNOWN 상태로 남긴다.
+public class TcfTimeoutException extends TcfException {
+
+    public TcfTimeoutException(String operatorMessage, Throwable cause) {
+        super(
+                "E-TCF-TIME-0001",
+                "처리 상태를 확인해 주십시오.",
+                operatorMessage,
+                cause,
+                true,
+                true
+        );
+    }
+}
+
+@Component
+@RequiredArgsConstructor
+public class OnlineTransactionTimeoutExecutor {
+
+    private final ExecutorService executorService;
+
+    public Object execute(Callable<Object> task, Duration timeout) {
+
+        Future<Object> future = executorService.submit(task);
+
+        try {
+            return future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+
+        } catch (TimeoutException e) {
+            future.cancel(true);
+
+            throw new TcfTimeoutException(
+                    "온라인 거래 Timeout 발생. timeoutMs=" + timeout.toMillis(),
+                    e
+            );
+
+        } catch (Exception e) {
+            throw new SystemException(
+                    "E-TCF-SYS-9999",
+                    "시스템 처리 중 오류가 발생했습니다.",
+                    "온라인 거래 실행 중 시스템 오류",
+                    e
+            );
+        }
+    }
+}
+
+Timeout 설계 기준에서도 Timeout은 WAS Thread 보호, DB Connection Pool 보호, 장시간 SQL 차단, 장애 전파 방지, 거래 상태 불명확 방지를 위한 핵심 운영 정책으로 정의되어 있다.
+
+77.13 ETF 오류 후처리 샘플
+@Component
+@RequiredArgsConstructor
+public class EtfErrorProcessor {
+
+    private final ErrorMessageResolver errorMessageResolver;
+    private final StandardErrorResponseAssembler responseAssembler;
+    private final TransactionLogService transactionLogService;
+    private final AuditLogService auditLogService;
+    private final MetricsService metricsService;
+
+    public StandardResponse handleError(
+            StandardRequest request,
+            Exception exception,
+            TransactionContext context
+    ) {
+        TcfException tcfException = convertToTcfException(exception);
+
+        ErrorMessage errorMessage =
+                errorMessageResolver.resolve(tcfException.getErrorCode());
+
+        StandardResponse response =
+                responseAssembler.assemble(
+                        request,
+                        context,
+                        tcfException,
+                        errorMessage
+                );
+
+        transactionLogService.updateFail(
+                context.getGuid(),
+                resolveResultStatus(tcfException),
+                errorMessage.getResultCode(),
+                tcfException.getErrorCode(),
+                tcfException.getOperatorMessage()
+        );
+
+        if (tcfException.isAuditRequired() || errorMessage.isAuditRequired()) {
+            auditLogService.recordErrorAudit(request, context, tcfException);
+        }
+
+        metricsService.incrementErrorCount(
+                request.getHeader().getServiceId(),
+                tcfException.getErrorCode()
+        );
+
+        return response;
+    }
+
+    private TcfException convertToTcfException(Exception exception) {
+
+        if (exception instanceof TcfException tcfException) {
+            return tcfException;
+        }
+
+        return new SystemException(
+                "E-TCF-SYS-9999",
+                "시스템 처리 중 오류가 발생했습니다.",
+                "Uncaught exception: " + exception.getClass().getName(),
+                exception
+        );
+    }
+
+    private String resolveResultStatus(TcfException exception) {
+
+        if (exception instanceof TcfTimeoutException) {
+            return "UNKNOWN";
+        }
+
+        return "FAIL";
+    }
+}
+
+후처리 요구사항은 모든 응답을 표준 응답 전문으로 반환하고, 예외 발생 시 표준 오류코드와 사용자 메시지로 변환하며, 사용자 메시지와 운영 상세 메시지를 분리하고, 거래 종료 로그·성능 로그·감사 로그·거래상태 갱신을 수행하도록 요구한다.
+
+77.14 ErrorMessageResolver 샘플
+@Component
+@RequiredArgsConstructor
+public class ErrorMessageResolver {
+
+    private final OmErrorCodeRepository omErrorCodeRepository;
+
+    public ErrorMessage resolve(String errorCode) {
+
+        ErrorMessage message =
+                omErrorCodeRepository.selectErrorMessage(errorCode);
+
+        if (message == null) {
+            return ErrorMessage.builder()
+                    .errorCode("E-TCF-SYS-9999")
+                    .resultCode("E9999")
+                    .resultStatus("SYSTEM_ERROR")
+                    .userMessage("시스템 처리 중 오류가 발생했습니다.")
+                    .operatorMessage("OM_ERROR_CODE 미등록 오류코드. errorCode=" + errorCode)
+                    .actionGuide("OM 오류코드 관리 화면에 오류코드를 등록하십시오.")
+                    .httpStatus(200)
+                    .auditRequired(true)
+                    .maskDetail(true)
+                    .build();
+        }
+
+        return message;
+    }
+}
+
+
+77.15 표준 오류 응답 조립 샘플
+@Component
+public class StandardErrorResponseAssembler {
+
+    public StandardResponse assemble(
+            StandardRequest request,
+            TransactionContext context,
+            TcfException exception,
+            ErrorMessage message
+    ) {
+        return StandardResponse.builder()
+                .header(StandardResponseHeader.builder()
+                        .guid(context.getGuid())
+                        .traceId(context.getTraceId())
+                        .transactionId(context.getTransactionId())
+                        .serviceId(request.getHeader().getServiceId())
+                        .transactionCode(request.getHeader().getTransactionCode())
+                        .businessCode(request.getHeader().getBusinessCode())
+                        .channelId(request.getHeader().getChannelId())
+                        .userId(maskUserId(request.getHeader().getUserId()))
+                        .branchId(request.getHeader().getBranchId())
+                        .responseDateTime(LocalDateTime.now())
+                        .build())
+                .body(null)
+                .error(StandardError.builder()
+                        .resultStatus(message.getResultStatus())
+                        .resultCode(message.getResultCode())
+                        .resultMessage(message.getUserMessage())
+                        .errorCode(exception.getErrorCode())
+                        .messageCode(message.getMessageCode())
+                        .userMessage(message.getUserMessage())
+                        .operatorMessage(resolveOperatorMessage(exception, message))
+                        .actionGuide(message.getActionGuide())
+                        .errorSystemId("NSIGHT-MP")
+                        .errorDateTime(LocalDateTime.now())
+                        .build())
+                .build();
+    }
+
+    private String resolveOperatorMessage(TcfException exception, ErrorMessage message) {
+
+        if (message.isMaskDetail()) {
+            return "운영 상세 메시지는 로그에서 GUID 기준으로 확인하십시오.";
+        }
+
+        return exception.getOperatorMessage();
+    }
+
+    private String maskUserId(String userId) {
+        if (userId == null || userId.length() < 3) {
+            return userId;
+        }
+        return userId.substring(0, 2) + "***";
+    }
+}
+
+
+77.16 표준 오류 응답 JSON 예시
+{
+  "header": {
+    "guid": "7f9c9d10-1111-2222-3333-111122223333",
+    "traceId": "TRC202607050001",
+    "transactionId": "TX202607050001",
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "channelId": "WEBTOP",
+    "userId": "U1***",
+    "branchId": "001234",
+    "responseDateTime": "2026-07-05T10:20:00"
+  },
+  "body": null,
+  "error": {
+    "resultStatus": "FAIL",
+    "resultCode": "E0001",
+    "resultMessage": "조회 결과가 없습니다.",
+    "errorCode": "E-SV-BIZ-0001",
+    "messageCode": "MSG-SV-BIZ-0001",
+    "userMessage": "조회 결과가 없습니다.",
+    "operatorMessage": "운영 상세 메시지는 로그에서 GUID 기준으로 확인하십시오.",
+    "actionGuide": "고객번호와 조회 기준일자를 확인하십시오.",
+    "errorSystemId": "NSIGHT-MP",
+    "errorDateTime": "2026-07-05T10:20:00"
+  }
+}
+
+NSIGHT 표준 응답 전문은 Header, Body, Control, Security, Error 영역을 포함하고, Error 영역에는 resultCode, resultMessage, errorCode, errorMessage, errorDetail, errorSystemId, errorDateTime을 포함하는 구조로 정의되어 있다.
+
+77.17 TCF.process 오류 처리 샘플
+@Component
+@RequiredArgsConstructor
+public class TcfProcessor {
+
+    private final StandardTransactionFront stf;
+    private final TransactionDispatcher dispatcher;
+    private final StandardTransactionEnd etf;
+    private final OnlineTransactionTimeoutExecutor timeoutExecutor;
+
+    public StandardResponse process(StandardRequest request) {
+
+        TransactionContext context = null;
+
+        try {
+            context = stf.preProcess(request);
+
+            Object result = timeoutExecutor.execute(
+                    () -> dispatcher.dispatch(request, context),
+                    context.getOnlineTimeout()
+            );
+
+            return etf.success(request, result, context);
+
+        } catch (BusinessException e) {
+            return etf.businessFail(request, e, context);
+
+        } catch (ValidationException e) {
+            return etf.validationFail(request, e, context);
+
+        } catch (TcfTimeoutException e) {
+            return etf.timeout(request, e, context);
+
+        } catch (Exception e) {
+            return etf.systemError(request, e, context);
+
+        } finally {
+            TcfMdc.clear();
+            TransactionContextHolder.clear();
+        }
+    }
+}
+
+TCF 구조는 STF.preProcess()에서 Header·세션·권한·거래통제·Timeout을 처리하고, TransactionDispatcher가 serviceId → TransactionHandler를 선택하며, ETF가 표준 응답 조립, 오류코드 매핑, 데이터 마스킹, 감사로그, 성능 메트릭, 거래 종료 로그를 처리하는 구조다.
+
+77.18 Global Exception Handler 샘플
+TCF 바깥에서 발생한 오류도 표준 응답으로 맞춘다.
+@RestControllerAdvice
+@RequiredArgsConstructor
+public class TcfGlobalExceptionHandler {
+
+    private final EtfErrorProcessor etfErrorProcessor;
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<StandardResponse> handleException(
+            Exception exception,
+            HttpServletRequest servletRequest
+    ) {
+        StandardRequest fallbackRequest =
+                StandardRequestFallbackFactory.from(servletRequest);
+
+        TransactionContext context =
+                TransactionContextFallbackFactory.from(servletRequest);
+
+        StandardResponse response =
+                etfErrorProcessor.handleError(
+                        fallbackRequest,
+                        exception,
+                        context
+                );
+
+        return ResponseEntity.ok(response);
+    }
+}
+
+운영 기준상 HTTP Status를 항상 200으로 둘지, 시스템 오류만 500으로 둘지는 프로젝트 표준으로 확정해야 한다.금융권 내부 전문 방식에서는 업무 실패도 정상 HTTP 응답으로 보고 resultCode로 판단하는 방식이 일반적으로 운영하기 쉽다.
+
+77.19 OM_ERROR_CODE 샘플 데이터
+INSERT INTO OM_ERROR_CODE (
+      ERROR_CODE
+    , ERROR_NAME
+    , ERROR_CATEGORY
+    , ERROR_LEVEL
+    , RESULT_CODE
+    , HTTP_STATUS
+    , USER_MESSAGE
+    , OPERATOR_MESSAGE
+    , ACTION_GUIDE
+    , NOTIFY_TARGET
+    , RETRY_YN
+    , AUDIT_YN
+    , MASK_DETAIL_YN
+    , USE_YN
+    , CREATED_BY
+    , CREATED_AT
+) VALUES (
+      'E-SV-BIZ-0001'
+    , 'SV 고객정보 없음'
+    , 'BIZ'
+    , 'INFO'
+    , 'E0001'
+    , 200
+    , '조회 결과가 없습니다.'
+    , 'SV.Customer.selectSummary 고객정보 조회 결과 없음'
+    , '고객번호, 기준일자, 고객상태를 확인하십시오.'
+    , '업무개발팀'
+    , 'N'
+    , 'N'
+    , 'Y'
+    , 'Y'
+    , 'admin'
+    , SYSDATE
+);
+
+INSERT INTO OM_ERROR_CODE (
+      ERROR_CODE
+    , ERROR_NAME
+    , ERROR_CATEGORY
+    , ERROR_LEVEL
+    , RESULT_CODE
+    , HTTP_STATUS
+    , USER_MESSAGE
+    , OPERATOR_MESSAGE
+    , ACTION_GUIDE
+    , NOTIFY_TARGET
+    , RETRY_YN
+    , AUDIT_YN
+    , MASK_DETAIL_YN
+    , USE_YN
+    , CREATED_BY
+    , CREATED_AT
+) VALUES (
+      'E-TCF-DB-0001'
+    , 'DB 처리 오류'
+    , 'DB'
+    , 'ERROR'
+    , 'E9999'
+    , 200
+    , '일시적으로 처리할 수 없습니다.'
+    , 'DB 처리 중 오류 발생'
+    , 'GUID 기준 거래로그와 SQL 로그를 확인하십시오.'
+    , 'DBA,AP운영팀'
+    , 'Y'
+    , 'N'
+    , 'Y'
+    , 'Y'
+    , 'admin'
+    , SYSDATE
+);
+
+오류코드 마스터는 ERROR_CODE, ERROR_CATEGORY, USER_MESSAGE, OPERATOR_MESSAGE, ACTION_GUIDE, NOTIFY_TARGET, RETRY_YN, AUDIT_YN, MASK_DETAIL_YN, USE_YN 등을 포함하는 구조가 적합하다.
+
+77.20 거래로그 갱신 샘플
+@Service
+@RequiredArgsConstructor
+public class TransactionLogService {
+
+    private final TransactionLogMapper transactionLogMapper;
+
+    public void updateFail(
+            String guid,
+            String resultStatus,
+            String resultCode,
+            String errorCode,
+            String errorMessage
+    ) {
+        transactionLogMapper.updateTransactionFail(
+                guid,
+                resultStatus,
+                resultCode,
+                errorCode,
+                sanitize(errorMessage),
+                LocalDateTime.now()
+        );
+    }
+
+    private String sanitize(String message) {
+        if (message == null) {
+            return null;
+        }
+
+        return message
+                .replaceAll("(?i)password=[^\\s]+", "password=***")
+                .replaceAll("(?i)token=[^\\s]+", "token=***");
+    }
+}
+
+<update id="updateTransactionFail">
+    UPDATE TCF_TX_LOG
+       SET RESULT_STATUS = #{resultStatus}
+         , RESULT_CODE   = #{resultCode}
+         , ERROR_CODE    = #{errorCode}
+         , ERROR_MESSAGE = #{errorMessage}
+         , END_TIME      = #{endTime}
+         , ELAPSED_TIME_MS =
+             TIMESTAMPDIFF(SQL_TSI_MILLISECOND, START_TIME, #{endTime})
+     WHERE GUID = #{guid}
+</update>
+
+
+77.21 오류 로그 출력 샘플
+@Slf4j
+@Component
+public class ErrorLogWriter {
+
+    public void write(TcfException exception, TransactionContext context) {
+
+        log.error(
+                "TCF error occurred. guid={}, traceId={}, serviceId={}, errorCode={}, userId={}, branchId={}, message={}",
+                context.getGuid(),
+                context.getTraceId(),
+                context.getServiceId(),
+                exception.getErrorCode(),
+                context.getUserId(),
+                context.getBranchId(),
+                exception.getOperatorMessage(),
+                exception
+        );
+    }
+}
+
+로그에는 GUID, TraceId, ServiceId 기준으로 검색 가능해야 한다.응답과 로그에 개인정보, SQL, 서버 IP, StackTrace를 노출하지 않아야 하며, 업무 개발자가 임의 응답·임의 오류코드·임의 로그 포맷을 사용할 수 없도록 해야 한다.
+
+77.22 개발자가 사용하는 오류처리 패턴
+조회 결과 없음
+if (customer == null) {
+    throw new BusinessException(
+            "E-SV-BIZ-0001",
+            "조회 결과가 없습니다.",
+            "고객정보 없음. customerNo=" + customerNo
+    );
+}
+
+필수값 누락
+if (StringUtils.isBlank(request.getCustomerNo())) {
+    throw new ValidationException(
+            "E-TCF-VAL-0001",
+            "입력값을 확인해 주십시오.",
+            List.of(new FieldErrorDetail("customerNo", "고객번호는 필수입니다."))
+    );
+}
+
+권한 없음
+if (!permissionService.canDownload(userId, fileId)) {
+    throw new AuthorizationException(
+            "E-TCF-AUTHZ-0002",
+            "파일 다운로드 권한이 없습니다.",
+            "파일 다운로드 권한 없음. userId=" + userId + ", fileId=" + fileId
+    );
+}
+
+외부 연계 실패
+throw new IntegrationException(
+        "E-TCF-IF-0002",
+        "연계 시스템 처리 중 오류가 발생했습니다.",
+        "캠페인 추천 외부 API 호출 실패. targetSystem=EXT-CAMPAIGN",
+        "EXT-CAMPAIGN",
+        e
+);
+
+시스템 오류 변환
+catch (Exception e) {
+    throw new SystemException(
+            "E-TCF-SYS-9999",
+            "시스템 처리 중 오류가 발생했습니다.",
+            "예상하지 못한 시스템 오류. serviceId=" + serviceId,
+            e
+    );
+}
+
+
+77.23 금지 패턴
+금지 패턴
+사유
+return null
+오류 원인 추적 불가
+catch (Exception e) {}
+장애 은폐
+화면에 StackTrace 반환
+보안 취약
+SQL 오류문 사용자 노출
+내부 구조 노출
+업무별 임의 오류코드 생성
+운영관리 불가
+Controller마다 중복 예외처리
+표준 응답 불일치
+RuntimeException("오류") 직접 사용
+오류코드·조치가이드 누락
+DB 오류를 업무 오류로 변환
+장애 원인 왜곡
+Timeout을 무조건 FAIL 처리
+처리상태 불명확 거래 추적 불가
+
+77.24 최종 개발 기준
+구분
+기준
+업무 오류
+BusinessException
+입력 오류
+ValidationException
+권한 오류
+AuthorizationException
+거래통제 오류
+TransactionControlException
+DB 오류
+DatabaseException
+연계 오류
+IntegrationException
+Timeout 오류
+TcfTimeoutException
+미처리 오류
+SystemException으로 변환
+오류코드 관리
+OM_ERROR_CODE 기준
+사용자 메시지
+기술정보 제거
+운영자 메시지
+GUID 기준 로그에서 확인
+응답 조립
+ETF에서 StandardResponse로 일원화
+거래로그
+FAIL, TIMEOUT, UNKNOWN 상태 기록
+감사로그
+권한 위반, 고객정보 조회, 다운로드, 관리자 기능 필수
+모니터링
+오류율, Timeout 건수, ServiceId별 오류 건수 전송
+
+77.25 마무리말
+오류처리 샘플의 핵심은 다음이다.
+업무 개발자
+= 오류 상황에서 표준 예외를 발생시킨다.
+
+TCF / ETF
+= 예외를 표준 오류코드로 변환한다.
+
+OM_ERROR_CODE
+= 사용자 메시지, 운영자 메시지, 조치 가이드를 관리한다.
+
+StandardResponse
+= 화면에 동일한 구조로 오류를 반환한다.
+
+거래로그 / 감사로그
+= GUID 기준으로 장애 원인과 처리상태를 추적한다.
+
+따라서 NSIGHT TCF 오류처리는 다음 한 문장으로 정리할 수 있다.
+업무 개발자는 예외를 던지고, TCF는 표준 오류 응답을 만든다.
+

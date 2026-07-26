@@ -1,0 +1,13 @@
+# prod — 운영 Tomcat (dev 설정 상속)
+logging:
+  logback:
+    rollingpolicy:
+      max-history: 30
+
+nsight:
+  tcf:
+    transaction-log-datasource:
+      url: ${NSIGHT_TXLOG_JDBC_URL:jdbc:h2:file:${nsight.txlog.path:./data/nsight-txlog}/nsight_om;MODE=Oracle;AUTO_SERVER=TRUE;DATABASE_TO_UPPER=false}
+      username: ${NSIGHT_TXLOG_DB_USER:sa}
+      password: ${NSIGHT_TXLOG_DB_PASSWORD:}
+      driver-class-name: ${NSIGHT_TXLOG_DB_DRIVER:org.h2.Driver}

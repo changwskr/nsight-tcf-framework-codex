@@ -1,0 +1,1111 @@
+14. 명명 규칙
+14.1 도입 전 안내말
+본 장은 NSIGHT TCF Framework에서 사용하는 업무코드, Context, WAR, Package, ServiceId, 거래코드, Java Class, Method, DTO, Mapper, SQL ID, DB 객체, 오류코드의 명명 규칙을 정의한다.
+명명 규칙은 단순히 이름을 예쁘게 짓기 위한 기준이 아니다. NSIGHT에서는 이름 하나가 다음 항목을 모두 연결한다.
+업무코드
+   ↓
+Context Path
+   ↓
+WAR 파일명
+   ↓
+Gradle Module
+   ↓
+Java Package
+   ↓
+ServiceId
+   ↓
+Handler
+   ↓
+Facade / Service / Rule / DAO / Mapper
+   ↓
+Mapper XML
+   ↓
+SQL ID
+   ↓
+거래로그 / 오류코드 / 감사로그
+
+기존 NSIGHT 네이밍 원칙에서도 핵심 기준을 “업무코드 → Context → WAR → Package → ServiceId → Handler → Facade → Service → Rule → DAO/Mapper → MyBatis XML → SQL ID → 거래로그/오류코드가 하나의 선으로 이어지게 만드는 것”으로 정의하고 있다.
+
+14.2 명명 규칙의 목적
+목적
+설명
+업무 경계 명확화
+이름만 보고 어느 업무의 소스인지 알 수 있어야 한다
+실행 추적성 확보
+ServiceId, 거래코드, 로그, 오류코드가 연결되어야 한다
+유지보수성 향상
+신규 개발자도 파일명과 클래스명만 보고 역할을 이해할 수 있어야 한다
+배포 기준 통일
+Context, WAR, Gradle Module명이 동일 업무코드로 연결되어야 한다
+SQL 관리 표준화
+Mapper, XML, SQL ID가 일관되어야 한다
+운영관리 연계
+OM의 ServiceId, 거래통제, Timeout, 오류코드와 연결되어야 한다
+품질 점검 용이
+코드 리뷰 시 명명 위반 여부를 쉽게 확인할 수 있어야 한다
+
+14.3 최상위 명명 원칙
+원칙
+기준
+예시
+업무코드 우선
+모든 이름은 업무코드를 기준으로 시작한다
+SV, OM, MG
+Context와 WAR 일치
+URL Context와 WAR 파일명이 같아야 한다
+/sv, sv.war
+Package와 업무코드 일치
+Package에 업무코드를 포함한다
+com.nh.nsight.sv
+실행 기준은 ServiceId
+실제 업무 실행은 URL이 아니라 serviceId 기준이다
+SV.Customer.selectSummary
+Class는 PascalCase
+첫 글자 대문자, 의미 있는 이름 사용
+SvCustomerService
+Method는 lowerCamelCase
+동사 + 업무대상 형태
+selectCustomerSummary()
+Package는 lowercase
+소문자만 사용
+com.nh.nsight.sv.entry.handler
+DB 객체는 UPPER_SNAKE_CASE
+테이블, 컬럼, 인덱스 통일
+TCF_TRANSACTION_LOG
+약어 남용 금지
+의미 없는 축약어 사용 금지
+Svc 금지, Service 사용
+운영 추적성 우선
+로그와 오류코드에서 원 업무를 알 수 있어야 한다
+E-SV-BIZ-0001
+
+14.4 업무코드 기준 명명
+업무코드는 NSIGHT 명명 규칙의 출발점이다.업무코드가 흔들리면 Context, WAR, Package, Mapper, SQL ID, 로그, 오류코드가 모두 흔들린다.
+업무코드
+Context
+WAR
+Gradle Module
+Java Prefix
+Package
+CC
+/cc
+cc.war
+cc-service
+Cc
+com.nh.nsight.cc
+IC
+/ic
+ic.war
+ic-service
+Ic
+com.nh.nsight.ic
+PC
+/pc
+pc.war
+pc-service
+Pc
+com.nh.nsight.pc
+BC
+/bc
+bc.war
+bc-service
+Bc
+com.nh.nsight.bc
+MS
+/ms
+ms.war
+ms-service
+Ms
+com.nh.nsight.ms
+SV
+/sv
+sv.war
+sv-service
+Sv
+com.nh.nsight.sv
+PD
+/pd
+pd.war
+pd-service
+Pd
+com.nh.nsight.pd
+CM
+/cm
+cm.war
+cm-service
+Cm
+com.nh.nsight.cm
+EB
+/eb
+eb.war
+eb-service
+Eb
+com.nh.nsight.eb
+EP
+/ep
+ep.war
+ep-service
+Ep
+com.nh.nsight.ep
+BP
+/bp
+bp.war
+bp-service
+Bp
+com.nh.nsight.bp
+BD
+/bd
+bd.war
+bd-service
+Bd
+com.nh.nsight.bd
+SS
+/ss
+ss.war
+ss-service
+Ss
+com.nh.nsight.ss
+CS
+/cs
+cs.war
+cs-service
+Cs
+com.nh.nsight.cs
+CT
+/ct
+ct.war
+ct-service
+Ct
+com.nh.nsight.ct
+MG
+/mg
+mg.war
+mg-service
+Mg
+com.nh.nsight.mg
+OM
+/om
+om.war
+tcf-om
+Om
+com.nh.nsight.om
+기존 업무코드 체계 문서도 URL Prefix, WAR명, Java Package, Mapper 위치, SQL ID, 거래코드, 에러코드를 업무코드 기준으로 통일하도록 정의하고 있다.
+참고: 기존 일부 문서에는 Package Root를 com.nh.nsight.marketing.{업무코드}로 표현한 예시가 있다. 본 개발자 가이드에서는 앞 장들과의 일관성을 위해 com.nh.nsight.{업무코드}를 기준으로 작성한다. 실제 프로젝트 표준 확정 시에는 두 방식 중 하나로 통일해야 한다.
+
+14.5 Gradle Module / WAR / Context 명명
+구분
+규칙
+예시
+업무 Gradle Module
+{업무코드소문자}-service
+sv-service
+OM Module
+tcf-om
+tcf-om
+Gateway Module
+tcf-gateway
+tcf-gateway
+JWT Module
+tcf-jwt
+tcf-jwt
+Batch Module
+tcf-batch
+tcf-batch
+업무 WAR
+{업무코드소문자}.war
+sv.war
+Context Path
+/{업무코드소문자}
+/sv
+Online Endpoint
+/{업무코드소문자}/online
+/sv/online
+잘못된 예시는 다음과 같다.
+잘못된 이름
+문제
+표준
+singleview-service
+업무코드 기준이 아님
+sv-service
+singleview.war
+WAR명과 Context 불일치 가능
+sv.war
+/single-view
+Context가 업무코드와 다름
+/sv
+/sv/customer/list
+TCF 표준 진입점 우회 가능
+/sv/online
+
+14.6 Package 명명 규칙
+Package는 모두 소문자로 작성한다.
+com.nh.nsight.{업무코드소문자}.{계층}.{하위영역}
+
+SV 업무 예시는 다음과 같다.
+com.nh.nsight.sv.entry.handler
+com.nh.nsight.sv.entry.facade
+com.nh.nsight.sv.application.service
+com.nh.nsight.sv.application.rule
+com.nh.nsight.sv.persistence.dao
+com.nh.nsight.sv.persistence.mapper
+com.nh.nsight.sv.dto.request
+com.nh.nsight.sv.dto.response
+com.nh.nsight.sv.client
+com.nh.nsight.sv.config
+
+패키지
+명명 기준
+Handler
+{업무}.entry.handler
+Facade
+{업무}.entry.facade
+Service
+{업무}.application.service
+Rule
+{업무}.application.rule
+DAO
+{업무}.persistence.dao
+Mapper
+{업무}.persistence.mapper
+DTO
+{업무}.dto.{request/response/command/result}
+Client
+{업무}.client
+Config
+{업무}.config
+Support
+{업무}.support
+
+14.7 ServiceId 명명 규칙
+ServiceId는 TCF Dispatcher가 Handler를 찾는 실행 기준이다.
+{BUSINESS_CODE}.{BusinessObject}.{action}
+
+구성요소
+규칙
+예시
+BUSINESS_CODE
+대문자 업무코드
+SV
+BusinessObject
+업무대상 PascalCase
+Customer, Campaign, User
+action
+처리행위 lowerCamelCase
+selectSummary, create, update
+예시는 다음과 같다.
+업무
+ServiceId
+설명
+SV
+SV.Customer.selectSummary
+고객 요약 조회
+SV
+SV.Customer.selectDetail
+고객 상세 조회
+CM
+CM.Campaign.create
+캠페인 등록
+CM
+CM.Campaign.update
+캠페인 수정
+OM
+OM.User.selectList
+사용자 목록 조회
+OM
+OM.ServiceCatalog.save
+ServiceId 저장
+JWT
+JWT.Auth.issue
+토큰 발급
+JWT
+JWT.Auth.verify
+토큰 검증
+처리행위 표준은 다음을 사용한다.
+처리유형
+표준 Action
+설명
+단건 조회
+selectDetail
+상세 조회
+목록 조회
+selectList
+목록 조회
+요약 조회
+selectSummary
+요약 정보 조회
+존재 확인
+exists
+존재 여부 확인
+건수 조회
+count
+건수 조회
+등록
+create
+신규 생성
+수정
+update
+기존 데이터 수정
+삭제
+delete
+논리 삭제 우선
+저장
+save
+등록/수정 통합
+발급
+issue
+토큰, 번호 발급
+검증
+verify
+토큰, 권한 검증
+실행
+execute
+배치, 거래 실행
+재처리
+retry
+실패 거래 재처리
+다운로드
+download
+파일 다운로드
+업로드
+upload
+파일 업로드
+
+14.8 거래코드 명명 규칙
+거래코드는 거래로그, 오류 추적, 운영관리, 감사로그에서 사용하는 온라인 거래 식별자이다.
+{BUSINESS_CODE}-{TYPE}-{NNNN}
+
+구성요소
+설명
+예시
+BUSINESS_CODE
+업무코드
+SV
+TYPE
+거래유형
+INQ
+NNNN
+4자리 일련번호
+0001
+
+TYPE
+의미
+예시
+INQ
+조회
+SV-INQ-0001
+REG
+등록
+CM-REG-0001
+UPD
+수정
+OM-UPD-0001
+DEL
+삭제
+OM-DEL-0001
+EXE
+실행
+BP-EXE-0001
+DWN
+다운로드
+UD-DWN-0001
+UPL
+업로드
+UD-UPL-0001
+AUTH
+인증
+JWT-AUTH-0001
+ServiceId와 거래코드는 1:1 또는 1:N으로 연결할 수 있으나, 운영 추적을 위해 대표 거래코드는 반드시 정의한다.
+
+14.9 Java Class 명명 규칙
+Java Class는 PascalCase를 사용한다.업무 클래스는 원칙적으로 업무 Prefix를 붙인다.
+{업무Prefix}{업무대상}{역할}
+
+계층
+규칙
+예시
+Handler
+{업무Prefix}{업무대상}{행위}Handler
+SvCustomerSummaryHandler
+Facade
+{업무Prefix}{업무대상}Facade
+SvCustomerFacade
+Service
+{업무Prefix}{업무대상}Service
+SvCustomerService
+Rule
+{업무Prefix}{업무대상}{규칙명}Rule
+SvCustomerEligibilityRule
+DAO
+{업무Prefix}{업무대상}Dao
+SvCustomerDao
+Mapper
+{업무Prefix}{업무대상}Mapper
+SvCustomerMapper
+Client
+{업무Prefix}{대상}Client
+SvIntegrationClient
+Config
+{업무Prefix}{대상}Config
+SvMyBatisConfig
+Properties
+{업무Prefix}{대상}Properties
+SvTimeoutProperties
+Validator
+{업무Prefix}{대상}Validator
+SvCustomerValidator
+Exception
+{업무Prefix}{대상}Exception
+SvBusinessException
+Constants
+{업무Prefix}Constants
+SvConstants
+Handler는 ServiceId와 의미가 연결되어야 한다.
+ServiceId
+Handler
+SV.Customer.selectSummary
+SvCustomerSummaryHandler
+SV.Customer.selectDetail
+SvCustomerDetailHandler
+SV.Customer.selectList
+SvCustomerListHandler
+CM.Campaign.create
+CmCampaignCreateHandler
+OM.User.selectList
+OmUserListHandler
+JWT.Auth.issue
+JwtAuthIssueHandler
+
+14.10 DTO 명명 규칙
+DTO는 외부 요청, 외부 응답, 내부 처리 요청, 내부 처리 결과를 분리한다.
+DTO 유형
+규칙
+예시
+Request
+{업무대상}{행위}Request
+CustomerSummaryRequest
+Response
+{업무대상}{행위}Response
+CustomerSummaryResponse
+Command
+{업무대상}{행위}Command
+CustomerSummaryCommand
+Result
+{업무대상}{행위}Result
+CustomerSummaryResult
+Criteria
+{업무대상}SearchCriteria
+CustomerSearchCriteria
+Entity
+{업무대상}Entity
+CustomerEntity
+Item
+{업무대상}Item
+CustomerProductItem
+업무 Prefix를 붙일지 여부는 다음 기준을 따른다.
+구분
+권장
+업무 내부에서만 사용하는 DTO
+Prefix 생략 가능: CustomerSummaryRequest
+여러 업무와 공유 가능성이 있는 DTO
+Prefix 사용: SvCustomerSummaryRequest
+공통 TCF DTO
+업무 Prefix 사용 금지: StandardRequest
+OM/JWT/Gateway DTO
+모듈 Prefix 사용 권장: OmUserRequest, JwtTokenResponse
+
+14.11 Method 명명 규칙
+Method는 lowerCamelCase를 사용하고, 동사로 시작한다.
+유형
+표준 동사
+예시
+조회
+select
+selectCustomerSummary()
+목록 조회
+selectList
+selectCustomerList()
+검색
+search
+searchCustomers()
+건수 조회
+count
+countCustomers()
+존재 확인
+exists
+existsByUserId()
+등록
+create, insert
+createCampaign()
+수정
+update
+updateCampaignStatus()
+삭제
+delete
+deleteServiceCatalog()
+저장
+save
+saveServiceCatalog()
+검증
+validate
+validateCustomerNo()
+변환
+to, from
+from(request)
+조립
+build
+buildResponse()
+발급
+issue
+issueAccessToken()
+검증
+verify
+verifyToken()
+실행
+execute
+executeJob()
+재처리
+retry
+retryFailedTransaction()
+Method 이름은 너무 짧게 만들지 않는다.
+나쁜 예
+문제
+좋은 예
+get()
+무엇을 가져오는지 모름
+selectCustomerSummary()
+doProcess()
+처리 의미 불명확
+createCampaignTarget()
+check()
+검증 대상 불명확
+validateCustomerNo()
+list()
+동사 부족
+selectCustomerList()
+proc()
+약어 사용
+processTransaction()
+
+14.12 MyBatis Mapper 명명 규칙
+Mapper Interface는 Java 코드와 SQL XML을 연결하는 기준이다.
+{업무Prefix}{업무대상}Mapper
+
+구분
+예시
+SV 고객 Mapper
+SvCustomerMapper
+SV 상품 Mapper
+SvProductMapper
+CM 캠페인 Mapper
+CmCampaignMapper
+OM 사용자 Mapper
+OmUserMapper
+OM ServiceId Mapper
+OmServiceCatalogMapper
+JWT 토큰 Mapper
+JwtTokenMapper
+RDW, ADW, SESSIONDB, LOGDB를 분리해야 하는 경우 Mapper명에 DB 목적을 포함한다.
+DB
+규칙
+예시
+RDW
+{업무Prefix}{대상}RdwMapper
+SvCustomerRdwMapper
+ADW
+{업무Prefix}{대상}AdwMapper
+SvCustomerAdwMapper
+SESSIONDB
+{업무Prefix}{대상}SessionMapper
+OmSessionMapper
+LOGDB
+{업무Prefix}{대상}LogMapper
+OmTransactionLogMapper
+OMDB
+{업무Prefix}{대상}Mapper
+OmUserMapper
+
+14.13 Mapper XML / SQL ID 명명 규칙
+Mapper XML은 업무코드별 디렉터리에 둔다.
+resources/mapper/{업무코드소문자}/{MapperName}.xml
+
+예시는 다음과 같다.
+Mapper Interface
+Mapper XML
+SvCustomerMapper
+mapper/sv/SvCustomerMapper.xml
+SvCustomerRdwMapper
+mapper/sv/SvCustomerRdwMapper.xml
+CmCampaignMapper
+mapper/cm/CmCampaignMapper.xml
+OmUserMapper
+mapper/om/OmUserMapper.xml
+Mapper XML의 namespace는 Java Mapper Interface의 FQCN과 일치해야 한다.
+<mapper namespace="com.nh.nsight.sv.persistence.mapper.SvCustomerMapper">
+
+SQL ID는 Mapper Method명과 동일하게 한다.
+SQL 유형
+SQL ID
+예시
+단건 조회
+select{대상}Detail
+selectCustomerDetail
+목록 조회
+select{대상}List
+selectCustomerList
+요약 조회
+select{대상}Summary
+selectCustomerSummary
+건수 조회
+count{대상}List
+countCustomerList
+존재 확인
+existsBy{Key}
+existsByCustomerNo
+등록
+insert{대상}
+insertCampaign
+수정
+update{대상}
+updateCampaignStatus
+삭제
+delete{대상}
+deleteCampaign
+논리삭제
+update{대상}DeleteYn
+updateUserDeleteYn
+병합
+merge{대상}
+mergeServiceCatalog
+
+14.14 DB 객체 명명 규칙
+DB 객체는 UPPER_SNAKE_CASE를 사용한다.
+객체
+규칙
+예시
+업무 테이블
+{업무코드}_{업무대상}
+SV_CUSTOMER_SUMMARY
+TCF 공통 테이블
+TCF_{대상}
+TCF_TRANSACTION_LOG
+OM 관리 테이블
+OM_{대상}
+OM_USER
+JWT 테이블
+JWT_{대상}
+JWT_TOKEN
+파일 테이블
+UD_{대상}
+UD_FILE_META
+컬럼
+UPPER_SNAKE_CASE
+SERVICE_ID
+PK
+PK_{TABLE}
+PK_OM_USER
+FK
+FK_{FROM}_{TO}
+FK_OM_USER_AUTH_GROUP
+UK
+UK_{TABLE}_{컬럼}
+UK_OM_USER_LOGIN_ID
+Index
+IX_{TABLE}_{컬럼}
+IX_TCF_TX_LOG_GUID
+Sequence
+SQ_{TABLE}
+SQ_TCF_TRANSACTION_LOG
+View
+VW_{업무코드}_{대상}
+VW_SV_CUSTOMER_SUMMARY
+공통 컬럼명은 다음을 사용한다.
+컬럼
+의미
+CREATED_AT
+생성일시
+CREATED_BY
+생성자
+UPDATED_AT
+수정일시
+UPDATED_BY
+수정자
+USE_YN
+사용 여부
+DELETE_YN
+삭제 여부
+VERSION_NO
+버전 번호
+DESCRIPTION
+설명
+REMARK
+비고
+
+14.15 오류코드 명명 규칙
+오류코드는 업무, 오류분류, 일련번호를 포함한다.
+E-{DOMAIN}-{CATEGORY}-{NNNN}
+
+구분
+예시
+의미
+Header 오류
+E-TCF-HDR-0001
+필수 Header 누락
+거래통제 오류
+E-TCF-CTL-0001
+미등록 거래
+Timeout 오류
+E-TCF-TIME-0001
+온라인 Timeout
+Validation 오류
+E-SV-VAL-0001
+SV 입력값 오류
+업무 오류
+E-SV-BIZ-0001
+SV 업무 오류
+DB 오류
+E-SV-DB-0001
+SV DB 처리 오류
+인증 오류
+E-JWT-AUTH-0001
+토큰 검증 실패
+권한 오류
+E-OM-AUTH-0001
+OM 권한 없음
+파일 오류
+E-UD-FILE-0001
+파일 처리 오류
+시스템 오류
+E-TCF-SYS-0001
+공통 시스템 오류
+오류분류는 다음 기준으로 사용한다.
+CATEGORY
+의미
+HDR
+Header 오류
+VAL
+입력값 검증 오류
+BIZ
+업무 규칙 오류
+AUTH
+인증·권한 오류
+CTL
+거래통제 오류
+TIME
+Timeout 오류
+DB
+DB 오류
+EXT
+외부연계 오류
+FILE
+파일 오류
+SYS
+시스템 오류
+
+14.16 로그 / Trace 명명 규칙
+로그 필드는 표준명을 사용한다.
+항목
+표준명
+설명
+GUID
+guid
+거래 고유 식별자
+Trace ID
+traceId
+구간 추적 ID
+ServiceId
+serviceId
+실행 서비스 ID
+거래코드
+transactionCode
+거래 식별 코드
+업무코드
+businessCode
+업무 식별 코드
+사용자 ID
+userId
+사용자
+지점코드
+branchCode
+지점
+채널 ID
+channelId
+WebTop, API 등
+메뉴 ID
+menuId
+화면 메뉴
+화면 ID
+screenId
+화면 번호
+결과코드
+resultCode
+성공/실패
+오류코드
+errorCode
+표준 오류코드
+처리시간
+elapsedTimeMs
+ms 단위 처리시간
+로그 파일명은 업무코드 기준으로 분리한다.
+/logs/nsight/sv/application.log
+/logs/nsight/sv/transaction.log
+/logs/nsight/sv/error.log
+/logs/nsight/om/audit.log
+
+
+14.17 Cache / Batch / File 명명 규칙
+Cache 이름
+{domain}:{target}:{key}
+
+Cache
+예시
+공통코드
+common-code:group:CHANNEL
+ServiceId
+service-catalog:SV.Customer.selectSummary
+거래통제
+transaction-control:SV.Customer.selectSummary
+Timeout 정책
+timeout-policy:SV.Customer.selectSummary
+메뉴권한
+menu-auth:OM:USER001
+Batch Job 이름
+{업무코드}.{대상}.{action}Job
+
+Batch
+예시
+AP 상태 수집
+OM.ApStatus.collectJob
+DB 상태 수집
+OM.DbStatus.collectJob
+세션 상태 수집
+OM.SessionStatus.collectJob
+실패거래 재처리
+BP.Transaction.retryJob
+파일명
+업로드 파일 또는 내부 저장 파일은 원본 파일명과 저장 파일명을 분리한다.
+구분
+규칙
+예시
+원본 파일명
+사용자 업로드명 유지
+고객목록.xlsx
+저장 파일명
+{업무코드}_{서비스ID}_{GUID}.{ext}
+SV_CustomerUpload_7f9c.xlsx
+임시 파일
+TMP_{GUID}.{ext}
+TMP_7f9c.xlsx
+다운로드 파일
+{업무코드}_{업무대상}_{yyyyMMdd}.{ext}
+SV_CustomerSummary_20260704.xlsx
+
+14.18 테스트 클래스 명명 규칙
+테스트 클래스는 대상 클래스명 뒤에 Test를 붙인다.
+대상
+테스트 클래스
+SvCustomerRule
+SvCustomerRuleTest
+SvCustomerService
+SvCustomerServiceTest
+SvCustomerDao
+SvCustomerDaoTest
+SvCustomerMapper
+SvCustomerMapperTest
+SvCustomerSummaryHandler
+SvCustomerSummaryHandlerTest
+SvCustomerFacade
+SvCustomerFacadeTest
+테스트 메서드명은 한글 또는 의미 있는 lowerCamelCase를 허용한다.
+@Test
+void 고객번호가_없으면_오류가_발생한다() {
+    ...
+}
+
+@Test
+void selectCustomerSummary_success() {
+    ...
+}
+
+
+14.19 전체 명명 연결 예시
+SV 고객 요약 조회 예시는 다음과 같다.
+항목
+표준값
+업무코드
+SV
+Context
+/sv
+WAR
+sv.war
+Gradle Module
+sv-service
+Package Root
+com.nh.nsight.sv
+ServiceId
+SV.Customer.selectSummary
+거래코드
+SV-INQ-0001
+Handler
+SvCustomerSummaryHandler
+Facade
+SvCustomerFacade
+Service
+SvCustomerService
+Rule
+SvCustomerEligibilityRule
+DAO
+SvCustomerDao
+Mapper Interface
+SvCustomerRdwMapper
+Mapper XML
+mapper/sv/SvCustomerRdwMapper.xml
+SQL ID
+selectCustomerSummary
+Request DTO
+CustomerSummaryRequest
+Response DTO
+CustomerSummaryResponse
+Result DTO
+CustomerSummaryResult
+오류코드
+E-SV-BIZ-0001
+로그 경로
+/logs/nsight/sv/transaction.log
+OM 사용자 목록 조회 예시는 다음과 같다.
+항목
+표준값
+업무코드
+OM
+Context
+/om
+WAR
+om.war
+Gradle Module
+tcf-om
+Package Root
+com.nh.nsight.om
+ServiceId
+OM.User.selectList
+거래코드
+OM-INQ-0001
+Handler
+OmUserListHandler
+Facade
+OmUserFacade
+Service
+OmUserService
+DAO
+OmUserDao
+Mapper Interface
+OmUserMapper
+Mapper XML
+mapper/om/OmUserMapper.xml
+SQL ID
+selectUserList
+오류코드
+E-OM-BIZ-0001
+
+14.20 금지 규칙
+금지 항목
+나쁜 예
+표준
+의미 없는 약어 사용
+SvCustSvc
+SvCustomerService
+계층명 누락
+SvCustomer
+SvCustomerService, SvCustomerMapper
+업무코드 누락
+CustomerService
+SvCustomerService
+ServiceId와 Handler 불일치
+SV.Customer.selectSummary / SvSearchHandler
+SvCustomerSummaryHandler
+Context와 WAR 불일치
+/singleview, sv.war
+/sv, sv.war
+SQL ID 중복
+모든 목록 SQL을 selectList로 작성
+selectCustomerList, selectCampaignList
+Mapper에 RDW/ADW 혼재
+SvCustomerMapper에 RDW+ADW SQL 모두 작성
+SvCustomerRdwMapper, SvCustomerAdwMapper
+Java 코드에 SQL 직접 작성
+String sql = "SELECT ..."
+Mapper XML
+업무 로직을 SQL에 숨김
+CASE WHEN 과다 사용
+Rule/Service로 분리
+REST URL과 TCF URL 혼용
+/sv/customer/list, /sv/online 혼재
+기본은 /sv/online
+오류코드 임의 작성
+ERROR01
+E-SV-BIZ-0001
+패키지 대문자 사용
+com.nh.nsight.SV
+com.nh.nsight.sv
+
+14.21 명명 규칙 체크리스트
+점검 항목
+확인
+업무코드가 표준 업무코드표에 있는가
+□
+Context Path가 업무코드 소문자인가
+□
+WAR 파일명이 업무코드 소문자인가
+□
+Gradle Module명이 표준과 일치하는가
+□
+Package Root가 업무코드 기준인가
+□
+ServiceId가 {업무코드}.{업무대상}.{행위} 형식인가
+□
+거래코드가 {업무코드}-{유형}-{일련번호} 형식인가
+□
+Handler명이 ServiceId와 의미상 연결되는가
+□
+Facade, Service, Rule, DAO, Mapper 접미사가 명확한가
+□
+DTO가 Request/Response/Command/Result로 구분되는가
+□
+Mapper XML 위치가 mapper/{업무코드} 기준인가
+□
+SQL ID가 Mapper Method명과 일치하는가
+□
+RDW/ADW Mapper가 필요 시 분리되어 있는가
+□
+DB 객체가 UPPER_SNAKE_CASE인가
+□
+오류코드가 표준 형식인가
+□
+로그 필드명이 표준명인가
+□
+의미 없는 약어를 사용하지 않았는가
+□
+
+14.22 마무리말
+명명 규칙은 개발자 개인의 취향을 제한하기 위한 규칙이 아니다.NSIGHT TCF Framework에서는 명명 규칙이 곧 업무 경계, 실행 경로, 운영 추적, 장애 분석, 배포 단위, SQL 관리를 연결하는 기준이다.
+개발자는 신규 ServiceId 하나를 만들 때도 다음 연결을 항상 유지해야 한다.
+SV
+ → /sv
+ → sv.war
+ → sv-service
+ → com.nh.nsight.sv
+ → SV.Customer.selectSummary
+ → SvCustomerSummaryHandler
+ → SvCustomerFacade
+ → SvCustomerService
+ → SvCustomerDao
+ → SvCustomerRdwMapper
+ → mapper/sv/SvCustomerRdwMapper.xml
+ → selectCustomerSummary
+ → SV-INQ-0001
+ → E-SV-BIZ-0001
+
+
+14.23 시사점
+NSIGHT에서 좋은 이름은 짧은 이름이 아니다.운영자가 로그만 보고도 어느 업무, 어느 거래, 어느 SQL, 어느 오류인지 추적할 수 있는 이름이 좋은 이름이다.
+결론적으로 명명 규칙은 다음 한 문장으로 정리할 수 있다.
+모든 이름은 업무코드에서 시작하고, ServiceId를 중심으로 실행되며, Mapper와 SQL ID를 거쳐 거래로그와 오류코드까지 추적 가능해야 한다.
+

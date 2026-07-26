@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nh.nsight.marketing.oc.persistence.mapper.OcHelloMapper">
+    <select id="selectHello"
+            parameterType="com.nh.nsight.marketing.oc.application.dto.hello.HelloSearchCriteria"
+            resultType="com.nh.nsight.marketing.oc.persistence.dto.hello.HelloRow">
+        SELECT
+            #{name} AS NAME,
+            CONCAT('Hello ', #{name}) AS MESSAGE,
+            'tcf-oc' AS MODULE
+    </select>
+</mapper>

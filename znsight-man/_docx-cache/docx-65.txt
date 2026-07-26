@@ -1,0 +1,834 @@
+68. 운영 전환 체크리스트
+68.1 도입 전 안내말
+운영 전환 체크리스트는 NSIGHT TCF Framework를 개발·검증 환경에서 운영 환경으로 넘기기 전에 서비스 가능 상태, 장애 대응 가능 상태, 롤백 가능 상태, 운영 감시 가능 상태를 최종 확인하는 표준 점검표이다.
+NSIGHT는 Apache → Tomcat → Spring Boot → MyBatis/HikariCP → RDW/ADW/SESSIONDB 구조를 기준으로 하며, 표준 목표는 사용자 36,000명, 세션 43,200개, TPS 720, P95 3초, 가용성 99.99%로 정의되어 있다. 또한 통합 운영 기준에서는 Busy Thread 70% 이하, Heap 70% 이하, Hikari Pool 70~80% 이하를 운영 목표로 둔다.
+운영 전환의 핵심 문장은 다음과 같다.
+운영 전환은 개발 완료 선언이 아니라, 운영자가 장애 없이 서비스하고 장애 시 복구할 수 있음을 확인하는 절차이다.
+
+68.2 운영 전환 기본 원칙
+원칙
+기준
+승인된 산출물만 전환
+Git, CI/CD, Artifact, 배포 승인 이력이 있는 산출물만 운영 반영
+운영 환경 직접 수정 금지
+운영 서버에서 소스, WAR, 설정을 임의 수정하지 않음
+WAR 단위 전환
+Class, Mapper XML, 설정 일부만 단독 반영 금지
+기준정보 사전 등록
+ServiceId, 거래통제, Timeout, 오류코드, 권한, 메뉴 사전 등록
+Health Check 필수
+Liveness, Readiness, Deep, Smoke Check 통과 필요
+롤백 가능 상태 확보
+직전 WAR, 설정, DB 기준정보, Rollback Script 확보
+운영 감시 가능
+로그, 거래로그, 감사로그, Metrics, Alert 확인
+업무 담당자 확인
+대표 업무 거래 Smoke Test를 업무 담당자가 확인
+전환 이력 기록
+배포 ID, 버전, 담당자, 승인자, 결과를 OM 또는 전환대장에 기록
+
+68.3 운영 전환 전체 흐름
+1. 운영 전환 요청 등록
+   ↓
+2. 전환 대상 확정
+   - 업무코드
+   - WAR
+   - 설정
+   - DB 변경
+   - 기준정보
+   ↓
+3. 산출물 검증
+   - 설계서
+   - 테스트 결과
+   - 배포 산출물
+   ↓
+4. 운영 환경 사전 점검
+   - Apache
+   - Tomcat
+   - DB
+   - SESSIONDB
+   - Gateway
+   - OM
+   ↓
+5. CI/CD Artifact 확인
+   ↓
+6. 운영 배포 수행
+   ↓
+7. Health Check
+   ↓
+8. Smoke Test
+   ↓
+9. 모니터링 확인
+   ↓
+10. 업무 확인
+   ↓
+11. 운영 전환 승인
+   ↓
+12. 전환 완료 보고
+
+
+68.4 운영 전환 체크리스트 총괄
+구분
+점검 영역
+완료 기준
+1
+산출물 준비
+설계서, 배포본, 설정, 테스트 결과 확보
+2
+형상관리
+Git Branch, Tag, Commit ID 확인
+3
+CI/CD
+공식 Runner 빌드, WAR 생성, Artifact 저장 완료
+4
+배포 준비
+배포 승인, 백업, 롤백 계획 완료
+5
+인프라
+GSLB, L4, Apache, Tomcat 정상
+6
+애플리케이션
+업무 WAR, OM, Gateway, JWT, Batch 정상
+7
+DB
+RDW, ADW, SESSIONDB, LOGDB 연결 정상
+8
+세션
+Spring Session JDBC, Cookie, 만료 정책 정상
+9
+기준정보
+ServiceId, 거래통제, Timeout, 오류코드, 권한 등록
+10
+보안
+SSO, JWT, 권한, Secret, Cookie 보안 확인
+11
+로그/감사
+GUID, 거래로그, 감사로그, 오류로그 확인
+12
+성능
+응답시간, Thread, Heap, Pool 기준 확인
+13
+장애대응
+Health Check, Alert, Rollback 절차 검증
+14
+업무검증
+대표 ServiceId Smoke Test 완료
+15
+운영승인
+운영자, 업무담당자, 승인자 확인 완료
+
+68.5 산출물 준비 체크리스트
+점검 항목
+확인 기준
+확인
+아키텍처 정의서
+최종 구조, Gateway, 세션, 배포 기준 반영
+
+TCF Framework 설계서
+STF/TCF/ETF, Dispatcher, Handler 구조 반영
+
+업무 프로그램 설계서
+업무별 ServiceId, Handler, Mapper, SQL 정의
+
+테이블 정의서
+OM, TCF, SESSION, LOG, JWT, Gateway 테이블 정의
+
+환경설정 정의서
+application-prod.yml, 외부 설정 기준 정의
+
+배포 절차서
+배포 순서, 담당자, 검증 방법 정의
+
+롤백 절차서
+WAR, 설정, DB 기준정보 복구 절차 정의
+
+테스트 결과서
+단위, 통합, 성능, 장애, 보안 테스트 결과 확보
+
+운영 매뉴얼
+기동, 중지, 점검, 장애 대응 절차 확보
+
+체크리스트
+전환 당일 점검표 준비
+
+
+68.6 형상관리 / CI-CD 체크리스트
+NSIGHT CI/CD 운영 기준은 GitLab, GitLab Runner, Gradle, WAR 생성, 배포 자동화, 롤백 자동화를 포함한다.
+점검 항목
+확인 기준
+확인
+Git Repository
+운영 반영 대상 저장소 확인
+
+Branch
+main, release/*, 운영 Tag 기준 확인
+
+Commit ID
+운영 반영 Commit ID 확정
+
+Tag
+운영 Release Tag 생성
+
+MR 승인
+Merge Request 승인 이력 확인
+
+Build 결과
+./gradlew clean build 성공
+
+Test 결과
+Unit / Integration Test 성공
+
+WAR 생성
+bootWar 성공
+
+Artifact 저장
+Nexus 또는 Artifact Repository 저장
+
+Checksum
+WAR SHA-256 검증값 확보
+
+배포 승인
+운영 배포 승인 완료
+
+Rollback Artifact
+직전 정상 WAR 확보
+
+
+68.7 WAR / 배포 산출물 체크리스트
+점검 항목
+확인 기준
+확인
+WAR 파일명
+Context와 일치, 예: sv.war, om.war, gw.war
+
+WAR 생성 주체
+개발자 PC가 아닌 CI/CD Runner
+
+Version
+운영 전환 버전 명확
+
+Commit ID
+WAR 생성 Commit ID 확인
+
+공통 JAR 포함
+WEB-INF/lib에 tcf-* 포함
+
+Mapper XML 포함
+resources/mapper/** 포함
+
+테스트 Class 제외
+운영 WAR에 테스트 코드 미포함
+
+Secret 미포함
+DB Password, JWT Private Key, API Secret 미포함
+
+파일 권한
+Tomcat 계정 읽기 가능
+
+배포 위치
+표준 Tomcat webapps 경로 확인
+
+
+68.8 인프라 전환 체크리스트
+구분
+점검 항목
+확인 기준
+확인
+GSLB
+센터 라우팅
+운영 센터 정상 라우팅
+
+GSLB
+Health Check
+장애 센터 제외 가능
+
+L4
+VIP
+운영 VIP 정상
+
+L4
+Pool
+WAS Real Server 등록 정상
+
+L4
+Sticky
+세션 유지 정책 확인
+
+Apache
+SSL
+인증서 정상, 만료일 확인
+
+Apache
+Reverse Proxy
+/sv, /om, /gw 라우팅 정상
+
+Apache
+Logging
+Access / Error / Proxy Log 기록
+
+Tomcat
+JVM
+Heap, Metaspace, GC 옵션 확인
+
+Tomcat
+Connector
+Port, Thread, Timeout 설정 확인
+
+Tomcat
+Context
+업무 WAR Context 정상 전개
+
+OS
+계정/권한
+Tomcat 실행 계정, 파일 권한 정상
+
+OS
+Disk
+로그, dump, 임시 경로 여유 공간 확인
+
+
+68.9 애플리케이션 체크리스트
+점검 항목
+확인 기준
+확인
+업무 WAR 기동
+ic, pc, sv, mg 등 대상 Context 정상
+
+OM 기동
+/om 운영관리 정상
+
+Gateway 기동
+/gw 또는 Gateway Context 정상
+
+JWT 기동
+토큰 발급/검증 모듈 정상
+
+Batch 기동
+Scheduler 중지/기동 기준 확인
+
+UI 기동
+운영관리 UI, 테스트 UI 접근 정상
+
+Controller
+/{businessCode}/online 정상
+
+Dispatcher
+ServiceId 기준 Handler 매핑 정상
+
+Handler
+대표 Handler Bean 등록 정상
+
+Facade
+Transaction 경계 정상
+
+DAO/Mapper
+Mapper Interface / XML 매핑 정상
+
+표준 응답
+StandardResponse.header + result + body 구조 정상
+
+
+68.10 DB / DataSource 체크리스트
+점검 항목
+확인 기준
+확인
+RDW 연결
+업무 조회 DB 연결 정상
+
+ADW 연결
+분석 조회 DB 연결 정상
+
+SESSIONDB 연결
+Spring Session JDBC 저장소 연결 정상
+
+LOGDB 연결
+거래로그, 감사로그 저장 정상
+
+OMDB 연결
+사용자, 권한, 기준정보 조회 정상
+
+Hikari Pool
+Pool Size, Timeout, Lifetime 설정 확인
+
+Query Timeout
+MyBatis Statement Timeout 적용
+
+Transaction Timeout
+온라인 거래 Timeout 적용
+
+DB 계정 권한
+Select/Insert/Update 권한 정상
+
+DDL 반영
+운영 반영 대상 테이블 존재
+
+DML 반영
+기준정보 초기 데이터 반영
+
+DB Rollback Script
+복구 SQL 준비
+
+MyBatis는 DAO/Mapper 계층에서 RDW, ADW, SESSIONDB 접근 책임을 가지며, SQL 표준화, Query Timeout, Mapper 표준, 성능 통제를 담당하는 구조로 정의되어 있다.
+
+68.11 세션 전환 체크리스트
+Spring Session JDBC는 세션 중앙화, WAS 독립 세션 관리, 다중 WAR 세션 공유, 사용자 인증 상태 유지를 담당한다.
+점검 항목
+확인 기준
+확인
+Session 저장소
+SPRING_SESSION, SPRING_SESSION_ATTRIBUTES 생성
+
+Session Timeout
+운영 기준값 적용
+
+Cookie
+Secure, HttpOnly, SameSite 설정
+
+JSESSIONID
+Cookie 발급 정상
+
+다중 WAR 공유
+/om, /sv, /gw 간 세션 연계 확인
+
+WAS Failover
+한 WAS 제외 시 세션 유지 확인
+
+중복 로그인
+정책 적용 여부 확인
+
+강제 로그아웃
+OM 세션관리에서 처리 가능
+
+세션 정리
+만료 세션 정리 Job 확인
+
+
+68.12 OM 기준정보 체크리스트
+기준정보
+확인 항목
+확인
+사용자
+운영자, 업무담당자, 테스트 계정 등록
+
+권한그룹
+운영자, 조회자, 업무담당자 권한 분리
+
+메뉴
+OM 메뉴, 업무 메뉴 등록
+
+기능권한
+조회, 등록, 수정, 삭제, 다운로드 권한 등록
+
+ServiceId
+운영 대상 ServiceId 등록
+
+거래통제
+허용 거래 Allow-List 등록
+
+Timeout 정책
+서비스별 Timeout 등록
+
+공통코드
+화면/업무 공통코드 등록
+
+오류코드
+TCF, 업무, DB, 연계 오류코드 등록
+
+Gateway Route
+업무코드별 Target 등록
+
+Cache 정책
+기준정보 Cache 대상 등록
+
+
+68.13 보안 체크리스트
+점검 항목
+확인 기준
+확인
+SSO 연계
+SSO Token 검증 정상
+
+JWT 발급
+Access / Refresh Token 발급 정상
+
+JWT 검증
+Gateway 또는 업무 WAR에서 검증 정상
+
+권한 검증
+메뉴권한, 기능권한, ServiceId 권한 정상
+
+거래통제
+미등록 ServiceId 차단
+
+Cookie 보안
+Secure, HttpOnly, SameSite 적용
+
+CSRF
+적용 여부 및 예외 URL 확인
+
+Secret 관리
+운영 Secret 외부화
+
+Password 노출
+WAR, Git, Log에 비밀번호 미노출
+
+개인정보 마스킹
+로그, 응답, 다운로드 파일 마스킹
+
+관리자 접근
+OM 관리자 IP 또는 권한 제한
+
+감사로그
+로그인, 권한변경, 다운로드 이력 기록
+
+
+68.14 로그 / 모니터링 체크리스트
+점검 항목
+확인 기준
+확인
+Application Log
+업무 로그 정상 기록
+
+Error Log
+오류 로그 분리 기록
+
+Access Log
+Apache/Tomcat Access Log 기록
+
+거래로그
+PROCESSING → SUCCESS/FAIL/TIMEOUT 기록
+
+감사로그
+로그인, 권한, 다운로드, 기준정보 변경 기록
+
+GUID
+요청별 GUID 생성
+
+TraceId
+End-to-End 추적 가능
+
+MDC
+로그에 ServiceId, userId, branchId 포함
+
+Actuator
+Health, Metrics, Prometheus 노출 기준 확인
+
+Alert
+오류율, Timeout, Heap, Thread, Pool Alert 설정
+
+Dashboard
+OM 운영 대시보드 표시 정상
+
+전처리·후처리 기준에서도 GUID, TraceId, TransactionId 기반 추적성과 거래로그, 성능로그, 감사로그, 모니터링 지표 제공을 요구한다.
+
+68.15 Health Check 체크리스트
+헬스체크는 /actuator/health 단일 확인이 아니라 Liveness, Readiness, Deep, Smoke Check의 4단계 구조로 수행한다.
+단계
+점검명
+확인 내용
+확인
+1
+Liveness
+JVM / Spring Boot 프로세스 생존
+
+2
+Readiness
+업무 요청 수신 가능
+
+3
+Deep Check
+DB, SESSIONDB, Cache, 외부연계 정상
+
+4
+Smoke Check
+대표 ServiceId 거래 성공
+
+예시:
+curl -f http://localhost:8080/sv/actuator/health/liveness
+curl -f http://localhost:8080/sv/actuator/health/readiness
+curl -f http://localhost:8080/sv/actuator/health
+
+Smoke Test 예시:
+POST http://localhost:8080/sv/online
+Content-Type: application/json
+
+{
+  "header": {
+    "serviceId": "SV.Customer.selectSummary",
+    "transactionCode": "SV-INQ-0001",
+    "businessCode": "SV",
+    "serviceName": "고객 요약 조회",
+    "user": "opentest",
+    "channelId": "WEB",
+    "branch": "0001"
+  },
+  "body": {
+    "customerNo": "CUST000001"
+  }
+}
+
+
+68.16 성능 / 용량 체크리스트
+점검 항목
+기준
+확인
+사용자 기준
+36,000명
+
+설계 세션
+43,200개 이상
+
+목표 TPS
+기준 TPS 이상
+
+P95 응답시간
+3초 이내
+
+Tomcat Busy Thread
+70% 이하
+
+JVM Heap
+70% 이하
+
+Hikari Pool
+70~80% 이하
+
+DB Query 평균
+기준 시간 이내
+
+Timeout 발생률
+기준 이하
+
+GC Pause
+운영 기준 이하
+
+Disk 사용률
+로그/덤프 영역 여유
+
+Network
+AP-DB 간 지연 정상
+
+
+68.17 장애 대응 / 롤백 체크리스트
+점검 항목
+확인 기준
+확인
+롤백 WAR
+직전 정상 WAR 확보
+
+롤백 설정
+직전 외부 설정 백업
+
+DB Rollback Script
+DB 변경 시 복구 SQL 확보
+
+L4 제외 절차
+대상 WAS 서비스 제외 가능
+
+Apache 제외 절차
+BalancerMember Disable 가능
+
+Tomcat Restart
+표준 기동/중지 명령 확인
+
+로그 위치
+장애 분석 로그 경로 확인
+
+Heap Dump
+OOM 발생 시 Dump 경로 확인
+
+Thread Dump
+지연 발생 시 Dump 수집 방법 확인
+
+Cache Evict
+기준정보 복구 후 Cache 갱신 가능
+
+담당자 연락망
+개발, 운영, DBA, NW, 보안 담당자 확인
+
+장애 보고 양식
+장애 상황, 조치, 원인, 재발방지 양식 준비
+
+
+68.18 운영 전환 당일 체크리스트
+순서
+작업
+담당
+확인
+1
+전환 시작 공지
+PMO / 운영
+
+2
+배포 대상 WAR 확인
+CI/CD 담당
+
+3
+대상 WAS 트래픽 제외
+운영
+
+4
+기존 WAR / 설정 백업
+운영
+
+5
+신규 WAR 반영
+운영 / CI/CD
+
+6
+Tomcat Reload 또는 Restart
+운영
+
+7
+Liveness Check
+운영
+
+8
+Readiness Check
+운영
+
+9
+Deep Check
+운영 / DBA
+
+10
+Smoke Test
+개발 / 업무
+
+11
+로그 / 거래로그 확인
+운영
+
+12
+대상 WAS 트래픽 복귀
+운영
+
+13
+다음 WAS 반복
+운영
+
+14
+전체 서비스 확인
+업무 / 운영
+
+15
+모니터링 30분 이상
+운영
+
+16
+전환 완료 승인
+승인자
+
+17
+전환 완료 보고
+PMO
+
+
+68.19 운영 전환 완료 기준
+완료 조건
+기준
+전체 WAR 기동
+대상 업무 WAR, OM, Gateway, JWT 정상
+Health Check
+Liveness, Readiness, Deep 성공
+Smoke Test
+대표 ServiceId 거래 성공
+세션
+로그인, 세션 유지, WAS Failover 정상
+DB
+RDW, ADW, SESSIONDB, LOGDB 연결 정상
+로그
+거래로그, 감사로그, 오류로그 정상
+보안
+SSO, JWT, 권한, 거래통제 정상
+성능
+응답시간, Thread, Heap, Pool 기준 이내
+모니터링
+OM 대시보드, Alert 정상
+롤백
+직전 정상본과 복구 절차 확보
+업무 승인
+업무 담당자 정상 확인
+운영 승인
+운영 전환 승인자 확인
+이력 기록
+전환 결과와 특이사항 기록
+
+68.20 운영 전환 금지 사항
+금지 항목
+사유
+개발자 PC WAR 운영 반영
+공식 Artifact 아님
+운영 서버 직접 빌드
+재현성, 감사 이력 없음
+승인 없는 운영 반영
+변경관리 위반
+Health Check 생략
+장애 조기 발견 실패
+Smoke Test 생략
+실제 업무 오류 미검출
+Rollback 없이 전환
+장애 시 복구 불가
+운영 Secret Git 저장
+보안 사고 위험
+Class 단위 반영
+무결성, 롤백 불가
+Mapper XML 단독 교체
+Class-SQL 불일치 위험
+전체 WAS 동시 반영
+전체 장애 위험
+기준정보 미등록 상태 오픈
+ServiceId, 거래통제 오류 발생
+모니터링 미설정 상태 오픈
+장애 인지 지연
+
+68.21 운영 전환 승인표
+구분
+담당자
+승인 기준
+서명/확인
+개발
+개발 리더
+소스, 테스트, 빌드 완료
+
+아키텍처
+AA / EA
+표준 구조, 설정, 배포 기준 적합
+
+업무
+업무 담당자
+대표 업무 기능 정상
+
+운영
+WAS / AP 운영자
+기동, 로그, Health 정상
+
+DBA
+DB 담당자
+DB 연결, SQL, DB 변경 정상
+
+보안
+보안 담당자
+인증, 권한, Secret, 감사 정상
+
+네트워크
+NW 담당자
+L4, GSLB, Apache 라우팅 정상
+
+PMO
+PMO
+전환 절차, 이력, 보고 완료
+
+최종 승인
+전환 책임자
+운영 전환 완료 승인
+
+
+68.22 마무리말
+운영 전환 체크리스트는 형식적인 확인 문서가 아니라 운영 전환 실패를 막는 마지막 안전장치이다.
+NSIGHT TCF Framework는 업무 WAR, Gateway, JWT, OM, Batch, Cache, SessionDB, RDW/ADW, Apache, L4가 함께 동작한다. 따라서 하나의 항목이라도 누락되면 로그인 실패, 거래통제 오류, 세션 불일치, DB 연결 오류, Timeout 증가, 배포 후 장애로 이어질 수 있다.
+
+68.23 시사점
+NSIGHT의 운영 전환 기준은 다음 한 문장으로 정리할 수 있다.
+운영 전환은 “배포 완료”가 아니라, 업무·보안·세션·DB·로그·모니터링·롤백까지 운영자가 책임질 수 있는 상태로 넘기는 절차이다.
+

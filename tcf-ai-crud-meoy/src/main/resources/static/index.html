@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NSIGHT CRUD Meoy</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">C</div>
+        <div>
+          <h1>CRUD Meoy</h1>
+          <p>C00–C18 절차 위저드</p>
+        </div>
+      </div>
+      <button id="newSessionBtn" class="primary full">+ 신규 세션</button>
+      <button id="domainLedgerBtn" class="ghost full">업무도메인 원장</button>
+      <button id="stepSessionBtn" class="ghost full">단계 세션 조회</button>
+      <button id="masterBtn" class="ghost full">C-MASTER 원칙</button>
+      <button id="ledgerBtn" class="ghost full">현황(세션 원장)</button>
+      <div class="sidebar-heading">세션 <span id="sessionCount" class="count-pill">0</span></div>
+      <input id="sessionSearch" class="sidebar-search" type="search" placeholder="세션 검색…">
+      <div id="sessionList" class="model-list"></div>
+      <div class="sidebar-footer">
+        <button id="exportBtn" class="ghost full" disabled>결과 ZIP Export</button>
+        <div class="footer-hint">포트 8788 · LLM 미연동</div>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">NSIGHT-TCF · CRUD PROMPT WIZARD</div>
+          <h2 id="pageTitle">세션을 선택하세요</h2>
+        </div>
+        <div class="toolbar">
+          <span id="gateBadge" class="badge muted">Gate: NONE</span>
+          <button id="viewSourcesBtn" class="ghost" disabled>관련 소스</button>
+          <button id="cloneTemplateBtn" class="primary ghost" disabled>템플릿으로 복제</button>
+          <button id="deleteSessionBtn" class="danger ghost" disabled>세션 삭제</button>
+        </div>
+      </header>
+
+      <section id="emptyView" class="panel active">
+        <div class="panel-title">
+          <div>
+            <h3>CRUD 프롬프팅 절차</h3>
+            <p>C-MASTER 원칙을 적용해 C00→C18을 질문 1개씩 확정하고 원장에 저장합니다. C14 Gate 통과 전 C15 이후는 잠깁니다.</p>
+          </div>
+          <span class="badge">v0.1</span>
+        </div>
+        <div class="callout info">좌측에서 <strong>신규 세션</strong>을 만들거나, <strong>업무도메인 원장</strong>에서 프레임워크 업무·도메인·ServiceId를 조회하세요.</div>
+      </section>
+
+      <section id="domainView" class="panel">
+        <div class="panel-title">
+          <div>
+            <h3>업무도메인 원장</h3>
+            <p id="domainSourceNote">BusinessModuleDefinitions + Handler ServiceId 스캔</p>
+          </div>
+          <div class="domain-metrics">
+            <span class="badge" id="domainMetricModules">모듈 0</span>
+            <span class="badge ok" id="domainMetricDomains">도메인 0</span>
+            <span class="badge muted" id="domainMetricSids">ServiceId 0</span>
+          </div>
+        </div>
+        <div class="browse-filters domain-filters">
+          <label>키워드
+            <input id="domainQuery" type="search" placeholder="BC, 도메인, ServiceId, Handler…">
+          </label>
+          <label>그룹
+            <select id="domainGroup"><option value="">전체</option></select>
+          </label>
+          <label>상태
+            <select id="domainStatus"><option value="">전체</option></select>
+          </label>
+          <label>업무코드
+            <select id="domainBusiness"><option value="">전체</option></select>
+          </label>
+          <div class="browse-filter-actions">
+            <button id="domainSearchBtn" class="primary">조회</button>
+            <button id="domainResetBtn" class="ghost">초기화</button>
+          </div>
+        </div>
+        <div class="domain-layout">
+          <div class="mini-panel domain-module-list">
+            <h4>업무 모듈 <span id="domainModuleCount" class="count-inline">0</span></h4>
+            <div id="domainModules" class="domain-modules"></div>
+          </div>
+          <div class="domain-detail">
+            <div class="mini-panel">
+              <h4 id="domainDetailTitle">모듈을 선택하세요</h4>
+              <div id="domainDetailMeta" class="muted"></div>
+              <div id="domainDetailBody"></div>
+            </div>
+            <div class="table-wrap domain-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>업무</th>
+                    <th>도메인</th>
+                    <th>ServiceId</th>
+                    <th>처리</th>
+                    <th>Handler</th>
+                    <th>포트</th>
+                    <th>상태</th>
+                  </tr>
+                </thead>
+                <tbody id="domainRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="stepSessionView" class="panel">
+        <div class="panel-title">
+          <div>
+            <h3>단계별 세션 조회</h3>
+            <p>테이블 <code>crud_step_session</code> — 세션 × 단계(C-MASTER~C18) 저장 내역</p>
+          </div>
+          <button id="createSampleBtn" class="ghost">LN 샘플 추가</button>
+        </div>
+        <div class="browse-filters domain-filters">
+          <label>키워드
+            <input id="stepSessionQuery" type="search" placeholder="세션명, 단계, 도메인…">
+          </label>
+          <label>단계
+            <select id="stepSessionStepId"><option value="">전체</option></select>
+          </label>
+          <label>상태
+            <select id="stepSessionStatus">
+              <option value="">전체</option>
+              <option value="DONE">DONE</option>
+              <option value="IN_PROGRESS">IN_PROGRESS</option>
+            </select>
+          </label>
+          <label>업무코드
+            <input id="stepSessionBc" type="text" placeholder="LN">
+          </label>
+          <div class="browse-filter-actions">
+            <button id="stepSessionSearchBtn" class="primary">조회</button>
+            <button id="stepSessionResetBtn" class="ghost">초기화</button>
+          </div>
+        </div>
+        <div class="domain-layout">
+          <div class="table-wrap domain-table-wrap" style="grid-column:1/-1">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>세션</th>
+                  <th>단계</th>
+                  <th>제목</th>
+                  <th>업무</th>
+                  <th>도메인</th>
+                  <th>상태</th>
+                  <th>갱신</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="stepSessionRows"></tbody>
+            </table>
+          </div>
+          <div class="mini-panel" style="grid-column:1/-1">
+            <h4 id="stepSessionDetailTitle">행을 선택하세요</h4>
+            <pre id="stepSessionDetail" class="md-box small"></pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="sourceView" class="panel">
+        <div class="panel-title">
+          <div>
+            <h3>관련 소스</h3>
+            <p id="sourceMeta">세션의 업무코드·도메인코드로 저장소(서비스 모듈 · tcf-ui 화면 · 샘플 요청)를 스캔합니다.</p>
+          </div>
+          <button id="backFromSourceBtn" class="ghost">위저드로</button>
+        </div>
+        <div class="domain-layout">
+          <div class="mini-panel domain-module-list">
+            <h4>파일 <span id="sourceCount" class="count-inline">0</span></h4>
+            <div id="sourceFiles" class="domain-modules source-files"></div>
+          </div>
+          <div class="domain-detail">
+            <div class="mini-panel">
+              <h4 id="sourceFileTitle">파일을 선택하세요</h4>
+              <div id="sourceFileMeta" class="muted"></div>
+              <pre id="sourceContent" class="md-box small source-code"></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="masterView" class="panel">
+        <div class="panel-title">
+          <div>
+            <h3>C-MASTER — 대화원칙</h3>
+            <p>모든 단계에 고정되는 원칙입니다.</p>
+          </div>
+          <button id="backFromMasterBtn" class="ghost">위저드로</button>
+        </div>
+        <pre id="masterMarkdown" class="md-box"></pre>
+      </section>
+
+      <section id="ledgerView" class="panel">
+        <div class="panel-title">
+          <div>
+            <h3>확정정보 원장</h3>
+            <p>세션에 저장된 ledger 키·값입니다.</p>
+          </div>
+          <button id="backFromLedgerBtn" class="ghost">위저드로</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>키</th><th>값</th><th>단계</th></tr></thead>
+            <tbody id="ledgerRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="wizardView" class="panel">
+        <div class="step-rail" id="stepRail"></div>
+        <div class="panel-title">
+          <div>
+            <h3 id="stepTitle">단계</h3>
+            <p id="stepOutcome"></p>
+          </div>
+          <span id="stepBadge" class="badge">C00</span>
+        </div>
+
+        <div class="wizard-grid">
+          <div class="question-card">
+            <div class="q-progress" id="qProgress">질문 1/1</div>
+            <h4 id="qText">질문</h4>
+            <p id="qRecommended" class="muted"></p>
+            <div id="qInput" class="q-input"></div>
+            <div class="q-actions">
+              <button id="prevQBtn" class="ghost" disabled>이전 질문</button>
+              <button id="saveAnswerBtn" class="primary">답변 확정</button>
+              <button id="nextQBtn" class="ghost">다음 질문</button>
+            </div>
+            <div class="q-actions secondary">
+              <button id="completeStepBtn" class="primary strong">단계 완료</button>
+              <button id="nextStepBtn" class="ghost" disabled>다음 단계로</button>
+            </div>
+            <div id="wizardMsg" class="callout info hidden"></div>
+          </div>
+          <div class="side-cards">
+            <div class="mini-panel">
+              <h4>Gate 체크</h4>
+              <ul id="gateChecks"></ul>
+            </div>
+            <div class="mini-panel">
+              <h4>이 단계 답변</h4>
+              <ul id="answeredList" class="answered-list"></ul>
+            </div>
+            <details class="mini-panel">
+              <summary>프롬프트 원문</summary>
+              <pre id="stepMarkdown" class="md-box small"></pre>
+            </details>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+// nsight-tcf-framework Gradle bootWar 기준 조각 (각 *-service / tcf-* 모듈에 반영)
+// 전체 빌드: 저장소 루트에서 ./gradlew :sv-service:bootWar 등
+
+plugins {
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+    id 'java'
+    id 'war'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+    // HikariCP / MyBatis 는 프레임워크·업무 모듈 공통 의존성 사용
+}
+
+// Tomcat webapps 배포명 = Context path (예: sv.war → /sv)
+tasks.named('bootWar', BootWar) {
+    archiveFileName = 'sv.war' // 모듈별로 ic.war, eb.war, om.war, ui.war, batch.war, jwt.war 등으로 설정
+}
+
+// 참고(레거시): pom-war-fragment.xml 은 Maven 이관용. 본 프로젝트는 Gradle 이 소스 오브 트루스.

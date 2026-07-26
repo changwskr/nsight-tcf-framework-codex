@@ -1,0 +1,711 @@
+화면번호 명명규칙 설계기준
+1. 도입 전 안내말
+화면번호는 단순히 화면을 구분하기 위한 번호가 아니다.NSIGHT TCF에서는 화면번호가 메뉴권한, 기능권한, ServiceId, 거래코드, 거래로그, 감사로그, 장애추적과 연결된다.
+NSIGHT 표준 전문 Header에도 menuId, screenId가 포함되어 있으며, serviceId, transactionCode, businessCode, guid, traceId와 함께 거래 식별과 추적에 사용된다. 또한 TCF 구조에서는 모든 온라인 거래가 Header 기준으로 검증·세션·권한·거래통제·Timeout·로그·감사를 수행한 뒤 ServiceId에 매핑된 Handler를 실행한다.
+따라서 화면번호는 다음 흐름과 반드시 연결되어야 한다.
+업무코드
+  ↓
+MenuId
+  ↓
+ScreenId
+  ↓
+ServiceId
+  ↓
+TransactionCode
+  ↓
+기능권한
+  ↓
+거래로그 / 감사로그
+
+
+2. 화면번호 명명 최상위 원칙
+원칙
+설계 기준
+업무코드 우선
+화면번호는 반드시 업무코드로 시작한다
+화면유형 포함
+메인, 서브, 팝업, 탭, 위저드, 리포트 등 화면 유형을 포함한다
+일련번호 고정
+업무별·유형별로 4자리 일련번호를 사용한다
+MenuId와 분리
+메뉴번호와 화면번호는 다르다. 메뉴는 네비게이션, 화면은 실제 UI 단위다
+ServiceId와 연결
+한 화면에서 호출하는 ServiceId 목록을 관리한다
+권한관리 연계
+메뉴권한과 기능권한의 기준으로 사용한다
+로그 추적 가능
+거래로그에 screenId를 남겨 어느 화면에서 발생한 거래인지 추적한다
+재사용 금지
+폐기된 화면번호는 재사용하지 않는다
+의미 변경 금지
+기존 화면번호의 업무 의미를 바꾸지 않는다
+임시번호 금지
+TEST001, SCREEN1, POPUP1 같은 임시 번호 사용 금지
+
+3. 화면번호 표준 형식
+NSIGHT 화면번호는 다음 형식을 권장한다.
+{업무코드}{화면유형코드}{NNNN}
+
+예시:
+SVMAIN0001
+SVSUB0001
+SVPOP0001
+OMDASH0001
+OMMENU0001
+CMWIZ0001
+
+구성요소
+자리수
+설명
+예시
+업무코드
+2자리
+NSIGHT 업무코드
+SV, CM, OM
+화면유형코드
+3~5자리
+화면 성격
+MAIN, SUB, POP, DASH
+일련번호
+4자리
+업무·유형별 순번
+0001
+하이픈을 사용하는 방식도 가능하지만, 화면번호는 Header, 로그, DB 컬럼, 권한 테이블에서 자주 사용되므로 운영 표준값은 하이픈 없는 고정 문자열을 권장한다.
+
+4. 화면유형 코드 표준
+화면유형 코드
+의미
+설명
+예시
+MAIN
+메인화면
+업무 진입 또는 대표 화면
+SVMAIN0001
+SUB
+서브화면
+메인 하위의 일반 업무 화면
+SVSUB0001
+LIST
+목록화면
+조회 목록 중심 화면
+SVLIST0001
+DTL
+상세화면
+단건 상세 조회 화면
+SVDTL0001
+REG
+등록화면
+신규 등록 화면
+CMREG0001
+UPD
+수정화면
+변경 처리 화면
+CMUPD0001
+POP
+팝업화면
+별도 팝업 또는 모달 화면
+SVPOP0001
+TAB
+탭화면
+탭 내부 화면 단위
+SVTAB0001
+WIZ
+위저드화면
+단계형 입력 화면
+CMWIZ0001
+DASH
+대시보드
+상태·지표 요약 화면
+OMDASH0001
+RPT
+리포트화면
+보고서·출력 화면
+OMRPT0001
+FILE
+파일화면
+업로드·다운로드 화면
+UDFILE0001
+AUTH
+인증화면
+로그인, SSO, 권한 관련 화면
+OMAUTH0001
+ERR
+오류화면
+오류 안내 화면
+CCERR0001
+CFG
+설정화면
+환경설정, 기준정보 설정
+OMCFG0001
+HELP
+도움말화면
+가이드, 도움말
+CCHELP0001
+
+5. 화면번호와 메뉴번호의 관계
+화면번호와 메뉴번호는 분리한다.
+MenuId   = 사용자가 메뉴 트리에서 클릭하는 항목
+ScreenId = 실제 표시되는 화면 단위
+
+구분
+역할
+예시
+MenuId
+메뉴 트리, 권한그룹별 메뉴 접근 기준
+OMMENU0001
+ScreenId
+실제 UI 화면 식별
+OMDASH0001
+ServiceId
+화면에서 호출하는 업무 서비스
+OM.Dashboard.inquiry
+FunctionId
+화면의 버튼·기능 권한
+SEARCH, SAVE, DELETE, DOWNLOAD
+예시:
+메뉴명
+MenuId
+ScreenId
+대표 ServiceId
+운영 대시보드
+OMMENU0001
+OMDASH0001
+OM.Dashboard.inquiry
+거래로그 조회
+OMMENU0002
+OMLIST0001
+OM.TxLog.selectList
+사용자 관리
+OMMENU0003
+OMLIST0002
+OM.User.selectList
+사용자 상세
+OMMENU0003
+OMDTL0001
+OM.User.selectDetail
+캠페인 등록
+CMMENU0001
+CMREG0001
+CM.Campaign.create
+운영 대시보드 설계에서도 화면은 /ui/om/admin/dashboard.html, Backend는 tcf-om, ServiceId는 OM.Dashboard.inquiry로 연결된다. 이처럼 화면, Backend, ServiceId가 함께 관리되어야 한다.
+
+6. 화면번호 채번 기준
+6.1 업무별 채번
+업무코드
+화면번호 범위 예시
+설명
+CC
+CCMAIN0001 ~
+공통 화면
+SV
+SVMAIN0001 ~
+Single View 화면
+CM
+CMMAIN0001 ~
+캠페인 화면
+MG
+MGMAIN0001 ~
+메시지 화면
+OM
+OMDASH0001, OMLIST0001 ~
+운영관리 화면
+UD
+UDFILE0001 ~
+파일 업다운로드 화면
+6.2 유형별 채번
+화면유형
+채번 예시
+설명
+메인
+SVMAIN0001
+SV 업무 메인
+목록
+SVLIST0001
+고객 목록
+상세
+SVDTL0001
+고객 상세
+팝업
+SVPOP0001
+고객 검색 팝업
+탭
+SVTAB0001
+고객 상세 내 탭
+위저드
+CMWIZ0001
+캠페인 생성 위저드
+리포트
+OMRPT0001
+거래로그 출력
+
+7. 화면 파일명 명명규칙
+화면번호와 실제 화면 파일명도 연결한다.
+7.1 HTML / 화면 파일명
+{업무코드소문자}-{화면대상}-{화면유형}.html
+
+화면
+ScreenId
+화면 파일명
+SV 메인
+SVMAIN0001
+sv-main.html
+고객 목록
+SVLIST0001
+sv-customer-list.html
+고객 상세
+SVDTL0001
+sv-customer-detail.html
+고객 검색 팝업
+SVPOP0001
+sv-customer-search-popup.html
+캠페인 등록
+CMREG0001
+cm-campaign-register.html
+캠페인 위저드
+CMWIZ0001
+cm-campaign-create-wizard.html
+운영 대시보드
+OMDASH0001
+om-dashboard.html
+거래로그 조회
+OMLIST0001
+om-txlog-list.html
+7.2 UI 경로 기준
+/ui/{업무코드소문자}/{화면영역}/{화면파일명}
+
+예시:
+/ui/sv/customer/sv-customer-list.html
+/ui/sv/customer/sv-customer-detail.html
+/ui/cm/campaign/cm-campaign-create-wizard.html
+/ui/om/admin/om-dashboard.html
+/ui/om/admin/om-txlog-list.html
+
+
+8. 화면 구성요소 ID 명명규칙
+화면 안의 버튼, 그리드, 폼, 탭도 화면번호와 연결한다.
+{screenId}_{componentType}_{componentName}
+
+구성요소
+Component Type
+예시
+검색 버튼
+BTN
+SVLIST0001_BTN_SEARCH
+저장 버튼
+BTN
+CMREG0001_BTN_SAVE
+삭제 버튼
+BTN
+OMLIST0002_BTN_DELETE
+다운로드 버튼
+BTN
+OMLIST0001_BTN_DOWNLOAD
+검색 폼
+FORM
+SVLIST0001_FORM_SEARCH
+목록 그리드
+GRID
+SVLIST0001_GRID_CUSTOMER
+상세 폼
+FORM
+SVDTL0001_FORM_DETAIL
+탭
+TAB
+SVDTL0001_TAB_ACCOUNT
+팝업
+POP
+SVLIST0001_POP_CUSTOMER_SEARCH
+
+9. 화면 기능권한 코드
+화면번호는 기능권한과 연결되어야 한다.
+{screenId}:{functionCode}
+
+기능
+Function Code
+예시
+조회
+SEARCH
+SVLIST0001:SEARCH
+상세조회
+DETAIL
+SVDTL0001:DETAIL
+등록
+CREATE
+CMREG0001:CREATE
+수정
+UPDATE
+CMUPD0001:UPDATE
+삭제
+DELETE
+OMLIST0002:DELETE
+저장
+SAVE
+CMREG0001:SAVE
+다운로드
+DOWNLOAD
+OMLIST0001:DOWNLOAD
+업로드
+UPLOAD
+UDFILE0001:UPLOAD
+승인
+APPROVE
+OMDTL0002:APPROVE
+반려
+REJECT
+OMDTL0002:REJECT
+
+10. 화면유형별 명명 예시
+10.1 SV 화면 예시
+화면명
+화면유형
+ScreenId
+MenuId
+대표 ServiceId
+Single View 메인
+MAIN
+SVMAIN0001
+SVMENU0001
+SV.Main.inquiry
+고객 요약 조회
+LIST
+SVLIST0001
+SVMENU0002
+SV.Customer.selectSummary
+고객 상세 조회
+DTL
+SVDTL0001
+SVMENU0002
+SV.Customer.selectDetail
+고객 검색 팝업
+POP
+SVPOP0001
+SVMENU0002
+SV.Customer.searchPopup
+계좌 탭
+TAB
+SVTAB0001
+SVMENU0002
+SV.Account.selectList
+캠페인 이력 탭
+TAB
+SVTAB0002
+SVMENU0002
+SV.Campaign.selectHistory
+10.2 CM 화면 예시
+화면명
+화면유형
+ScreenId
+MenuId
+대표 ServiceId
+캠페인 메인
+MAIN
+CMMAIN0001
+CMMENU0001
+CM.Main.inquiry
+캠페인 목록
+LIST
+CMLIST0001
+CMMENU0002
+CM.Campaign.selectList
+캠페인 상세
+DTL
+CMDTL0001
+CMMENU0002
+CM.Campaign.selectDetail
+캠페인 등록
+REG
+CMREG0001
+CMMENU0003
+CM.Campaign.create
+캠페인 생성 위저드
+WIZ
+CMWIZ0001
+CMMENU0003
+CM.Campaign.createWizard
+대상자 업로드
+FILE
+CMFILE0001
+CMMENU0004
+CM.Target.upload
+10.3 OM 화면 예시
+화면명
+화면유형
+ScreenId
+MenuId
+대표 ServiceId
+운영 대시보드
+DASH
+OMDASH0001
+OMMENU0001
+OM.Dashboard.inquiry
+거래로그 조회
+LIST
+OMLIST0001
+OMMENU0002
+OM.TxLog.selectList
+거래로그 상세
+DTL
+OMDTL0001
+OMMENU0002
+OM.TxLog.selectDetail
+사용자 관리
+LIST
+OMLIST0002
+OMMENU0003
+OM.User.selectList
+사용자 상세
+DTL
+OMDTL0002
+OMMENU0003
+OM.User.selectDetail
+권한 관리
+AUTH
+OMAUTH0001
+OMMENU0004
+OM.AuthGroup.selectList
+환경설정 조회
+CFG
+OMCFG0001
+OMMENU0005
+OM.SystemConfig.inquiry
+오류코드 관리
+LIST
+OMLIST0003
+OMMENU0006
+OM.ErrorCode.selectList
+환경설정 조회 설계에서도 OM 환경설정 화면은 조회 전용 화면으로 두고, 운영자가 직접 수정하지 않고 Git/CI-CD/배포 파이프라인으로 변경하는 것을 원칙으로 한다.
+
+11. 화면번호 관리 테이블 예시
+화면번호는 코드성 값이므로 OM에서 기준정보로 관리한다.
+OM_SCREEN
+OM_MENU_SCREEN_MAP
+OM_SCREEN_SERVICE_MAP
+OM_SCREEN_FUNCTION_AUTH
+
+테이블
+역할
+OM_SCREEN
+화면 마스터
+OM_MENU_SCREEN_MAP
+메뉴와 화면 매핑
+OM_SCREEN_SERVICE_MAP
+화면과 ServiceId 매핑
+OM_SCREEN_FUNCTION_AUTH
+화면별 기능권한
+OM_SCREEN_HISTORY
+화면 변경 이력
+11.1 OM_SCREEN 주요 컬럼
+컬럼
+설명
+예시
+SCREEN_ID
+화면번호
+SVLIST0001
+SCREEN_NAME
+화면명
+고객 요약 조회
+BUSINESS_CODE
+업무코드
+SV
+SCREEN_TYPE
+화면유형
+LIST
+SCREEN_PATH
+화면 경로
+/ui/sv/customer/sv-customer-list.html
+DESCRIPTION
+설명
+고객 요약 조회 화면
+OWNER_TEAM
+담당팀
+SV개발팀
+USE_YN
+사용 여부
+Y
+CREATED_BY
+등록자
+admin
+CREATED_DTM
+등록일시
+2026-07-05 11:00:00
+UPDATED_BY
+수정자
+admin
+UPDATED_DTM
+수정일시
+2026-07-05 11:00:00
+11.2 OM_SCREEN_SERVICE_MAP 주요 컬럼
+컬럼
+설명
+예시
+SCREEN_ID
+화면번호
+SVLIST0001
+SERVICE_ID
+호출 ServiceId
+SV.Customer.selectSummary
+TRANSACTION_CODE
+거래코드
+SV-INQ-0001
+FUNCTION_CODE
+기능코드
+SEARCH
+REQUIRED_AUTH_YN
+권한 필요 여부
+Y
+AUDIT_YN
+감사로그 대상 여부
+Y
+USE_YN
+사용 여부
+Y
+
+12. 화면번호와 거래로그 연계
+거래로그에는 화면번호를 남긴다.
+로그 필드
+설명
+예시
+guid
+거래 고유 ID
+7f9c...
+traceId
+AP 내부 추적 ID
+TRC202607050001
+businessCode
+업무코드
+SV
+menuId
+메뉴 ID
+SVMENU0002
+screenId
+화면번호
+SVLIST0001
+serviceId
+실행 서비스
+SV.Customer.selectSummary
+transactionCode
+거래코드
+SV-INQ-0001
+userId
+사용자 ID
+U123456
+branchId
+지점 코드
+001234
+channelId
+채널 ID
+WEBTOP
+elapsedTimeMs
+처리시간
+312
+resultCode
+결과코드
+S0000
+errorCode
+오류코드
+NULL
+NSIGHT 개발자 가이드도 로그 필드 표준으로 menuId는 화면 메뉴, screenId는 화면 번호, serviceId, transactionCode, businessCode, guid, traceId 등을 함께 남기도록 정리한다.
+
+13. 채번 절차
+단계
+절차
+담당
+1
+신규 화면 필요성 확인
+업무팀
+2
+업무코드와 화면유형 결정
+업무팀 / 아키텍트
+3
+기존 OM_SCREEN 중복 확인
+OM 관리자
+4
+ScreenId 채번
+OM 관리자
+5
+MenuId와 매핑
+OM 관리자
+6
+ServiceId / TransactionCode 매핑
+업무 개발자
+7
+기능권한 매핑
+보안/권한 담당
+8
+화면 파일명과 경로 등록
+UI 개발자
+9
+테스트 및 거래로그 확인
+개발자 / 운영자
+10
+운영 반영 후 변경 이력 저장
+OM 관리자
+
+14. 금지 규칙
+금지 예시
+문제
+표준 예시
+SCREEN001
+업무코드 없음
+SVLIST0001
+SV001
+화면유형 없음
+SVMAIN0001
+SVSCR001
+유형 의미 부족
+SVLIST0001, SVDTL0001
+CUSTOMER01
+업무코드·유형 없음
+SVLIST0001
+SV_POPUP_1
+자리수 불일치
+SVPOP0001
+TEST_SCREEN
+임시명
+정식 ScreenId 채번
+홍길동화면
+한글·개인명
+SVLIST0001
+SVLIST9999 임의 채번
+OM 관리 우회
+OM_SCREEN 기준 채번
+폐기 번호 재사용
+감사·로그 추적 혼선
+신규 번호 채번
+
+15. 화면번호 검토 체크리스트
+점검 항목
+확인
+화면번호가 업무코드로 시작하는가?
+□
+화면유형 코드가 표준 코드인가?
+□
+일련번호가 4자리인가?
+□
+MenuId와 ScreenId가 분리되어 있는가?
+□
+화면 파일명과 ScreenId가 매핑되어 있는가?
+□
+화면에서 호출하는 ServiceId가 등록되어 있는가?
+□
+ServiceId와 TransactionCode가 매핑되어 있는가?
+□
+기능권한 코드가 정의되어 있는가?
+□
+거래로그에 screenId가 남는가?
+□
+감사 대상 화면은 AUDIT_YN = Y로 관리되는가?
+□
+폐기된 화면번호를 재사용하지 않는가?
+□
+팝업·탭·위저드도 별도 ScreenId를 갖는가?
+□
+
+16. 마무리말
+화면번호 명명규칙의 핵심은 다음과 같다.
+화면번호는 UI 식별자가 아니라
+메뉴권한, 기능권한, ServiceId, 거래로그, 감사로그를 연결하는
+운영 추적 식별자다.
+
+따라서 NSIGHT 화면번호는 {업무코드}{화면유형코드}{4자리일련번호} 형식으로 관리한다.예를 들어 SVLIST0001은 SV 업무의 목록화면이고, OMDASH0001은 OM 운영 대시보드이며, CMWIZ0001은 캠페인 위저드 화면이다. 이렇게 정리하면 운영자는 거래로그의 screenId만 보고도 어느 업무의 어떤 화면에서 어떤 거래가 발생했는지 즉시 추적할 수 있다.
+

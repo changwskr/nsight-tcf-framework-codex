@@ -1,0 +1,296 @@
+# 16. 배포 아키텍처
+
+| 항목 | 내용 |
+|------|------|
+| 문서 번호 | 16 |
+| 제목 | Deployment Architecture |
+| 상위 문서 | [architecture.md](architecture.md) |
+| 관련 문서 | [13-batch.md](13-batch.md), [14-online-arc.md](14-online-arc.md), [11-login.md](11-login.md), [ztomcat/README.md](../../ztomcat/README.md) |
+| 대상 | 개발/운영/릴리즈 담당자 |
+
+---
+
+## 1. 개요
+
+NSIGHT TCF는 **이중 배포 모델**을 가진다.
+
+| 모델 | 목적 | 특징 |
+|------|------|------|
+| `bootRun` | 개발·디버깅 | 모듈별 독립 JVM/포트 |
+| `ztomcat` | 통합·운영 유사 검증 | 단일 Tomcat 8080 + **deploy-wars 13 WAR** |
+
+핵심 철학:
+
+1. 개발 생산성(bootRun)과 통합 현실성(ztomcat)을 분리
+2. 동일 코드/전문 규약을 두 배포 모드에서 유지
+3. 배포/검증을 스크립트 표준화로 자동화
+
+---
+
+## 2. 배포 토폴로지
+
+## 2.1 bootRun 토폴로지
+
+```text
+8082,8083,8085~8087,8089~8090,8093,8096 : 업무 WAR (9개 *-service)
+8097      : tcf-om
+8098      : tcf-batch
+8099      : tcf-ui
+8100      : tcf-gateway
+8102      : tcf-uj
+8110      : tcf-jwt
+```
+
+특징:
+
+- 모듈 단위 기동/중지 용이
+- 디버거 attach, 단일 모듈 장애 재현에 유리
+- 대상 URL이 포트별로 분리됨
+
+## 2.2 ztomcat 토폴로지
+
+```text
+Tomcat 8080  (deploy-wars.sh — 13 WAR)
+  /ic … /mg   (업무 9)
+  /om         (tcf-om)
+  /batch      (tcf-batch)
+  /ui         (tcf-ui)
+  /jwt        (tcf-jwt)
+```
+
+bootRun 전용: gateway :8100, uj :8102
+
+특징:
+
+- 운영 유사 context path 구조
+- Gateway 기반 통합 시나리오 검증 용이
+- 배포 후 autoDeploy/health 확인 필요
+
+---
+
+## 3. 배포 산출물 아키텍처
+
+## 3.1 WAR 산출물 표준
+
+| 코드 | 모듈 | WAR | Context |
+|------|------|-----|---------|
+| `ic` … `mg` | `*-service` (9개) | `{code}.war` | `/{code}` |
+| `om` | `tcf-om` | `tcf-om.war` → `om.war` | `/om` |
+| `batch` | `tcf-batch` | `tcf-batch.war` → `batch.war` | `/batch` |
+| `ui` | `tcf-ui` | `tcf-ui.war` → `ui.war` | `/ui` |
+| `jwt` | `tcf-jwt` | `jwt.war` | `/jwt` |
+
+`ztomcat/deploy-wars.sh` 기준 **13 WAR** 배포. `gradle buildZtomcatWars`는 uj·gateway 포함 **15 WAR** 빌드 가능.
+
+## 3.2 부트스트랩 구조
+
+외부 Tomcat 배포 시 Spring Boot 앱은 WAR 부트스트랩(`NsightWarBootstrap` 계열)을 통해 기동된다.
+
+목적:
+
+- Tomcat Servlet 컨테이너 초기화와 Spring 컨텍스트 연결
+- 동일 애플리케이션을 bootRun/bootWar 양쪽에서 재사용
+
+---
+
+## 4. 빌드 아키텍처
+
+| 명령 | 의미 |
+|------|------|
+| `gradle buildBusinessWars` | 10 WAR (9 업무 + tcf-om) |
+| `gradle buildZtomcatWars` | 15 WAR (+ batch, ui, uj, jwt, gateway) |
+| `gradle :{module}:bootWar` | 단일 모듈 WAR 빌드 |
+| `gradle :{module}:bootRun` | 단일 모듈 개발 실행 |
+
+각 서비스의 `scripts/build.*`/`scripts/run-local.*`가 위 태스크를 래핑한다.
+
+---
+
+## 5. 배포 파이프라인 (ztomcat)
+
+## 5.1 표준 순서
+
+```text
+install-tomcat
+  → deploy-wars (all 또는 선택)
+  → start
+  → verify-deploy
+```
+
+## 5.2 원클릭 재배포
+
+`deploy-restart.*` 표준 순서:
+
+1. `stop`
+2. 대기
+3. `deploy-wars all`
+4. `start`
+5. health polling
+6. `verify-deploy`
+
+운영 유사 통합 회귀 테스트에서 권장한다.
+
+---
+
+## 6. 검증 아키텍처
+
+## 6.1 헬스 체크
+
+`verify-deploy`가 19개 context의 `/actuator/health`를 호출한다.
+
+```text
+GET http://localhost:8080/{code}/actuator/health
+```
+
+규칙:
+
+- 요청별 timeout(예: 30초)
+- 하나라도 FAIL이면 비정상 종료코드
+
+## 6.2 기능 검증
+
+최소 온라인 검증:
+
+```text
+POST /sv/online (sample request)
+GET /ui/om/admin/login.html
+POST /batch/jobs/ap-status/run
+```
+
+health + 기능 API + OM 화면까지 확인해야 완전한 배포 검증으로 본다.
+
+---
+
+## 7. 설정 주입 아키텍처
+
+## 7.1 프로파일
+
+| 모드 | 프로파일 |
+|------|----------|
+| bootRun | **`local`** |
+| ztomcat (통합 검증) | **`dev`** |
+| 운영 Tomcat | **`prod`** (+ `dev` 그룹) |
+
+각 환경별 설정 파일:
+
+- `application.yml` (공통)
+- `application-local.yml` (bootRun)
+- `application-dev.yml` (ztomcat WAR)
+- `application-prod.yml` (운영 오버라이드)
+
+## 7.2 Tomcat setenv/apply-config
+
+`ztomcat/start` 시 자동 적용:
+
+1. `conf/setenv.*` → `bin/setenv.*` 복사
+2. `server.xml` UTF-8 connector 패치
+3. JVM 옵션 주입(Heap, timezone, encoding, txlog path)
+
+효과:
+
+- 한글/인코딩 이슈 방지
+- bootRun과 동일한 핵심 시스템 프로퍼티 정렬
+
+---
+
+## 8. 데이터 배포 일관성 아키텍처
+
+## 8.1 공용 H2 경로
+
+온라인 로그/OM/Batch가 같은 데이터를 보려면 `nsight.txlog.path`를 통일해야 한다.
+
+```text
+{project}/data/nsight-txlog/nsight_om
+```
+
+| 환경 | 경로 주입 방식 |
+|------|----------------|
+| bootRun | Gradle bootRun JVM 옵션 |
+| ztomcat | `setenv`의 `-Dnsight.txlog.path` |
+
+불일치 시 OM 대시보드/거래로그/배치 상태가 서로 다른 DB를 보게 된다.
+
+## 8.2 스키마 초기화
+
+- `tcf-om`이 `schema.sql`, `data.sql` 초기화 담당
+- `tcf-batch`는 동일 DB를 사용해 상태 테이블 MERGE
+- 배포 순서상 `om` 또는 공용 스키마 준비가 선행되어야 안정적
+
+---
+
+## 9. 운영 모듈 배포 관계
+
+```text
+tcf-ui (Relay/UI)
+   └─ calls tcf-om /online
+       └─ calls tcf-batch (수동 실행 시)
+           └─ writes OM_*_STATUS
+```
+
+배포 관점 의존성:
+
+1. `tcf-ui`는 `tcf-om` 가용성에 의존
+2. OM 대시보드는 `tcf-batch` 수집 결과에 의존
+3. 통합 검증 시 `om`, `batch`, `ui` 3개 WAR의 동시 정상 기동이 핵심
+
+---
+
+## 10. 배포 위험요소와 대응
+
+| 위험 | 원인 | 대응 |
+|------|------|------|
+| `/online` 404 | JDK 버전 불일치/기동 실패 | JDK 21 고정 start 스크립트 사용 |
+| 일부 context FAIL | autoDeploy 지연 | deploy-restart 후 충분한 warmup 대기 |
+| OM 대시보드 공백 | batch 미기동/미수집 | `/batch/jobs/*/run` 수동 실행 |
+| 데이터 불일치 | `nsight.txlog.path` 상이 | setenv/bootRun 경로 통일 |
+| 인코딩 깨짐 | Connector UTF-8 미적용 | apply-config 재적용 |
+
+---
+
+## 11. 배포 운영 체크리스트
+
+- [ ] JDK 21로 빌드/기동하는가
+- [ ] 대상 모드(bootRun/tomcat)에 맞는 프로파일이 적용되는가
+- [ ] 19개 context health가 모두 UP인가
+- [ ] `om`, `batch`, `ui` 경로가 동시에 동작하는가
+- [ ] `nsight.txlog.path`가 환경 간 동일한가
+- [ ] 배치 수집 결과가 OM 대시보드에 반영되는가
+
+---
+
+## 12. 권장 배포 시나리오
+
+## 12.1 개발 검증
+
+1. bootRun으로 변경 모듈만 기동
+2. 샘플 전문 호출로 기능 검증
+3. 필요 시 `tcf-ui`로 화면/릴레이 확인
+
+## 12.2 통합 릴리즈 전 검증
+
+1. `ztomcat/deploy-restart`
+2. `verify-deploy` 19/19 확인
+3. OM 로그인 + 대시보드 + 거래 테스트
+4. 배치 수동 실행으로 상태 데이터 최신화 확인
+
+---
+
+## 13. 참고 소스
+
+| 파일 | 설명 |
+|------|------|
+| `ztomcat/README.md` | Tomcat 배포/검증 표준 |
+| `ztomcat/deploy-wars.*` | WAR 빌드·복사 |
+| `ztomcat/deploy-restart.*` | stop→deploy→start→verify |
+| `ztomcat/verify-deploy.*` | 19 context health 체크 |
+| `README.md` | 전체 배포 모드/포트 요약 |
+| `docs/architecture/13-batch.md` | batch 배포/연동 |
+| `docs/architecture/14-online-arc.md` | 온라인 런타임 아키텍처 |
+
+---
+
+## 14. 변경 이력
+
+| 일자 | 변경 내용 |
+|------|-----------|
+| 2026-06 | 최초 작성 — bootRun/ztomcat 이중 배포 아키텍처 정리 |

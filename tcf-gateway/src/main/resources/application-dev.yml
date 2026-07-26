@@ -1,0 +1,10 @@
+# dev — gateway bootRun :8100 → TCF_GATEWAY_ROUTE (ENV_CODE=DEV)
+server:
+  port: 8100
+
+nsight:
+  gateway:
+    env-code: DEV
+    route-table:
+      cache-enabled: true
+      cache-ttl-seconds: 30

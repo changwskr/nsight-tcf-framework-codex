@@ -1,0 +1,28 @@
+// TCF 테스트 UI (UJ)
+// bootRun: gradle :tcf-uj:bootRun (포트 8102)
+// WAR:     gradle :tcf-uj:bootWar → ztomcat uj.war (/uj)
+
+plugins {
+    id 'org.springframework.boot'
+    id 'war'
+}
+
+dependencies {
+    implementation project(':tcf-core')
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+}
+
+bootJar {
+    archiveFileName = 'tcf-uj.jar'
+}
+
+bootWar {
+    archiveFileName = 'tcf-uj.war'
+}
+
+war {
+    archiveFileName = 'tcf-uj.war'
+}
