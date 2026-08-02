@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Contracts')]
+    [ValidateSet('Contracts', 'Skills')]
     [string]$Mode = 'Contracts'
 )
 
@@ -95,8 +95,94 @@ function Test-Contracts {
     }
 }
 
+function Test-Skills {
+    $skills = @(
+        'skills/pdmp-development/SKILL.md',
+        'skills/pdmp-crud/SKILL.md',
+        'skills/pdmp-tcf/SKILL.md',
+        'skills/pdmp-security/SKILL.md',
+        'skills/pdmp-quality/SKILL.md'
+    )
+
+    foreach ($relativePath in $skills) {
+        Assert-FileContains $relativePath @(
+            '---',
+            'name:',
+            'description:'
+        )
+    }
+
+    Assert-FileContains 'skills/pdmp-development/SKILL.md' @(
+        'references/pdmp-project-map.md',
+        'references/handoff-protocol.md',
+        'agents/pdmp-analyst.md',
+        'agents/pdmp-builder.md',
+        'agents/pdmp-security-reviewer.md',
+        'agents/pdmp-qa.md',
+        'pdmp-crud',
+        'pdmp-tcf',
+        'pdmp-security',
+        'pdmp-quality'
+    )
+    Assert-FileContains 'skills/pdmp-development/references/pdmp-project-map.md' @(
+        'pdmp-service',
+        'mpcoa8888',
+        'Controller -> Service -> DAO -> MyBatis',
+        'src/main',
+        'src/test'
+    )
+    Assert-FileContains 'skills/pdmp-development/references/handoff-protocol.md' @(
+        'analysis-summary.md',
+        'verification-report.md',
+        'security-review.md',
+        'qa-report.md'
+    )
+    Assert-FileContains 'skills/pdmp-crud/SKILL.md' @(
+        'references/crud-checklist.md',
+        'list',
+        'detail',
+        'create',
+        'update',
+        'delete',
+        'safe delete'
+    )
+    Assert-FileContains 'skills/pdmp-crud/references/crud-checklist.md' @(
+        'list',
+        'detail',
+        'create',
+        'update',
+        'delete',
+        'MyBatis parameter binding'
+    )
+    Assert-FileContains 'skills/pdmp-tcf/SKILL.md' @(
+        '@TcfTransaction',
+        'serviceId',
+        'transactionCode',
+        'processingType',
+        'serviceName',
+        'MP.{Domain}.{action}'
+    )
+    Assert-FileContains 'skills/pdmp-security/SKILL.md' @(
+        'JWT',
+        'CORS',
+        'SQL binding',
+        'logs',
+        '/api/mp/co/a/8888/**'
+    )
+    Assert-FileContains 'skills/pdmp-quality/SKILL.md' @(
+        'gradlew.bat test',
+        'gradlew.bat war',
+        'H2',
+        'Oracle'
+    )
+
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $Root 'skills/harness'))) 'Legacy skills/harness directory must be removed'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $Root 'skills/harness/orchestrator-sample'))) 'Legacy orchestrator-sample must be removed'
+}
+
 switch ($Mode) {
     'Contracts' { Test-Contracts }
+    'Skills' { Test-Skills }
 }
 
 if ($script:Failures.Count -gt 0) {
@@ -104,5 +190,5 @@ if ($script:Failures.Count -gt 0) {
     exit 1
 }
 
-Write-Host 'Contracts checks passed.'
+Write-Host "$Mode checks passed."
 exit 0
