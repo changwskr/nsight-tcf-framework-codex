@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Contracts', 'Skills', 'Simulation')]
+    [ValidateSet('Contracts', 'Skills', 'Simulation', 'Verifier', 'All')]
     [string]$Mode = 'Contracts'
 )
 
@@ -240,12 +240,74 @@ function Test-Simulation {
         }
     }
 }
+function Invoke-PdmpVerifier {
+    param(
+        [string]$HarnessRoot,
+        [string]$TargetRoot
+    )
+
+    $verifier = Join-Path $Root 'scripts/verify-pdmp-harness.ps1'
+    if (-not (Test-Path -LiteralPath $verifier -PathType Leaf)) {
+        return 127
+    }
+
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        & $verifier -Root $HarnessRoot -TargetRoot $TargetRoot *> $null
+        return $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+}
+
+function Test-Verifier {
+    $verifier = Join-Path $Root 'scripts/verify-pdmp-harness.ps1'
+    Assert-True (Test-Path -LiteralPath $verifier -PathType Leaf) "Missing file: scripts/verify-pdmp-harness.ps1"
+    if (-not (Test-Path -LiteralPath $verifier -PathType Leaf)) {
+        return
+    }
+
+    $targetRoot = Join-Path (Split-Path -Parent $Root) 'pdmp-service'
+    Assert-True ((Invoke-PdmpVerifier -HarnessRoot $Root -TargetRoot $targetRoot) -eq 0) 'Verifier rejected valid PDMP harness tree'
+
+    $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("pdmp-harness-verifier-" + [guid]::NewGuid())
+    $temporaryHarness = Join-Path $temporaryRoot 'tcf-harness-pdmp'
+    try {
+        Copy-Item -LiteralPath $Root -Destination $temporaryHarness -Recurse
+
+        Add-Content -LiteralPath (Join-Path $temporaryHarness 'README.md') -Value 'tcf-harness-world' -Encoding UTF8
+        Assert-True ((Invoke-PdmpVerifier -HarnessRoot $temporaryHarness -TargetRoot $targetRoot) -ne 0) 'Verifier accepted a stale world path'
+
+        Remove-Item -LiteralPath (Join-Path $temporaryHarness 'agents/pdmp-qa.md') -Force
+        Assert-True ((Invoke-PdmpVerifier -HarnessRoot $temporaryHarness -TargetRoot $targetRoot) -ne 0) 'Verifier accepted a missing PDMP QA role'
+
+        Remove-Item -LiteralPath (Join-Path $temporaryHarness 'skills/pdmp-security/SKILL.md') -Force
+        Assert-True ((Invoke-PdmpVerifier -HarnessRoot $temporaryHarness -TargetRoot $targetRoot) -ne 0) 'Verifier accepted a missing PDMP security skill'
+
+        $missingTarget = Join-Path $temporaryRoot 'missing-pdmp-service'
+        Assert-True ((Invoke-PdmpVerifier -HarnessRoot $Root -TargetRoot $missingTarget) -ne 0) 'Verifier accepted a missing pdmp-service target'
+    }
+    finally {
+        if (Test-Path -LiteralPath $temporaryRoot) {
+            Remove-Item -LiteralPath $temporaryRoot -Recurse -Force
+        }
+    }
+}
+
 switch ($Mode) {
     'Contracts' { Test-Contracts }
     'Skills' { Test-Skills }
     'Simulation' { Test-Simulation }
+    'Verifier' { Test-Verifier }
+    'All' {
+        Test-Contracts
+        Test-Skills
+        Test-Simulation
+        Test-Verifier
+    }
 }
-
 if ($script:Failures.Count -gt 0) {
     $script:Failures | ForEach-Object { Write-Error $_ -ErrorAction Continue }
     exit 1
