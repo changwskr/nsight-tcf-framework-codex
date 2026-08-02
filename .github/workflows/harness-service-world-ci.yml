@@ -1,0 +1,32 @@
+name: "Harness Service World - Docs Check"
+
+on:
+  push:
+    paths:
+      - 'harness-service-world/**'
+  pull_request:
+    paths:
+      - 'harness-service-world/**'
+
+jobs:
+  docs-check:
+    name: Docs & Plugin Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install markdownlint-cli
+        run: npm install -g markdownlint-cli
+
+      - name: Run markdownlint on harness docs
+        run: |
+          markdownlint "harness-service-world/**/*.md"
+
+      - name: Check for .claude-plugin directories
+        run: bash harness-service-world/.github/scripts/check_claude_plugin.sh
