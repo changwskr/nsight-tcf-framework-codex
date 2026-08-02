@@ -1,10 +1,12 @@
 # PDMP QA Report
 
 ## Requirement evidence
-Analysis, verification, and security-review artifacts are present for the required handoffs.
+`verification-report.md` records the Simulation acceptance command and project-local verifier with `Exit code: 0`. The required security-review artifact is present.
 
-## Executed command
-The deterministic offline simulator generated this report.
+## Evidence basis
+- Simulation acceptance: `Exit code: 0`.
+- Project-local verifier: `Exit code: 0`.
+- Security review: present with no unresolved finding for this offline sample.
 
 ## Conclusion
-PASS. Oracle behavior remains unverified.
+PASS is based on the successful command evidence above and the completed security review. Oracle behavior remains unverified.

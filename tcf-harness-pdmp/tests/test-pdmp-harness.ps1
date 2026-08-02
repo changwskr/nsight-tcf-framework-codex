@@ -56,7 +56,12 @@ function Test-Contracts {
     Assert-FileContains 'README.md' @(
         'TCF Harness PDMP',
         'pdmp-service',
+        'tests\test-pdmp-harness.ps1 -Mode All',
         'verify-pdmp-harness.ps1'
+    )
+    Assert-FileContains 'docs/quickstart.md' @(
+        'tests\test-pdmp-harness.ps1 -Mode All',
+        'scripts\verify-pdmp-harness.ps1'
     )
     Assert-FileContains 'AGENTS.md' @(
         'pdmp-service',
@@ -115,10 +120,19 @@ function Test-Skills {
     Assert-FileContains 'skills/pdmp-development/SKILL.md' @(
         'references/pdmp-project-map.md',
         'references/handoff-protocol.md',
-        'agents/pdmp-analyst.md',
-        'agents/pdmp-builder.md',
-        'agents/pdmp-security-reviewer.md',
-        'agents/pdmp-qa.md',
+        'initial PDMP development request',
+        '[PDMP architecture](../../docs/pdmp-architecture.md)',
+        '[PDMP workflow](../../docs/workflow.md)',
+        '[PDMP Analyst](../../agents/pdmp-analyst.md)',
+        '[PDMP Builder](../../agents/pdmp-builder.md)',
+        '[PDMP Security Reviewer](../../agents/pdmp-security-reviewer.md)',
+        '[PDMP QA](../../agents/pdmp-qa.md)',
+        'exploration and analysis',
+        'user design approval',
+        'implementation plan',
+        'Builder implementation',
+        'Security Reviewer',
+        'QA',
         'pdmp-crud',
         'pdmp-tcf',
         'pdmp-security',
@@ -173,7 +187,16 @@ function Test-Skills {
         'businessCode',
         'default ""',
         'first dot-delimited token',
-        'MP.{Domain}.{action}'
+        'MP.{Domain}.{action}',
+        '^MP\.[A-Za-z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*$',
+        'duplicate search',
+        '^MP-(INQ|CRT|UPD|DEL)-[0-9]{4}$',
+        'action and ProcessingType',
+        'list` and `detail` use `INQ` and `ProcessingType.INQUIRY`',
+        'standard header',
+        'guid',
+        'traceId',
+        'MDC'
     )
     Assert-FileContains 'skills/pdmp-security/SKILL.md' @(
         'JWT',
@@ -195,12 +218,27 @@ function Test-Skills {
 
 function Test-Simulation {
     $simulator = Join-Path $Root 'samples/pdmp-development/scripts/run-simulation.ps1'
+    $posixSimulator = Join-Path $Root 'samples/pdmp-development/scripts/run-simulation.sh'
+    $verificationTokens = @(
+        'tests/test-pdmp-harness.ps1 -Mode Simulation',
+        'scripts/verify-pdmp-harness.ps1',
+        'Exit code: 0'
+    )
+    $qaTokens = @(
+        'verification-report.md',
+        'Exit code: 0',
+        'PASS'
+    )
+
+    Assert-FileContains 'samples/pdmp-development/workspace/verification-report.md' $verificationTokens
+    Assert-FileContains 'samples/pdmp-development/workspace/qa-report.md' $qaTokens
     Assert-True (Test-Path -LiteralPath $simulator -PathType Leaf) "Missing file: samples/pdmp-development/scripts/run-simulation.ps1"
+    Assert-True (Test-Path -LiteralPath $posixSimulator -PathType Leaf) "Missing file: samples/pdmp-development/scripts/run-simulation.sh"
     if (-not (Test-Path -LiteralPath $simulator -PathType Leaf)) {
         return
     }
 
-    $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("pdmp-development-simulation-" + [guid]::NewGuid())
+    $temporaryRoot = Join-Path $Root ("_runs/pdmp-development-simulation-" + [guid]::NewGuid())
     $workspace = Join-Path $temporaryRoot 'workspace'
     $runDirectory = Join-Path $temporaryRoot 'runs'
 
@@ -219,6 +257,15 @@ function Test-Simulation {
             }
         }
 
+        $generatedVerification = Get-Content -LiteralPath (Join-Path $workspace 'verification-report.md') -Raw -Encoding UTF8
+        foreach ($token in $verificationTokens) {
+            Assert-True ($generatedVerification.Contains($token)) "Generated verification-report.md is missing evidence token: $token"
+        }
+        $generatedQa = Get-Content -LiteralPath (Join-Path $workspace 'qa-report.md') -Raw -Encoding UTF8
+        foreach ($token in $qaTokens) {
+            Assert-True ($generatedQa.Contains($token)) "Generated qa-report.md is missing evidence token: $token"
+        }
+
         $successLog = Join-Path $runDirectory 'pdmp-development-simulation.log'
         Assert-True (Test-Path -LiteralPath $successLog -PathType Leaf) 'Missing success simulation log'
         if (Test-Path -LiteralPath $successLog -PathType Leaf) {
@@ -232,6 +279,56 @@ function Test-Simulation {
         Assert-True (Test-Path -LiteralPath $failureLog -PathType Leaf) 'Missing omitted-security simulation log'
         if (Test-Path -LiteralPath $failureLog -PathType Leaf) {
             Assert-True ((Get-Content -LiteralPath $failureLog -Raw -Encoding UTF8).Contains('QA FAIL')) 'Omitted-security simulation log must contain QA FAIL'
+        }
+
+        $shCommand = Get-Command sh -ErrorAction SilentlyContinue
+        $shPath = if ($null -ne $shCommand) { $shCommand.Source } else { $null }
+        if ([string]::IsNullOrWhiteSpace($shPath) -and $env:ProgramFiles) {
+            $gitSh = Join-Path $env:ProgramFiles 'Git\bin\sh.exe'
+            if (Test-Path -LiteralPath $gitSh -PathType Leaf) {
+                $shPath = $gitSh
+            }
+        }
+        Assert-True (-not [string]::IsNullOrWhiteSpace($shPath)) 'POSIX sh is required for the special-path simulation test'
+        if (-not [string]::IsNullOrWhiteSpace($shPath) -and (Test-Path -LiteralPath $posixSimulator -PathType Leaf)) {
+            $posixRoot = Join-Path $temporaryRoot 'POSIX simulation [case #1'
+            $posixWorkspace = Join-Path $posixRoot 'workspace [draft #1'
+            $posixRunDirectory = Join-Path $posixRoot 'run directory [qa #1'
+
+            $posixLauncher = Join-Path $temporaryRoot 'run-posix-simulation-test.sh'
+            $posixLauncherContent = @'
+#!/usr/bin/env sh
+set -eu
+"$PDMP_SIM_SCRIPT" "$PDMP_SIM_WORKSPACE" "$PDMP_SIM_RUN_DIRECTORY"
+'@
+            [System.IO.File]::WriteAllText(
+                $posixLauncher,
+                $posixLauncherContent,
+                [System.Text.UTF8Encoding]::new($false))
+
+            $posixLauncherArgument = $posixLauncher
+            $posixSimulatorArgument = $posixSimulator
+            $posixWorkspaceArgument = $posixWorkspace
+            $posixRunDirectoryArgument = $posixRunDirectory
+            if ([System.IO.Path]::DirectorySeparatorChar -eq '\') {
+                $posixLauncherArgument = (& $shPath -c 'cygpath -u "$1"' sh $posixLauncher).Trim()
+                $posixSimulatorArgument = (& $shPath -c 'cygpath -u "$1"' sh $posixSimulator).Trim()
+                $posixWorkspaceArgument = (& $shPath -c 'cygpath -u "$1"' sh $posixWorkspace).Trim()
+                $posixRunDirectoryArgument = (& $shPath -c 'cygpath -u "$1"' sh $posixRunDirectory).Trim()
+            }
+
+            $env:PDMP_SIM_SCRIPT = $posixSimulatorArgument
+            $env:PDMP_SIM_WORKSPACE = $posixWorkspaceArgument
+            $env:PDMP_SIM_RUN_DIRECTORY = $posixRunDirectoryArgument
+            try {
+                & $shPath $posixLauncherArgument
+            }
+            finally {
+                Remove-Item Env:PDMP_SIM_SCRIPT, Env:PDMP_SIM_WORKSPACE, Env:PDMP_SIM_RUN_DIRECTORY -ErrorAction SilentlyContinue
+            }
+            Assert-True ($LASTEXITCODE -eq 0) "POSIX simulator special-path run exited $LASTEXITCODE"
+            Assert-True (Test-Path -LiteralPath (Join-Path $posixWorkspace 'qa-report.md') -PathType Leaf) 'POSIX simulator did not create qa-report.md in the special-character workspace'
+            Assert-True (Test-Path -LiteralPath (Join-Path $posixRunDirectory 'pdmp-development-simulation.log') -PathType Leaf) 'POSIX simulator did not create its log in the special-character run directory'
         }
     }
     finally {

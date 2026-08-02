@@ -14,15 +14,10 @@ Read [the architecture contract](docs/pdmp-architecture.md), then follow the [wo
 
 ## Commands
 
-Run the Task 1 contract check from the repository root:
+Run the full acceptance suite and the project-local verifier from the repository root:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tcf-harness-pdmp\tests\test-pdmp-harness.ps1 -Mode Contracts
-```
-
-After the project-local static verifier is introduced, run:
-
-```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tcf-harness-pdmp\tests\test-pdmp-harness.ps1 -Mode All
 .\tcf-harness-pdmp\scripts\verify-pdmp-harness.ps1
 ```
 

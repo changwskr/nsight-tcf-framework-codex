@@ -15,7 +15,8 @@ Start with `agents/pdmp-analyst.md`, then implement through `agents/pdmp-builder
 ## 4. Verify locally
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tcf-harness-pdmp\tests\test-pdmp-harness.ps1 -Mode Contracts
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tcf-harness-pdmp\tests\test-pdmp-harness.ps1 -Mode All
+.\tcf-harness-pdmp\scripts\verify-pdmp-harness.ps1
 .\pdmp-service\gradlew.bat test
 .\pdmp-service\gradlew.bat war
 ```

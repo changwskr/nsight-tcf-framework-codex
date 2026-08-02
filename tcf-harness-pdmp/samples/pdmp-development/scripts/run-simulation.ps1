@@ -52,8 +52,15 @@ $verification = @'
 ## Changed files
 Offline simulation artifacts only; pdmp-service source is unchanged.
 
-## RED and GREEN evidence
-The focused simulation test first fails without the simulator and then passes after generation.
+## Verification commands and exit codes
+- Command: `powershell -NoProfile -ExecutionPolicy Bypass -File ./tcf-harness-pdmp/tests/test-pdmp-harness.ps1 -Mode Simulation`
+  Exit code: 0
+  Relevant output: `Simulation checks passed.`
+- Command: `powershell -NoProfile -ExecutionPolicy Bypass -File ./tcf-harness-pdmp/scripts/verify-pdmp-harness.ps1`
+  Exit code: 0
+  Relevant output: `PDMP harness verification passed.`
+
+The sample QA conclusion may use PASS only when `verification-report.md` contains these successful exit codes and the required security review exists.
 
 ## Unverified scope
 No H2, Oracle, Gradle test, or WAR command is run because this is an offline harness simulation.
@@ -74,13 +81,15 @@ $qaPass = @'
 # PDMP QA Report
 
 ## Requirement evidence
-Analysis, verification, and security-review artifacts are present for the required handoffs.
+`verification-report.md` records the Simulation acceptance command and project-local verifier with `Exit code: 0`. The required security-review artifact is present.
 
-## Executed command
-The deterministic offline simulator generated this report.
+## Evidence basis
+- Simulation acceptance: `Exit code: 0`.
+- Project-local verifier: `Exit code: 0`.
+- Security review: present with no unresolved finding for this offline sample.
 
 ## Conclusion
-PASS. Oracle behavior remains unverified.
+PASS is based on the successful command evidence above and the completed security review. Oracle behavior remains unverified.
 '@
 $qaFail = @'
 # PDMP QA Report
