@@ -1,20 +1,13 @@
 param([ValidateSet('Contracts','Skills','Simulation','Verifier','All')][string]$Mode='All')
-$ErrorActionPreference='Stop'
-$script:Failures=[System.Collections.Generic.List[string]]::new()
-$Root=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-function Assert-True { param([bool]$Condition,[string]$Message) if(-not $Condition){$script:Failures.Add($Message)} }
-function Assert-FileContains { param([string]$Path,[string[]]$Patterns) if(-not(Test-Path -LiteralPath $Path -PathType Leaf)){$script:Failures.Add("Missing file: $Path");return};$content=Get-Content -Raw -Encoding UTF8 -LiteralPath $Path;foreach($pattern in $Patterns){if($content -notmatch [regex]::Escape($pattern)){$script:Failures.Add("Missing '$pattern' in $Path")}} }
-function Test-Contracts {
-  foreach($relative in @('AGENTS.md','README.md','docs/quickstart.md','docs/migration-from-claude.md','agents/analyst.md','agents/builder.md','agents/qa.md')){Assert-True (Test-Path -LiteralPath (Join-Path $Root $relative) -PathType Leaf) "Missing file: $relative"}
-  foreach($role in @('analyst','builder','qa')){$path=Join-Path $Root "agents/$role.md";if(Test-Path $path){$content=Get-Content -Raw -Encoding UTF8 $path;$count=([regex]::Matches($content,'(?m)^## [^#\r\n]+$')).Count;Assert-True ($count -eq 6) "Expected 6 role sections in $path, found $count"}}
-  Assert-FileContains (Join-Path $Root 'README.md') @('Codex','AGENTS.md','SKILL.md','verify-codex-harness.ps1')
+$ErrorActionPreference='Stop';$script:Failures=[System.Collections.Generic.List[string]]::new();$Root=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+function Assert-True{param([bool]$Condition,[string]$Message)if(-not $Condition){$script:Failures.Add($Message)}}
+function Assert-FileContains{param([string]$Path,[string[]]$Patterns)if(-not(Test-Path -LiteralPath $Path -PathType Leaf)){$script:Failures.Add("Missing file: $Path");return};$content=Get-Content -Raw -Encoding UTF8 $Path;foreach($pattern in $Patterns){if($content -notmatch [regex]::Escape($pattern)){$script:Failures.Add("Missing '$pattern' in $Path")}}}
+function Test-Contracts{foreach($r in @('AGENTS.md','README.md','docs/quickstart.md','docs/migration-from-claude.md','agents/analyst.md','agents/builder.md','agents/qa.md')){Assert-True (Test-Path (Join-Path $Root $r) -PathType Leaf) "Missing file: $r"};foreach($role in @('analyst','builder','qa')){$p=Join-Path $Root "agents/$role.md";if(Test-Path $p){$c=Get-Content -Raw -Encoding UTF8 $p;$n=([regex]::Matches($c,'(?m)^## [^#\r\n]+$')).Count;Assert-True ($n -eq 6) "Expected 6 role sections in $p, found $n"}};Assert-FileContains (Join-Path $Root 'README.md') @('Codex','AGENTS.md','SKILL.md','verify-codex-harness.ps1')}
+function Test-Skills{Assert-FileContains (Join-Path $Root 'skills/harness/SKILL.md') @('name: harness','description:','spawn_agent','send_message','followup_task','wait_agent');Assert-FileContains (Join-Path $Root 'skills/harness/orchestrator-sample/SKILL.md') @('name:','description:','Analyst','Builder','QA','tcf-harness-world');foreach($r in @('skills/harness/references/agent-design-patterns.md','skills/harness/references/orchestrator-template.md','skills/harness/references/codex-tool-mapping.md')){Assert-True (Test-Path (Join-Path $Root $r) -PathType Leaf) "Missing file: $r"}}
+function Test-Simulation{
+  $scriptPath=Join-Path $Root 'skills/harness/orchestrator-sample/scripts/run-simulation.ps1';Assert-True (Test-Path $scriptPath -PathType Leaf) "Missing file: $scriptPath";if(-not(Test-Path $scriptPath)){return}
+  $base=Join-Path ([System.IO.Path]::GetTempPath()) ("tcf-harness-test-"+[guid]::NewGuid());$workspace=Join-Path $base 'workspace';$runs=Join-Path $base 'runs'
+  try{& $scriptPath -Workspace $workspace -RunDirectory $runs;if($LASTEXITCODE -ne 0){$script:Failures.Add("Simulation exit: $LASTEXITCODE")};& $scriptPath -Workspace $workspace -RunDirectory $runs;if($LASTEXITCODE -ne 0){$script:Failures.Add("Simulation rerun exit: $LASTEXITCODE")};foreach($name in @('analysis-summary.md','poc-plan.md')){$p=Join-Path $workspace $name;Assert-True ((Test-Path $p) -and ((Get-Item $p).Length -gt 0)) "Missing artifact: $name";if(Test-Path $p){$titles=(Select-String -Path $p -Pattern '^# ' -Encoding UTF8).Count;Assert-True ($titles -eq 1) "Expected one title in $name, found $titles"}};Assert-FileContains (Join-Path $runs 'orchestrator-simulation.log') @('QA PASS')}finally{if(Test-Path $base){Remove-Item -LiteralPath $base -Recurse -Force}}
 }
-function Test-Skills {
-  Assert-FileContains (Join-Path $Root 'skills/harness/SKILL.md') @('---','name: harness','description:','spawn_agent','send_message','followup_task','wait_agent')
-  Assert-FileContains (Join-Path $Root 'skills/harness/orchestrator-sample/SKILL.md') @('---','name:','description:','Analyst','Builder','QA','tcf-harness-world')
-  foreach($relative in @('skills/harness/references/agent-design-patterns.md','skills/harness/references/orchestrator-template.md','skills/harness/references/codex-tool-mapping.md')){Assert-True (Test-Path -LiteralPath (Join-Path $Root $relative) -PathType Leaf) "Missing file: $relative"}
-}
-switch($Mode){'Contracts'{Test-Contracts};'Skills'{Test-Skills};'All'{Test-Contracts;Test-Skills};default{$script:Failures.Add("Test mode is not implemented yet: $Mode")}}
-if($script:Failures.Count -gt 0){$script:Failures|ForEach-Object{Write-Error $_ -ErrorAction Continue};exit 1}
-Write-Host "$Mode checks passed."
-exit 0
+switch($Mode){'Contracts'{Test-Contracts};'Skills'{Test-Skills};'Simulation'{Test-Simulation};'All'{Test-Contracts;Test-Skills;Test-Simulation};default{$script:Failures.Add("Test mode is not implemented yet: $Mode")}}
+if($script:Failures.Count){$script:Failures|ForEach-Object{Write-Error $_ -ErrorAction Continue};exit 1};Write-Host "$Mode checks passed.";exit 0

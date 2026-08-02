@@ -1,3 +1,5 @@
-# PoC ê³„íš 
-?°ì¶œë¬? ë¶„ì„-?”ì•½.md, poc-plan.md 
-?¨ê³„: 1. ?¤ê³„ 2. êµ¬í˜„ 3. ê²€ì¦?
+# PoC Plan
+
+Status: complete
+Artifacts: analysis-summary.md, poc-plan.md
+Stages: analyze, build, verify.
