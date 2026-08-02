@@ -262,6 +262,27 @@ function Invoke-PdmpVerifier {
     }
 }
 
+function Assert-FreshVerifierMutation {
+    param(
+        [string]$Name,
+        [string]$TargetRoot,
+        [scriptblock]$Mutate
+    )
+
+    $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("pdmp-harness-verifier-" + [guid]::NewGuid())
+    $temporaryHarness = Join-Path $temporaryRoot 'tcf-harness-pdmp'
+    try {
+        Copy-Item -LiteralPath $Root -Destination $temporaryHarness -Recurse
+        & $Mutate $temporaryHarness
+
+        Assert-True ((Invoke-PdmpVerifier -HarnessRoot $temporaryHarness -TargetRoot $TargetRoot) -ne 0) "Verifier accepted independent mutation: $Name"
+    }
+    finally {
+        if (Test-Path -LiteralPath $temporaryRoot) {
+            Remove-Item -LiteralPath $temporaryRoot -Recurse -Force
+        }
+    }
+}
 function Test-Verifier {
     $verifier = Join-Path $Root 'scripts/verify-pdmp-harness.ps1'
     Assert-True (Test-Path -LiteralPath $verifier -PathType Leaf) "Missing file: scripts/verify-pdmp-harness.ps1"
@@ -272,28 +293,24 @@ function Test-Verifier {
     $targetRoot = Join-Path (Split-Path -Parent $Root) 'pdmp-service'
     Assert-True ((Invoke-PdmpVerifier -HarnessRoot $Root -TargetRoot $targetRoot) -eq 0) 'Verifier rejected valid PDMP harness tree'
 
-    $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("pdmp-harness-verifier-" + [guid]::NewGuid())
-    $temporaryHarness = Join-Path $temporaryRoot 'tcf-harness-pdmp'
-    try {
-        Copy-Item -LiteralPath $Root -Destination $temporaryHarness -Recurse
+    Assert-FreshVerifierMutation -Name 'stale world path' -TargetRoot $targetRoot -Mutate {
+        param([string]$HarnessRoot)
 
-        Add-Content -LiteralPath (Join-Path $temporaryHarness 'README.md') -Value 'tcf-harness-world' -Encoding UTF8
-        Assert-True ((Invoke-PdmpVerifier -HarnessRoot $temporaryHarness -TargetRoot $targetRoot) -ne 0) 'Verifier accepted a stale world path'
-
-        Remove-Item -LiteralPath (Join-Path $temporaryHarness 'agents/pdmp-qa.md') -Force
-        Assert-True ((Invoke-PdmpVerifier -HarnessRoot $temporaryHarness -TargetRoot $targetRoot) -ne 0) 'Verifier accepted a missing PDMP QA role'
-
-        Remove-Item -LiteralPath (Join-Path $temporaryHarness 'skills/pdmp-security/SKILL.md') -Force
-        Assert-True ((Invoke-PdmpVerifier -HarnessRoot $temporaryHarness -TargetRoot $targetRoot) -ne 0) 'Verifier accepted a missing PDMP security skill'
-
-        $missingTarget = Join-Path $temporaryRoot 'missing-pdmp-service'
-        Assert-True ((Invoke-PdmpVerifier -HarnessRoot $Root -TargetRoot $missingTarget) -ne 0) 'Verifier accepted a missing pdmp-service target'
+        Add-Content -LiteralPath (Join-Path $HarnessRoot 'README.md') -Value 'tcf-harness-world' -Encoding UTF8
     }
-    finally {
-        if (Test-Path -LiteralPath $temporaryRoot) {
-            Remove-Item -LiteralPath $temporaryRoot -Recurse -Force
-        }
+    Assert-FreshVerifierMutation -Name 'missing PDMP QA role' -TargetRoot $targetRoot -Mutate {
+        param([string]$HarnessRoot)
+
+        Remove-Item -LiteralPath (Join-Path $HarnessRoot 'agents/pdmp-qa.md') -Force
     }
+    Assert-FreshVerifierMutation -Name 'missing PDMP security skill' -TargetRoot $targetRoot -Mutate {
+        param([string]$HarnessRoot)
+
+        Remove-Item -LiteralPath (Join-Path $HarnessRoot 'skills/pdmp-security/SKILL.md') -Force
+    }
+
+    $missingTarget = Join-Path ([System.IO.Path]::GetTempPath()) ("missing-pdmp-service-" + [guid]::NewGuid())
+    Assert-True ((Invoke-PdmpVerifier -HarnessRoot $Root -TargetRoot $missingTarget) -ne 0) 'Verifier accepted a missing pdmp-service target'
 }
 
 switch ($Mode) {
