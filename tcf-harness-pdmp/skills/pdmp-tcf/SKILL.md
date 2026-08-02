@@ -14,9 +14,12 @@ Each PDMP controller method accepts `StandardRequestDto`, returns `StandardRespo
     serviceId = "MP.SalesTip8888.list",
     transactionCode = "MP-INQ-8881",
     processingType = ProcessingType.INQUIRY,
-    serviceName = "Sales tip list"
+    serviceName = "Sales tip list",
+    businessCode = "MP"
 )
 ```
+
+`businessCode` is optional and has `default ""`. The current STF implementation fills a blank request-header business code from a nonblank annotation `businessCode`; when both are blank, it derives the first dot-delimited token of `serviceId` (for example, `MP` from `MP.SalesTip8888.list`). A nonblank request-header business code is preserved.
 
 Use the approved `MP.{Domain}.{action}` service ID and transaction code before code is written. Do not create an identifier after implementation to make a test pass.
 

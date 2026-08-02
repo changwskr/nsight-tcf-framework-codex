@@ -128,9 +128,19 @@ function Test-Skills {
         'pdmp-service',
         'mpcoa8888',
         'Controller -> Service -> DAO -> MyBatis',
-        'src/main',
-        'src/test'
+        'pdmp-service/src/main/java/nhnis/mp/co/a/controller/mpcoa8888Controller.java',
+        'pdmp-service/src/main/java/nhnis/mp/co/a/service/mpcoa8888Service.java',
+        'pdmp-service/src/main/java/nhnis/mp/co/a/dao/mpcoa8888Dao.java',
+        'pdmp-service/src/main/resources/rdw.mp.co.a/mpcoa8888-ORA.xml',
+        'pdmp-service/src/main/java/nhnis/mp/config/SecurityConfig.java',
+        'pdmp-service/src/main/java/nhnis/fw/tcf/web/JwtAuthenticationFilter.java',
+        'pdmp-service/src/main/java/nhnis/mp/config/CorsProperties.java',
+        'pdmp-service/src/test/java/nhnis/mp/co/a/controller/mpcoa8888ControllerTest.java',
+        'pdmp-service/src/test/java/nhnis/mp/co/a/service/mpcoa8888ServiceTest.java',
+        'pdmp-service/src/test/java/nhnis/mp/co/a/dao/mpcoa8888DaoIntegrationTest.java'
     )
+    $projectMap = Get-Content -LiteralPath (Join-Path $Root 'skills/pdmp-development/references/pdmp-project-map.md') -Raw -Encoding UTF8
+    Assert-True (-not $projectMap.Contains('...')) 'Project map must use complete paths, not ellipses'
     Assert-FileContains 'skills/pdmp-development/references/handoff-protocol.md' @(
         'analysis-summary.md',
         'verification-report.md',
@@ -160,6 +170,9 @@ function Test-Skills {
         'transactionCode',
         'processingType',
         'serviceName',
+        'businessCode',
+        'default ""',
+        'first dot-delimited token',
         'MP.{Domain}.{action}'
     )
     Assert-FileContains 'skills/pdmp-security/SKILL.md' @(
