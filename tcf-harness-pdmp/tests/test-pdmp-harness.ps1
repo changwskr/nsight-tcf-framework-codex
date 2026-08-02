@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Contracts', 'Skills')]
+    [ValidateSet('Contracts', 'Skills', 'Simulation')]
     [string]$Mode = 'Contracts'
 )
 
@@ -193,9 +193,58 @@ function Test-Skills {
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $Root 'skills/harness/orchestrator-sample'))) 'Legacy orchestrator-sample must be removed'
 }
 
+function Test-Simulation {
+    $simulator = Join-Path $Root 'samples/pdmp-development/scripts/run-simulation.ps1'
+    Assert-True (Test-Path -LiteralPath $simulator -PathType Leaf) "Missing file: samples/pdmp-development/scripts/run-simulation.ps1"
+    if (-not (Test-Path -LiteralPath $simulator -PathType Leaf)) {
+        return
+    }
+
+    $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("pdmp-development-simulation-" + [guid]::NewGuid())
+    $workspace = Join-Path $temporaryRoot 'workspace'
+    $runDirectory = Join-Path $temporaryRoot 'runs'
+    $failureWorkspace = Join-Path $temporaryRoot 'failure-workspace'
+    $failureRunDirectory = Join-Path $temporaryRoot 'failure-runs'
+
+    try {
+        & $simulator -Workspace $workspace -RunDirectory $runDirectory
+        Assert-True ($LASTEXITCODE -eq 0) "Simulator success run exited $LASTEXITCODE"
+        & $simulator -Workspace $workspace -RunDirectory $runDirectory
+        Assert-True ($LASTEXITCODE -eq 0) "Simulator repeat success run exited $LASTEXITCODE"
+
+        foreach ($artifact in @('analysis-summary.md', 'verification-report.md', 'security-review.md', 'qa-report.md')) {
+            $artifactPath = Join-Path $workspace $artifact
+            Assert-True ((Test-Path -LiteralPath $artifactPath -PathType Leaf) -and ((Get-Item -LiteralPath $artifactPath).Length -gt 0)) "Missing or empty artifact: $artifact"
+            if (Test-Path -LiteralPath $artifactPath -PathType Leaf) {
+                $titleCount = ([regex]::Matches((Get-Content -LiteralPath $artifactPath -Raw -Encoding UTF8), '(?m)^# [^#\r\n]+$')).Count
+                Assert-True ($titleCount -eq 1) "Expected exactly one title in $artifact, found $titleCount"
+            }
+        }
+
+        $successLog = Join-Path $runDirectory 'pdmp-development-simulation.log'
+        Assert-True (Test-Path -LiteralPath $successLog -PathType Leaf) 'Missing success simulation log'
+        if (Test-Path -LiteralPath $successLog -PathType Leaf) {
+            Assert-True ((Get-Content -LiteralPath $successLog -Raw -Encoding UTF8).Contains('QA PASS')) 'Success simulation log must contain QA PASS'
+        }
+
+        & $simulator -Workspace $failureWorkspace -RunDirectory $failureRunDirectory -OmitSecurityReview
+        Assert-True ($LASTEXITCODE -eq 1) "Omitted-security simulation exited $LASTEXITCODE instead of 1"
+        $failureLog = Join-Path $failureRunDirectory 'pdmp-development-simulation.log'
+        Assert-True (Test-Path -LiteralPath $failureLog -PathType Leaf) 'Missing omitted-security simulation log'
+        if (Test-Path -LiteralPath $failureLog -PathType Leaf) {
+            Assert-True ((Get-Content -LiteralPath $failureLog -Raw -Encoding UTF8).Contains('QA FAIL')) 'Omitted-security simulation log must contain QA FAIL'
+        }
+    }
+    finally {
+        if (Test-Path -LiteralPath $temporaryRoot) {
+            Remove-Item -LiteralPath $temporaryRoot -Recurse -Force
+        }
+    }
+}
 switch ($Mode) {
     'Contracts' { Test-Contracts }
     'Skills' { Test-Skills }
+    'Simulation' { Test-Simulation }
 }
 
 if ($script:Failures.Count -gt 0) {

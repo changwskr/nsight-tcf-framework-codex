@@ -1,0 +1,8 @@
+/_runs/
+*.log
+/.idea/
+/.vscode/
+target/
+build/
+*.class
+*.jar
