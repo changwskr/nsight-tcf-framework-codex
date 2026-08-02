@@ -1,0 +1,9 @@
+/.claude/
+/.claude-plugin/
+*.log
+/.idea/
+/.vscode/
+target/
+build/
+*.class
+*.jar
