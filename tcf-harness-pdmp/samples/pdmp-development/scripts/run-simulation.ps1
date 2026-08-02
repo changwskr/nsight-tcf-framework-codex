@@ -100,6 +100,10 @@ try {
     Write-Utf8Atomically -Path (Join-Path $Workspace 'verification-report.md') -Content $verification
 
     if ($OmitSecurityReview) {
+        $securityReviewPath = Join-Path $Workspace 'security-review.md'
+        if (Test-Path -LiteralPath $securityReviewPath -PathType Leaf) {
+            Remove-Item -LiteralPath $securityReviewPath -Force
+        }
         Write-Utf8Atomically -Path (Join-Path $Workspace 'qa-report.md') -Content $qaFail
         Write-Utf8Atomically -Path (Join-Path $RunDirectory 'pdmp-development-simulation.log') -Content "QA FAIL`nsecurity-review.md omitted for this simulation run.`n"
         Write-Host 'QA FAIL: security-review.md omitted.'

@@ -203,8 +203,6 @@ function Test-Simulation {
     $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("pdmp-development-simulation-" + [guid]::NewGuid())
     $workspace = Join-Path $temporaryRoot 'workspace'
     $runDirectory = Join-Path $temporaryRoot 'runs'
-    $failureWorkspace = Join-Path $temporaryRoot 'failure-workspace'
-    $failureRunDirectory = Join-Path $temporaryRoot 'failure-runs'
 
     try {
         & $simulator -Workspace $workspace -RunDirectory $runDirectory
@@ -227,9 +225,10 @@ function Test-Simulation {
             Assert-True ((Get-Content -LiteralPath $successLog -Raw -Encoding UTF8).Contains('QA PASS')) 'Success simulation log must contain QA PASS'
         }
 
-        & $simulator -Workspace $failureWorkspace -RunDirectory $failureRunDirectory -OmitSecurityReview
+        & $simulator -Workspace $workspace -RunDirectory $runDirectory -OmitSecurityReview
         Assert-True ($LASTEXITCODE -eq 1) "Omitted-security simulation exited $LASTEXITCODE instead of 1"
-        $failureLog = Join-Path $failureRunDirectory 'pdmp-development-simulation.log'
+        Assert-True (-not (Test-Path -LiteralPath (Join-Path $workspace 'security-review.md') -PathType Leaf)) 'Omitted-security simulation must remove an existing security-review.md'
+        $failureLog = Join-Path $runDirectory 'pdmp-development-simulation.log'
         Assert-True (Test-Path -LiteralPath $failureLog -PathType Leaf) 'Missing omitted-security simulation log'
         if (Test-Path -LiteralPath $failureLog -PathType Leaf) {
             Assert-True ((Get-Content -LiteralPath $failureLog -Raw -Encoding UTF8).Contains('QA FAIL')) 'Omitted-security simulation log must contain QA FAIL'

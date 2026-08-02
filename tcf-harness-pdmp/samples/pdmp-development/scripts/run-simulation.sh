@@ -62,6 +62,7 @@ No H2, Oracle, Gradle test, or WAR command is run because this is an offline har
 EOF
 
 if [ "$omit_security_review" = "--omit-security-review" ]; then
+    rm -f -- "$workspace/security-review.md"
     write_atomically "$workspace/qa-report.md" <<'EOF'
 # PDMP QA Report
 
