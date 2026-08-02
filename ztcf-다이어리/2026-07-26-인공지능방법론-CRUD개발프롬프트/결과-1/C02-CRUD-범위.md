@@ -3,7 +3,7 @@
 | 구분 | 내용 |
 | --- | --- |
 | 단계 | C02 |
-| 세션 | [샘플] LN.CustomerContact 조회 |
+| 세션 | [샘플] AV.CustomerContact 조회 |
 | 상태 | DONE |
 
 ## 확정 답변
@@ -14,7 +14,7 @@
 
 ### ServiceId 목록(쉼표 구분)
 
-- 답: LN.CustomerContact.selectList, LN.CustomerContact.selectDetail
+- 답: AV.CustomerContact.selectList, AV.CustomerContact.selectDetail
 
 ## Gate 체크
 

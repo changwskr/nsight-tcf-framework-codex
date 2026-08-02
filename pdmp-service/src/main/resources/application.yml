@@ -1,0 +1,65 @@
+spring:
+  profiles:
+    active: local
+  application:
+    name: pdmp
+  config:
+    import: classpath:exceptionCode.yml
+  # CORS 자동 설정 비활성화 (수동 설정 우선)
+  mvc:
+    cors:
+      allowed-origins:
+      allowed-methods:
+      allowed-headers:
+
+  # 사내(농협상호금융) 원본 설정 - 폐쇄망 Oracle(SBMFCRT) 접속용.
+  # 아래 H2 datasource / sql.init 블록을 주석 처리하고 이 블록을 되살린다.
+  #
+  # datasource:
+  #   rdw:
+  #     jdbc-url: jdbc:log4jdbc:oracle:thin:@19.24.148.173:1521:SBMFCRT
+  #     driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+  #     username: MFCR
+  #     password: ${PDMP_RDW_PASSWORD:}
+
+  # 로컬 개발 PC용 - H2 인메모리 DB (Oracle 호환 모드)
+  datasource:
+    rdw:
+      jdbc-url: jdbc:log4jdbc:h2:mem:pdmp;MODE=Oracle;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+      username: sa
+      password:
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+      schema-locations: classpath:db/h2/schema.sql
+      data-locations: classpath:db/h2/data.sql
+
+# TCF 프레임워크 설정
+nsight:
+  tcf:
+    slow-transaction-ms: 3000
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+
+jwt:
+  # 조회 전용 단계라 검증을 꺼 둔다. 토큰 발급이 붙으면 true로 올린다.
+  enabled: false
+  secret: "${PDMP_JWT_SECRET:}"
+  access-token-expiration: 180000
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+jwt:
+  enabled: false
+  secret: "${PDMP_JWT_SECRET:}"
+  access-token-expiration: 240000

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.mp.co.a.dao.mpcoa8888Dao">
+
+    <sql id="salesTipColumns">
+               T1.TRT_BRC       AS trtBrc
+             , T1.TRTMN_ENO     AS trtmnEno
+             , T1.SALZ_TIP_KDC  AS salzTipKdc
+             , T1.BAS_DT        AS basDt
+             , T1.PRTO_CN       AS prtoCn
+             , T1.INQ_CN        AS inqCn
+             , T1.INP_CN        AS inpCn
+    </sql>
+
+    <select id="mpcoa8888S0_S0" resultType="nhnis.mp.co.a.dto.mpcoa8888DtoOut"
+            parameterType="nhnis.mp.co.a.dto.mpcoa8888DtoIn">
+        SELECT * FROM (
+          SELECT a.*, ROWNUM rnum
+            FROM (
+               SELECT /*+ INDEX(T1 TB_CR_AH_SALES_TIP_RACT_PK) */ /* mpcoa8888S0_S0 */
+               <include refid="salesTipColumns"/>
+                 FROM TB_CR_AH_SALES_TIP_RACT T1
+                WHERE 1 = 1
+               <if test="salzTipKdc != null and salzTipKdc != ''">
+                  AND T1.SALZ_TIP_KDC = #{salzTipKdc}
+               </if>
+               ORDER BY T1.BAS_DT DESC, T1.TRT_BRC, T1.TRTMN_ENO
+            ) a
+           WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+        )
+        WHERE rnum &gt; #{offset}
+    </select>
+
+    <select id="mpcoa8888S0_S0_count" resultType="int"
+            parameterType="nhnis.mp.co.a.dto.mpcoa8888DtoIn">
+        SELECT COUNT(*)
+          FROM TB_CR_AH_SALES_TIP_RACT T1
+         WHERE 1 = 1
+        <if test="salzTipKdc != null and salzTipKdc != ''">
+           AND T1.SALZ_TIP_KDC = #{salzTipKdc}
+        </if>
+    </select>
+
+    <select id="mpcoa8888S0_S1" resultType="nhnis.mp.co.a.dto.mpcoa8888DtoOut"
+            parameterType="nhnis.mp.co.a.dto.mpcoa8888DtoIn">
+        SELECT /*+ INDEX(T1 TB_CR_AH_SALES_TIP_RACT_PK) */ /* mpcoa8888S0_S1 */
+        <include refid="salesTipColumns"/>
+          FROM TB_CR_AH_SALES_TIP_RACT T1
+         WHERE T1.TRT_BRC      = #{trtBrc}
+           AND T1.TRTMN_ENO    = #{trtmnEno}
+           AND T1.SALZ_TIP_KDC = #{salzTipKdc}
+           AND T1.BAS_DT       = #{basDt}
+    </select>
+
+    <insert id="mpcoa8888I0_I0" parameterType="nhnis.mp.co.a.dto.mpcoa8888DtoIn">
+        INSERT INTO TB_CR_AH_SALES_TIP_RACT
+            (TRT_BRC, TRTMN_ENO, SALZ_TIP_KDC, BAS_DT, PRTO_CN, INQ_CN, INP_CN)
+        VALUES
+            (#{trtBrc}, #{trtmnEno}, #{salzTipKdc}, #{basDt}, #{prtoCn}, #{inqCn}, #{inpCn})
+    </insert>
+
+    <update id="mpcoa8888U0_U0" parameterType="nhnis.mp.co.a.dto.mpcoa8888DtoIn">
+        UPDATE TB_CR_AH_SALES_TIP_RACT
+           SET PRTO_CN = #{prtoCn}
+             , INQ_CN  = #{inqCn}
+             , INP_CN  = #{inpCn}
+         WHERE TRT_BRC      = #{trtBrc}
+           AND TRTMN_ENO    = #{trtmnEno}
+           AND SALZ_TIP_KDC = #{salzTipKdc}
+           AND BAS_DT       = #{basDt}
+    </update>
+
+    <delete id="mpcoa8888D0_D0" parameterType="nhnis.mp.co.a.dto.mpcoa8888DtoIn">
+        DELETE FROM TB_CR_AH_SALES_TIP_RACT
+         WHERE TRT_BRC      = #{trtBrc}
+           AND TRTMN_ENO    = #{trtmnEno}
+           AND SALZ_TIP_KDC = #{salzTipKdc}
+           AND BAS_DT       = #{basDt}
+    </delete>
+
+</mapper>

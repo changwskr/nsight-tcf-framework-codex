@@ -1,0 +1,16 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: pdmp-ui
+
+pdmp:
+  ui:
+    # 전문 테스트 대상. 화면에서 바꿔가며 시험할 수 있고 여기 값은 초기값이다.
+    target-base-url: http://localhost:8080
+    timeout-ms: 10000
+
+logging:
+  level:
+    nhnis.mp.ui: debug

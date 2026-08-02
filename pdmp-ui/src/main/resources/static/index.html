@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDMP UI</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>PDMP UI</h1>
+      <p>pdmp-service 전문 테스트 화면입니다. 프로그램별로 거래를 골라 요청 전문을 보내고 응답을 확인합니다.</p>
+      <div class="nav-links">
+        <span class="nav-link" id="targetInfo">대상 확인 중...</span>
+      </div>
+    </header>
+
+    <section class="hub-grid" id="programGrid">
+      <div class="empty">거래 목록을 불러오는 중...</div>
+    </section>
+  </div>
+
+  <script>
+    function renderProgramCard(programId, items) {
+      const links = items
+        .map(tx => `<a href="/${programId}/index.html">${tx.id} · ${tx.name}</a>`)
+        .join('');
+      return `
+        <article class="hub-card">
+          <h2>${programId} <span class="group-tag">${items.length}건</span></h2>
+          <p>${items[0].description}</p>
+          <div class="links">${links}</div>
+        </article>
+      `;
+    }
+
+    async function init() {
+      const [txRes, configRes] = await Promise.all([
+        fetch('/api/transactions'),
+        fetch('/api/config')
+      ]);
+      const transactions = await txRes.json();
+      const config = await configRes.json();
+
+      document.getElementById('targetInfo').textContent = `대상 pdmp-service: ${config.targetBaseUrl}`;
+
+      const grouped = new Map();
+      transactions.forEach(tx => {
+        if (!grouped.has(tx.programId)) {
+          grouped.set(tx.programId, []);
+        }
+        grouped.get(tx.programId).push(tx);
+      });
+
+      document.getElementById('programGrid').innerHTML =
+        [...grouped].map(([programId, items]) => renderProgramCard(programId, items)).join('');
+    }
+
+    init().catch(error => alert('거래 목록 로드 실패: ' + error.message));
+  </script>
+</body>
+</html>

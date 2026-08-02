@@ -1,0 +1,39 @@
+spring:
+  profiles:
+    active: local
+  application:
+    name: pdmp
+  config:
+    import: classpath:exceptionCode.yml
+  # CORS 자동 설정 비활성화 (수동 설정 우선)
+  mvc:
+    cors:
+      allowed-origins:
+      allowed-methods:
+      allowed-headers:
+  datasource:
+    rdw:
+      jdbc-url: jdbc:log4jdbc:oracle:thin:@19.24.148.173:1521:SBMFCRT
+      driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+      username: MFCR
+      password: ${PDMP_RDW_PASSWORD:}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+
+jwt:
+  secret: "${PDMP_JWT_SECRET:}"
+  access-token-expiration: 180000
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+jwt:
+  secret: "${PDMP_JWT_SECRET:}"
+  access-token-expiration: 240000

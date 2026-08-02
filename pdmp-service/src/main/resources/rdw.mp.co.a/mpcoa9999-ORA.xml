@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.mp.co.a.dao.mpcoa9999Dao">
+
+    <!-- alias는 mpcoa9999DtoOut의 필드명이다. Oracle이 대문자로 접어도 MyBatis 자동 매핑은 대소문자를 구분하지 않는다. -->
+    <sql id="salesTipColumns">
+               T1.TRT_BRC       AS trtBrc
+             , T1.TRTMN_ENO     AS trtmnEno
+             , T1.SALZ_TIP_KDC  AS salzTipKdc
+             , T1.BAS_DT        AS basDt
+             , T1.PRTO_CN       AS prtoCn
+             , T1.INQ_CN        AS inqCn
+             , T1.INP_CN        AS inpCn
+    </sql>
+
+    <select id="mpcoa9999S0_S0" resultType="nhnis.mp.co.a.dto.mpcoa9999DtoOut"
+            parameterType="nhnis.mp.co.a.dto.mpcoa9999DtoIn">
+        SELECT * FROM (
+          SELECT a.*, ROWNUM rnum
+            FROM (
+               SELECT /*+ INDEX(T1 TB_CR_AH_SALES_TIP_RACT_PK) */ /* mpcoa9999S0_S0 */
+               <include refid="salesTipColumns"/>
+                 FROM TB_CR_AH_SALES_TIP_RACT T1
+                WHERE 1 = 1
+               <if test="salzTipKdc != null and salzTipKdc != ''">
+                  AND T1.SALZ_TIP_KDC = #{salzTipKdc}
+               </if>
+               ORDER BY T1.BAS_DT DESC, T1.TRT_BRC, T1.TRTMN_ENO
+            ) a
+           WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+        )
+        WHERE rnum > #{offset}
+    </select>
+
+    <select id="mpcoa9999S0_S0_count" resultType="int"
+            parameterType="nhnis.mp.co.a.dto.mpcoa9999DtoIn">
+        SELECT COUNT(*)
+          FROM TB_CR_AH_SALES_TIP_RACT T1
+         WHERE 1 = 1
+        <if test="salzTipKdc != null and salzTipKdc != ''">
+           AND T1.SALZ_TIP_KDC = #{salzTipKdc}
+        </if>
+    </select>
+
+    <select id="mpcoa9999S0_S1" resultType="nhnis.mp.co.a.dto.mpcoa9999DtoOut"
+            parameterType="nhnis.mp.co.a.dto.mpcoa9999DtoIn">
+        SELECT /*+ INDEX(T1 TB_CR_AH_SALES_TIP_RACT_PK) */ /* mpcoa9999S0_S1 */
+        <include refid="salesTipColumns"/>
+          FROM TB_CR_AH_SALES_TIP_RACT T1
+         WHERE T1.TRT_BRC      = #{trtBrc}
+           AND T1.TRTMN_ENO    = #{trtmnEno}
+           AND T1.SALZ_TIP_KDC = #{salzTipKdc}
+           AND T1.BAS_DT       = #{basDt}
+    </select>
+
+</mapper>

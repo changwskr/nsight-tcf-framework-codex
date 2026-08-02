@@ -94,6 +94,9 @@
       const lnContactLink = code === 'LN'
         ? `<a href="${uiUrl(`/${lower}/contact-list.html`)}">고객연락처 목록</a>`
         : '';
+      const avContactLink = code === 'AV'
+        ? `<a href="${uiUrl(`/${lower}/contact-list.html`)}">고객연락처 목록</a>`
+        : '';
       return `
         <article class="hub-card">
           <h2>${code} <span class="group-tag">${module.group}</span></h2>
@@ -109,6 +112,7 @@
             ${ebSystemTxLink}
             ${svSampleLink}
             ${lnContactLink}
+            ${avContactLink}
           </div>
         </article>
       `;

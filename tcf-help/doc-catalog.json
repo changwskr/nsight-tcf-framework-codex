@@ -2,9 +2,9 @@
   "version": "1.1",
   "title": "NSIGHT TCF 문서 라이브러리",
   "description": "nsight-tcf-framework 저장소 전체 마크다운 카탈로그",
-  "generatedAt": "2026-07-25T12:16:04.516Z",
+  "generatedAt": "2026-07-26T06:46:57.978Z",
   "repoRoot": "nsight-tcf-framework",
-  "total": 1514,
+  "total": 1778,
   "corpora": [
     {
       "id": "help-meta",
@@ -157,7 +157,7 @@
       "order": 12,
       "meta": "meta/module-readme-개요.md",
       "metaDocId": "meta-module-readme",
-      "count": 28
+      "count": 29
     },
     {
       "id": "infra",
@@ -194,7 +194,7 @@
       "order": 99,
       "meta": "meta/root-개요.md",
       "metaDocId": "meta-root",
-      "count": 232
+      "count": 495
     }
   ],
   "featured": [
@@ -387,10 +387,318 @@
       "priority": 155
     },
     {
+      "id": "tcf-ai-crud-meoy--README",
+      "corpus": "module-readme",
+      "source": "tcf-ai-crud-meoy/README.md",
+      "title": "tcf-ai-crud-meoy — NSIGHT CRUD 절차 위저드",
+      "summary": "CRUD 프롬프트(C-MASTER · C00~C18)를 LLM 없이 화면에서 질문→확정→원장 저장으로 진행합니다.",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C-MASTER-대화원칙",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C-MASTER-대화원칙.md",
+      "title": "C-MASTER — CRUD 대화원칙 (모든 단계에 고정)",
+      "summary": "다음: [C00-개발방식-기준소스.md](./C00-개발방식-기준소스.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C00-개발방식-기준소스",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C00-개발방식-기준소스.md",
+      "title": "C00 — 개발방식-기준소스",
+      "summary": "선행: [C-MASTER-대화원칙.md](./C-MASTER-대화원칙.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C01-업무-도메인",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C01-업무-도메인.md",
+      "title": "C01 — 업무-도메인",
+      "summary": "선행: [C00-개발방식-기준소스.md](./C00-개발방식-기준소스.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C02-CRUD-범위",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C02-CRUD-범위.md",
+      "title": "C02 — CRUD-범위",
+      "summary": "선행: [C01-업무-도메인.md](./C01-업무-도메인.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C03-화면-이벤트",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C03-화면-이벤트.md",
+      "title": "C03 — 화면-이벤트",
+      "summary": "선행: [C02-CRUD-범위.md](./C02-CRUD-범위.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C04-데이터-모델",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C04-데이터-모델.md",
+      "title": "C04 — 데이터-모델",
+      "summary": "선행: [C03-화면-이벤트.md](./C03-화면-이벤트.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C05-업무규칙-상태",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C05-업무규칙-상태.md",
+      "title": "C05 — 업무규칙-상태",
+      "summary": "선행: [C04-데이터-모델.md](./C04-데이터-모델.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C06-ServiceId-거래코드",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C06-ServiceId-거래코드.md",
+      "title": "C06 — ServiceId-거래코드",
+      "summary": "선행: [C05-업무규칙-상태.md](./C05-업무규칙-상태.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C07-요청-응답-DTO",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C07-요청-응답-DTO.md",
+      "title": "C07 — 요청-응답-DTO",
+      "summary": "선행: [C06-ServiceId-거래코드.md](./C06-ServiceId-거래코드.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C08-패키지-프로그램구조",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C08-패키지-프로그램구조.md",
+      "title": "C08 — 패키지-프로그램구조",
+      "summary": "선행: [C07-요청-응답-DTO.md](./C07-요청-응답-DTO.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C09-SQL-Mapper",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C09-SQL-Mapper.md",
+      "title": "C09 — SQL-Mapper",
+      "summary": "선행: [C08-패키지-프로그램구조.md](./C08-패키지-프로그램구조.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C10-트랜잭션-오류-Timeout",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C10-트랜잭션-오류-Timeout.md",
+      "title": "C10 — 트랜잭션-오류-Timeout",
+      "summary": "선행: [C09-SQL-Mapper.md](./C09-SQL-Mapper.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C11-보안-개인정보-감사",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C11-보안-개인정보-감사.md",
+      "title": "C11 — 보안-개인정보-감사",
+      "summary": "선행: [C10-트랜잭션-오류-Timeout.md](./C10-트랜잭션-오류-Timeout.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C12-테스트-시나리오",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C12-테스트-시나리오.md",
+      "title": "C12 — 테스트-시나리오",
+      "summary": "선행: [C11-보안-개인정보-감사.md](./C11-보안-개인정보-감사.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C13-OM-운영기준",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C13-OM-운영기준.md",
+      "title": "C13 — OM-운영기준",
+      "summary": "선행: [C12-테스트-시나리오.md](./C12-테스트-시나리오.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C14-설계-Gate",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C14-설계-Gate.md",
+      "title": "C14 — 설계-Gate",
+      "summary": "선행: [C13-OM-운영기준.md](./C13-OM-운영기준.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C15-소스-설정-문서생성",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C15-소스-설정-문서생성.md",
+      "title": "C15 — 소스-설정-문서생성",
+      "summary": "선행: [C14-설계-Gate.md](./C14-설계-Gate.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C16-빌드-기동-거래검증",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C16-빌드-기동-거래검증.md",
+      "title": "C16 — 빌드-기동-거래검증",
+      "summary": "선행: [C15-소스-설정-문서생성.md](./C15-소스-설정-문서생성.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C17-추적성-변경영향",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C17-추적성-변경영향.md",
+      "title": "C17 — 추적성-변경영향",
+      "summary": "선행: [C16-빌드-기동-거래검증.md](./C16-빌드-기동-거래검증.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--C18-최종-완료보고",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/C18-최종-완료보고.md",
+      "title": "C18 — 최종-완료보고",
+      "summary": "선행: [C17-추적성-변경영향.md](./C17-추적성-변경영향.md)",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-ai-crud-meoy--src--main--resources--prompts--README",
+      "corpus": "root",
+      "source": "tcf-ai-crud-meoy/src/main/resources/prompts/README.md",
+      "title": "Prompt sync note",
+      "summary": "Runtime SoT: this directory (`classpath:prompts/`).",
+      "module": "tcf-ai-crud-meoy",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
       "id": "tcf-ai-methodology--README",
       "corpus": "module-readme",
       "source": "tcf-ai-methodology/README.md",
-      "title": "tcf-ai-methodology — NSIGHT Model Studio",
+      "title": "README",
       "summary": "Python MVP(`ref/nsight_model_studio`)를 Spring Boot 3.3 / JDK 21 모듈로 이식한",
       "module": "tcf-ai-methodology",
       "audience": [
@@ -656,7 +964,7 @@
       "id": "tcf-docker--README",
       "corpus": "module-readme",
       "source": "tcf-docker/README.md",
-      "title": "tcf-docker",
+      "title": "README",
       "summary": "NSIGHT TCF Framework Docker 자산 루트.",
       "module": "tcf-docker",
       "audience": [
@@ -1359,8 +1667,8 @@
       "id": "tcf-prompting--2026-07-26-av-service-개발지시-프롬프트",
       "corpus": "root",
       "source": "tcf-prompting/2026-07-26-av-service-개발지시-프롬프트.md",
-      "title": "2026 07 26 av service 개발지시 프롬프트",
-      "summary": "> 4번 메타프롬프팅 산출물 (2026-07-26)",
+      "title": "AV(av-service) 신규 업무 모듈 개발 지시 프롬프트",
+      "summary": "너는 세계 최고의 프롬프트 엔지니어이자",
       "module": "tcf-prompting",
       "audience": [
         "developer"
@@ -1389,6 +1697,202 @@
       "source": "tcf-prompting/2026-07-26-nsight-tcf-prompts.md",
       "title": "NSIGHT-TCF-FRAMEWORK 맞춤 프롬프팅 메시지 모음",
       "summary": "> 원본 기법: [2026-07-26-exam.md](2026-07-26-exam.md)",
+      "module": "tcf-prompting",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-prompting--2026-07-26-업무도메인-개발지시-프롬프트",
+      "corpus": "root",
+      "source": "tcf-prompting/2026-07-26-업무도메인-개발지시-프롬프트.md",
+      "title": "NSIGHT-TCF-FRAMEWORK 신규 업무 모듈 개발 지시 프롬프트",
+      "summary": "현재 저장소 기준으로 업무 WAR는 `eb-service`와 같은 6계층 구조를 사용하고, ServiceId는 `{업무코드}.{업무명}.{처리유형}` 형식을 따릅니다. 업무 메인 클래스는 `NsightWarBootstrap`을 상속하며, Handler는 도메인 단위로 여러 ServiceId를 `serviceIds()`에 등록하는 방식입니다. ([GitHub",
+      "module": "tcf-prompting",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-prompting--업무도메인-개발방법론-샘플-프롬프트--0-설계서-작성-프롬프트",
+      "corpus": "root",
+      "source": "tcf-prompting/업무도메인-개발방법론-샘플-프롬프트/0-설계서-작성-프롬프트.md",
+      "title": "0단계 — 설계서 작성 프롬프트 (새 업무용)",
+      "summary": "> 원본: `2026-07-26-nsight-tcf-prompts.md` 6번(템플릿 추출)의 후속 단계.",
+      "module": "tcf-prompting",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-prompting--업무도메인-개발방법론-샘플-프롬프트--1-Phase-실행-프롬프트-LN",
+      "corpus": "root",
+      "source": "tcf-prompting/업무도메인-개발방법론-샘플-프롬프트/1-Phase-실행-프롬프트-LN.md",
+      "title": "1단계 — Phase 실행 프롬프트 (LN 완성본)",
+      "summary": "> 원본: `2026-07-26-nsight-tcf-prompts.md` 7번 (방법론 절차 실행, Phase 0~6)",
+      "module": "tcf-prompting",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-prompting--업무도메인-개발방법론-샘플-프롬프트--2-역공학-문서화-프롬프트-AV",
+      "corpus": "root",
+      "source": "tcf-prompting/업무도메인-개발방법론-샘플-프롬프트/2-역공학-문서화-프롬프트-AV.md",
+      "title": "2단계 — 역공학 문서화 프롬프트 (AV 완성본)",
+      "summary": "> 원본: `2026-07-26-nsight-tcf-prompts.md` 8번 (역공학 — 코드 → 설계서).",
+      "module": "tcf-prompting",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-prompting--업무도메인-개발방법론-샘플-프롬프트--LN-UI-레이아웃-설계서-예시",
+      "corpus": "root",
+      "source": "tcf-prompting/업무도메인-개발방법론-샘플-프롬프트/LN-UI-레이아웃-설계서-예시.md",
+      "title": "LN(여신) UI 레이아웃 설계서 — 방법론 예시",
+      "summary": "> 대상 모듈: `ln-service` (업무코드 LN) · UI 소스: `tcf-ui/src/main/resources/static/ln/`",
+      "module": "tcf-prompting",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-prompting--업무도메인-개발방법론-샘플-프롬프트--LN-프로그램-설계서-예시",
+      "corpus": "root",
+      "source": "tcf-prompting/업무도메인-개발방법론-샘플-프롬프트/LN-프로그램-설계서-예시.md",
+      "title": "LN(여신) 프로그램 설계서 — 방법론 예시",
+      "summary": "> 대상 모듈: `ln-service` (업무코드 LN) · 기준 소스: `com.nh.nsight.marketing.ln`",
+      "module": "tcf-prompting",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-prompting--업무도메인-개발방법론-샘플-프롬프트--README",
+      "corpus": "root",
+      "source": "tcf-prompting/업무도메인-개발방법론-샘플-프롬프트/README.md",
+      "title": "업무도메인 개발방법론 샘플 프롬프트 모음",
+      "summary": "`2026-07-26-nsight-tcf-prompts.md`의 7번 프롬프트(방법론 절차 실행 — Phase 0~6)를",
+      "module": "tcf-prompting",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-prompting--업무도메인-샘플-프롬프트--README",
+      "corpus": "root",
+      "source": "tcf-prompting/업무도메인-샘플-프롬프트/README.md",
+      "title": "업무도메인 개발지시 샘플 프롬프트 모음",
+      "summary": "`2026-07-26-업무도메인-개발지시-프롬프트.md`(마스터 지시서)를 기반으로,",
+      "module": "tcf-prompting",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-prompting--업무도메인-샘플-프롬프트--_TEMPLATE-업무도메인-개발지시",
+      "corpus": "root",
+      "source": "tcf-prompting/업무도메인-샘플-프롬프트/_TEMPLATE-업무도메인-개발지시.md",
+      "title": "업무도메인 개발지시 템플릿",
+      "summary": "`{{ }}` 자리를 채운 뒤 코드 블록 전문을 채팅에 붙여넣으세요.",
+      "module": "tcf-prompting",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-prompting--업무도메인-샘플-프롬프트--샘플1-LN-신규모듈-단건조회",
+      "corpus": "root",
+      "source": "tcf-prompting/업무도메인-샘플-프롬프트/샘플1-LN-신규모듈-단건조회.md",
+      "title": "샘플1 — LN(여신) 신규 모듈 + 단건 조회",
+      "summary": "> 시나리오: 업무 모듈이 아직 없는 새 업무코드(LN)로 모듈을 생성하고",
+      "module": "tcf-prompting",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-prompting--업무도메인-샘플-프롬프트--샘플2-AV-도메인추가-목록조회",
+      "corpus": "root",
+      "source": "tcf-prompting/업무도메인-샘플-프롬프트/샘플2-AV-도메인추가-목록조회.md",
+      "title": "샘플2 — AV 기존 모듈에 도메인 추가 + 페이징 목록 조회",
+      "summary": "> 시나리오: 이미 구현·등록된 av-service(포트 8101, Sample 도메인 운영 중)에",
+      "module": "tcf-prompting",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-prompting--업무도메인-샘플-프롬프트--샘플3-DP-등록거래-CREATE",
+      "corpus": "root",
+      "source": "tcf-prompting/업무도메인-샘플-프롬프트/샘플3-DP-등록거래-CREATE.md",
+      "title": "샘플3 — DP(수신) 신규 모듈 + 등록(CREATE) 거래",
+      "summary": "> 시나리오: 새 업무코드(DP)로 모듈을 생성하고 등록 거래 1건 + 확인용 조회",
+      "module": "tcf-prompting",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-prompting--업무도메인-샘플-프롬프트--샘플4-CD-수정삭제-UPDATE-DELETE",
+      "corpus": "root",
+      "source": "tcf-prompting/업무도메인-샘플-프롬프트/샘플4-CD-수정삭제-UPDATE-DELETE.md",
+      "title": "샘플4 — CD(카드) 신규 모듈 + 수정(UPDATE)·삭제(DELETE) 거래",
+      "summary": "> 시나리오: 새 업무코드(CD)로 모듈을 생성하고 한 도메인 Handler에",
+      "module": "tcf-prompting",
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "tcf-prompting--업무도메인-샘플-프롬프트--샘플5-FX-외부연동조회-CLIENT",
+      "corpus": "root",
+      "source": "tcf-prompting/업무도메인-샘플-프롬프트/샘플5-FX-외부연동조회-CLIENT.md",
+      "title": "샘플5 — FX(외환) 신규 모듈 + client 계층 외부 연동 조회",
+      "summary": "> 시나리오: 새 업무코드(FX)로 모듈을 생성하고, 외부 환율 API를",
       "module": "tcf-prompting",
       "audience": [
         "developer"
@@ -2541,7 +3045,7 @@
       "id": "zdocs-1--manual--README",
       "corpus": "root",
       "source": "zdocs-1/manual/README.md",
-      "title": "NSIGHT TCF — 운영·개발 매뉴얼",
+      "title": "업무 + OM + UI",
       "summary": "---",
       "module": null,
       "audience": [
@@ -8713,6 +9217,3198 @@
       "source": "ztcf-다이어리/2026-07-26 어플리케이션 도메인 정의/어플리케이션도엠인코드.md",
       "title": "어플리케이션도엠인코드",
       "summary": "아닙니다. 관계는 반대입니다.",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--P0-공통-마스터-프롬프트",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/P0-공통-마스터-프롬프트.md",
+      "title": "P0 — NSIGHT 공통 마스터 프롬프트",
+      "summary": "모든 작업의 맨 앞에 붙인다.",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--P1-아키텍처-Gap분석",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/P1-아키텍처-Gap분석.md",
+      "title": "P1 — 아키텍처 현황·Gap 분석 프롬프트",
+      "summary": "사용: `P0` + `P1` + 분석 대상 입력",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--P10-테스트-Quality-Gate",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/P10-테스트-Quality-Gate.md",
+      "title": "P10 — 테스트·Quality Gate 프롬프트",
+      "summary": "사용: `P0` + `P10` + 모듈/ServiceId/Release 요구",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--P11-CICD-배포-Rollback",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/P11-CICD-배포-Rollback.md",
+      "title": "P11 — CI/CD·배포·Rollback 프롬프트",
+      "summary": "사용: `P0` + `P11` + 모듈·환경·배포도구 입력",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--P12-아키텍처-설계서-전문서",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/P12-아키텍처-설계서-전문서.md",
+      "title": "P12 — 아키텍처 설계서·전문서 작성 프롬프트",
+      "summary": "사용: `P0` + `P12` + 주제·독자·기준자료",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--P13-Model-Studio-개발자동화",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/P13-Model-Studio-개발자동화.md",
+      "title": "P13 — Model Studio·개발 자동화 프롬프트",
+      "summary": "사용: `P0` + `P13` + 자동화 범위·승인 경계",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--P14-변경영향-리팩터링",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/P14-변경영향-리팩터링.md",
+      "title": "P14 — 변경 영향·리팩터링 프롬프트",
+      "summary": "사용: `P0` + `P14` + 변경 대상·호환성·중단 가능시간",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--P15-맞춤형-프롬프트-생성기",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/P15-맞춤형-프롬프트-생성기.md",
+      "title": "P15 — NSIGHT 맞춤형 프롬프트 생성기",
+      "summary": "새로운 작업이 생겼을 때 사용하면, 해당 작업에 최적화된 실행 프롬프트를 다시 만들 수 있다.",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--P2-신규-업무-모듈-개발",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/P2-신규-업무-모듈-개발.md",
+      "title": "P2 — 신규 업무 모듈 개발 프롬프트",
+      "summary": "사용: `P0` + `P2` + 업무코드·도메인·테이블·화면정보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--P3-화면-테이블-CRUD",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/P3-화면-테이블-CRUD.md",
+      "title": "P3 — 화면·테이블 기반 CRUD 개발 프롬프트",
+      "summary": "사용: `P0` + `P3` + 화면 이벤트·입출력·테이블 정의",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--P4-기존-소스-분석-역추적",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/P4-기존-소스-분석-역추적.md",
+      "title": "P4 — 기존 소스 분석·역추적 프롬프트",
+      "summary": "사용: `P0` + `P4` + 출발점(화면/ServiceId/Handler/Mapper/SQL/로그)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--P5-표준-산출물-추적성",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/P5-표준-산출물-추적성.md",
+      "title": "P5 — 표준 산출물·추적성 프롬프트",
+      "summary": "사용: `P0` + `P5` + 업무/거래 식별자 목록",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--P6-DB-Mapper-SQL",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/P6-DB-Mapper-SQL.md",
+      "title": "P6 — DB·Mapper·SQL 설계 및 검토 프롬프트",
+      "summary": "사용: `P0` + `P6` + ServiceId·테이블·성능 조건",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--P7-JWT-SSO-권한-감사",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/P7-JWT-SSO-권한-감사.md",
+      "title": "P7 — JWT·SSO·권한·감사 설계 프롬프트",
+      "summary": "사용: `P0` + `P7` + 채널·IdP·Gateway·권한 모델",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--P8-용량-성능-배포구조",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/P8-용량-성능-배포구조.md",
+      "title": "P8 — 용량·성능·배포구조 프롬프트",
+      "summary": "사용: `P0` + `P8` + TPS·VM·Pool 입력",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--P9-런타임-운영-장애분석",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/P9-런타임-운영-장애분석.md",
+      "title": "P9 — 런타임 운영·장애 원인 분석 프롬프트",
+      "summary": "사용: `P0` + `P9` + 장애 증상·로그·메트릭",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--README",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/README.md",
+      "title": "NSIGHT-TCF-FRAMEWORK 영역별 표준 프롬프트 라이브러리",
+      "summary": "원본: [`어쩧게 학습할것인가.md`](./어쩧게%20학습할것인가.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--가이드-입력정보-최소세트",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/가이드-입력정보-최소세트.md",
+      "title": "프롬프트 입력정보 최소 세트",
+      "summary": "대상 시스템",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--가이드-좋은-잘못된-예시",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/가이드-좋은-잘못된-예시.md",
+      "title": "좋은 프롬프트와 잘못된 프롬프트",
+      "summary": "NSIGHT 방식으로 고객 조회 프로그램을 만들어줘.",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--가이드-핵심-아키텍처-판단",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/가이드-핵심-아키텍처-판단.md",
+      "title": "핵심 아키텍처 판단",
+      "summary": "NSIGHT-TCF에서 가장 효과적인 프롬프트는 다음 다섯 가지를 반드시 포함한다.",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--어쩧게-학습할것인가",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/어쩧게 학습할것인가.md",
+      "title": "NSIGHT-TCF-FRAMEWORK 영역별 표준 프롬프트 라이브러리",
+      "summary": "> 파일 분리 안내 (2026-07-26)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--학습경로--L00-학습원칙",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/학습경로/L00-학습원칙.md",
+      "title": "L00 — 학습 원칙 (어떻게 볼 것인가)",
+      "summary": "선행: 없음",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--학습경로--L01-전체지도",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/학습경로/L01-전체지도.md",
+      "title": "L01 — 전체 지도 (무엇이 있는가)",
+      "summary": "선행: [L00](./L00-학습원칙.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--학습경로--L02-한건의-거래흐름",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/학습경로/L02-한건의-거래흐름.md",
+      "title": "L02 — 한 건의 거래 흐름 (어떻게 흐르는가)",
+      "summary": "선행: [L01](./L01-전체지도.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--학습경로--L03-업무모듈-6계층",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/학습경로/L03-업무모듈-6계층.md",
+      "title": "L03 — 업무 모듈 6계층 (어디에 무엇을 쓰는가)",
+      "summary": "선행: [L02](./L02-한건의-거래흐름.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--학습경로--L04-ServiceId-와-OM",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/학습경로/L04-ServiceId-와-OM.md",
+      "title": "L04 — ServiceId와 OM (거래를 무엇으로 식별하는가)",
+      "summary": "선행: [L03](./L03-업무모듈-6계층.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--학습경로--L05-DB-Mapper-SQL",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/학습경로/L05-DB-Mapper-SQL.md",
+      "title": "L05 — DB·Mapper·SQL (무엇이 저장·조회되는가)",
+      "summary": "선행: [L04](./L04-ServiceId-와-OM.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--학습경로--L06-화면-추적성",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/학습경로/L06-화면-추적성.md",
+      "title": "L06 — 화면·추적성 (끝에서 끝까지 이어지는가)",
+      "summary": "선행: [L05](./L05-DB-Mapper-SQL.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--학습경로--L07-우리가-만든-AV로-검증",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/학습경로/L07-우리가-만든-AV로-검증.md",
+      "title": "L07 — 우리가 만든 AV로 검증 (지식을 교차검증)",
+      "summary": "선행: [L06](./L06-화면-추적성.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--학습경로--L08-인증-보안",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/학습경로/L08-인증-보안.md",
+      "title": "L08 — 인증·보안 (누가 무엇을 검증하는가)",
+      "summary": "선행: [L07](./L07-우리가-만든-AV로-검증.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--학습경로--L09-용량-장애",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/학습경로/L09-용량-장애.md",
+      "title": "L09 — 용량·장애 (왜 느리고 어디서 멈추는가)",
+      "summary": "선행: [L08](./L08-인증-보안.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--학습경로--L10-테스트-배포-완료증적",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/학습경로/L10-테스트-배포-완료증적.md",
+      "title": "L10 — 테스트·배포·완료 증적 (언제 끝났다고 말하는가)",
+      "summary": "선행: [L09](./L09-용량-장애.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--학습경로--L11-지식을-다시쓰기",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/학습경로/L11-지식을-다시쓰기.md",
+      "title": "L11 — 지식을 다시 쓰기 (이해한 것을 재생산)",
+      "summary": "선행: [L10](./L10-테스트-배포-완료증적.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-prompt--학습경로--README",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-prompt/학습경로/README.md",
+      "title": "TCF-FRAMEWORK 지식 흡수 학습 경로",
+      "summary": "목적: `P0`~`P15` 작업 프롬프트를 실행 순서가 아니라,",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-사내LLM-고찰--DavisCoder-LLM-활용",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-사내LLM-고찰/DavisCoder-LLM-활용.md",
+      "title": "1. 도입 전 안내말",
+      "summary": "결론부터 말하면, DAVIS CODER가 사내 인터넷이 없는 상태에서 처음부터 학습한 것은 아닐 가능성이 매우 높습니다.",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--2026-07-26-인공지능방법론-CRUD개발프롬프트",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/2026-07-26-인공지능방법론-CRUD개발프롬프트.md",
+      "title": "NSIGHT-TCF-FRAMEWORK CRUD 개발 대화형 마스터 프롬프트",
+      "summary": "> 파일 분리 안내 (실행용)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C-MASTER-대화원칙",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C-MASTER-대화원칙.md",
+      "title": "C-MASTER — CRUD 대화원칙 (모든 단계에 고정)",
+      "summary": "다음: [C00-개발방식-기준소스.md](./C00-개발방식-기준소스.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C00-개발방식-기준소스",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C00-개발방식-기준소스.md",
+      "title": "C00 — 개발방식-기준소스",
+      "summary": "선행: [C-MASTER-대화원칙.md](./C-MASTER-대화원칙.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C01-업무-도메인",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C01-업무-도메인.md",
+      "title": "C01 — 업무-도메인",
+      "summary": "선행: [C00-개발방식-기준소스.md](./C00-개발방식-기준소스.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C02-CRUD-범위",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C02-CRUD-범위.md",
+      "title": "C02 — CRUD-범위",
+      "summary": "선행: [C01-업무-도메인.md](./C01-업무-도메인.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C03-화면-이벤트",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C03-화면-이벤트.md",
+      "title": "C03 — 화면-이벤트",
+      "summary": "선행: [C02-CRUD-범위.md](./C02-CRUD-범위.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C04-데이터-모델",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C04-데이터-모델.md",
+      "title": "C04 — 데이터-모델",
+      "summary": "선행: [C03-화면-이벤트.md](./C03-화면-이벤트.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C05-업무규칙-상태",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C05-업무규칙-상태.md",
+      "title": "C05 — 업무규칙-상태",
+      "summary": "선행: [C04-데이터-모델.md](./C04-데이터-모델.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C06-ServiceId-거래코드",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C06-ServiceId-거래코드.md",
+      "title": "C06 — ServiceId-거래코드",
+      "summary": "선행: [C05-업무규칙-상태.md](./C05-업무규칙-상태.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C07-요청-응답-DTO",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C07-요청-응답-DTO.md",
+      "title": "C07 — 요청-응답-DTO",
+      "summary": "선행: [C06-ServiceId-거래코드.md](./C06-ServiceId-거래코드.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C08-패키지-프로그램구조",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C08-패키지-프로그램구조.md",
+      "title": "C08 — 패키지-프로그램구조",
+      "summary": "선행: [C07-요청-응답-DTO.md](./C07-요청-응답-DTO.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C09-SQL-Mapper",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C09-SQL-Mapper.md",
+      "title": "C09 — SQL-Mapper",
+      "summary": "선행: [C08-패키지-프로그램구조.md](./C08-패키지-프로그램구조.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C10-트랜잭션-오류-Timeout",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C10-트랜잭션-오류-Timeout.md",
+      "title": "C10 — 트랜잭션-오류-Timeout",
+      "summary": "선행: [C09-SQL-Mapper.md](./C09-SQL-Mapper.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C11-보안-개인정보-감사",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C11-보안-개인정보-감사.md",
+      "title": "C11 — 보안-개인정보-감사",
+      "summary": "선행: [C10-트랜잭션-오류-Timeout.md](./C10-트랜잭션-오류-Timeout.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C12-테스트-시나리오",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C12-테스트-시나리오.md",
+      "title": "C12 — 테스트-시나리오",
+      "summary": "선행: [C11-보안-개인정보-감사.md](./C11-보안-개인정보-감사.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C13-OM-운영기준",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C13-OM-운영기준.md",
+      "title": "C13 — OM-운영기준",
+      "summary": "선행: [C12-테스트-시나리오.md](./C12-테스트-시나리오.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C14-설계-Gate",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C14-설계-Gate.md",
+      "title": "C14 — 설계-Gate",
+      "summary": "선행: [C13-OM-운영기준.md](./C13-OM-운영기준.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C15-소스-설정-문서생성",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C15-소스-설정-문서생성.md",
+      "title": "C15 — 소스-설정-문서생성",
+      "summary": "선행: [C14-설계-Gate.md](./C14-설계-Gate.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C16-빌드-기동-거래검증",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C16-빌드-기동-거래검증.md",
+      "title": "C16 — 빌드-기동-거래검증",
+      "summary": "선행: [C15-소스-설정-문서생성.md](./C15-소스-설정-문서생성.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C17-추적성-변경영향",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C17-추적성-변경영향.md",
+      "title": "C17 — 추적성-변경영향",
+      "summary": "선행: [C16-빌드-기동-거래검증.md](./C16-빌드-기동-거래검증.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--C18-최종-완료보고",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/C18-최종-완료보고.md",
+      "title": "C18 — 최종-완료보고",
+      "summary": "선행: [C17-추적성-변경영향.md](./C17-추적성-변경영향.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--README",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/README.md",
+      "title": "NSIGHT-TCF CRUD 개발 — 단계별 프롬프트",
+      "summary": "원본: [`2026-07-26-인공지능방법론-CRUD개발프롬프트.md`](./2026-07-26-인공지능방법론-CRUD개발프롬프트.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--book--LLM-CRUD-Developer-Guide-목차",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/book/LLM-CRUD-Developer-Guide-목차.md",
+      "title": "LLM CRUD Developer Guide 목차",
+      "summary": "",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C-MASTER",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C-MASTER.md",
+      "title": "C-MASTER — 대화원칙 (확정)",
+      "summary": "- 답: 1 — 예 — 적용",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C00-개발방식-기준소스",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C00-개발방식-기준소스.md",
+      "title": "C00 — 개발방식·기준소스 (확정)",
+      "summary": "- 답: 2 — 신규 업무 모듈 생성",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C01-업무-도메인",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C01-업무-도메인.md",
+      "title": "C01 — 업무·도메인 (확정)",
+      "summary": "- 답: LN",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C02-CRUD-범위",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C02-CRUD-범위.md",
+      "title": "C02 — CRUD 범위 (확정)",
+      "summary": "- 답: 2 — 조회만 (선도 권장)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C03-화면-이벤트",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C03-화면-이벤트.md",
+      "title": "C03 — 화면·이벤트 (확정)",
+      "summary": "- 답: /ln/contact-list.html",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C04-데이터-모델",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C04-데이터-모델.md",
+      "title": "C04 — 데이터 모델 (확정)",
+      "summary": "- 답: 2 — 신규 테이블 생성",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C05-업무규칙-상태",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C05-업무규칙-상태.md",
+      "title": "C05 — 업무규칙·상태 (확정)",
+      "summary": "- 답: 없음(조회만)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C06-ServiceId-거래코드",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C06-ServiceId-거래코드.md",
+      "title": "C06 — ServiceId·거래코드 (확정)",
+      "summary": "- 답: LN.CustomerContact.selectList, LN.CustomerContact.selectDetail",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C07-요청-응답-DTO",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C07-요청-응답-DTO.md",
+      "title": "C07 — 요청·응답 DTO (확정)",
+      "summary": "- 답: selectList(req:keyword)→list / selectDetail(req:contactId)→detail",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C08-패키지-프로그램구조",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C08-패키지-프로그램구조.md",
+      "title": "C08 — 패키지·프로그램구조 (확정)",
+      "summary": "- 답: 1 — 예 — entry/handler·facade, application/service·rule, persistence/dao·mapper",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C09-SQL-Mapper",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C09-SQL-Mapper.md",
+      "title": "C09 — SQL·Mapper (확정)",
+      "summary": "- 답: selectList, selectDetail",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C10-트랜잭션-오류-Timeout",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C10-트랜잭션-오류-Timeout.md",
+      "title": "C10 — 트랜잭션·오류·Timeout (확정)",
+      "summary": "- 답: 1 — 예 — Facade 단일 로컬 트랜잭션",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C11-보안-개인정보-감사",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C11-보안-개인정보-감사.md",
+      "title": "C11 — 보안·개인정보·감사 (확정)",
+      "summary": "- 답: 1 — 예",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C12-테스트-시나리오",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C12-테스트-시나리오.md",
+      "title": "C12 — 테스트 시나리오 (확정)",
+      "summary": "- 답: 1 — 컴파일·단위·구조/명명 (권장)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C13-OM-운영기준",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C13-OM-운영기준.md",
+      "title": "C13 — OM·운영기준 (확정)",
+      "summary": "- 답: 3 — 1차 생략 — Gap으로 남김",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C14-설계-Gate",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C14-설계-Gate.md",
+      "title": "C14 — 설계 Gate (확정)",
+      "summary": "- 답: CONDITIONAL — 조건부 통과",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C15-소스-설정-문서생성",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C15-소스-설정-문서생성.md",
+      "title": "C15 — 소스·설정·문서생성 (확정)",
+      "summary": "- 답: 2 — 이미 구현됨 — 경로만 기록",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--C18-최종-완료보고",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/C18-최종-완료보고.md",
+      "title": "C18 — 최종 완료보고 (확정)",
+      "summary": "- 답: 2 — 조건부 완료",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--README",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/README.md",
+      "title": "CRUD Meoy Export",
+      "summary": "session=5e36b9080da249d68a55c89288a38745",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과-1--_확정정보원장",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과-1/_확정정보원장.md",
+      "title": "확정정보 원장",
+      "summary": "",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--00-CRUD-완료보고",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/00-CRUD-완료보고.md",
+      "title": "NSIGHT-TCF CRUD 완료보고 — LN CustomerContact",
+      "summary": "> 본문은 `C18-최종-완료보고.md` 와 동일. C00~C17 대화 결과 통합.",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C00-개발방식-기준소스",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C00-개발방식-기준소스.md",
+      "title": "C00 — 개발방식·기준소스 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C01-업무-도메인",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C01-업무-도메인.md",
+      "title": "C01 — 업무·도메인 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C02-CRUD-범위",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C02-CRUD-범위.md",
+      "title": "C02 — CRUD 범위 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C03-화면-이벤트",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C03-화면-이벤트.md",
+      "title": "C03 — 화면·이벤트 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C04-데이터-모델",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C04-데이터-모델.md",
+      "title": "C04 — 데이터 모델 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C05-업무규칙-상태",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C05-업무규칙-상태.md",
+      "title": "C05 — 업무규칙·상태 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C06-ServiceId-거래코드",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C06-ServiceId-거래코드.md",
+      "title": "C06 — ServiceId·거래코드 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C07-요청-응답-DTO",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C07-요청-응답-DTO.md",
+      "title": "C07 — 요청·응답 DTO (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C08-패키지-프로그램구조",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C08-패키지-프로그램구조.md",
+      "title": "C08 — 패키지·프로그램 구조 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C09-SQL-Mapper",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C09-SQL-Mapper.md",
+      "title": "C09 — SQL·Mapper (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C10-트랜잭션-오류-Timeout",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C10-트랜잭션-오류-Timeout.md",
+      "title": "C10 — 트랜잭션·오류·Timeout (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C11-보안-개인정보-감사",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C11-보안-개인정보-감사.md",
+      "title": "C11 — 보안·개인정보·감사 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C12-테스트-시나리오",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C12-테스트-시나리오.md",
+      "title": "C12 — 테스트 시나리오 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C13-OM-운영기준",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C13-OM-운영기준.md",
+      "title": "C13 — OM·운영기준 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C14-설계-Gate",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C14-설계-Gate.md",
+      "title": "C14 — 설계 Gate (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C15-소스-설정-문서생성",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C15-소스-설정-문서생성.md",
+      "title": "C15 — 소스·설정·문서 생성 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C16-빌드-기동-거래검증",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C16-빌드-기동-거래검증.md",
+      "title": "C16 — 빌드·기동·거래검증 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C17-추적성-변경영향",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C17-추적성-변경영향.md",
+      "title": "C17 — 추적성·변경영향 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--C18-최종-완료보고",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/C18-최종-완료보고.md",
+      "title": "C18 — 최종 완료보고 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--README",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/README.md",
+      "title": "CRUD 개발 결과물",
+      "summary": "단계 프롬프트(`../C00`~`../C18`) 실행 후 여기에 확정 마크다운을 저장한다.",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-CRUD개발프롬프트--결과--_확정정보원장",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-CRUD개발프롬프트/결과/_확정정보원장.md",
+      "title": "CRUD 확정정보 원장 (C00~C18 완료)",
+      "summary": "",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--2026-07-26-인공지능방법론-구상-프롬프트",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/2026-07-26-인공지능방법론-구상-프롬프트.md",
+      "title": "NSIGHT-TCF-FRAMEWORK 기반",
+      "summary": "> 파일 분리 안내 (실행용)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M0-방법론-수립범위",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M0-방법론-수립범위.md",
+      "title": "M0 — 방법론 수립 범위",
+      "summary": "선행: [M00-대화원칙-마스터.md](./M00-대화원칙-마스터.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M00-대화원칙-마스터",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M00-대화원칙-마스터.md",
+      "title": "M00 — 대화원칙 마스터 (모든 단계에 고정)",
+      "summary": "선행: 없음",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M1-프로젝트-목표",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M1-프로젝트-목표.md",
+      "title": "M1 — 프로젝트 목표와 해결문제",
+      "summary": "선행: [M0-방법론-수립범위.md](./M0-방법론-수립범위.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M10-설계-템플릿-체계",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M10-설계-템플릿-체계.md",
+      "title": "M10 — 설계 템플릿 체계",
+      "summary": "선행: [M9-표준-거래-실행구조.md](./M9-표준-거래-실행구조.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M11-템플릿-속성-입력정보",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M11-템플릿-속성-입력정보.md",
+      "title": "M11 — 템플릿 공통 속성과 상세 입력정보",
+      "summary": "선행: [M10-설계-템플릿-체계.md](./M10-설계-템플릿-체계.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M12-메타모델-객체관계",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M12-메타모델-객체관계.md",
+      "title": "M12 — 메타모델과 객체 관계",
+      "summary": "선행: [M11-템플릿-속성-입력정보.md](./M11-템플릿-속성-입력정보.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M13-AI-사람-책임경계",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M13-AI-사람-책임경계.md",
+      "title": "M13 — AI 자동화와 사람의 책임 경계",
+      "summary": "선행: [M12-메타모델-객체관계.md](./M12-메타모델-객체관계.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M14-개발-실행절차",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M14-개발-실행절차.md",
+      "title": "M14 — 실제 개발 실행절차",
+      "summary": "선행: [M13-AI-사람-책임경계.md](./M13-AI-사람-책임경계.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M15-테스트-Quality-Gate",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M15-테스트-Quality-Gate.md",
+      "title": "M15 — 테스트와 자동 품질 Gate",
+      "summary": "선행: [M14-개발-실행절차.md](./M14-개발-실행절차.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M16-CICD-배포-운영",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M16-CICD-배포-운영.md",
+      "title": "M16 — CI/CD·배포·운영 연결",
+      "summary": "선행: [M15-테스트-Quality-Gate.md](./M15-테스트-Quality-Gate.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M17-선도개발-확산",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M17-선도개발-확산.md",
+      "title": "M17 — 선도개발과 단계적 확산",
+      "summary": "선행: [M16-CICD-배포-운영.md](./M16-CICD-배포-운영.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M18-최종-방법론-통합",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M18-최종-방법론-통합.md",
+      "title": "M18 — 최종 방법론 통합",
+      "summary": "선행: [M17-선도개발-확산.md](./M17-선도개발-확산.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M2-적용대상-개발유형",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M2-적용대상-개발유형.md",
+      "title": "M2 — 적용 대상과 개발유형",
+      "summary": "선행: [M1-프로젝트-목표.md](./M1-프로젝트-목표.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M3-현행자산-기준자료",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M3-현행자산-기준자료.md",
+      "title": "M3 — 현행 자산과 기준자료",
+      "summary": "선행: [M2-적용대상-개발유형.md](./M2-적용대상-개발유형.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M4-역할-거버넌스",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M4-역할-거버넌스.md",
+      "title": "M4 — 역할·책임·승인체계",
+      "summary": "선행: [M3-현행자산-기준자료.md](./M3-현행자산-기준자료.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M5-업무-도메인",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M5-업무-도메인.md",
+      "title": "M5 — 업무기능과 도메인",
+      "summary": "선행: [M4-역할-거버넌스.md](./M4-역할-거버넌스.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M6-데이터-소유권",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M6-데이터-소유권.md",
+      "title": "M6 — 데이터 소유권과 데이터 사용방식",
+      "summary": "선행: [M5-업무-도메인.md](./M5-업무-도메인.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M7-기능-비기능-요구사항",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M7-기능-비기능-요구사항.md",
+      "title": "M7 — 기능·비기능 요구사항",
+      "summary": "선행: [M6-데이터-소유권.md](./M6-데이터-소유권.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M8-목표-애플리케이션-아키텍처",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M8-목표-애플리케이션-아키텍처.md",
+      "title": "M8 — 목표 애플리케이션 아키텍처",
+      "summary": "선행: [M7-기능-비기능-요구사항.md](./M7-기능-비기능-요구사항.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--M9-표준-거래-실행구조",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/M9-표준-거래-실행구조.md",
+      "title": "M9 — NSIGHT 표준 거래 실행구조",
+      "summary": "선행: [M8-목표-애플리케이션-아키텍처.md](./M8-목표-애플리케이션-아키텍처.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--README",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/README.md",
+      "title": "NSIGHT-TCF 기반 AI·LLM SI 개발방법론 — 단계별 프롬프트",
+      "summary": "원본: [`2026-07-26-인공지능방법론-구상-프롬프트.md`](./2026-07-26-인공지능방법론-구상-프롬프트.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--00-NSIGHT-TCF-AI-LLM-SI-개발방법론",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/00-NSIGHT-TCF-AI-LLM-SI-개발방법론.md",
+      "title": "NSIGHT-TCF-FRAMEWORK 기반 AI·LLM SI 개발방법론",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M0-방법론-수립범위",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M0-방법론-수립범위.md",
+      "title": "M0 — 방법론 수립 범위 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M1-프로젝트-목표",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M1-프로젝트-목표.md",
+      "title": "M1 — 프로젝트 목표와 해결문제 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M10-설계-템플릿-체계",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M10-설계-템플릿-체계.md",
+      "title": "M10 — 설계 템플릿 체계 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M11-템플릿-속성-입력정보",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M11-템플릿-속성-입력정보.md",
+      "title": "M11 — 템플릿 공통 속성과 상세 입력정보 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M12-메타모델-객체관계",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M12-메타모델-객체관계.md",
+      "title": "M12 — 메타모델과 객체 관계 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M13-AI-사람-책임경계",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M13-AI-사람-책임경계.md",
+      "title": "M13 — AI 자동화와 사람의 책임 경계 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M14-개발-실행절차",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M14-개발-실행절차.md",
+      "title": "M14 — 실제 개발 실행절차 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M15-테스트-Quality-Gate",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M15-테스트-Quality-Gate.md",
+      "title": "M15 — 테스트와 자동 품질 Gate (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M16-CICD-배포-운영",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M16-CICD-배포-운영.md",
+      "title": "M16 — CI/CD·배포·운영 연결 (확정 / 일부 미확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M17-선도개발-확산",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M17-선도개발-확산.md",
+      "title": "M17 — 선도개발과 단계적 확산 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M2-적용대상-개발유형",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M2-적용대상-개발유형.md",
+      "title": "M2 — 적용 대상과 개발유형 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M3-현행자산-기준자료",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M3-현행자산-기준자료.md",
+      "title": "M3 — 현행 자산과 기준자료 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M4-역할-거버넌스",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M4-역할-거버넌스.md",
+      "title": "M4 — 역할·책임·승인체계 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M5-업무-도메인",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M5-업무-도메인.md",
+      "title": "M5 — 업무기능과 도메인 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M6-데이터-소유권",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M6-데이터-소유권.md",
+      "title": "M6 — 데이터 소유권과 데이터 사용방식 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M7-기능-비기능-요구사항",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M7-기능-비기능-요구사항.md",
+      "title": "M7 — 기능·비기능 요구사항 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M8-목표-애플리케이션-아키텍처",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M8-목표-애플리케이션-아키텍처.md",
+      "title": "M8 — 목표 애플리케이션 아키텍처 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--M9-표준-거래-실행구조",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/M9-표준-거래-실행구조.md",
+      "title": "M9 — NSIGHT 표준 거래 실행구조 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-구상-프롬프트--결과--README",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-구상-프롬프트/결과/README.md",
+      "title": "방법론 결과물 저장소",
+      "summary": "여기에 단계별 확정 마크다운을 쌓는다.",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--2026-07-26-인공지능방법론-아키텍처정의프롬프트",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/2026-07-26-인공지능방법론-아키텍처정의프롬프트.md",
+      "title": "NSIGHT-TCF 아키텍처 정의서 — 대화형 프롬프트 패키지 (보완)",
+      "summary": "CRUD 개발 프롬프트와 동일하게",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A-MASTER-대화원칙",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A-MASTER-대화원칙.md",
+      "title": "A-MASTER — 아키텍처 정의 대화원칙 (모든 단계에 고정)",
+      "summary": "다음: [A00-착수-기준원.md](./A00-착수-기준원.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A00-착수-기준원",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A00-착수-기준원.md",
+      "title": "A00 — 착수·기준원",
+      "summary": "선행: [A-MASTER-대화원칙.md](./A-MASTER-대화원칙.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A01-목적-범위-독자",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A01-목적-범위-독자.md",
+      "title": "A01 — 목적·범위·독자",
+      "summary": "선행: [A00-착수-기준원.md](./A00-착수-기준원.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A02-문제정의-현행구조",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A02-문제정의-현행구조.md",
+      "title": "A02 — 문제정의·현행구조",
+      "summary": "선행: [A01-목적-범위-독자.md](./A01-목적-범위-독자.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A03-요구사항-제약",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A03-요구사항-제약.md",
+      "title": "A03 — 요구사항·제약",
+      "summary": "선행: [A02-문제정의-현행구조.md](./A02-문제정의-현행구조.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A04-설계원칙-품질속성",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A04-설계원칙-품질속성.md",
+      "title": "A04 — 설계원칙·품질속성",
+      "summary": "선행: [A03-요구사항-제약.md](./A03-요구사항-제약.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A05-대안비교-ADR",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A05-대안비교-ADR.md",
+      "title": "A05 — 대안비교·ADR",
+      "summary": "선행: [A04-설계원칙-품질속성.md](./A04-설계원칙-품질속성.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A06-목표-논리-애플리케이션",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A06-목표-논리-애플리케이션.md",
+      "title": "A06 — 목표 논리·애플리케이션 아키텍처",
+      "summary": "선행: [A05-대안비교-ADR.md](./A05-대안비교-ADR.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A07-런타임-거래흐름",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A07-런타임-거래흐름.md",
+      "title": "A07 — 런타임·거래흐름",
+      "summary": "선행: [A06-목표-논리-애플리케이션.md](./A06-목표-논리-애플리케이션.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A08-모듈-WAR-배포",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A08-모듈-WAR-배포.md",
+      "title": "A08 — 모듈·WAR·배포",
+      "summary": "선행: [A07-런타임-거래흐름.md](./A07-런타임-거래흐름.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A09-데이터-상태-연계",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A09-데이터-상태-연계.md",
+      "title": "A09 — 데이터·상태·연계",
+      "summary": "선행: [A08-모듈-WAR-배포.md](./A08-모듈-WAR-배포.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A10-보안-개인정보-감사",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A10-보안-개인정보-감사.md",
+      "title": "A10 — 보안·개인정보·감사",
+      "summary": "선행: [A09-데이터-상태-연계.md](./A09-데이터-상태-연계.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A11-성능-용량-DR",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A11-성능-용량-DR.md",
+      "title": "A11 — 성능·용량·DR",
+      "summary": "선행: [A10-보안-개인정보-감사.md](./A10-보안-개인정보-감사.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A12-운영-모니터링-장애",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A12-운영-모니터링-장애.md",
+      "title": "A12 — 운영·모니터링·장애",
+      "summary": "선행: [A11-성능-용량-DR.md](./A11-성능-용량-DR.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A13-DevOps-자동검증-Gate",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A13-DevOps-자동검증-Gate.md",
+      "title": "A13 — DevOps·자동검증·Gate",
+      "summary": "선행: [A12-운영-모니터링-장애.md](./A12-운영-모니터링-장애.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A14-테스트-추적성",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A14-테스트-추적성.md",
+      "title": "A14 — 테스트·추적성",
+      "summary": "선행: [A13-DevOps-자동검증-Gate.md](./A13-DevOps-자동검증-Gate.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A15-RACI-거버넌스-변경",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A15-RACI-거버넌스-변경.md",
+      "title": "A15 — RACI·거버넌스·변경",
+      "summary": "선행: [A14-테스트-추적성.md](./A14-테스트-추적성.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A16-Architecture-Gate",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A16-Architecture-Gate.md",
+      "title": "A16 — Architecture Gate",
+      "summary": "선행: [A15-RACI-거버넌스-변경.md](./A15-RACI-거버넌스-변경.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A17-최종-아키텍처정의서",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A17-최종-아키텍처정의서.md",
+      "title": "A17 — 최종 아키텍처 정의서",
+      "summary": "선행: [A16-Architecture-Gate.md](./A16-Architecture-Gate.md) — 통과/조건부 통과 필수",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--A18-AsBuilt-Drift",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/A18-AsBuilt-Drift.md",
+      "title": "A18 — As-Built·Drift",
+      "summary": "선행: [A17-최종-아키텍처정의서.md](./A17-최종-아키텍처정의서.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--FILE_INDEX",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/FILE_INDEX.md",
+      "title": "파일 인덱스",
+      "summary": "",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--README",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/README.md",
+      "title": "NSIGHT-TCF-FRAMEWORK 아키텍처 정의서 대화형 프롬프트 패키지",
+      "summary": "> 보관·참고용 (초기 생성본)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--output--README",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/output/README.md",
+      "title": "생성 결과 저장 위치",
+      "summary": "마스터 프롬프트의 `최종생성` 단계가 완료되면 `output/architecture-definition/` 디렉터리에 최종 산출물을 생성한다.",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M00_대화원칙_마스터",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M00_대화원칙_마스터.md",
+      "title": "M00 — 대화원칙 마스터",
+      "summary": "선행: 없음",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M01_착수_기준원_수립",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M01_착수_기준원_수립.md",
+      "title": "M01 — 착수·기준원 수립",
+      "summary": "선행: M00 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M02_목적_범위_독자_선행조건",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M02_목적_범위_독자_선행조건.md",
+      "title": "M02 — 목적·범위·독자·선행조건",
+      "summary": "선행: M01 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M03_문제정의_현행구조",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M03_문제정의_현행구조.md",
+      "title": "M03 — 문제정의·현행구조",
+      "summary": "선행: M02 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M04_요구사항_제약조건",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M04_요구사항_제약조건.md",
+      "title": "M04 — 요구사항·제약조건",
+      "summary": "선행: M03 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M05_설계원칙_품질속성",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M05_설계원칙_품질속성.md",
+      "title": "M05 — 설계원칙·품질속성",
+      "summary": "선행: M04 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M06_대안비교_ADR",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M06_대안비교_ADR.md",
+      "title": "M06 — 대안비교·ADR",
+      "summary": "선행: M05 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M07_목표_논리_애플리케이션_아키텍처",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M07_목표_논리_애플리케이션_아키텍처.md",
+      "title": "M07 — 목표 논리·애플리케이션 아키텍처",
+      "summary": "선행: M06 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M08_런타임_거래처리_흐름",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M08_런타임_거래처리_흐름.md",
+      "title": "M08 — 런타임·거래처리 흐름",
+      "summary": "선행: M07 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M09_모듈_WAR_패키지_배포",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M09_모듈_WAR_패키지_배포.md",
+      "title": "M09 — 모듈·WAR·패키지·배포",
+      "summary": "선행: M08 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M10_데이터_상태_연계",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M10_데이터_상태_연계.md",
+      "title": "M10 — 데이터·상태·연계",
+      "summary": "선행: M09 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M11_보안_개인정보_감사",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M11_보안_개인정보_감사.md",
+      "title": "M11 — 보안·개인정보·감사",
+      "summary": "선행: M10 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M12_성능_용량_확장성_가용성_DR",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M12_성능_용량_확장성_가용성_DR.md",
+      "title": "M12 — 성능·용량·확장성·가용성·DR",
+      "summary": "선행: M11 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M13_운영_모니터링_장애대응",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M13_운영_모니터링_장애대응.md",
+      "title": "M13 — 운영·모니터링·장애대응",
+      "summary": "선행: M12 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M14_DevOps_자동검증_품질Gate",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M14_DevOps_자동검증_품질Gate.md",
+      "title": "M14 — DevOps·자동검증·품질Gate",
+      "summary": "선행: M13 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M15_테스트_검증_추적성",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M15_테스트_검증_추적성.md",
+      "title": "M15 — 테스트·검증·추적성",
+      "summary": "선행: M14 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M16_RACI_거버넌스_변경관리",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M16_RACI_거버넌스_변경관리.md",
+      "title": "M16 — RACI·거버넌스·변경관리",
+      "summary": "선행: M15 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M17_최종_아키텍처_정의서_생성",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M17_최종_아키텍처_정의서_생성.md",
+      "title": "M17 — 최종 아키텍처 정의서 생성",
+      "summary": "선행: M16 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--M18_As-Built_Drift_검증",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/M18_As-Built_Drift_검증.md",
+      "title": "M18 — As-Built·Drift 검증",
+      "summary": "선행: M17 완료 또는 필요한 기준정보 확보",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--prompts--MASTER_아키텍처정의_대화형_마스터프롬프트",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/prompts/MASTER_아키텍처정의_대화형_마스터프롬프트.md",
+      "title": "NSIGHT-TCF-FRAMEWORK 아키텍처 정의서 대화형 마스터 프롬프트",
+      "summary": "너는 NSIGHT-TCF-FRAMEWORK 수석 통합 아키텍트다.",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--state--open_issues",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/state/open_issues.md",
+      "title": "Open Issues / Risks / Assumptions",
+      "summary": "",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--templates--ADR_템플릿",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/templates/ADR_템플릿.md",
+      "title": "ADR-{번호} — {결정 제목}",
+      "summary": "",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--templates--Architecture_Gate_템플릿",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/templates/Architecture_Gate_템플릿.md",
+      "title": "Architecture Gate 체크리스트",
+      "summary": "",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--templates--NSIGHT_TCF_아키텍처정의서_템플릿",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/templates/NSIGHT_TCF_아키텍처정의서_템플릿.md",
+      "title": "NSIGHT-TCF-FRAMEWORK 아키텍처 정의서",
+      "summary": "",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--templates--RACI_템플릿",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/templates/RACI_템플릿.md",
+      "title": "구성요소 및 활동 RACI",
+      "summary": "",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--templates--질문응답기록_템플릿",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/templates/질문응답기록_템플릿.md",
+      "title": "질문·답변·결정 기록",
+      "summary": "",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--NSIGHT_TCF_Architecture_Definition_Interactive_Prompts--templates--추적성매트릭스_템플릿",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/NSIGHT_TCF_Architecture_Definition_Interactive_Prompts/templates/추적성매트릭스_템플릿.md",
+      "title": "요구사항–아키텍처–구현–운영 추적성 매트릭스",
+      "summary": "",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--README",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/README.md",
+      "title": "NSIGHT-TCF 아키텍처 정의 — 단계별 대화형 프롬프트",
+      "summary": "원본 안내(보완본): [`2026-07-26-인공지능방법론-아키텍처정의프롬프트.md`](./2026-07-26-인공지능방법론-아키텍처정의프롬프트.md)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--00-NSIGHT-TCF-아키텍처정의서",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/00-NSIGHT-TCF-아키텍처정의서.md",
+      "title": "NSIGHT-TCF-FRAMEWORK 아키텍처 정의서",
+      "summary": "본 문서는 A00~A16 대화 확정과 Branch `develop` 소스를 근거로 한 온라인 SI 아키텍처 Baseline이다.",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--01-ADR",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/01-ADR.md",
+      "title": "아키텍처 결정기록 (ADR)",
+      "summary": "근거: `A05-대안비교-ADR.md`",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--02-추적성-매트릭스",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/02-추적성-매트릭스.md",
+      "title": "추적성 매트릭스",
+      "summary": "근거: A14",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--03-RACI",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/03-RACI.md",
+      "title": "RACI · 거버넌스",
+      "summary": "근거: A15",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--04-정상-오류-Timeout-장애-흐름",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/04-정상-오류-Timeout-장애-흐름.md",
+      "title": "정상·오류·Timeout·장애 흐름",
+      "summary": "근거: A07 · A12 · `[실제 소스 확인]`",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--05-성능-용량-DR",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/05-성능-용량-DR.md",
+      "title": "성능·용량·DR",
+      "summary": "근거: A11 — 수치 Gap Explicit (조건부 Gate)",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--06-보안-개인정보-감사",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/06-보안-개인정보-감사.md",
+      "title": "보안·개인정보·감사",
+      "summary": "근거: A10 — 시범 Gap Explicit",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--07-운영-Runbook",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/07-운영-Runbook.md",
+      "title": "운영·Runbook",
+      "summary": "근거: A12 — OM Gap Explicit",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--08-자동검증-Gate",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/08-자동검증-Gate.md",
+      "title": "자동검증 · Architecture Gate",
+      "summary": "근거: A13 · A16",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--09-변경-호환-폐기",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/09-변경-호환-폐기.md",
+      "title": "변경·호환·폐기",
+      "summary": "근거: A15 · A05 Open ADR",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--10-Open-Issue-Risk-Assumption",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/10-Open-Issue-Risk-Assumption.md",
+      "title": "Open Issue · Risk · Assumption",
+      "summary": "해소: AA 승인 · A18 Drift 반복.",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--11-Executive-Summary",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/11-Executive-Summary.md",
+      "title": "Executive Summary — NSIGHT-TCF 아키텍처 정의",
+      "summary": "정의서는 온라인 SI Baseline으로 사용 가능.",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A00-착수-기준원",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A00-착수-기준원.md",
+      "title": "A00 — 착수·기준원 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A01-목적-범위-독자",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A01-목적-범위-독자.md",
+      "title": "A01 — 목적·범위·독자 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A02-문제정의-현행구조",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A02-문제정의-현행구조.md",
+      "title": "A02 — 문제정의·현행구조 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A03-요구사항-제약",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A03-요구사항-제약.md",
+      "title": "A03 — 요구사항·제약 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A04-설계원칙-품질속성",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A04-설계원칙-품질속성.md",
+      "title": "A04 — 설계원칙·품질속성 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A05-대안비교-ADR",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A05-대안비교-ADR.md",
+      "title": "A05 — 대안비교·ADR (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A06-목표-논리-애플리케이션",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A06-목표-논리-애플리케이션.md",
+      "title": "A06 — 목표 논리·애플리케이션 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A07-런타임-거래흐름",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A07-런타임-거래흐름.md",
+      "title": "A07 — 런타임·거래흐름 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A08-모듈-WAR-배포",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A08-모듈-WAR-배포.md",
+      "title": "A08 — 모듈·WAR·배포 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A09-데이터-상태-연계",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A09-데이터-상태-연계.md",
+      "title": "A09 — 데이터·상태·연계 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A10-보안-개인정보-감사",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A10-보안-개인정보-감사.md",
+      "title": "A10 — 보안·개인정보·감사 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A11-성능-용량-DR",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A11-성능-용량-DR.md",
+      "title": "A11 — 성능·용량·DR (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A12-운영-모니터링-장애",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A12-운영-모니터링-장애.md",
+      "title": "A12 — 운영·모니터링·장애 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A13-DevOps-자동검증-Gate",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A13-DevOps-자동검증-Gate.md",
+      "title": "A13 — DevOps·자동검증·Gate (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A14-테스트-추적성",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A14-테스트-추적성.md",
+      "title": "A14 — 테스트·추적성 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A15-RACI-거버넌스-변경",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A15-RACI-거버넌스-변경.md",
+      "title": "A15 — RACI·거버넌스·변경 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A16-Architecture-Gate",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A16-Architecture-Gate.md",
+      "title": "A16 — Architecture Gate (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A17-최종-아키텍처정의서",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A17-최종-아키텍처정의서.md",
+      "title": "A17 — 최종 아키텍처 정의서 (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--A18-AsBuilt-Drift",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/A18-AsBuilt-Drift.md",
+      "title": "A18 — As-Built·Drift (확정)",
+      "summary": "---",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--README",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/README.md",
+      "title": "아키텍처 정의 대화 결과물",
+      "summary": "단계 프롬프트(`../A00`~`../A18`) 실행 후 여기에 확정 마크다운을 저장한다.",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--_프레임워크정합점검",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/_프레임워크정합점검.md",
+      "title": "아키텍처 프롬프트 ↔ NSIGHT-TCF-FRAMEWORK 정합 점검",
+      "summary": "- SoT=현재 Branch, AA 승인, A16 Gate 전 최종생성 금지",
+      "module": null,
+      "audience": [
+        "developer"
+      ],
+      "tags": [],
+      "featured": false,
+      "priority": 0
+    },
+    {
+      "id": "ztcf-다이어리--2026-07-26-인공지능방법론-아키텍처정의프롬프트--결과--_확정정보원장",
+      "corpus": "root",
+      "source": "ztcf-다이어리/2026-07-26-인공지능방법론-아키텍처정의프롬프트/결과/_확정정보원장.md",
+      "title": "아키텍처 확정정보 원장",
+      "summary": "",
       "module": null,
       "audience": [
         "developer"

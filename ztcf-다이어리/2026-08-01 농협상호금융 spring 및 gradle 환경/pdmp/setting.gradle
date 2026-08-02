@@ -1,0 +1,10 @@
+pluginManagement {
+    repositories {
+        maven {
+            url = uri("http://19.88.120.152:9010/repository/maven-releases/")
+            allowInsecureProtocol = true
+        }
+    }
+}
+
+rootProject.name = 'pdmp'

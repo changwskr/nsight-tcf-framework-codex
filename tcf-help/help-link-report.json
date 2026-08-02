@@ -1,19 +1,23 @@
 {
   "version": "1.0",
-  "generatedAt": "2026-07-25T12:16:05.050Z",
+  "generatedAt": "2026-08-02T01:27:47.451Z",
   "links": {
     "scanned": 94,
     "broken": 0,
     "warnings": 0
   },
   "screens": {
-    "totalHtml": 109,
+    "totalHtml": 111,
     "mapped": 105,
-    "unmapped": 5,
+    "unmapped": 7,
     "manualOverrides": 19
   },
   "broken": [],
   "unmappedScreens": [
+    {
+      "screen": "/av/contact-list.html",
+      "reason": "HELP screen 맵 없음"
+    },
     {
       "screen": "/cache/common-code-sample.html",
       "reason": "HELP screen 맵 없음"
@@ -32,6 +36,10 @@
     },
     {
       "screen": "/jwt/index.html",
+      "reason": "HELP screen 맵 없음"
+    },
+    {
+      "screen": "/ln/contact-list.html",
       "reason": "HELP screen 맵 없음"
     }
   ],

@@ -61,6 +61,8 @@ ztcf-다이어리/2026-07-26-Agents/architecture/
 └─ 04-Architecture-Gate.md
 ```
 
+**구현 상태 (2026-07-26):** 위 다섯 문서 **작성 완료**. 인덱스: [ztcf-다이어리/2026-07-26-Agents/README.md](../../../ztcf-다이어리/2026-07-26-Agents/README.md). Architecture Gate 자체점검: 구현 전 `PASS`, 구현 후 `CONDITIONAL` ([04-Architecture-Gate.md](../../../ztcf-다이어리/2026-07-26-Agents/architecture/04-Architecture-Gate.md)).
+
 ### 5.1 기준본
 
 `00-CRUD-Prompt-Architecture.md`를 아키텍처 기준본으로 사용한다. 다음 내용을 포함한다.

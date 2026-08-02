@@ -3,14 +3,14 @@
 | 구분 | 내용 |
 | --- | --- |
 | 단계 | C06 |
-| 세션 | [샘플] LN.CustomerContact 조회 |
+| 세션 | [샘플] AV.CustomerContact 조회 |
 | 상태 | DONE |
 
 ## 확정 답변
 
 ### 확정 ServiceId 목록
 
-- 답: LN.CustomerContact.selectList, LN.CustomerContact.selectDetail
+- 답: AV.CustomerContact.selectList, AV.CustomerContact.selectDetail
 
 ### 거래코드(없으면 미확정)
 

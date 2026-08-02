@@ -1,0 +1,20 @@
+{
+  "header": {
+    "systemId": "NSIGHT-MP",
+    "businessCode": "MP",
+    "serviceId": "MP.SalesTip.detail",
+    "transactionCode": "MP-INQ-0002",
+    "processingType": "INQUIRY",
+    "channelId": "WEBTOP",
+    "guid": "",
+    "traceId": "",
+    "userId": "U123456",
+    "branchId": "10001"
+  },
+  "body": {
+    "trtBrc": "10001",
+    "trtmnEno": "E0000001",
+    "salzTipKdc": "002",
+    "basDt": "20260801"
+  }
+}

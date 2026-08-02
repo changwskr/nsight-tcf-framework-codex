@@ -52,11 +52,11 @@ ztcf-다이어리/2026-07-26-Agents/
 └─ README.md
 ```
 
-- `MASTER-CRUD-DEVELOPER.md`: 저장소 연동형 기준 진입점이다.
-- `STANDALONE-CRUD-DEVELOPER.md`: 관련 문서 접근이 어려운 환경을 위한 핵심 규칙 내장형이다.
-- `CRUD-REQUEST-TEMPLATE.md`: 선택적으로 사용하는 입력 템플릿이다.
+- `MASTER-CRUD-DEVELOPER.md`: 저장소 연동형 기준 진입점이다. **구현됨**
+- `STANDALONE-CRUD-DEVELOPER.md`: 관련 문서 접근이 어려운 환경을 위한 핵심 규칙 내장형이다. **구현됨**
+- `CRUD-REQUEST-TEMPLATE.md`: 선택적으로 사용하는 입력 템플릿이다. **구현됨**
 - 기존 `C15-실행프롬프트.md`는 호환성을 위해 유지한다.
-- `README.md`에는 신규·기존 결과 기반 실행법과 파일 간 관계를 추가한다.
+- `README.md`에는 신규·기존 결과 기반 실행법과 파일 간 관계를 추가한다. **갱신됨**
 
 ## 4. 기준정보와 우선순위
 

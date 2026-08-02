@@ -3,7 +3,7 @@
 | 구분 | 내용 |
 | --- | --- |
 | 단계 | C-MASTER |
-| 세션 | [샘플] LN.CustomerContact 조회 |
+| 세션 | [샘플] AV.CustomerContact 조회 |
 | 상태 | DONE |
 
 ## 확정 답변
