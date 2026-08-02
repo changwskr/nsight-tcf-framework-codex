@@ -6,6 +6,30 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+function Assert-PreservationVerifierRejects {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Root,
+
+        [Parameter(Mandatory = $true)]
+        [string]$MutationDescription
+    )
+
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'scripts/verify_codex_harness.ps1') -Root $Root 2>$null
+        $verifierExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    if ($verifierExitCode -eq 0) {
+        throw "$MutationDescription was accepted by the verifier."
+    }
+}
+
 function Test-Preservation {
     param(
         [Parameter(Mandatory = $true)]
@@ -63,19 +87,17 @@ function Test-Preservation {
             $stream.Dispose()
         }
 
-        $previousErrorActionPreference = $ErrorActionPreference
-        try {
-            $ErrorActionPreference = 'Continue'
-            & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $temporaryRoot 'scripts/verify_codex_harness.ps1') -Root $temporaryRoot 2>$null
-            $verifierExitCode = $LASTEXITCODE
-        }
-        finally {
-            $ErrorActionPreference = $previousErrorActionPreference
-        }
+        Assert-PreservationVerifierRejects -Root $temporaryRoot -MutationDescription 'Mutated preservation copy'
 
-        if ($verifierExitCode -eq 0) {
-            throw 'Mutated preservation copy was accepted by the verifier.'
-        }
+        $manifestMutationRoot = Join-Path $temporaryParent 'manifest-mutation'
+        Copy-Item -LiteralPath $Root -Destination $manifestMutationRoot -Recurse
+
+        $manifestMutationPath = Join-Path $manifestMutationRoot 'preservation-manifest.json'
+        $manifestMutation = Get-Content -LiteralPath $manifestMutationPath -Raw | ConvertFrom-Json
+        [void]$manifestMutation.files.PSObject.Properties.Remove('docs/UI_GUIDE.md')
+        $manifestMutation | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $manifestMutationPath -Encoding utf8
+
+        Assert-PreservationVerifierRejects -Root $manifestMutationRoot -MutationDescription 'Missing manifest entry copy'
     }
     finally {
         if (Test-Path -LiteralPath $temporaryParent) {
