@@ -83,13 +83,14 @@ function Test-Contracts {
         'pdmp-qa.md'
     )
 
-    # This fixture is the only permitted occurrence of the legacy package name.
+    # This Task 1 check scans only the Task 1 contract files listed above.
+    # Tasks 2 through 4 own legacy references in skills, scripts, and samples.
     $fixture = 'tcf-harness-world'
     foreach ($relativePath in @('AGENTS.md', 'README.md') + $roles + $docs) {
         $path = Join-Path $Root $relativePath
         if ((Test-Path -LiteralPath $path -PathType Leaf) -and
             (Select-String -LiteralPath $path -SimpleMatch $fixture -Quiet -Encoding UTF8)) {
-            $script:Failures.Add("Stale world path: $relativePath")
+            $script:Failures.Add("Stale world path in Task 1 contract: $relativePath")
         }
     }
 }
