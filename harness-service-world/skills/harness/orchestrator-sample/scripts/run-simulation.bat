@@ -10,20 +10,45 @@ echo [%DATE% %TIME%] [Analyst] 수집: 도메인 요구 수집 및 요약 >> "%L
 echo [%DATE% %TIME%] - 도메인: 결제 위험 분석 >> "%LOGPATH%"
 echo [%DATE% %TIME%] - 요약: 리스크 항목 1,2,3 식별 >> "%LOGPATH%"
 
+set MAX_RETRIES=5
 echo Creating artifact: analysis-summary.md
+set RETRY_COUNT=0
+:write_analysis
+if %RETRY_COUNT% GEQ %MAX_RETRIES% goto write_analysis_done
+if exist "%WORKSPACE%\\analysis-summary.md" goto write_analysis_done
 echo # 분석 요약 > "%WORKSPACE%\\analysis-summary.md"
 echo 도메인: 결제 위험 분석 >> "%WORKSPACE%\\analysis-summary.md"
 echo 식별: 리스크 항목 1,2,3 >> "%WORKSPACE%\\analysis-summary.md"
-echo [%DATE% %TIME%] [Analyst] wrote %WORKSPACE%\\analysis-summary.md >> "%LOGPATH%"
+if exist "%WORKSPACE%\\analysis-summary.md" (
+	echo [%DATE% %TIME%] [Analyst] wrote %WORKSPACE%\\analysis-summary.md >> "%LOGPATH%"
+) else (
+	set /a RETRY_COUNT+=1
+	echo Retry %RETRY_COUNT% writing analysis-summary.md, sleeping 1s...
+	timeout /t 1 >nul
+	goto write_analysis
+)
+:write_analysis_done
 
 timeout /t 1 >nul
 
 echo [%DATE% %TIME%] [Builder] 구현: 샘플 스펙을 바탕으로 PoC 생성 >> "%LOGPATH%"
+set RETRY_COUNT=0
 echo Creating artifact: poc-plan.md
+:write_poc
+if %RETRY_COUNT% GEQ %MAX_RETRIES% goto write_poc_done
+if exist "%WORKSPACE%\\poc-plan.md" goto write_poc_done
 echo # PoC 계획 > "%WORKSPACE%\\poc-plan.md"
 echo 산출물: 분석-요약.md, poc-plan.md >> "%WORKSPACE%\\poc-plan.md"
 echo 단계: 1. 설계 2. 구현 3. 검증 >> "%WORKSPACE%\\poc-plan.md"
-echo [%DATE% %TIME%] [Builder] wrote %WORKSPACE%\\poc-plan.md >> "%LOGPATH%"
+if exist "%WORKSPACE%\\poc-plan.md" (
+	echo [%DATE% %TIME%] [Builder] wrote %WORKSPACE%\\poc-plan.md >> "%LOGPATH%"
+) else (
+	set /a RETRY_COUNT+=1
+	echo Retry %RETRY_COUNT% writing poc-plan.md, sleeping 1s...
+	timeout /t 1 >nul
+	goto write_poc
+)
+:write_poc_done
 
 timeout /t 1 >nul
 

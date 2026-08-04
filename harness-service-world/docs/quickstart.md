@@ -3,6 +3,7 @@
 이 문서는 `claude` CLI가 없는 환경에서 `harness-service`의 스킬과 템플릿을 로컬에서 읽고 테스트하는 간이 가이드를 제공합니다. 실제 플러그인 설치 없이도 스킬을 편집하고, 에이전트 정의를 수동으로 만들어 오케스트레이터 실행을 시뮬레이션할 수 있습니다.
 
 Prerequisites:
+
 - 로컬 터미널 (PowerShell, bash 등)
 - 편집 가능한 텍스트 에디터
 
@@ -21,4 +22,5 @@ Copy-Item -Path .\skills\harness -Destination .\.claude\skills\harness -Recurse 
 4. 확인: `_workspace/`와 `.claude/skills/harness`의 내용을 검토해 오케스트레이터 템플릿과 일치하는지 확인합니다.
 
 Notes:
+
 - 이 방식은 실제 Agent Teams 실행을 대체하지 않습니다. 대신 스킬·에이전트 정의를 오프라인으로 편집·검토하고, 다른 LLM 런타임으로 포팅할 때 유용합니다.

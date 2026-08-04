@@ -1,0 +1,44 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.springframework.boot' version '3.3.13'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.nh.nsight'
+version = '0.1.0-SNAPSHOT'
+
+description = 'NSIGHT harness for requirement-analysis-design-implementation-test lifecycle control'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+application {
+    mainClass = 'com.nh.nsight.harness.HarnessApplication'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.named('bootJar') {
+    archiveFileName = 'nsight-development-harness.jar'
+}
+
+tasks.register('offlineSmokeTest', Exec) {
+    workingDir projectDir
+    commandLine 'sh', 'scripts/offline-smoke-test.sh'
+}

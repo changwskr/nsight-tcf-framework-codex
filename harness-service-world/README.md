@@ -24,13 +24,14 @@ Harness는 에이전트 팀 설계와 스킬 작성을 위한 패턴과 템플�
 ## 목적
 
 이 복제본은 다음을 위해 적합합니다:
+
 - Claude CLI가 없는 환경에서 하네스 스킬·템플릿을 읽고 편집하려는 경우
 - 조직 내부에서 수동으로 스킬을 배포하거나 테스트하려는 경우
 - 다른 에이전트 런타임(대체 LLM/플랫폼)으로 포팅하기 전 레퍼런스를 확보하려는 경우
 
 ## 수동 설치(예시)
 
-1) 이 프로젝트의 `skills/harness` 디렉터리를 로컬 사용자 디렉터리의 스킬 저장소로 복사합니다 (대체 런타임에 맞게 경로를 조정하세요):
+1. 이 프로젝트의 `skills/harness` 디렉터리를 로컬 사용자 디렉터리의 스킬 저장소로 복사합니다 (대체 런타임에 맞게 경로를 조정하세요):
 
 ```powershell
 # Windows PowerShell 예시
@@ -43,11 +44,11 @@ Copy-Item -Path .\skills\harness -Destination $env:USERPROFILE\.claude\skills\ha
 Copy-Item -Path .\skills\harness -Destination .\.claude\skills\harness -Recurse -Force
 ```
 
-2) 에이전트 정의는 수동으로 `.claude/agents/`에 작성합니다. 기본적으로 다음과 같은 최소 에이전트를 만들어두면 테스트에 유용합니다:
+2. 에이전트 정의는 수동으로 `.claude/agents/`에 작성합니다. 기본적으로 다음과 같은 최소 에이전트를 만들어두면 테스트에 유용합니다:
 
 - `analyst.md`, `builder.md`, `qa.md` — 각 파일에 역할·입출력 규약을 간단히 기술
 
-3) 생성된 디렉터리를 확인합니다:
+3. 생성된 디렉터리를 확인합니다:
 
 ```powershell
 Get-ChildItem -Path .\.claude\skills\harness

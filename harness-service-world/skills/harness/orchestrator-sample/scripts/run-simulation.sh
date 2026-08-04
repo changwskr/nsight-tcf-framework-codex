@@ -10,20 +10,47 @@ echo "[$(date '+%F %T')] [Analyst] 수집: 도메인 요구 수집 및 요약" >
 echo "[$(date '+%F %T')] - 도메인: 결제 위험 분석" >> "$LOGPATH"
 echo "[$(date '+%F %T')] - 요약: 리스크 항목 1,2,3 식별" >> "$LOGPATH"
 
+MAX_RETRIES=5
 echo "Creating artifact: analysis-summary.md"
-echo "# 분석 요약" > "$WORKSPACE/analysis-summary.md"
-echo "도메인: 결제 위험 분석" >> "$WORKSPACE/analysis-summary.md"
-echo "식별: 리스크 항목 1,2,3" >> "$WORKSPACE/analysis-summary.md"
-echo "[$(date '+%F %T')] [Analyst] wrote $WORKSPACE/analysis-summary.md" >> "$LOGPATH"
+RETRY_COUNT=0
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+	if [ -f "$WORKSPACE/analysis-summary.md" ]; then
+		echo "[$(date '+%F %T')] [Analyst] wrote $WORKSPACE/analysis-summary.md" >> "$LOGPATH"
+		break
+	fi
+	echo "# 분석 요약" > "$WORKSPACE/analysis-summary.md"
+	echo "도메인: 결제 위험 분석" >> "$WORKSPACE/analysis-summary.md"
+	echo "식별: 리스크 항목 1,2,3" >> "$WORKSPACE/analysis-summary.md"
+	if [ -f "$WORKSPACE/analysis-summary.md" ]; then
+		echo "[$(date '+%F %T')] [Analyst] wrote $WORKSPACE/analysis-summary.md" >> "$LOGPATH"
+		break
+	fi
+	RETRY_COUNT=$((RETRY_COUNT+1))
+	echo "Retry $RETRY_COUNT writing analysis-summary.md, sleeping 1s..." >> "$LOGPATH"
+	sleep 1
+done
 
 sleep 1
 
 echo "[$(date '+%F %T')] [Builder] 구현: 샘플 스펙을 바탕으로 PoC 생성" >> "$LOGPATH"
+RETRY_COUNT=0
 echo "Creating artifact: poc-plan.md"
-echo "# PoC 계획" > "$WORKSPACE/poc-plan.md"
-echo "산출물: 분석-요약.md, poc-plan.md" >> "$WORKSPACE/poc-plan.md"
-echo "단계: 1. 설계 2. 구현 3. 검증" >> "$WORKSPACE/poc-plan.md"
-echo "[$(date '+%F %T')] [Builder] wrote $WORKSPACE/poc-plan.md" >> "$LOGPATH"
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+	if [ -f "$WORKSPACE/poc-plan.md" ]; then
+		echo "[$(date '+%F %T')] [Builder] wrote $WORKSPACE/poc-plan.md" >> "$LOGPATH"
+		break
+	fi
+	echo "# PoC 계획" > "$WORKSPACE/poc-plan.md"
+	echo "산출물: 분석-요약.md, poc-plan.md" >> "$WORKSPACE/poc-plan.md"
+	echo "단계: 1. 설계 2. 구현 3. 검증" >> "$WORKSPACE/poc-plan.md"
+	if [ -f "$WORKSPACE/poc-plan.md" ]; then
+		echo "[$(date '+%F %T')] [Builder] wrote $WORKSPACE/poc-plan.md" >> "$LOGPATH"
+		break
+	fi
+	RETRY_COUNT=$((RETRY_COUNT+1))
+	echo "Retry $RETRY_COUNT writing poc-plan.md, sleeping 1s..." >> "$LOGPATH"
+	sleep 1
+done
 
 sleep 1
 

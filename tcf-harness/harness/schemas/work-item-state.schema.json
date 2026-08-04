@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nsight.local/schemas/work-item-state.schema.json",
+  "title": "Development Harness Work Item State",
+  "type": "object",
+  "required": ["workItemId", "title", "repositoryRoot", "branch", "currentStage", "stages"],
+  "properties": {
+    "workItemId": {"type": "string", "pattern": "^[A-Z][A-Z0-9-]{2,63}$"},
+    "title": {"type": "string", "minLength": 1},
+    "repositoryRoot": {"type": "string", "minLength": 1},
+    "branch": {"type": "string", "minLength": 1},
+    "currentStage": {"enum": ["REQUIREMENT", "ANALYSIS", "DESIGN", "IMPLEMENTATION", "TEST", "CLOSE"]},
+    "stages": {"type": "object"},
+    "requirementAnswers": {"type": "array"},
+    "testCommands": {"type": "array"},
+    "metadata": {"type": "object"}
+  },
+  "additionalProperties": false
+}

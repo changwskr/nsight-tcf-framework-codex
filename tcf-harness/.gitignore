@@ -1,0 +1,11 @@
+.gradle/
+.gradle-bootstrap/
+build/
+out/
+*.iml
+.idea/
+.vscode/
+
+# development-harness-runtime
+.harness/work/*/*/stdout.log
+.harness/work/*/*/stderr.log

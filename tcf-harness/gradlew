@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+set -eu
+if [ -n "${GRADLE_HOME:-}" ] && [ -x "$GRADLE_HOME/bin/gradle" ]; then
+  exec "$GRADLE_HOME/bin/gradle" "$@"
+fi
+if command -v gradle >/dev/null 2>&1; then
+  exec gradle "$@"
+fi
+LOCAL_GRADLE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/.gradle-bootstrap/gradle-8.10.2/bin/gradle"
+if [ -x "$LOCAL_GRADLE" ]; then
+  exec "$LOCAL_GRADLE" "$@"
+fi
+printf '%s\n' "Gradle 8.10.2 is not installed." >&2
+printf '%s\n' "Run scripts/install-gradle.sh or set GRADLE_HOME, then retry." >&2
+exit 127

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent Execution Record",
+  "type": "object",
+  "required": ["workItemId", "stage", "startedAt", "endedAt", "command", "exitCode", "success"],
+  "properties": {
+    "workItemId": {"type": "string"},
+    "stage": {"type": "string"},
+    "startedAt": {"type": "string"},
+    "endedAt": {"type": "string"},
+    "command": {"type": "array", "items": {"type": "string"}},
+    "workingDirectory": {"type": "string"},
+    "exitCode": {"type": "integer"},
+    "timedOut": {"type": "boolean"},
+    "durationMillis": {"type": "integer"},
+    "success": {"type": "boolean"}
+  }
+}
