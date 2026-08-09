@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.mk.co.a.dao.mkcoa6666DAO">
+
+    <sql id="mkcoa6666Where">
+        WHERE 1 = 1
+        <if test="serviceCode != null and serviceCode != ''">
+           AND T1.SERVICE_CODE LIKE '%' || #{serviceCode} || '%'
+        </if>
+        <if test="serviceName != null and serviceName != ''">
+           AND T1.SERVICE_NAME LIKE '%' || #{serviceName} || '%'
+        </if>
+        <if test="businessCode != null and businessCode != ''">
+           AND T1.BUSINESS_CODE = #{businessCode}
+        </if>
+        <if test="scid != null and scid != ''">
+           AND T1.SCID LIKE '%' || #{scid} || '%'
+        </if>
+        <if test="enabled != null and enabled != ''">
+           AND T1.ENABLED = #{enabled}
+        </if>
+        <if test="status != null and status != ''">
+           AND T1.STATUS = #{status}
+        </if>
+        <if test="onlineForceYn != null and onlineForceYn != ''">
+           AND T1.ONLINE_FORCE_YN = #{onlineForceYn}
+        </if>
+    </sql>
+
+    <sql id="mkcoa6666Columns">
+           T1.SERVICE_CODE           AS SERVICE_CODE
+         , T1.SERVICE_NAME           AS SERVICE_NAME
+         , T1.BUSINESS_CODE          AS BUSINESS_CODE
+         , T1.SCID                   AS SCID
+         , T1.ENABLED                AS ENABLED
+         , T1.STATUS                 AS STATUS
+         , T1.ALLOWED_SYSTEM_IDS     AS ALLOWED_SYSTEM_IDS
+         , T1.ALLOWED_TERMINAL_TYPES AS ALLOWED_TERMINAL_TYPES
+         , T1.ALLOWED_BRANCHES       AS ALLOWED_BRANCHES
+         , T1.REQUIRED_AUTHORITIES   AS REQUIRED_AUTHORITIES
+         , T1.SYNC_TYPE              AS SYNC_TYPE
+         , T1.ALLOWED_START_TIME     AS ALLOWED_START_TIME
+         , T1.ALLOWED_END_TIME       AS ALLOWED_END_TIME
+         , T1.TIMEOUT_MS             AS TIMEOUT_MS
+         , T1.MAX_TPS                AS MAX_TPS
+         , T1.MAX_CONCURRENT         AS MAX_CONCURRENT
+         , T1.DUPLICATE_WINDOW_SEC   AS DUPLICATE_WINDOW_SEC
+         , T1.AUDIT_LEVEL            AS AUDIT_LEVEL
+         , T1.REASON                 AS REASON
+         , T1.ONLINE_FORCE_YN        AS ONLINE_FORCE_YN
+         , T1.POLICY_JSON            AS POLICY_JSON
+         , T1.REG_DTM                AS REG_DTM
+         , T1.CHG_DTM                AS CHG_DTM
+    </sql>
+
+    <select id="mkcoa6666S0_S0" resultType="java.util.HashMap"
+            parameterType="java.util.HashMap">
+        SELECT * FROM (
+          SELECT a.*, ROWNUM rnum
+            FROM (
+               SELECT /* mkcoa6666S0_S0 */
+               <include refid="mkcoa6666Columns"/>
+                 FROM TB_OM_SVC_CATALOG T1
+               <include refid="mkcoa6666Where"/>
+                ORDER BY T1.CHG_DTM DESC, T1.SERVICE_CODE ASC
+            ) a
+           WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+        )
+        WHERE rnum > #{offset}
+    </select>
+
+    <select id="mkcoa6666S0_S0_count" resultType="int"
+            parameterType="java.util.HashMap">
+        SELECT /* mkcoa6666S0_S0_count */ COUNT(*)
+          FROM TB_OM_SVC_CATALOG T1
+        <include refid="mkcoa6666Where"/>
+    </select>
+
+    <select id="mkcoa6666S1_S0" resultType="java.util.HashMap"
+            parameterType="java.util.HashMap">
+        SELECT /* mkcoa6666S1_S0 */
+        <include refid="mkcoa6666Columns"/>
+          FROM TB_OM_SVC_CATALOG T1
+         WHERE T1.SERVICE_CODE = #{serviceCode}
+    </select>
+
+    <insert id="mkcoa6666I0_I0" parameterType="java.util.HashMap">
+        INSERT /* mkcoa6666I0_I0 */ INTO TB_OM_SVC_CATALOG (
+            SERVICE_CODE, SERVICE_NAME, BUSINESS_CODE, SCID, ENABLED, STATUS,
+            ALLOWED_SYSTEM_IDS, ALLOWED_TERMINAL_TYPES, ALLOWED_BRANCHES, REQUIRED_AUTHORITIES,
+            SYNC_TYPE, ALLOWED_START_TIME, ALLOWED_END_TIME, TIMEOUT_MS, MAX_TPS, MAX_CONCURRENT,
+            DUPLICATE_WINDOW_SEC, AUDIT_LEVEL, REASON, ONLINE_FORCE_YN, POLICY_JSON, REG_DTM, CHG_DTM
+        ) VALUES (
+            #{serviceCode}, #{serviceName}, #{businessCode}, #{scid}, #{enabled}, #{status},
+            #{allowedSystemIds}, #{allowedTerminalTypes}, #{allowedBranches}, #{requiredAuthorities},
+            #{syncType}, #{allowedStartTime}, #{allowedEndTime}, #{timeoutMs}, #{maxTps}, #{maxConcurrent},
+            #{duplicateWindowSec}, #{auditLevel}, #{reason}, #{onlineForceYn}, #{policyJson}, #{regDtm}, #{chgDtm}
+        )
+    </insert>
+
+    <update id="mkcoa6666U0_U0" parameterType="java.util.HashMap">
+        UPDATE /* mkcoa6666U0_U0 */ TB_OM_SVC_CATALOG
+           SET SERVICE_NAME           = #{serviceName}
+             , BUSINESS_CODE          = #{businessCode}
+             , SCID                   = #{scid}
+             , ENABLED                = #{enabled}
+             , STATUS                 = #{status}
+             , ALLOWED_SYSTEM_IDS     = #{allowedSystemIds}
+             , ALLOWED_TERMINAL_TYPES = #{allowedTerminalTypes}
+             , ALLOWED_BRANCHES       = #{allowedBranches}
+             , REQUIRED_AUTHORITIES   = #{requiredAuthorities}
+             , SYNC_TYPE              = #{syncType}
+             , ALLOWED_START_TIME     = #{allowedStartTime}
+             , ALLOWED_END_TIME       = #{allowedEndTime}
+             , TIMEOUT_MS             = #{timeoutMs}
+             , MAX_TPS                = #{maxTps}
+             , MAX_CONCURRENT         = #{maxConcurrent}
+             , DUPLICATE_WINDOW_SEC   = #{duplicateWindowSec}
+             , AUDIT_LEVEL            = #{auditLevel}
+             , REASON                 = #{reason}
+             , ONLINE_FORCE_YN        = #{onlineForceYn}
+             , POLICY_JSON            = #{policyJson}
+             , CHG_DTM                = #{chgDtm}
+         WHERE SERVICE_CODE = #{serviceCode}
+    </update>
+
+    <delete id="mkcoa6666D0_D0" parameterType="java.util.HashMap">
+        DELETE /* mkcoa6666D0_D0 */ FROM TB_OM_SVC_CATALOG
+         WHERE SERVICE_CODE = #{serviceCode}
+    </delete>
+
+    <select id="mkcoa6666S2_S0" resultType="java.util.HashMap"
+            parameterType="java.util.HashMap">
+        SELECT /* mkcoa6666S2_S0 */
+               T1.STATUS  AS STATUS
+             , T1.ENABLED AS ENABLED
+             , COUNT(*)   AS CNT
+          FROM TB_OM_SVC_CATALOG T1
+         GROUP BY T1.STATUS, T1.ENABLED
+    </select>
+
+    <update id="mkcoa6666U1_U0" parameterType="java.util.HashMap">
+        UPDATE /* mkcoa6666U1_U0 */ TB_OM_SVC_CATALOG
+           SET STATUS          = #{status}
+             , ENABLED         = #{enabled}
+             , ONLINE_FORCE_YN = #{onlineForceYn}
+             , REASON          = #{reason}
+             , CHG_DTM         = #{chgDtm}
+         WHERE SERVICE_CODE = #{serviceCode}
+    </update>
+
+    <select id="mkcoa6666S3_S0" resultType="java.util.HashMap"
+            parameterType="java.util.HashMap">
+        SELECT * FROM (
+          SELECT a.*, ROWNUM rnum FROM (
+            SELECT /* mkcoa6666S3_S0 */
+                   T1.RESULT_ID      AS RESULT_ID
+                 , T1.STD_GBL_ID     AS STD_GBL_ID
+                 , T1.SERVICE_CODE   AS SERVICE_CODE
+                 , T1.OPTR_ENO       AS OPTR_ENO
+                 , T1.TR_BRC         AS TR_BRC
+                 , T1.TRM_KDC        AS TRM_KDC
+                 , T1.TR_TRM_IPADR   AS TR_TRM_IPADR
+                 , T1.CONTROL_RESULT AS CONTROL_RESULT
+                 , T1.ERROR_CODE     AS ERROR_CODE
+                 , T1.REASON         AS REASON
+                 , T1.CHECK_STEP     AS CHECK_STEP
+                 , T1.REG_DTM        AS REG_DTM
+              FROM TB_OM_TX_CTRL_RESULT T1
+             WHERE 1 = 1
+            <if test="serviceCode != null and serviceCode != ''">
+               AND T1.SERVICE_CODE = #{serviceCode}
+            </if>
+             ORDER BY T1.REG_DTM DESC, T1.RESULT_ID DESC
+          ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+        ) WHERE rnum > #{offset}
+    </select>
+
+    <select id="mkcoa6666S3_S0_count" resultType="int"
+            parameterType="java.util.HashMap">
+        SELECT COUNT(*)
+          FROM TB_OM_TX_CTRL_RESULT T1
+         WHERE 1 = 1
+        <if test="serviceCode != null and serviceCode != ''">
+           AND T1.SERVICE_CODE = #{serviceCode}
+        </if>
+    </select>
+
+    <select id="mkcoa6666S3_S0_blockCount" resultType="int"
+            parameterType="java.util.HashMap">
+        SELECT COUNT(*)
+          FROM TB_OM_TX_CTRL_RESULT T1
+         WHERE T1.SERVICE_CODE = #{serviceCode}
+           AND T1.CONTROL_RESULT &lt;&gt; 'ALLOW'
+           AND T1.REG_DTM &gt;= #{fromDtm}
+    </select>
+
+    <insert id="mkcoa6666E0_I0" parameterType="java.util.HashMap">
+        INSERT /* mkcoa6666E0_I0 */ INTO TB_OM_TX_CTRL_RESULT (
+            RESULT_ID, STD_GBL_ID, SERVICE_CODE, OPTR_ENO, TR_BRC, TRM_KDC, TR_TRM_IPADR,
+            CONTROL_RESULT, ERROR_CODE, REASON, CHECK_STEP, REG_DTM
+        ) VALUES (
+            #{resultId}, #{stdGblId}, #{serviceCode}, #{optrEno}, #{trBrc}, #{trmKdc}, #{trTrmIpadr},
+            #{controlResult}, #{errorCode}, #{reason}, #{checkStep}, #{regDtm}
+        )
+    </insert>
+
+</mapper>

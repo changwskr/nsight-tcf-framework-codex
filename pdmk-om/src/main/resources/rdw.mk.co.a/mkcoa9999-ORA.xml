@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.mk.co.a.dao.mkcoa9999DAO">
+
+    <select id="mkcoa9999S0_S0" resultType="java.util.HashMap"
+            parameterType="java.util.HashMap">
+        SELECT /*+ INDEX(T1 TB_CR_AH_SALES_TIP_RACT_PK) */ /* mkcoa9999S0_S0 */
+               T1.TRT_BRC
+             , T1.TRTMN_ENO
+             , T1.SALZ_TIP_KDC
+             , T1.BAS_DT
+             , T1.PRTO_CN
+             , T1.INQ_CN
+             , T1.INP_CN
+          FROM TB_CR_AH_SALES_TIP_RACT T1
+         WHERE 1 = 1
+        <if test="salzTipKdc != null and salzTipKdc != ''">
+           AND T1.SALZ_TIP_KDC = #{salzTipKdc}
+        </if>
+    </select>
+
+</mapper>

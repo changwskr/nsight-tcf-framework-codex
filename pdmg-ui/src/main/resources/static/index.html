@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDMG UI</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>PDMG UI</h1>
+      <p>pdmg-service 전문 테스트와 이미지로그 관리 화면입니다.</p>
+      <div class="nav-links">
+        <a class="nav-link" href="/imagelog/index.html">이미지로그 관리 →</a>
+        <span class="nav-link" id="targetInfo">대상 확인 중...</span>
+      </div>
+    </header>
+
+    <section class="hub-grid" id="programGrid">
+      <article class="hub-card">
+        <h2>이미지로그 관리</h2>
+        <p>TB_FW_IMAGE_LOG 조건 검색·목록·상세. 전문 JSON 편집 없이 관리합니다.</p>
+        <div class="links">
+          <a href="/imagelog/index.html">이미지로그 관리 화면 열기</a>
+        </div>
+      </article>
+      <div class="empty" id="txLoading">거래 목록을 불러오는 중...</div>
+    </section>
+  </div>
+
+  <script>
+    function renderProgramCard(programId, items) {
+      if (programId === 'mgcoa8888') {
+        return '';
+      }
+      const links = items
+        .map(tx => `<a href="/${programId}/index.html">${tx.id} · ${tx.name}</a>`)
+        .join('');
+      return `
+        <article class="hub-card">
+          <h2>${programId} <span class="group-tag">${items.length}건</span></h2>
+          <p>${items[0].description}</p>
+          <div class="links">${links}</div>
+        </article>
+      `;
+    }
+
+    async function init() {
+      const [txRes, configRes] = await Promise.all([
+        fetch('/api/transactions'),
+        fetch('/api/config')
+      ]);
+      const transactions = await txRes.json();
+      const config = await configRes.json();
+
+      document.getElementById('targetInfo').textContent = `대상 pdmg-service: ${config.targetBaseUrl}`;
+
+      const grouped = new Map();
+      transactions.forEach(tx => {
+        if (!grouped.has(tx.programId)) {
+          grouped.set(tx.programId, []);
+        }
+        grouped.get(tx.programId).push(tx);
+      });
+
+      const cards = [...grouped]
+        .map(([programId, items]) => renderProgramCard(programId, items))
+        .filter(Boolean)
+        .join('');
+
+      const loading = document.getElementById('txLoading');
+      if (loading) {
+        loading.outerHTML = cards;
+      }
+    }
+
+    init().catch(error => alert('거래 목록 로드 실패: ' + error.message));
+  </script>
+</body>
+</html>

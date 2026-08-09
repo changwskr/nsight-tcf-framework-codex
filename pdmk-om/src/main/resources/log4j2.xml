@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="INFO">
+    <Properties>
+        <property name="time">%d{YYYY-MM-dd HH:mm:ss.SSS}</property>
+        <property name="elk_split">|+|</property>
+        <property name="custom_split">|</property>
+
+        <!--
+            사내(농협상호금융) 원본 설정 - 폐쇄망 WAS의 절대 경로.
+            아래 로컬 개발용 두 줄을 주석 처리하고 이 두 줄을 되살린다.
+
+            <property name="FRAMEWORK_LOG_PATH">/home/mfpobimx/architecture/proto/was/mpco/logs/fw/mp/application</property>
+            <property name="SERVICE_LOG_PATH">/home/mfpobimx/architecture/proto/was/mpco/logs/fw/mp/service</property>
+        -->
+
+        <!--
+            로컬 개발 PC용 - pdmk-om/logs 하위에 남긴다.
+            상대 경로는 프로세스의 작업 디렉터리 기준이므로 bootRun(작업 디렉터리=프로젝트 루트)에서만
+            의도한 위치에 쌓인다. WAS에 WAR로 올릴 때는 절대 경로를 써야 한다.
+        -->
+        <property name="FRAMEWORK_LOG_PATH">logs/application</property>
+        <property name="SERVICE_LOG_PATH">logs/service</property>
+
+        <property name="CORE_HEADER">%X{guid} ${elk_split} %X{userId} ${elk_split} %X{serviceId} ${elk_split} %X{ip} ${elk_split} - ${elk_split}</property>
+        <property name="BIZ_HEADER">%X{guid} ${elk_split} %X{userId} ${elk_split} %X{serviceId} ${elk_split} %X{ip} ${elk_split} - ${elk_split}</property>
+        <property name="IO_HEADER">%X{guid} ${elk_split} %X{userId} ${elk_split} %X{serviceId} ${elk_split} %X{ip} ${elk_split} - ${elk_split}</property>
+        <property name="SQL_HEADER">%X{guid} ${elk_split} %X{userId} ${elk_split} %X{serviceId} ${elk_split} %X{ip} ${elk_split} %X{sqlId} ${elk_split}</property>
+        <property name="IF_HEADER">%X{guid} ${elk_split} %X{userId} ${elk_split} %X{serviceId} ${elk_split} %X{ip} ${elk_split} %X{ifId} ${elk_split}</property>
+        <property name="ERR_HEADER">%X{guid} ${elk_split} %X{userId} ${elk_split} %X{serviceId} ${elk_split} %X{ip} ${elk_split} %X{errCode} ${elk_split}</property>
+
+        <!-- CUSTOM Default -->
+        <!--
+            %d : 로그의 기록시간을 출력
+            %p : 로깅 레벨을 출력, %F : 로깅이 발생한 프로그램 파일명을 출력
+            %M : 로깅이 발생한 메소드의 이름을 출력, %l : 로깅이 발생한 호출지의 정보를 출력
+            %L : 로깅이 발생한 호출지의 라인 수를 출력, %t : 로깅이 발생한 Thread 명을 출력
+            %c : 로깅이 발생한 카테고리를 출력, %C : 로깅이 발생한 클래스 명을 출력
+            %n : 줄바꿈
+            %m : 로그 메시지를 출력
+            %% : % 출력, %r : 어플리케이션이 시작 이후부터 로깅이 발생한 시점까지의 시간(ms)을 출력
+        -->
+        <property name="CORE_CUSTOM">[${time}] [%-5p] [%C.%M] %replace{%m}{\n}{&#x2028;}%n</property>
+        <property name="BIZ_CUSTOM">[${time}] [%-5p] [%C.%M:%L] %replace{%m}{\n}{&#x2028;}%n</property>
+        <!-- <property name="SQL_CUSTOM">[${time}] [%-5p] %replace{%m}{\n}{&#x2028;}%n</property> -->
+        <property name="SQL_CUSTOM">[${time}] [%-5p] %msg%n</property>
+        <property name="IO_CUSTOM">[${time}] [%-5p] %replace{%m}{\n}{&#x2028;}%n</property>
+        <property name="IF_CUSTOM">[${time}] [%-5p] %replace{%m}{\n}{&#x2028;}%n</property>
+        <property name="ERR_CUSTOM">[${time}] [%-5p] [%C.%M:%L] %replace{%m}{\n}{&#x2028;}%n</property>
+        <property name="MONITOR_CUSTOM">[${time}] [%-5p] [%C.%M:%L] %replace{%m}{\n}{&#x2028;}%n</property>
+
+        <!-- PATTERN -->
+        <!-- CORE -->
+        <property name="CORE_LOG_PATTERN">[ CORE ]${elk_split} ${CORE_HEADER} ${CORE_CUSTOM}</property>
+        <!-- BIZ -->
+        <property name="BIZ_LOG_PATTERN">[ BIZ ]${elk_split} ${BIZ_HEADER} ${BIZ_CUSTOM}</property>
+        <!-- SQL -->
+        <property name="SQL_LOG_PATTERN">[ SQL ]${elk_split} ${SQL_HEADER} ${SQL_CUSTOM}</property>
+        <!-- IO -->
+        <property name="IO_LOG_PATTERN">[ IO ]${elk_split} ${IO_HEADER} ${IO_CUSTOM}</property>
+        <!-- IF -->
+        <property name="IF_LOG_PATTERN">[ IF ]${elk_split} ${IF_HEADER} ${IF_CUSTOM}</property>
+        <!-- ERR -->
+        <property name="ERR_LOG_PATTERN">[ ERR ]${elk_split} ${ERR_HEADER} ${ERR_CUSTOM}</property>
+        <!-- MONITOR -->
+        <property name="MONITOR_LOG_PATTERN">[ MONITOR ]${elk_split}-${elk_split}-${elk_split}-${elk_split}-${elk_split}-${elk_split}${MONITOR_CUSTOM}</property>
+    </Properties>
+
+    <Appenders>
+        <Console name="CORE">
+            <PatternLayout pattern="${CORE_LOG_PATTERN}" charset="UTF-8" disableAnsi="false"/>
+        </Console>
+        <Console name="IO">
+            <PatternLayout pattern="${IO_LOG_PATTERN}" charset="UTF-8" disableAnsi="false"/>
+        </Console>
+        <Console name="IF">
+            <PatternLayout pattern="${IF_LOG_PATTERN}" charset="UTF-8" disableAnsi="false"/>
+        </Console>
+        <Console name="BIZ">
+            <PatternLayout pattern="${BIZ_LOG_PATTERN}" charset="UTF-8" disableAnsi="false"/>
+        </Console>
+        <Console name="SQL">
+            <PatternLayout pattern="${SQL_LOG_PATTERN}" charset="UTF-8" disableAnsi="false"/>
+        </Console>
+        <Console name="ERR">
+            <PatternLayout pattern="${ERR_LOG_PATTERN}" charset="UTF-8" disableAnsi="false"/>
+        </Console>
+        <Console name="MONITOR">
+            <PatternLayout pattern="${MONITOR_LOG_PATTERN}" charset="UTF-8" disableAnsi="false"/>
+        </Console>
+
+        <RollingFile name="FRAMEWORK_LOG_FILE"
+                     fileName="${FRAMEWORK_LOG_PATH}/pk_framework.log"
+                     filePattern="${FRAMEWORK_LOG_PATH}/pk_framework_%d{yyyy-MM-dd}.log.gz">
+            <PatternLayout pattern="${CORE_LOG_PATTERN}" charset="UTF-8"/>
+            <Policies>
+                <!-- 하루 1회 롤링 -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="500MB"/>
+            </Policies>
+            <DefaultRolloverStrategy>
+                <Delete basePath="${FRAMEWORK_LOG_PATH}">
+                    <IfFileName glob="*.log.gz"/>
+                    <IfLastModified age="30d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
+        <RollingFile name="SERVICE_LOG_FILE"
+                     fileName="${SERVICE_LOG_PATH}/pk_service.log"
+                     filePattern="${SERVICE_LOG_PATH}/pk_service_%d{yyyy-MM-dd}.log.gz">
+            <PatternLayout pattern="${BIZ_LOG_PATTERN}" charset="UTF-8"/>
+            <Policies>
+                <!-- 하루 1회 롤링 -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="500MB"/>
+            </Policies>
+            <DefaultRolloverStrategy>
+                <Delete basePath="${SERVICE_LOG_PATH}">
+                    <IfFileName glob="*.log.gz"/>
+                    <IfLastModified age="30d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="CORE"/>
+            <AppenderRef ref="FRAMEWORK_LOG_FILE"/>
+        </Root>
+
+        <Logger name="org.springframework" level="info" additivity="false">
+            <AppenderRef ref="CORE"/>
+            <AppenderRef ref="FRAMEWORK_LOG_FILE"/>
+        </Logger>
+
+        <Logger name="org.apache" level="off" additivity="false">
+            <AppenderRef ref="CORE"/>
+            <AppenderRef ref="FRAMEWORK_LOG_FILE"/>
+        </Logger>
+
+        <Logger name="nhnis.fw" level="info" additivity="false">
+            <AppenderRef ref="CORE"/>
+            <AppenderRef ref="FRAMEWORK_LOG_FILE"/>
+        </Logger>
+
+        <Logger name="nhnis.fw.commons.interceptor" level="info" additivity="false">
+            <AppenderRef ref="CORE"/>
+            <AppenderRef ref="FRAMEWORK_LOG_FILE"/>
+        </Logger>
+
+        <Logger name="nhnis.fw.commons.filter" level="info" additivity="false">
+            <AppenderRef ref="CORE"/>
+            <AppenderRef ref="FRAMEWORK_LOG_FILE"/>
+        </Logger>
+
+        <Logger name="nhnis.mk" level="info" additivity="false">
+            <AppenderRef ref="BIZ"/>
+            <AppenderRef ref="SERVICE_LOG_FILE"/>
+            <AppenderRef ref="FRAMEWORK_LOG_FILE"/>
+        </Logger>
+
+        <Logger name="nhnis.mk.config.MybatisLogInterceptor" level="debug" additivity="false">
+            <AppenderRef ref="SQL"/>
+        </Logger>
+
+        <Logger name="nhnis.mk.co.common" level="info" additivity="false">
+            <AppenderRef ref="BIZ"/>
+            <AppenderRef ref="SERVICE_LOG_FILE"/>
+        </Logger>
+
+        <Logger name="nhnis.mk.co.common.BizPrePostAspect" level="info" additivity="false">
+            <AppenderRef ref="BIZ"/>
+            <AppenderRef ref="SERVICE_LOG_FILE"/>
+        </Logger>
+
+        <Logger name="nhnis.fw.commons.log.PdmkFwTxFlowAspect" level="info" additivity="false">
+            <AppenderRef ref="CORE"/>
+            <AppenderRef ref="FRAMEWORK_LOG_FILE"/>
+        </Logger>
+
+        <Logger name="nhnis.mk.co.common.PdmkBizTxFlowAspect" level="info" additivity="false">
+            <AppenderRef ref="BIZ"/>
+            <AppenderRef ref="SERVICE_LOG_FILE"/>
+        </Logger>
+
+        <!-- LOG4JDBC -->
+        <Logger name="jdbc.sqlonly" level="off" additivity="false">
+            <AppenderRef ref="FRAMEWORK_LOG_FILE"/>
+            <AppenderRef ref="SERVICE_LOG_FILE"/>
+            <AppenderRef ref="SQL"/>
+        </Logger>
+
+        <Logger name="jdbc.sqltiming" level="debug" additivity="false">
+            <AppenderRef ref="FRAMEWORK_LOG_FILE"/>
+            <AppenderRef ref="SERVICE_LOG_FILE"/>
+            <AppenderRef ref="SQL"/>
+        </Logger>
+
+        <Logger name="jdbc.resultsettable" level="off" additivity="false">
+            <AppenderRef ref="SQL"/>
+        </Logger>
+
+        <Logger name="jdbc.audit" level="off" additivity="false">
+            <AppenderRef ref="SQL"/>
+        </Logger>
+
+        <Logger name="jdbc.resultset" level="off" additivity="false">
+            <AppenderRef ref="SQL"/>
+        </Logger>
+
+        <Logger name="jdbc.connection" level="off" additivity="false">
+            <AppenderRef ref="SQL"/>
+        </Logger>
+    </Loggers>
+</Configuration>

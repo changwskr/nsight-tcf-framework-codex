@@ -1,0 +1,100 @@
+-- 로컬 개발 PC용 H2 스키마.
+-- 사내 폐쇄망에서는 Oracle의 실제 테이블을 사용하므로 spring.sql.init 설정과 함께 비활성화한다.
+
+DROP TABLE IF EXISTS TB_FW_IMAGE_LOG;
+DROP TABLE IF EXISTS TB_OM_TX_CONTROL;
+DROP TABLE IF EXISTS TB_OM_TX_CTRL_RESULT;
+DROP TABLE IF EXISTS TB_OM_SVC_CATALOG;
+DROP TABLE IF EXISTS TB_MK_CO_A_5530;
+DROP TABLE IF EXISTS TB_CR_AH_SALES_TIP_RACT;
+
+-- 시스템 전문 헤더 이미지로그 (ImageLogHandler / ImageLogDTO)
+CREATE TABLE TB_FW_IMAGE_LOG (
+    GUID           VARCHAR(64)   NOT NULL,  -- 거래고유ID (std_gbl_id)
+    SERVICE_ID     VARCHAR(50),             -- 서비스ID (rms_svc_c)
+    SCREEN_ID      VARCHAR(50),             -- 화면ID (scid)
+    OPTR_ENO       VARCHAR(20),             -- 사용자ID (optr_eno)
+    CLIENT_IP      VARCHAR(50),             -- 클라이언트IP (tr_trm_ipadr)
+    REQUEST_TIME   VARCHAR(17),             -- 요청시간
+    RESPONSE_TIME  VARCHAR(17),             -- 응답시간
+    EXCEPTION_TYPE VARCHAR(200),            -- 예외타입
+    EXCEPTION_CODE VARCHAR(50),             -- 예외코드
+    EXCEPTION_MSG  VARCHAR(1000),           -- 예외메시지
+    REQUEST_MSG    CLOB,                    -- 요청 전문 원문
+    RESPONSE_MSG   CLOB,                    -- 응답 전문 원문
+    CONSTRAINT TB_FW_IMAGE_LOG_PK PRIMARY KEY (GUID)
+);
+
+CREATE TABLE TB_CR_AH_SALES_TIP_RACT (
+    TRT_BRC      VARCHAR(5)    NOT NULL,   -- 취급점 코드
+    TRTMN_ENO    VARCHAR(10)   NOT NULL,   -- 취급자 사번
+    SALZ_TIP_KDC VARCHAR(3)    NOT NULL,   -- 영업팁 종류코드
+    BAS_DT       VARCHAR(8)    NOT NULL,   -- 기준일자 (yyyyMMdd)
+    PRTO_CN      VARCHAR(4000),            -- 포트폴리오 내용
+    INQ_CN       VARCHAR(4000),            -- 조회 내용
+    INP_CN       VARCHAR(4000),            -- 입력 내용
+    CONSTRAINT TB_CR_AH_SALES_TIP_RACT_PK
+        PRIMARY KEY (TRT_BRC, TRTMN_ENO, SALZ_TIP_KDC, BAS_DT)
+);
+
+-- 거래통제 Service Catalog (mkcoa6666).
+-- 화면: docs/b.설계서/02.거래통제UI화면.md
+CREATE TABLE TB_OM_SVC_CATALOG (
+    SERVICE_CODE            VARCHAR(50)   NOT NULL,  -- rms_svc_c
+    SERVICE_NAME            VARCHAR(200),
+    BUSINESS_CODE           VARCHAR(10),
+    SCID                    VARCHAR(50),
+    ENABLED                 CHAR(1)       NOT NULL DEFAULT 'Y',
+    STATUS                  VARCHAR(20)   NOT NULL DEFAULT 'NORMAL', -- NORMAL/STOP/MAINTENANCE/EMERGENCY
+    ALLOWED_SYSTEM_IDS      VARCHAR(500)  NOT NULL DEFAULT '*',
+    ALLOWED_TERMINAL_TYPES  VARCHAR(200)  NOT NULL DEFAULT '*',
+    ALLOWED_BRANCHES        VARCHAR(500)  NOT NULL DEFAULT '*',
+    REQUIRED_AUTHORITIES    VARCHAR(500),
+    SYNC_TYPE               CHAR(1)       NOT NULL DEFAULT 'S',
+    ALLOWED_START_TIME      VARCHAR(4)    NOT NULL DEFAULT '0000',
+    ALLOWED_END_TIME        VARCHAR(4)    NOT NULL DEFAULT '2400',
+    TIMEOUT_MS              INT           NOT NULL DEFAULT 3000,
+    MAX_TPS                 INT,
+    MAX_CONCURRENT          INT,
+    DUPLICATE_WINDOW_SEC    INT           NOT NULL DEFAULT 0,
+    AUDIT_LEVEL             VARCHAR(20)   NOT NULL DEFAULT 'NORMAL',
+    REASON                  VARCHAR(500),
+    ONLINE_FORCE_YN         CHAR(1)       NOT NULL DEFAULT 'N',
+    POLICY_JSON             CLOB,                    -- 02화면 상세 정책
+    REG_DTM                 VARCHAR(14),
+    CHG_DTM                 VARCHAR(14),
+    CONSTRAINT TB_OM_SVC_CATALOG_PK PRIMARY KEY (SERVICE_CODE)
+);
+
+CREATE INDEX IDX_OM_SVC_CAT_BIZ ON TB_OM_SVC_CATALOG (BUSINESS_CODE, ENABLED);
+CREATE INDEX IDX_OM_SVC_CAT_STATUS ON TB_OM_SVC_CATALOG (STATUS, ENABLED);
+CREATE INDEX IDX_OM_SVC_CAT_NAME ON TB_OM_SVC_CATALOG (SERVICE_NAME);
+
+-- 최근 통제 결과 (E0 평가 / 게이트 기록)
+CREATE TABLE TB_OM_TX_CTRL_RESULT (
+    RESULT_ID      VARCHAR(32)   NOT NULL,
+    STD_GBL_ID     VARCHAR(64),
+    SERVICE_CODE   VARCHAR(50),
+    OPTR_ENO       VARCHAR(20),
+    TR_BRC         VARCHAR(10),
+    TRM_KDC        VARCHAR(10),
+    TR_TRM_IPADR   VARCHAR(50),
+    CONTROL_RESULT VARCHAR(20),
+    ERROR_CODE     VARCHAR(30),
+    REASON         VARCHAR(500),
+    CHECK_STEP     INT,
+    REG_DTM        VARCHAR(14),
+    CONSTRAINT TB_OM_TX_CTRL_RESULT_PK PRIMARY KEY (RESULT_ID)
+);
+
+CREATE INDEX IDX_OM_TX_CTRL_R_SVC ON TB_OM_TX_CTRL_RESULT (SERVICE_CODE, REG_DTM);
+CREATE INDEX IDX_OM_TX_CTRL_R_GUID ON TB_OM_TX_CTRL_RESULT (STD_GBL_ID);
+
+-- mkcoa5530 샘플 (운영 로그 필드 ID L5101~L5104 대응)
+CREATE TABLE TB_MK_CO_A_5530 (
+    L5101 VARCHAR(20)  NOT NULL,   -- 항목코드
+    L5102 VARCHAR(100) NOT NULL,   -- 항목명
+    L5103 VARCHAR(8)   NOT NULL,   -- 기준일자
+    L5104 VARCHAR(5),              -- 취급점코드
+    CONSTRAINT TB_MK_CO_A_5530_PK PRIMARY KEY (L5101, L5103)
+);

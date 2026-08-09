@@ -1,0 +1,72 @@
+spring:
+  profiles:
+    active: local
+  application:
+    name: pdmg
+  config:
+    import: classpath:exceptionCode.yml
+  # CORS 자동 설정 비활성화 (수동 설정 우선)
+  mvc:
+    cors:
+      allowed-origins:
+      allowed-methods:
+      allowed-headers:
+
+  # 사내(농협상호금융) 원본 설정 - 폐쇄망 Oracle(SBMFCRT) 접속용.
+  # 아래 H2 datasource / sql.init 블록을 주석 처리하고 이 블록을 되살린다.
+  #
+  # datasource:
+  #   rdw:
+  #     jdbc-url: jdbc:log4jdbc:oracle:thin:@19.24.148.173:1521:SBMFCRT
+  #     driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+  #     username: MFCR
+  #     password: ${PDMG_RDW_PASSWORD:}
+
+  # 로컬 개발 PC용 - H2 인메모리 DB (Oracle 호환 모드)
+  datasource:
+    rdw:
+      jdbc-url: jdbc:log4jdbc:h2:mem:pdmg;MODE=Oracle;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+      username: sa
+      password:
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+      schema-locations: classpath:db/h2/schema.sql
+      data-locations: classpath:db/h2/data.sql
+
+# PDMG 공통 FW (pdmk-fw commons) — TCF 경로 비활성
+nhnis:
+  fw:
+    tcf:
+      enabled: false
+    commons:
+      legacy-web:
+        enabled: true
+      filter:
+        enabled: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+
+jwt:
+  # local은 DefaultFilter에서 토큰 검증을 생략한다.
+  enabled: false
+  # 로컬 개발용 기본값(32자+). 운영은 PDMG_JWT_SECRET 환경변수로 덮어쓴다.
+  secret: "${PDMG_JWT_SECRET:pdmg-local-dev-secret-key-change-me-32b}"
+  access-token-expiration: 180000
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+jwt:
+  enabled: false
+  secret: "${PDMG_JWT_SECRET:pdmg-local-dev-secret-key-change-me-32b}"
+  access-token-expiration: 240000

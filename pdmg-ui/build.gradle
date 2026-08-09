@@ -1,0 +1,114 @@
+plugins {
+    id 'java'
+    id 'eclipse'
+    id 'org.springframework.boot' version '3.5.14'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'nhnis.mg'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+/*
+ * 사내(농협상호금융) 원본 설정 - 폐쇄망에서는 아래 블록을 되살리고
+ * 그 아래 로컬 개발용 repositories 블록을 주석 처리한다.
+ *
+ * repositories {
+ *     maven {
+ *         url = uri("http://19.88.120.152:9010/repository/maven-releases/")
+ *         allowInsecureProtocol = true
+ *     }
+ * }
+ */
+
+/* 로컬 개발 PC용 - 사내 넥서스에 접근할 수 없는 환경 */
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+bootJar {
+    archiveFileName = 'pdmg-ui.jar'
+}
+
+/* 소스에 한글 주석이 있어 플랫폼 기본 인코딩(CP949)으로는 컴파일되지 않는다. */
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    filteringCharset = 'UTF-8'
+}
+
+tasks.named('bootRun').configure {
+    jvmArgs = [
+            '-Dfile.encoding=UTF-8',
+            '-Dsun.jnu.encoding=UTF-8',
+            '-Dstdout.encoding=UTF-8',
+            '-Dstderr.encoding=UTF-8',
+            '-Dconsole.encoding=UTF-8'
+    ]
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    jvmArgs '-Dfile.encoding=UTF-8', '-Dsun.jnu.encoding=UTF-8'
+}
+
+/* Cursor Run/Debug: Gradle 클래스패스를 launch.json에 고정 (jdt.ls-java-project 우회) */
+tasks.register('writeIdeLaunch') {
+    dependsOn classes
+    doLast {
+        def outDir = file("${rootProject.projectDir}/../.vscode")
+        outDir.mkdirs()
+        def launchFile = new File(outDir, 'launch.json')
+
+        def entries = sourceSets.main.runtimeClasspath.files.collect {
+            def p = it.absolutePath.replace('\\', '/')
+            p = p.replaceFirst(
+                    /(?i)C:\/Users\/[^\/]+\/AppData\/Local\/Temp\/cursor-sandbox-cache\/[^\/]+\/gradle\/caches/,
+                    'C:/Users/chang.JWS/.gradle/caches')
+            p
+        }
+
+        def uiConfig = [
+                type     : 'java',
+                name     : 'PdmgUiApplication',
+                request  : 'launch',
+                mainClass: 'nhnis.mg.ui.PdmgUiApplication',
+                cwd      : '${workspaceFolder}/pdmg-ui',
+                console  : 'integratedTerminal',
+                vmArgs   : '-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8',
+                encoding : 'utf8',
+                classPaths: entries,
+                env      : [
+                        JAVA_HOME: 'C:\\Users\\chang.JWS\\.jdks\\temurin-21.0.4',
+                        JAVA_TOOL_OPTIONS: '-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8'
+                ]
+        ]
+
+        def root = [version: '0.2.0', configurations: []]
+        if (launchFile.exists()) {
+            root = new groovy.json.JsonSlurper().parse(launchFile) as Map
+            if (root.configurations == null) {
+                root.configurations = []
+            }
+        }
+        def configs = (root.configurations as List).findAll { it.name != 'PdmgUiApplication' }
+        configs.add(0, uiConfig)
+        root.configurations = configs
+
+        launchFile.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(root))
+        println "Wrote ${launchFile} (PdmgUiApplication, ${entries.size()} classpath entries)"
+    }
+}

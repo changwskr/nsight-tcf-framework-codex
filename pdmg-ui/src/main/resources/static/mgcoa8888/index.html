@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko" data-program-id="mgcoa8888" data-default-transaction-id="mgcoa8888S0">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDMG 이미지로그 조회 (mgcoa8888)</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>PDMG 이미지로그 조회 (mgcoa8888)</h1>
+      <p>TB_FW_IMAGE_LOG 를 조회합니다. GUID·서비스ID·화면ID·사용자·예외여부 조건으로 필터링할 수 있습니다.</p>
+      <div class="nav-links">
+        <a class="nav-link" href="/index.html">← 거래 목록</a>
+      </div>
+    </header>
+
+    <section class="toolbar">
+      <div class="field field-wide">
+        <label for="targetBaseUrl">pdmg-service URL</label>
+        <input id="targetBaseUrl" type="text" value="http://localhost:8080">
+      </div>
+      <div class="field field-wide">
+        <label for="transactionId">거래</label>
+        <select id="transactionId"></select>
+      </div>
+      <div class="actions">
+        <button class="btn-secondary" id="reloadSampleBtn" type="button">샘플 불러오기</button>
+        <button class="btn-secondary" id="refreshGuidBtn" type="button">GUID 재채번</button>
+        <button class="btn-primary" id="sendBtn" type="button">이미지로그 조회</button>
+      </div>
+    </section>
+
+    <section class="meta">
+      <div class="meta-card">
+        <div class="label">거래명</div>
+        <div class="value" id="metaName">-</div>
+      </div>
+      <div class="meta-card">
+        <div class="label">엔드포인트</div>
+        <div class="value" id="metaEndpoint">-</div>
+      </div>
+      <div class="meta-card">
+        <div class="label">요청 URL</div>
+        <div class="value" id="metaTargetUrl">-</div>
+      </div>
+      <div class="meta-card">
+        <div class="label">설명</div>
+        <div class="value" id="metaDescription">-</div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="panel">
+        <div class="panel-head"><h2>요청 전문 (hdr_nhnis.sys_comm + dto)</h2></div>
+        <textarea id="requestBody" spellcheck="false" placeholder='{"hdr_nhnis":{"sys_comm":{...}},"dto":{...}}'></textarea>
+      </article>
+      <article class="panel">
+        <div class="panel-head"><h2>응답 전문 (hdr_nhnis + dto)</h2></div>
+        <div class="response-meta" id="responseMeta">
+          <span class="empty">아직 요청하지 않았습니다.</span>
+        </div>
+        <textarea id="responseBody" readonly spellcheck="false"></textarea>
+      </article>
+    </section>
+  </div>
+  <script src="/_shared/online-single.js"></script>
+</body>
+</html>

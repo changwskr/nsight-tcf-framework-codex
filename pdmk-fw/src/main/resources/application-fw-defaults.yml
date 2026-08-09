@@ -1,0 +1,10 @@
+# 로컬/테스트용 FW 기본값 샘플
+# 앱(application.yml)에서 덮어쓴다.
+
+jwt:
+  secret: pdmk-fw-dev-secret-key-change-me-32bytes
+
+storage:
+  fos:
+    connect-timeout: -1
+    response-timeout: -1

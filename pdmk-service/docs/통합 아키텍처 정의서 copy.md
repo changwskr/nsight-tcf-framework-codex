@@ -1,0 +1,4666 @@
+# PDMK 통합 아키텍처 정의서
+
+| 항목 | 내용 |
+| ---- | ---- |
+| 대상 모듈 | **`pdmk-fw`** · **`pdmk-service`** · **`pdmk-ui`** (세 모듈을 하나의 스택으로 정의) |
+| 문서 위치 | `pdmk-service/docs/` (통합 정의서 보관. 세 모듈 공통 기준) |
+| 판본 | **상세 백과** (`통합 아키텍처 정의서 copy.md`) — 부(Part) I~VIII · §1~§29. **읽기 정본 아님** |
+| 기준일 | 2026-08-08 |
+| 최근 보강 | TEXT **표 그림** 보강 (스택·런타임·보안·TX·모듈·실무) |
+| 관련 문서 | [네이밍원칙.md](./네이밍원칙.md), [MK-NAMING_CONVENTION.md](./MK-NAMING_CONVENTION.md) |
+| 모듈 README | [pdmk-fw](../../pdmk-fw/README.md) · [pdmk-service](../README.md) · [pdmk-ui](../../pdmk-ui/README.md) |
+
+> 이 문서는 **세 모듈을 분리해 설명하되, 런타임·전문·네이밍·배포는 하나의 PDMK 스택**으로 다룬다.  
+> 특정 모듈만의 구현 세부는 각 README와 본문 [§8 모듈별](#8-모듈별-아키텍처)을 본다.  
+> **처음 읽을 때:** [PDMK_아키텍처_정의서.md](./PDMK_아키텍처_정의서.md) (정본 v2.0) → 필요 시 본 copy 상세.  
+> **현장 작업:** 정본 §12~§14 · 본 문서 [§29 실무 가이드](#29-실무-가이드).
+
+---
+
+## 목차
+
+문서는 **8개 부(Part)** 로 나뉜다. 번호(§)는 본문 절 번호이며, 부는 읽기 순서·관심사 묶음이다.
+
+### 문서 맵(표 그림)
+
+```text
+ ┌─────────────────────────────────────────────────────────────┐
+ │                    PDMK 통합 아키텍처 정의서                  │
+ └───────────────────────────┬─────────────────────────────────┘
+                             │
+     ┌───────────┬───────────┼───────────┬───────────┐
+     ▼           ▼           ▼           ▼           ▼
+  I 개요     II 런타임   III 구조    IV 계약     V 데이터
+  §1~§3      §4~§6       §7~§9      §10~§14    §15~§17
+     │           │           │           │           │
+     └───────────┴───────────┼───────────┴───────────┘
+                             │
+               ┌─────────────┼─────────────┐
+               ▼             ▼             ▼
+          VI 횡단      VII 플랫폼     VIII 지침
+         §18~§22       §23~§25       §26~§29
+```
+
+| 부 | 이름 | 절 | 한줄 |
+| -- | ---- | -- | ---- |
+| **I** | [개요](#part-i-개요) | §1~§3 | 무엇을·어디서·어떻게 붙어 있는가 |
+| **II** | [런타임 경로](#part-ii-런타임-경로) | §4~§6 | 요청이 Filter까지 어떻게 흐르는가 |
+| **III** | [구조·모듈](#part-iii-구조모듈) | §7~§9 | 레이어·3모듈·commons 패키지 |
+| **IV** | [계약·업무 규칙](#part-iv-계약업무-규칙) | §10~§14 | 전문·TX·에러·예외·네이밍 |
+| **V** | [데이터](#part-v-데이터) | §15~§17 | DAO·테이블·페이징 |
+| **VI** | [횡단 관심사](#part-vi-횡단-관심사) | §18~§22 | 보안·AOP·타임아웃·로그·캐시 |
+| **VII** | [플랫폼·배포](#part-vii-플랫폼배포) | §23~§25 | Spring·Gradle·기동/WAS |
+| **VIII** | [지침·참고](#part-viii-지침참고) | §26~§29 | Do/Don't · 갭 · 참고 · 용어 · 실무가이드 |
+
+**읽는 법:** 위 표에서 부로 점프 → 해당 Part 안의 §절만 본다. 본문 Part 헤더의 `← 이전 | 목차 | 다음 →` 로 부를 이동한다.
+
+**자주 찾는 것**
+
+| 목적 | 이동 |
+| ---- | ---- |
+| **읽기 정본 v2.0** | [PDMK_아키텍처_정의서.md](./PDMK_아키텍처_정의서.md) |
+| **입문 (왜→검증)** | [아키텍처 정의서.md](./아키텍처%20정의서.md) |
+| **표 중심 요약본** | [표 아키텍처 정의서.md](./표%20아키텍처%20정의서.md) |
+| 전체 구조 | [§1 빅픽처](#1-pdmk-빅픽처-아키텍처) |
+| commons 패키지 | [§9](#9-commons-공통-아키텍처) |
+| 서비스 ID·네이밍 | [§14](#14-네이밍-아키텍처) |
+| 현황 갭 | [§26.0](#260-현황-갭-한눈에-문서-수집) |
+| 새 거래 추가 | [§26.4](#264-새-거래-추가-체크리스트) |
+| 설정 키 | [§23.9](#239-설정-키-요약표) · [§28.5](#285-설정-키--절) |
+| 용어 | [§28](#28-용어약어-색인) |
+| 역할별 읽기 | [§29.1](#291-역할별-읽기-경로) |
+| 장애 추적 | [§29.3](#293-장애디버그-추적) |
+| 변경 영향 | [§29.4](#294-모듈-변경-영향-매트릭스) |
+
+#### 절 목록 — I. 개요
+
+| 절 | 제목 | 한줄 |
+| -- | ---- | ---- |
+| [§1](#1-pdmk-빅픽처-아키텍처) | 빅픽처 | 스택·호출 체인·관점 맵·슬로건 |
+| [§2](#2-목적과-범위) | 목적과 범위 | 3모듈 정의·범위 밖 |
+| [§3](#3-시스템-구성) | 시스템 구성 | 포트·의존·책임 |
+
+#### 절 목록 — II. 런타임 경로
+
+| 절 | 제목 | 한줄 |
+| -- | ---- | ---- |
+| [§4](#4-런타임-요청-흐름) | 런타임 요청 흐름 | UI→service→fw 타임라인 |
+| [§5](#5-필터시스템-선후처리업무-선후처리) | 필터·선후처리 | Filter / Interceptor / Aspect 역할 |
+| [§6](#6-필터-아키텍처) | 필터 아키텍처 | `DefaultFilter`·Body·JWT |
+
+#### 절 목록 — III. 구조·모듈
+
+| 절 | 제목 | 한줄 |
+| -- | ---- | ---- |
+| [§7](#7-애플리케이션-레이어드-아키텍처) | 레이어드 | Presentation~Persistence 규칙 |
+| [§8](#8-모듈별-아키텍처) | 모듈별 | fw / service / ui 패키지 |
+| [§9](#9-commons-공통-아키텍처) | commons 공통 | `nhnis.fw.commons` 패키지 |
+
+#### 절 목록 — IV. 계약·업무 규칙
+
+| 절 | 제목 | 한줄 |
+| -- | ---- | ---- |
+| [§10](#10-전문-구조) | 전문 구조 | `hdr_nhnis` + `dto` |
+| [§11](#11-트랜잭션-처리-아키텍처) | 트랜잭션 | `@Transactional`·ImageLog 경계 |
+| [§12](#12-에러메시지-처리-아키텍처) | 에러메시지 | yml / MessageCache |
+| [§13](#13-예외처리-아키텍처) | 예외처리 | 전파 vs 결과코드 |
+| [§14](#14-네이밍-아키텍처) | 네이밍 | 서비스 ID·패키지 정본 |
+
+#### 절 목록 — V. 데이터
+
+| 절 | 제목 | 한줄 |
+| -- | ---- | ---- |
+| [§15](#15-dao-아키텍처) | DAO | MyBatis·SQL ID |
+| [§16](#16-테이블-아키텍처) | 테이블 | `TB_*` 물리 모델 |
+| [§17](#17-페이징-아키텍처) | 페이징 | pageNo / ROWNUM / count |
+
+#### 절 목록 — VI. 횡단 관심사
+
+| 절 | 제목 | 한줄 |
+| -- | ---- | ---- |
+| [§18](#18-보안-아키텍처) | 보안 | JWT·Security·CORS |
+| [§19](#19-aop-아키텍처) | AOP | Aspect·Interceptor·Plugin |
+| [§20](#20-타임아웃-아키텍처) | 타임아웃 | HTTP·TX·JWT·연동 |
+| [§21](#21-트랜잭션-로그-아키텍처) | 트랜잭션 로그 | PdmkTxLog·ImageLog·SQL |
+| [§22](#22-캐시-아키텍처) | 캐시 | MessageCache·Body 버퍼 |
+
+#### 절 목록 — VII. 플랫폼·배포
+
+| 절 | 제목 | 한줄 |
+| -- | ---- | ---- |
+| [§23](#23-스프링-환경-구성-아키텍처) | 스프링 환경 | Boot·yml·프로파일 |
+| [§24](#24-gradle-빌더-환경-아키텍처) | Gradle 빌더 | Wrapper·의존·산출물 |
+| [§25](#25-배포기술-아키텍처) | 배포기술 | 기동·WAS·환경 전환 |
+
+#### 절 목록 — VIII. 지침·참고
+
+| 절 | 제목 | 한줄 |
+| -- | ---- | ---- |
+| [§26](#26-경계와-확장-지침) | 경계와 확장 | Do / Don't · [갭](#260-현황-갭-한눈에-문서-수집) · [새 거래](#264-새-거래-추가-체크리스트) |
+| [§27](#27-참고-문서) | 참고 문서 | README·상세 MD |
+| [§28](#28-용어약어-색인) | 용어·약어 색인 | 키워드 → 상세 절 |
+| [§29](#29-실무-가이드) | 실무 가이드 | 역할·환경·장애·영향 |
+
+---
+
+## Part I. 개요
+
+> **§1~§3** — 무엇을·어디서·어떻게 붙어 있는가
+>
+> [목차](#목차) · [다음: II 런타임 →](#part-ii-런타임-경로)
+
+#### Part I 한눈에(표 그림)
+
+```text
+  §1 빅픽처 ──► 스택·호출체인·관점맵
+       │
+  §2 범위   ──► 3모듈 정의 · 범위 밖(TCF/PDMG)
+       │
+  §3 구성   ──► 포트·의존·책임 한줄
+       │
+       └──────► [Part II 런타임]
+```
+
+| 이 Part의 절 | 한줄 |
+| ------------ | ---- |
+| [§1 빅픽처](#1-pdmk-빅픽처-아키텍처) | 스택·호출 체인·관점 맵 |
+| [§2 목적·범위](#2-목적과-범위) | 3모듈 정의·범위 밖 |
+| [§3 시스템 구성](#3-시스템-구성) | 포트·의존·책임 |
+
+## 1. PDMK 빅픽처 아키텍처
+
+한 장으로 **전체 스택 구조**를 본다. 세부 절은 표의 링크로 이동한다.
+
+### 1.1 한눈에 보는 스택
+
+#### 스택 계층(표 그림)
+
+```text
+ ┌──────────────────────────────────────────┐
+ │  Presentation   pdmk-ui :8090            │
+ │  정적화면 · 카탈로그 · HTTP 릴레이         │
+ └────────────────────┬─────────────────────┘
+                      │ POST /{서비스ID}
+ ┌────────────────────▼─────────────────────┐
+ │  Application    pdmk-service :8080       │
+ │  Controller → Service → DAO · BizAspect  │
+ └────────────────────┬─────────────────────┘
+                      │ implementation
+ ┌────────────────────▼─────────────────────┐
+ │  Framework      pdmk-fw (commons) JAR    │
+ │  Filter · Interceptor · JWT · ImageLog   │
+ └────────────────────┬─────────────────────┘
+                      │
+ ┌────────────────────▼─────────────────────┐
+ │  Persistence    RDW (H2 / Oracle)        │
+ │  TB_* · MyBatis · DS rdw                 │
+ └──────────────────────────────────────────┘
+```
+
+| 층 | 구성 | 포트/산출 | 하는 일 | 하지 않는 일 |
+| -- | ---- | --------- | ------- | ------------ |
+| Presentation | `pdmk-ui` | :8090 · Boot JAR | 정적 화면·카탈로그·HTTP 릴레이 | DAO·`pdmk-fw` 의존 |
+| Application | `pdmk-service` | :8080 · WAR | Controller→Service→DAO, Biz Aspect | UI 렌더링 |
+| Framework | `pdmk-fw` (내장) | JAR | Filter·Interceptor·JWT·헤더·ImageLog | 업무 CRUD·Boot main |
+| Persistence | RDW (H2/Oracle) | DS `rdw` | 테이블·MyBatis SQL | — |
+
+```text
+ Browser ──► pdmk-ui:8090 ──POST /{서비스ID}──► pdmk-service:8080
+                                                    │ implementation
+                                                    ▼
+                                               pdmk-fw (commons)
+                                                    │
+                                                    ▼
+                                            RDW · TB_* · MyBatis
+```
+
+### 1.2 런타임 호출 체인 (표)
+
+| 순 | 단계 | 모듈 | 구현 | 절 |
+| -- | ---- | ---- | ---- | -- |
+| 1 | HTTP 수신·JWT·Body·Context | fw | `DefaultFilter` | [§6](#6-필터-아키텍처) · [§18](#18-보안-아키텍처) |
+| 2 | Security (permitAll 샘플) | service | `SecurityConfig` | [§18](#18-보안-아키텍처) |
+| 3 | 시스템 선후·ImageLog | fw | `ServicePreventionInterceptor` | [§5](#5-필터시스템-선후처리업무-선후처리) · [§19](#19-aop-아키텍처) |
+| 4 | 업무 선후 로그 | service | `BizPrePostAspect` | [§19](#19-aop-아키텍처) |
+| 5 | 거래 진입 | service | `POST /{서비스ID}` Controller | [§8](#8-모듈별-아키텍처) |
+| 6 | 업무·TX·페이징 | service | Service + `@Transactional` | [§11](#11-트랜잭션-처리-아키텍처) · [§17](#17-페이징-아키텍처) |
+| 7 | SQL | service | DAO + `rdw.*-ORA.xml` | [§15](#15-dao-아키텍처) · [§16](#16-테이블-아키텍처) |
+| 8 | 응답·에러 조립 | fw | Resolver / `NhBaseException` | [§12](#12-에러메시지-처리-아키텍처) · [§13](#13-예외처리-아키텍처) |
+
+### 1.3 아키텍처 관점 맵 (표)
+
+| 관점 | 핵심 | 부 · 상세 절 |
+| ---- | ---- | ------------ |
+| 개요·토폴로지 | ui / service / fw / RDW | **[I](#part-i-개요)** [§1](#1-pdmk-빅픽처-아키텍처)~[§3](#3-시스템-구성) |
+| 런타임 경로 | Filter → Interceptor → Controller | **[II](#part-ii-런타임-경로)** [§4](#4-런타임-요청-흐름)~[§6](#6-필터-아키텍처) |
+| 구조·모듈 | 레이어 · 패키지 · commons | **[III](#part-iii-구조모듈)** [§7](#7-애플리케이션-레이어드-아키텍처)~[§9](#9-commons-공통-아키텍처) |
+| 계약·규칙 | 전문 · TX · 에러 · 네이밍 | **[IV](#part-iv-계약업무-규칙)** [§10](#10-전문-구조)~[§14](#14-네이밍-아키텍처) |
+| 데이터 | 테이블 · DAO · 페이징 | **[V](#part-v-데이터)** [§15](#15-dao-아키텍처)~[§17](#17-페이징-아키텍처) |
+| 횡단 | 보안 · AOP · 로그 · 캐시 · 타임아웃 | **[VI](#part-vi-횡단-관심사)** [§18](#18-보안-아키텍처)~[§22](#22-캐시-아키텍처) |
+| 플랫폼 | Spring · Gradle · 배포 | **[VII](#part-vii-플랫폼배포)** [§23](#23-스프링-환경-구성-아키텍처)~[§25](#25-배포기술-아키텍처) |
+| 품질 경계 | 해야 할 것 / 하지 말 것 / 갭 | **[VIII](#part-viii-지침참고)** [§26](#26-경계와-확장-지침) · [갭 요약](#260-현황-갭-한눈에-문서-수집) |
+
+상세 목차: [목차](#목차).
+
+### 1.4 모듈 × 관심사 매트릭스
+
+| 관심사 | fw | service | ui |
+| ------ | -- | ------- | -- |
+| Filter / JWT | ● | ○(설정) | — |
+| Interceptor / ImageLog | ● | — | — |
+| Biz Aspect | — | ● | — |
+| Controller·Service·DAO | — | ● | — |
+| 전문 DTO / 네이밍 | ○(헤더) | ● | ○(샘플·카탈로그) |
+| MyBatis / 테이블 | ○(ImageLog JDBC) | ● | — |
+| Spring Security | ○(옵션 OFF) | ● | — |
+| 거래 로그 `PdmkTxLog` | ●(포맷) | ●(호출) | ○(릴레이 시간) |
+| Gradle 산출 | JAR | WAR | Boot JAR |
+| HTTP 릴레이 | — | — | ● |
+
+● 주 책임 · ○ 보조/설정 · — 해당 없음
+
+### 1.5 빌드·기동 빅픽처
+
+| 단계 | 명령·결과 | 절 |
+| ---- | --------- | -- |
+| 빌드 fw | `pdmk-fw` → `gradlew jar` | [§24](#24-gradle-빌더-환경-아키텍처) |
+| 빌드 service | `include :pdmk-fw` → `*.war` | [§24](#24-gradle-빌더-환경-아키텍처) · [§25](#25-배포기술-아키텍처) |
+| 기동 service | `RUN.bat` / WAS · :8080 | [§25](#25-배포기술-아키텍처) |
+| 기동 ui | `RUN.bat` · :8090 → service 릴레이 | [§25](#25-배포기술-아키텍처) |
+| 설정 | `application.yml` · `local`/`dev` | [§23](#23-스프링-환경-구성-아키텍처) |
+
+### 1.6 문서 구성 (부 단위)
+
+평탄한 §1~§27 대신 **관심사 묶음(부)** 으로 읽는다. 본문에도 `Part I~VIII` 구분 헤더가 있다. 전체 절 목록·링크는 상단 [목차](#목차).
+
+| 부 | 절 | 내용 |
+| -- | -- | ---- |
+| [I 개요](#part-i-개요) | §1~§3 | 빅픽처 · 범위 · 토폴로지 |
+| [II 런타임](#part-ii-런타임-경로) | §4~§6 | 요청 흐름 · 선후처리 · Filter |
+| [III 구조·모듈](#part-iii-구조모듈) | §7~§9 | 레이어 · 모듈별 · commons |
+| [IV 계약·규칙](#part-iv-계약업무-규칙) | §10~§14 | 전문 · TX · 에러 · 예외 · 네이밍 |
+| [V 데이터](#part-v-데이터) | §15~§17 | DAO · 테이블 · 페이징 |
+| [VI 횡단](#part-vi-횡단-관심사) | §18~§22 | 보안 · AOP · 타임아웃 · 로그 · 캐시 |
+| [VII 플랫폼](#part-vii-플랫폼배포) | §23~§25 | Spring · Gradle · 배포 |
+| [VIII 지침](#part-viii-지침참고) | §26~§29 | 경계 · 참고 · 용어 · 실무 |
+
+| 읽을 목적 | 시작 부 |
+| --------- | ------- |
+| 전체 감 잡기 | [I](#part-i-개요) → [II](#part-ii-런타임-경로) |
+| 패키지·레이어 | [III](#part-iii-구조모듈) |
+| 전문/네이밍/에러 | [IV](#part-iv-계약업무-규칙) |
+| SQL·테이블 | [V](#part-v-데이터) |
+| 보안·로그 | [VI](#part-vi-횡단-관심사) |
+| 빌드·기동 | [VII](#part-vii-플랫폼배포) |
+
+### 1.7 설계 슬로건
+
+| # | 슬로건 |
+| - | ------ |
+| 1 | **세 모듈 한 스택** — ui는 HTTP, service는 업무, fw는 공통 |
+| 2 | **서비스 ID = URL = 메서드** — REST 자원 URL 지양 |
+| 3 | **commons ON · TCF OFF** — `tcf.enabled=false` |
+| 4 | **TX는 Service** — Filter/Aspect는 DB 경계 아님 |
+| 5 | **전문은 hdr+dto** — 에러도 표준 코드·메시지 |
+| 6 | **변경은 영향 표로** — [§29.4](#294-모듈-변경-영향-매트릭스) 먼저 |
+
+---
+
+## 2. 목적과 범위
+
+### 2.1 통합 스택
+
+PDMK는 **서비스 ID 중심 온라인 거래**를 로컬·폐쇄망에서 검증하기 위한 샘플 스택이다.  
+아키텍처의 기준 단위는 단일 앱이 아니라 아래 **3모듈**이다.
+
+| 모듈 | 역할 | 산출물 | 의존 |
+| ---- | ---- | ------ | ---- |
+| `pdmk-fw` | 공통 FW 라이브러리 (Filter/Interceptor/전문 바인딩/JWT/유틸) | JAR | (업무 코드 없음) |
+| `pdmk-service` | MK 업무 Boot 앱 (Controller→Service→DAO) | WAR / Boot | **implementation `pdmk-fw`** |
+| `pdmk-ui` | 전문 테스트 중계 UI (브라우저 ↔ service) | Boot (:8090) | HTTP만 (`pdmk-fw` 미의존) |
+
+```text
+                 ┌──────────── pdmk-ui ────────────┐
+ Browser ──────► │ static + /api/relay             │
+                 └───────────────┬─────────────────┘
+                                 │ HTTP POST /{서비스ID}
+                 ┌───────────────▼─────────────────┐
+                 │         pdmk-service            │
+                 │  nhnis.mk.*  Controller…DAO     │
+                 └───────────────┬─────────────────┘
+                                 │ implementation
+                 ┌───────────────▼─────────────────┐
+                 │           pdmk-fw               │
+                 │  nhnis.fw.commons.* (+ tcf 비활성)│
+                 └───────────────┬─────────────────┘
+                                 ▼
+                              RDW DB
+```
+
+### 2.2 문서 절 ↔ 모듈 매핑
+
+절을 **부(Part)** 단위로 묶고, 주 모듈을 표시한다. 전체 링크: [목차](#목차).
+
+| 부 | 절 | 주 모듈 | 내용 |
+| -- | -- | ------- | ---- |
+| **[I 개요](#part-i-개요)** | [§1](#1-pdmk-빅픽처-아키텍처) | **세 모듈** | 전체 구조·매트릭스 |
+| | §2~§3 | **ui + service + fw** | 범위·포트·의존·책임 |
+| **[II 런타임](#part-ii-런타임-경로)** | §4~§6 | **fw** (+ service Aspect) | 요청 흐름·Filter·선후처리 |
+| **[III 구조](#part-iii-구조모듈)** | §7~§9 | **세 모듈** / **fw commons** | 레이어·모듈별·`nhnis.fw.commons` |
+| **[IV 계약](#part-iv-계약업무-규칙)** | §10~§14 | **fw + service** (+ ui 샘플) | 전문·TX·에러·예외·네이밍 |
+| **[V 데이터](#part-v-데이터)** | §15~§17 | **service** (+ fw ImageLog) | DAO·테이블·페이징 |
+| **[VI 횡단](#part-vi-횡단-관심사)** | §18~§22 | **fw + service** (+ ui 중계) | 보안·AOP·타임아웃·로그·캐시 |
+| **[VII 플랫폼](#part-vii-플랫폼배포)** | §23~§25 | **세 모듈** | Spring·Gradle·배포 |
+| **[VIII 지침](#part-viii-지침참고)** | §26~§29 | **세 모듈** | 경계·참고·용어·실무 |
+
+### 2.3 범위 밖
+
+#### 범위 안/밖(표 그림)
+
+```text
+ ┌────────────── PDMK 정의서 범위 ──────────────┐
+ │  pdmk-ui · pdmk-service · pdmk-fw(commons)   │
+ │  서비스ID · hdr+dto · RDW 샘플               │
+ └──────────────────────┬───────────────────────┘
+                        │ 범위 밖
+           ┌────────────┴────────────┐
+           ▼                         ▼
+    nhnis.fw.tcf.* (잔존)      PDMG / PDMP 등
+    tcf.enabled=false          별도 스택
+```
+
+- TCF AOP 경로(`nhnis.fw.tcf.*`) — `pdmk-fw`에 소스는 있으나 **런타임 비활성**
+- PDMG/PDMP 및 다른 대구분 앱 — 별도 스택 (PDMG는 `pdmk-fw`를 공유할 수 있으나 본 정의서 범위 밖)
+
+---
+
+## 3. 시스템 구성
+
+### 3.1 배포 토폴로지
+
+#### 배포 토폴로지(표 그림)
+
+```text
+┌─────────────────┐     HTTP relay      ┌──────────────────┐
+│    pdmk-ui      │ ──────────────────► │  pdmk-service    │
+│  :8090          │   POST /mkcoa*      │  :8080           │
+│  static + API   │                     │  nhnis.mk.*      │
+└────────┬────────┘                     └────────┬─────────┘
+         │                                       │
+         │ 브라우저                               │ implementation
+         ▼                                       ▼
+   /mkcoa5530 등                          ┌──────────────┐
+   /imagelog                              │   pdmk-fw    │
+                                          │ nhnis.fw.*   │
+                                          └──────┬───────┘
+                                                 │
+                                                 ▼
+                                          RDW (H2/Oracle)
+                                          MyBatis XML
+```
+
+| 포트 | 프로세스 | 모듈 | 비고 |
+| ---- | -------- | ---- | ---- |
+| 8080 | 거래 API | `pdmk-service` (+ 내장 `pdmk-fw`) | |
+| 8090 | 중계 UI | `pdmk-ui` | CORS 회피용 서버 사이드 릴레이 |
+
+### 3.2 모듈 간 계약
+
+#### 모듈 간 계약(표 그림)
+
+```text
+  pdmk-ui                 pdmk-service              pdmk-fw
+ ┌─────────┐   HTTP만   ┌─────────────┐  Gradle  ┌─────────┐
+ │ :8090   │ ─────────► │ :8080 WAR   │ ◄─────── │ JAR     │
+ │ 릴레이  │            │ nhnis.mk.*  │ project  │commons  │
+ └─────────┘            └─────────────┘          └─────────┘
+      │                        │                      │
+      └──────── 서비스ID · hdr_nhnis+dto 계약 ────────┘
+      ※ ui ↔ fw 직접 의존 없음
+```
+
+| 관계 | 계약 |
+| ---- | ---- |
+| `pdmk-service` → `pdmk-fw` | Gradle `implementation project(':pdmk-fw')` (`settings.gradle`이 `../pdmk-fw` include) |
+| `pdmk-ui` → `pdmk-service` | HTTP만. `pdmk.ui.target-base-url` (기본 `http://localhost:8080`) |
+| `pdmk-ui` ↔ `pdmk-fw` | **직접 의존 없음** (전문 형식만 service와 공유) |
+| 세 모듈 공통 | 서비스 ID · `hdr_nhnis`+`dto` 전문 · MK 네이밍 |
+
+### 3.3 책임 한줄
+
+| 모듈 | 한다 | 하지 않는다 |
+| ---- | ---- | ---------- |
+| `pdmk-fw` | Filter/Interceptor/Resolver, 헤더 DTO, JWT, ImageLog 핸들러 | 업무 Controller/DAO, Boot main |
+| `pdmk-service` | 업무 CRUD, Security/MyBatis, Biz Aspect | UI 화면, (권장) FW 소스 내장 |
+| `pdmk-ui` | 정적 화면, 카탈로그, Relay | DAO/DB, `pdmk-fw` 클래스패스 |
+
+---
+
+## Part II. 런타임 경로
+
+> **§4~§6** — 요청이 Filter까지 어떻게 흐르는가
+>
+> [← 이전: I 개요](#part-i-개요) · [목차](#목차) · [다음: III 구조 →](#part-iii-구조모듈)
+
+#### Part II 한눈에(표 그림)
+
+```text
+ UI ──HTTP──► §4 요청흐름
+                │
+                ▼
+         §5 Filter / Interceptor / Aspect 역할
+                │
+                ▼
+         §6 DefaultFilter 상세 (Body·JWT·Context)
+                │
+                └──────► Controller (Part III~)
+```
+
+| 이 Part의 절 | 한줄 |
+| ------------ | ---- |
+| [§4 요청 흐름](#4-런타임-요청-흐름) | UI→service→fw 타임라인 |
+| [§5 선후처리](#5-필터시스템-선후처리업무-선후처리) | Filter / Interceptor / Aspect |
+| [§6 필터](#6-필터-아키텍처) | `DefaultFilter`·Body·JWT |
+
+## 4. 런타임 요청 흐름
+
+엔드투엔드는 **ui → service → fw** 순이다.  
+service 내부의 운영 경로는 commons(레거시 웹)이며 TCF Aspect는 사용하지 않는다.
+
+### 4.0 UI 경유 (통합 경로)
+
+```text
+ Browser
+   → pdmk-ui  (static 또는 POST /api/relay/{서비스ID})
+        → TransactionRelayService
+             → pdmk-service  POST /{서비스ID}
+                  → [아래 §4.1 fw + service 계층]
+```
+
+직접 호출: `POST http://localhost:8080/{서비스ID}` (ui 생략 가능).
+
+### 4.1 service+fw 계층 한눈에 보기
+
+```text
+ HTTP POST /{서비스ID}
+ Body: { "hdr_nhnis": {...}, "dto": {...} }
+       (local: { "dto": {...} } 만으로도 가능)
+────────────────────────────────────────────────────────────
+ │ ① DefaultFilter                 [Servlet Filter · pdmk-fw]
+ │    Body 캐시 · JWT · ServiceContext · MDC
+ ▼
+ │ ② ServicePreventionInterceptor  [HandlerInterceptor · pdmk-fw]
+ │    ┌ 선처리(preHandle)  GUID·헤더보강 · ImageLog PRE
+ │    └ 후처리(postHandle) ImageLog POST
+ │    └ 예외(afterCompletion) ImageLog EX · Context 제거
+ ▼
+ │ ③ BizPrePostAspect              [AOP · pdmk-service]
+ │    ┌ 선처리(@Before)  업무 공통 로그 · BRC
+ │    └ 후처리(@After)   업무 공통 로그 · BRC
+ ▼
+ │ ④ Controller → ⑤ Service → ⑥ DAO / MyBatis XML   [pdmk-service]
+────────────────────────────────────────────────────────────
+ 응답: *DTOout JSON  →  (ui 경유 시) RelayResult 로 브라우저에 전달
+```
+
+### 4.2 호출 순서(성공 경로)
+
+#### 성공 경로 타임라인(표 그림)
+
+```text
+ t0  UI relay POST
+ t1  DefaultFilter      Body · JWT · Context
+ t2  Security           permitAll
+ t3  Interceptor        GUID · ImageLog PRE
+ t4  BizAspect @Before  업무선처리 로그
+ t5  Controller → Service → DAO
+ t6  BizAspect @After   업무후처리 로그
+ t7  Interceptor        ImageLog POST
+ t8  Filter finally     Context / MDC clear
+ t9  UI ← DTOout
+```
+
+| 순 | 단계 | 모듈 | 위치 | 시점 |
+| -- | ---- | ---- | ---- | ---- |
+| 0 | (선택) UI 중계 | `pdmk-ui` | `TransactionRelayService` | 브라우저→8090→8080 |
+| 1 | Filter 진입 | `pdmk-fw` | `DefaultFilter.doFilter` | service 요청 수신 직후 |
+| 2 | 시스템 선처리 | `pdmk-fw` | `ServicePreventionInterceptor.preHandle` | Handler 매핑 후 · Controller 전 |
+| 3 | 업무 선처리 | `pdmk-service` | `BizPrePostAspect.before` | Controller 메서드 진입 직전 |
+| 4 | 업무 실행 | `pdmk-service` | Controller → Service → DAO | |
+| 5 | 업무 후처리 | `pdmk-service` | `BizPrePostAspect.after` | Controller 메서드 종료 직후 |
+| 6 | 시스템 후처리 | `pdmk-fw` | `ServicePreventionInterceptor.postHandle` | View/응답 커밋 전 |
+| 7 | Filter finally | `pdmk-fw` | Context·MDC 정리 | 응답 반환 직전/직후 |
+
+응답: Controller가 반환한 `*DTOout` JSON (`pdmk-fw` ResponseBodyAdvice가 `hdr_nhnis`+`dto`로 포장).  
+ui 경유 시 `RelayResult`(상태·소요시간·본문)로 브라우저에 전달한다.
+
+상세 책임·분기·로그는 [§5](#5-필터시스템-선후처리업무-선후처리)·[§6](#6-필터-아키텍처)·[§19 AOP](#19-aop-아키텍처)·[§7](#7-애플리케이션-레이어드-아키텍처)·[§8](#8-모듈별-아키텍처)를 본다.
+
+---
+
+## 5. 필터·시스템 선후처리·업무 선후처리
+
+세 구성요소는 **역할이 겹치지 않도록** 계층이 분리되어 있다.
+
+#### 삼층 역할(표 그림)
+
+```text
+ ┌─ DefaultFilter ──────────┐  Servlet
+ │ Body · JWT · Context     │
+ └────────────┬─────────────┘
+              ▼
+ ┌─ ServicePreventionInterceptor ┐  MVC
+ │ GUID · 헤더 · ImageLog        │
+ └────────────┬──────────────────┘
+              ▼
+ ┌─ BizPrePostAspect ───────┐  Spring AOP
+ │ 업무 선·후처리 로그        │
+ └────────────┬─────────────┘
+              ▼
+         Controller
+```
+
+| 구분 | 클래스 | 모듈 | 기술 | 활성 조건 | 주 책임 |
+| ---- | ------ | ---- | ---- | --------- | ------- |
+| 필터 | `DefaultFilter` | `pdmk-fw` | Servlet `Filter` | `nhnis.fw.commons.filter.enabled=true` | 전문 파싱·JWT·`ServiceContext` 생성 |
+| 시스템 선후처리 | `ServicePreventionInterceptor` | `pdmk-fw` | `HandlerInterceptor` | `legacy-web.enabled=true` | GUID 확정·헤더 보강·이미지로그 |
+| 업무 선후처리 | `BizPrePostAspect` | `pdmk-service` | Spring AOP | `legacy-web.enabled=true` | Controller 공통 로그(BRC) |
+
+등록: `WebConfiguration`이 Interceptor·`RequestBodyArgumentResolver`를 붙인다. Aspect는 컴포넌트 스캔으로 등록된다.
+
+### 5.1 전체 시퀀스(표 그림)
+
+```text
+ Client                Filter              Interceptor           Aspect              Controller/Service
+   │                     │                     │                   │                      │
+   │── POST /mkcoa* ────►│                     │                   │                      │
+   │                     │ Body 캐시/파싱       │                   │                      │
+   │                     │ JWT(비-local)        │                   │                      │
+   │                     │ ServiceContext set   │                   │                      │
+   │                     │──────── doFilter ───►│                   │                      │
+   │                     │                     │ preHandle         │                      │
+   │                     │                     │ GUID·헤더보강      │                      │
+   │                     │                     │ ImageLog PRE      │                      │
+   │                     │                     │──────────────────►│                      │
+   │                     │                     │                   │ @Before              │
+   │                     │                     │                   │ 업무선처리 로그       │
+   │                     │                     │                   │─────────────────────►│
+   │                     │                     │                   │                      │ 업무 로직
+   │                     │                     │                   │◄─────────────────────│
+   │                     │                     │                   │ @After               │
+   │                     │                     │                   │ 업무후처리 로그       │
+   │                     │                     │◄──────────────────│                      │
+   │                     │                     │ postHandle        │                      │
+   │                     │                     │ ImageLog POST     │                      │
+   │                     │◄────────────────────│                   │                      │
+   │                     │ finally: Context/MDC clear              │                      │
+   │◄── *DTOout ─────────│                     │                   │                      │
+```
+
+### 5.2 비교 표
+
+| 항목 | 필터 (`DefaultFilter`) | 시스템 (`ServicePreventionInterceptor`) | 업무 (`BizPrePostAspect`) |
+| ---- | ---------------------- | --------------------------------------- | ------------------------- |
+| 실행 계층 | Servlet | Spring MVC Interceptor | AOP around Controller |
+| 대상 URL | 전역(필터 체인) | `/**` (`/error` 제외) | `nhnis.mk.co..controller..*` |
+| 전문 Body | 읽기·캐시·JSON 파싱 | 읽지 않음(컨텍스트 사용) | 읽지 않음(메서드 인자) |
+| JWT | 비-local에서 검증 | — | — |
+| GUID | 헤더/합성 시 설정 | 없으면 **강제 채번** | — |
+| 이미지로그 | — | PRE / POST / EX | — |
+| 로그 포맷 | 자체 error/debug | `PdmkTxLog.system*` | `PdmkTxLog.biz*` |
+| 실패 시 | 401/400 `sendError` 후 중단 | afterCompletion에서 EX 로그 | Controller 예외는 그대로 전파 |
+
+### 5.3 필터 — `DefaultFilter`
+
+**위치:** `nhnis.fw.commons.filter.DefaultFilter`  
+**역할:** 요청이 Controller에 닿기 전에 **거래 컨텍스트를 만든다.**  
+등록·체인·Body 캐시 상세는 [§6 필터 아키텍처](#6-필터-아키텍처)를 본다.
+
+#### 처리 흐름(표 그림)
+
+```text
+                    ┌─────────────────────────────┐
+                    │      DefaultFilter          │
+                    └──────────────┬──────────────┘
+                                   ▼
+              content-type = multipart/* ?
+                    ┌──────────────┴──────────────┐
+                   Yes                           No
+                    ▼                             ▼
+           X-GUID 헤더로 Context          CachedBody 래핑
+           구성 후 통과                   JWT 검사(비-local)
+                                          Body 비어있음? → 400
+                                          JSON 파싱 실패? → 400
+                                          hdr_nhnis 없음?
+                                            · local → 합성 헤더
+                                            · 그 외 → 400
+                                          MDC(guid/ip/user/service)
+                                          ServiceContextHolder.set
+                                          filterChain.doFilter(wrapper)
+                                   │
+                                   ▼
+                              finally
+                     Context remove + ThreadContext clear
+```
+
+#### 단계별 책임
+
+| 단계 | 동작 | 결과 |
+| ---- | ---- | ---- |
+| URI → serviceId | path 마지막 세그먼트 | MDC `serviceId` 초기값 |
+| multipart | `X-GUID`로 최소 헤더 구성 | Body 미파싱 통과 |
+| JWT (비-local) | `Authorization: Bearer` 필수·유효·Access | 실패 시 401 |
+| Body | `CachedBodyHttpServletRequest`로 재읽기 가능 | 빈 Body → 400 |
+| `hdr_nhnis` | Map → `hdr_nhnis` DTO | local 없으면 `syntheticLocalHeader` |
+| 헤더 보강 | `rms_svc_c`, `scid`, IP, `optr_eno`, `tr_sysid` | 비어 있을 때만 채움 |
+| Context | `ServiceContextHolder.setInstance` | Interceptor/업무가 공유 |
+| finally | Context·MDC 제거 | 요청 종료 시 누수 방지 |
+
+#### local vs 비-local
+
+| 조건 | local | 비-local |
+| ---- | ----- | -------- |
+| JWT | 생략 | Bearer Access Token 필수 |
+| `hdr_nhnis` 없음 | 합성 헤더(GUID 신규 채번) 허용 | 400 |
+| `optr_eno` 비어 있음 | `"LOCAL"` | 보강 로직 동일(없으면 LOCAL) |
+
+### 5.4 시스템 선후처리 — `ServicePreventionInterceptor`
+
+**위치:** `nhnis.fw.commons.interceptor.ServicePreventionInterceptor`  
+**역할:** Filter가 만든 컨텍스트를 **확정**하고, 전문 헤더 기준 **이미지로그**를 남긴다.
+
+#### 생명주기(표 그림)
+
+```text
+ preHandle                          postHandle                    afterCompletion
+ ─────────                          ──────────                    ───────────────
+ SystemPreProcessor Start!          SystemPostProcessor           (예외 있을 때만)
+ Context null? → warn 후 통과       multipart? skip               SystemErrorProcessor
+ GUID 없으면 UUID 강제 채번         ImageLog POST                 ImageLog EX
+ 헤더 보강(서비스/화면/IP/사용자)                                  Context remove + rethrow
+ ImageLog PRE
+```
+
+#### 메서드별 책임
+
+| 메서드 | 시점 | 주요 처리 |
+| ------ | ---- | --------- |
+| `preHandle` | Controller 전 | 선처리 로그, GUID 확정, `enrichHeaderFromRequest`, `preImagelog` |
+| `postHandle` | Controller 정상 반환 후 | 후처리 로그, `postImagelog` |
+| `afterCompletion` | 예외 발생 시 | `exceptionImagelog`, Context 제거, 예외 재던짐 |
+
+#### 헤더 보강 규칙 (`enrichHeaderFromRequest`)
+
+| 필드 | 비어 있을 때 채우는 값 |
+| ---- | --------------------- |
+| `rms_svc_c` | URI 마지막 세그먼트(서비스 ID) |
+| `scid` | `rms_svc_c`에서 `[SD]\d+$` 제거 |
+| `tr_trm_ipadr` | `X-Forwarded-For` 또는 `remoteAddr` |
+| `optr_eno` | MDC `userId` 또는 `"LOCAL"` |
+
+multipart 요청은 선/후처리 본문을 건너뛰고 통과한다.
+
+### 5.5 업무 선후처리 — `BizPrePostAspect`
+
+**위치:** `nhnis.mk.co.common.BizPrePostAspect`  
+**역할:** **업무 Controller** 공통 진입/종료 로그. DB·이미지로그·트랜잭션은 다루지 않는다.  
+AOP 전체 맵: [§19](#19-aop-아키텍처).
+
+#### Pointcut · Order
+
+| 항목 | 값 |
+| ---- | -- |
+| Pointcut | `execution(* nhnis.mk.co..controller..*(..))` |
+| `@Order` | `100` |
+| 활성 | `nhnis.fw.commons.legacy-web.enabled=true` (기본 true) |
+
+#### 처리 흐름(표 그림)
+
+```text
+          Controller 메서드 호출
+                   │
+                   ▼
+         ┌─────────────────────┐
+         │ @Before  업무 선처리 │  ▶▶▶▶▶▶ mpco 업무 공통 선처리 ▶▶▶▶▶▶
+         │ Argument BRC 로그   │  getTrtBrc / getBrc / getBRC / getL5104
+         └──────────┬──────────┘
+                    ▼
+              Controller body
+              Service / DAO
+                    │
+                    ▼
+         ┌─────────────────────┐
+         │ @After   업무 후처리 │  ▶▶▶▶▶▶ mpco 업무 공통 후처리 ▶▶▶▶▶▶
+         │ Argument BRC 로그   │
+         └─────────────────────┘
+```
+
+| Advice | 로그 (`PdmkTxLog`) | 추가 |
+| ------ | ------------------ | ---- |
+| `@Before` | `bizPreProcess()` | 인자별 `bizArgumentBefore(BRC)` |
+| `@After` | `bizPostProcess()` | 인자별 `bizArgumentAfter(BRC)` |
+
+BRC 추출은 DTO에 getter가 있을 때만 반사 호출한다. 없으면 `null`로 남긴다.
+
+### 5.6 운영 로그 타임라인 예시
+
+정상 거래 시 로그 순서는 대략 다음과 같다 (`PdmkTxLog` 기준).
+
+```text
+[ServicePreventionInterceptor] SystemPreProcessor Start!
+[ServicePreventionInterceptor] GUID: <std_gbl_id>
+▶▶▶▶▶▶ mpco 업무 공통 선처리 ▶▶▶▶▶▶
+[bizPrePostAspect().before()] Argument: BRC : ...
+▷▷▷▷▷▷▷▷ mkcoa5530 Controller Start!
+▶▶▶▶▶▶▶▶ mkcoa5530S0 Service Start!
+▶▶▶▶▶▶▶▶ mkcoa5530S0 Service End! - Total: n
+▷▷▷▷▷▷▷▷ mkcoa5530 Controller End!...
+▶▶▶▶▶▶ mpco 업무 공통 후처리 ▶▶▶▶▶▶
+[bizPrePostAspect().after()] Argument: BRC : ...
+[ServicePreventionInterceptor] SystemPostProcessor
+```
+
+예외 시 Interceptor `afterCompletion`에서 `SystemErrorProcessor` + exception 이미지로그가 추가된다.
+
+### 5.7 설정 스위치
+
+| 키 | 영향 컴포넌트 |
+| -- | ------------- |
+| `nhnis.fw.commons.filter.enabled=true` | `DefaultFilter` |
+| `nhnis.fw.commons.legacy-web.enabled=true` | `WebConfiguration`(Interceptor·Resolver), `BizPrePostAspect` |
+| `spring.profiles.active=local` | Filter JWT 생략·헤더 합성 허용 |
+| `nhnis.fw.tcf.enabled=false` | TCF Filter/Aspect **미사용** (본 경로와 혼용하지 않음) |
+
+---
+
+## 6. 필터 아키텍처
+
+PDMK에서 Servlet Filter의 **실사용 구현은 `DefaultFilter` 하나**이다. TCF 쪽 `TcfTraceFilter` / `JwtAuthenticationFilter`는 소스만 있고 **비활성**이다.
+
+선후처리(Interceptor·Aspect)와의 역할 비교는 [§5](#5-필터시스템-선후처리업무-선후처리), 본 절은 **등록·체인·Body·JWT·정리**에 집중한다.
+
+### 6.1 필터 맵(표 그림)
+
+```text
+ ┌─────────────────────── Servlet Container ───────────────────────┐
+ │  FilterRegistrationBean  order=1  urlPatterns=/*                 │
+ │                                                                  │
+ │  ┌──────────────── DefaultFilter (ACTIVE) ─────────────────┐   │
+ │  │  multipart? / JWT? / Body cache / hdr_nhnis / Context    │   │
+ │  └──────────────────────────┬──────────────────────────────┘   │
+ │                             ▼                                    │
+ │  Spring Security FilterChain (앱 SecurityConfig)                 │
+ │  └─ 샘플: permitAll (상태비저장)                                  │
+ │                             ▼                                    │
+ │  DispatcherServlet                                               │
+ │  └─ Interceptor → Controller …                                  │
+ └──────────────────────────────────────────────────────────────────┘
+
+  (비활성) TcfTraceFilter / JwtAuthenticationFilter  — tcf.enabled=true 일 때만
+```
+
+| 필터 | 모듈 | 등록 방식 | 활성 조건 | 역할 |
+| ---- | ---- | --------- | --------- | ---- |
+| `DefaultFilter` | `pdmk-fw` commons | `FilterConfiguration` + `@Component` | `nhnis.fw.commons.filter.enabled=true` | 전문·JWT·`ServiceContext` |
+| `TcfTraceFilter` | `pdmk-fw` tcf | `@Component` `@Order(HIGHEST)` | `tcf.enabled=true` | guid/traceId·소요시간 |
+| `JwtAuthenticationFilter` | `pdmk-fw` tcf | Security 체인에 **수동** 추가(Bean 등록 금지) | TCF Security 구성 시 | SecurityContext JWT |
+| 앱 `SecurityFilterChain` | `pdmk-service` | `nhnis.mk.config.SecurityConfig` | 항상 | CSRF off, permitAll 등 |
+
+### 6.2 등록
+
+```text
+FilterConfiguration  (@ConditionalOnProperty filter.enabled=true)
+  └─ FilterRegistrationBean<DefaultFilter>
+        setFilter(defaultFilter)
+        addUrlPatterns("/*")
+        setOrder(1)
+```
+
+| 항목 | 값 |
+| ---- | -- |
+| 클래스 | `nhnis.fw.commons.configuration.FilterConfiguration` |
+| URL | `/*` |
+| Order | `1` |
+| 의존 | `ClientHttpConnector` Bean (생성자 주입, APIGW 훅용) |
+
+`DefaultFilter` 자체도 `@Component` + `@ConditionalOnProperty(filter.enabled=true)` 이다.  
+`legacy-web.enabled`와는 **독립** — Interceptor는 legacy-web, Filter는 filter 플래그.
+
+### 6.3 요청 처리 흐름(표 그림)
+
+```text
+                    DefaultFilter.doFilter
+                              │
+                              ├─ URI → serviceId → MDC
+                              ├─ HTTP 헤더 수집 (HttpHeaders)
+                              │
+              content-type starts with multipart/ ?
+                     ┌────────┴────────┐
+                    Yes               No
+                     │                 │
+                     ▼                 ▼
+              X-GUID 헤더로      CachedBodyHttpServletRequest
+              최소 hdr_nhnis           │
+              Context set        비-local? JWT Bearer 검증
+              doFilter(원본)           │ 실패 → 401 return
+                     │           Body 비어있음? → 400
+                     │           JSON 파싱 실패? → 400
+                     │           hdr_nhnis 없음?
+                     │             local → syntheticLocalHeader
+                     │             else → 400
+                     │           sys_comm 보강
+                     │           MDC(guid/ip/userId/serviceId)
+                     │           ServiceContextHolder.set
+                     │           doFilter(wrapper)  ← Body 재읽기 가능
+                     │                 │
+                     └────────┬────────┘
+                              ▼
+                           finally
+                     Context remove + ThreadContext.clearAll
+```
+
+### 6.4 Body 캐시 — `CachedBodyHttpServletRequest`
+
+Servlet InputStream은 **한 번만** 읽을 수 있다. Filter가 JSON을 파싱한 뒤 Resolver·Controller도 Body가 필요하므로 래퍼로 버퍼링한다.
+
+#### Body 버퍼(표 그림)
+
+```text
+ 원본 Request
+      │ readAllBytes()
+      ▼
+ CachedBodyHttpServletRequest
+      ├─ getInputStream() / getReader() → 캐시 재재생
+      └─ Filter 이후 RequestBodyArgumentResolver 가 동일 Body 재파싱
+```
+
+| 구분 | multipart | 일반 JSON |
+| ---- | --------- | --------- |
+| Body 래핑 | 안 함 | `CachedBodyHttpServletRequest` |
+| Filter 이후 전달 | 원본 `request` | `wrapper` |
+
+### 6.5 JWT (commons Filter)
+
+#### JWT 게이트(표 그림)
+
+```text
+ spring.profiles.active
+         │
+    local │                    그 외 │
+         ▼                         ▼
+   JWT 검증 생략              Authorization: Bearer
+   (Filter 통과)              JwtProvider.validate
+                              ├─ OK → ssoId attribute
+                              └─ NG → 401 sendError
+```
+
+| 프로파일 | JWT |
+| -------- | --- |
+| `local` | **검증 생략** |
+| 그 외 | `Authorization: Bearer …` 필수 → `JwtProvider.validate` · Access Token · `ssoId` attribute |
+
+TCF `JwtAuthenticationFilter`와 **병행하지 않는다.** PDMK는 commons `DefaultFilter` + `JwtProvider`만 사용한다. 전체 보안 층: [§18](#18-보안-아키텍처).
+
+### 6.6 `ServiceContext` · MDC
+
+Filter가 성공하면 스레드에 컨텍스트를 심고, **반드시 finally에서 제거**한다.
+
+#### 컨텍스트 수명(표 그림)
+
+```text
+ Filter 성공
+    │ set ServiceContextHolder + MDC(guid…)
+    ▼
+  … Interceptor / Aspect / Controller …
+    │
+ Filter finally
+    │ remove Context + ThreadContext.clearAll
+    ▼
+ 워커 재사용 안전 (GUID 누수 방지)
+```
+
+| 저장소 | 키/내용 |
+| ------ | ------- |
+| `ServiceContextHolder` | appName, guid, profile, headers, request/response, `hdr_nhnis` |
+| Log4j `ThreadContext` | `guid`, `ip`, `userId`, `serviceId` |
+
+정리하지 않으면 톰캣 워커 재사용 시 **이전 거래 GUID가 다음 로그에 유출**될 수 있다.
+
+### 6.7 체인 위치와 후속 계층
+
+```text
+ DefaultFilter          ← 전문·Context 준비 (본 절)
+      │
+ SecurityFilterChain    ← 인가(샘플 permitAll)
+      │
+ DispatcherServlet
+      │
+ ServicePreventionInterceptor  ← 시스템 선후·ImageLog  [§5.4]
+      │
+ BizPrePostAspect              ← 업무 로그           [§5.5]
+      │
+ Controller → Service → DAO
+```
+
+Filter는 **DB 트랜잭션 경계를 열지 않는다** ([§11](#11-트랜잭션-처리-아키텍처)).  
+Filter 실패는 **전문 envelope 없이** `sendError` ([§12.5](#125-filter인증-단계-오류)).
+
+### 6.8 Security 충돌 주의
+
+| 구성 | 권장 |
+| ---- | ---- |
+| 앱 `nhnis.mk.config.SecurityConfig` | **사용** (PDMK 샘플) |
+| FW `nhnis.fw.commons.configuration.SecurityConfig` | `commons.security.enabled=true`일 때만 — **기본 끄고 앱과 이중 체인 금지** |
+| TCF JWT 필터 + DefaultFilter JWT | **동시 사용 금지** |
+
+### 6.9 설정 스위치
+
+| 키 | 기본(PDMK) | 효과 |
+| -- | ---------- | ---- |
+| `nhnis.fw.commons.filter.enabled` | `true` | `DefaultFilter` + `FilterConfiguration` |
+| `spring.profiles.active` | `local` | JWT·헤더 필수 완화 |
+| `nhnis.fw.tcf.enabled` | `false` | TCF Trace/JWT 필터 OFF |
+| `nhnis.fw.commons.security.enabled` | (미설정/false) | FW SecurityFilterChain OFF |
+
+### 6.10 체크리스트
+
+- [ ] `filter.enabled=true` 이고 `ClientHttpConnector` Bean 존재
+- [ ] JSON 거래는 Filter가 wrapper를 넘기는지(Resolver Body 재읽기)
+- [ ] local / 비-local JWT·헤더 정책이 환경과 일치
+- [ ] finally에서 Context·MDC 정리 (코드 변경 시 유지)
+- [ ] TCF 필터·FW Security와 이중 등록하지 않음
+
+---
+
+## Part III. 구조·모듈
+
+> **§7~§9** — 레이어·3모듈·commons 패키지
+>
+> [← 이전: II 런타임](#part-ii-런타임-경로) · [목차](#목차) · [다음: IV 계약 →](#part-iv-계약업무-규칙)
+
+#### Part III 한눈에(표 그림)
+
+```text
+  ┌──────── §7 레이어드 ────────┐
+  │ Presentation → Application  │
+  │ → Domain → Persistence      │
+  └──────────────┬──────────────┘
+                 │
+     ┌───────────┼───────────┐
+     ▼           ▼           ▼
+  §8.1 fw     §8.2 service  §8.3 ui
+     │
+     └──────► §9 commons 패키지 맵
+```
+
+| 이 Part의 절 | 한줄 |
+| ------------ | ---- |
+| [§7 레이어드](#7-애플리케이션-레이어드-아키텍처) | Presentation~Persistence |
+| [§8 모듈별](#8-모듈별-아키텍처) | fw / service / ui |
+| [§9 commons](#9-commons-공통-아키텍처) | `nhnis.fw.commons` |
+
+## 7. 애플리케이션 레이어드 아키텍처
+
+PDMK는 **패키지 기반 전통 레이어**(Controller → Service → DAO)를 사용한다.  
+(PDMG처럼 `entry` / `application` / `persistence` 로 패키지를 재배치한 형태가 아니다.)
+
+### 7.1 전체 레이어(표 그림)
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                        Presentation / Entry                      │
+│  pdmk-ui: static HTML · PdmkUiApiController · HomeController     │
+│  pdmk-service: nhnis.mk.co.a.controller.*                        │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │ HTTP / 메서드 호출
+┌───────────────────────────────▼─────────────────────────────────┐
+│                     Cross-cutting (횡단)                         │
+│  pdmk-fw: DefaultFilter · ServicePreventionInterceptor           │
+│           RequestBody / ResponseBody Resolver · JwtProvider      │
+│  pdmk-service: BizPrePostAspect · SecurityConfig · WebMvc        │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │
+┌───────────────────────────────▼─────────────────────────────────┐
+│                     Application / Service                        │
+│  nhnis.mk.co.a.service.*     (메서드명 = 서비스 ID)               │
+│  nhnis.mk.co.a.dto.*         (DTOin / DTOout / DTOSub)           │
+│  nhnis.mk.common.util.*      (MappingUtil 등)                    │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │
+┌───────────────────────────────▼─────────────────────────────────┐
+│                     Persistence                                  │
+│  nhnis.mk.co.a.dao.*  (@RDWMapper)                               │
+│  resources/rdw.mk.co.a/*-ORA.xml                                 │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │ JDBC
+┌───────────────────────────────▼─────────────────────────────────┐
+│                     Infrastructure                               │
+│  RDW DataSource (H2 local / Oracle) · MyBatis · HikariCP         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+| 레이어 | 모듈 | 패키지 / 위치 | 허용 의존 |
+| ------ | ---- | ------------- | --------- |
+| Presentation | `pdmk-ui`, `pdmk-service` | `ui.entry.web`, `mk.co.a.controller` | Service, DTO, (UI는 Relay client) |
+| Cross-cutting | `pdmk-fw`, `pdmk-service` | `fw.commons.*`, `mk.co.common`, `mk.config` | Context, 헤더 DTO, 로그 |
+| Application | `pdmk-service` | `mk.co.a.service`, `mk.co.a.dto` | DAO, DTO, util |
+| Persistence | `pdmk-service` | `mk.co.a.dao`, `rdw.mk.co.a/` | DB만 (Controller 직접 호출 금지) |
+| Infrastructure | Boot 설정 | `mk.config.RdwDataSourceConfig` 등 | Spring / JDBC |
+
+### 7.2 `pdmk-service` 업무 레이어
+
+```text
+  Client
+    │  POST /mkcoa5530S0   { hdr_nhnis, dto }
+    ▼
+┌───────────────┐
+│  Controller   │  nhnis.mk.co.a.controller
+│  진입·위임만  │  @PostMapping("/서비스ID")
+└───────┬───────┘
+        │ DTOin → DTOout
+        ▼
+┌───────────────┐
+│   Service     │  nhnis.mk.co.a.service
+│  업무 규칙    │  페이징·매핑·검증
+└───────┬───────┘
+        │ Map / int
+        ▼
+┌───────────────┐
+│     DAO       │  nhnis.mk.co.a.dao
+│  SQL ID 호출  │  메서드명 = SQL ID
+└───────┬───────┘
+        │ MyBatis
+        ▼
+┌───────────────┐
+│  Mapper XML   │  rdw.mk.co.a/{식별}-ORA.xml
+└───────┬───────┘
+        ▼
+       RDW
+```
+
+#### 레이어별 책임·금지
+
+| 레이어 | 책임 | 하지 말 것 |
+| ------ | ---- | ---------- |
+| Controller | URL 매핑, Service 호출, 시작/종료 로그 | SQL, 트랜잭션 세부, Map↔DTO 대량 매핑 |
+| Service | 업무 로직, DAO 조합, DTO↔Map 매핑, 페이징 계산 | HTTP 헤더 직접 조작, `@PostMapping` |
+| DAO | MyBatis 메서드 선언만 | 업무 if/검증, Controller 의존 |
+| DTO | 전문 `dto` 노드 스키마 | DB 접속, Service 주입 |
+| config | Security, DataSource, CORS | 업무 서비스 ID 하드코딩(샘플 제외) |
+
+#### 패키지 ↔ 레이어 매핑
+
+```text
+nhnis.mk
+├── PdmkApplication              ← Boot (인프라 진입)
+├── config/                      ← Infrastructure / Cross-cutting 설정
+├── common/util/                 ← Application 보조
+└── co/
+    ├── common/BizPrePostAspect  ← Cross-cutting (업무)
+    └── a/
+        ├── controller/          ← Presentation
+        ├── service/             ← Application
+        ├── dao/                 ← Persistence
+        └── dto/                 ← Application (전문 모델)
+```
+
+규칙: `nhnis.[대구분].[업무].[세부].{controller|service|dao|dto}`  
+예: `nhnis.mk.co.a.controller.mkcoa5530Controller`
+
+#### 의존 방향(표 그림)
+
+```text
+ Controller ──► Service ──► DAO ──► Mapper XML ──► DB
+     │             │
+     └──► DTO ◄────┘
+
+ Cross-cutting(Filter/Interceptor/Aspect) ── wraps ──► Controller
+ pdmk-fw  ◄── implementation ──  pdmk-service
+```
+
+- **상위 → 하위만** 의존한다. DAO가 Service/Controller를 import하지 않는다.
+- DTO는 Service·Controller가 공유하는 **전달 객체**이며 Persistence 엔티티가 아니다(DAO는 `Map` 중심).
+
+### 7.3 `pdmk-fw` 레이어 위치
+
+FW는 업무 레이어에 끼어들지 않고 **횡단 + 인프라 공통**만 제공한다.
+
+```text
+                    ┌──────────────────────┐
+                    │   pdmk-service 업무   │
+                    │ Controller/Service/  │
+                    │ DAO/DTO              │
+                    └──────────┬───────────┘
+                               │ uses
+         ┌─────────────────────▼─────────────────────┐
+         │              pdmk-fw                       │
+         │  commons.filter / interceptor / resolver   │
+         │  commons.dto.header / jwt / imagelog / util│
+         │  (tcf.* — 비활성)                          │
+         └───────────────────────────────────────────┘
+```
+
+| FW 영역 | 레이어 관점 |
+| ------- | ----------- |
+| Filter / Interceptor / Resolver | Cross-cutting |
+| `hdr_nhnis`, `sys_comm`, `DataObject` stub | Shared kernel (공통 모델) |
+| JwtProvider, ImageLogHandler | Infrastructure adapter |
+| `nhnis.fw.tcf.*` | (미사용) 대체 Presentation/AOP 경로 |
+
+### 7.4 `pdmk-ui` 레이어
+
+UI는 DB/DAO 없이 **중계 Presentation**만 구성한다.
+
+```text
+ Browser (static HTML/JS)
+         │
+         ▼
+ ┌───────────────────┐
+ │ entry.web         │  Home · /api/* Controller
+ └─────────┬─────────┘
+           ▼
+ ┌───────────────────┐
+ │ application       │  TransactionCatalog
+ └─────────┬─────────┘
+           ▼
+ ┌───────────────────┐
+ │ client            │  TransactionRelayService → pdmk-service
+ └───────────────────┘
+           +
+ ┌───────────────────┐
+ │ support / config  │  RelayResult · Properties
+ └───────────────────┘
+```
+
+| UI 레이어 | 클래스 | 역할 |
+| --------- | ------ | ---- |
+| entry | `PdmkUiHomeController`, `PdmkUiApiController` | 화면·중계 API |
+| application | `TransactionCatalog` | 거래 목록·샘플 JSON |
+| client | `TransactionRelayService` | HTTP POST 중계 |
+| support | `TransactionInfo`, `RelayResult` | 값 객체 |
+| config | `PdmkUiProperties` | `target-base-url` 등 |
+
+### 7.5 PDMK vs 패키지 리팩터형(참고)
+
+| 항목 | PDMK (`pdmk-service`) | 참고: PDMG 스타일 |
+| ---- | --------------------- | ----------------- |
+| Presentation | `...controller` | `entry.controller` |
+| Application | `...service` + `...dto` | `application.service` / `application.dto` |
+| Persistence | `...dao` + `rdw.mk.co.a` | `persistence.dao` |
+| Cross-cutting | `co.common` + `pdmk-fw` | `entry.aspect` + `pdmk-fw` |
+| 런타임 모델 | **동일** (C→S→DAO, commons) | 동일, 패키지명만 다름 |
+
+PDMK 신규 프로그램은 **현재 레이어·패키지 규칙**을 유지한다.
+
+### 7.6 레이어 체크리스트
+
+새 거래 추가 시:
+
+1. Presentation: `mkcoa{식별}Controller` + `POST /서비스ID`
+2. Application: `mkcoa{식별}Service` + `*DTOin`/`*DTOout`(/`*DTOSub*`)
+3. Persistence: `mkcoa{식별}DAO` + `rdw.mk.co.a/{식별}-ORA.xml` (SQL ID = 메서드명)
+4. Cross-cutting: 별도 추가 없이 기존 Filter/Interceptor/Aspect 적용 확인
+5. UI(선택): `TransactionCatalog` + static 화면 동기화
+
+---
+
+## 8. 모듈별 아키텍처
+
+본 절은 **통합 스택의 세 기둥**을 각각 정의한다.  
+의존 방향: `pdmk-ui` --HTTP--> `pdmk-service` --JAR--> `pdmk-fw`.
+
+#### 모듈 배치(표 그림)
+
+```text
+ ┌─ §8.1 pdmk-fw ────┐
+ │ java-library JAR  │◄── implementation
+ │ nhnis.fw.commons  │         │
+ └───────────────────┘         │
+ ┌─ §8.2 pdmk-service ┐        │
+ │ Boot WAR :8080     │────────┘
+ │ nhnis.mk.*         │◄── HTTP POST
+ └────────────────────┘         │
+ ┌─ §8.3 pdmk-ui ─────┐         │
+ │ Boot JAR :8090     │─────────┘
+ │ 릴레이 · 카탈로그   │  (fw 미의존)
+ └────────────────────┘
+```
+
+### 8.1 `pdmk-fw` — 공통 프레임워크
+
+**성격:** Boot 앱이 아닌 `java-library`. `pdmk-service`(및 `pdmg-service`)가 의존한다.
+
+#### 패키지 맵
+
+| 패키지 | 역할 | PDMK 기본 |
+| ------ | ---- | --------- |
+| `nhnis.fw.commons.*` | Filter, Interceptor, JWT, 헤더 DTO, 메시지, FOS, 유틸, 이미지로그 | **활성** |
+| `nhnis.fw.tcf.*` | TCFAspect, STF/ETF, Standard*Dto, Trace/JWT 필터 | **비활성** |
+| `nhnis.fw.exception.*` | TCF용 GlobalExceptionHandler 등 | TCF on일 때만 |
+| `com.ims.superspring.*` | `DataObject` 등 SuperSpring 호환 stub | 컴파일용 |
+
+상세 패키지·경계: [§9 commons 공통 아키텍처](#9-commons-공통-아키텍처).
+
+#### commons 핵심 컴포넌트
+
+| 컴포넌트 | 조건 | 책임 |
+| -------- | ---- | ---- |
+| `DefaultFilter` | `nhnis.fw.commons.filter.enabled=true` | 요청 Body→`ServiceContext`, GUID, JWT |
+| `WebConfiguration` | `legacy-web.enabled=true` | Interceptor·`@RequestBody` resolver 등록 |
+| `ServicePreventionInterceptor` | legacy-web | 시스템 선/후처리, 이미지로그 |
+| `RequestBodyArgumentResolver` | legacy-web | JSON의 `dto` 노드 → 메서드 인자 |
+| `JwtProvider` | commons | 비-local JWT 검증 |
+| `ImageLogHandler` | — | `TB_FW_IMAGE_LOG` 선/후 기록 |
+| `PdmkTxLog` | — | 거래 로그 메시지 포맷 |
+| `hdr_nhnis` / `sys_comm` | — | 표준 전문 헤더 DTO |
+
+#### Feature flag (앱 `application.yml`)
+
+```yaml
+nhnis:
+  fw:
+    tcf:
+      enabled: false          # TCF 경로 OFF
+    commons:
+      legacy-web:
+        enabled: true         # Interceptor + dto 바인딩 ON
+      filter:
+        enabled: true         # DefaultFilter ON
+```
+
+#### 설계 원칙
+
+- 업무 패키지(`nhnis.mk.*`)를 FW에 두지 않는다.
+- FW Security(`commons.configuration.SecurityConfig`)와 앱 Security가 동시 로드되면 필터 체인이 충돌할 수 있으므로, 앱에서 하나를 선택한다. PDMK는 **앱 `SecurityConfig` + commons DefaultFilter** 조합을 쓴다.
+- `com.ims.superspring` stub은 사내 JAR가 있으면 교체한다.
+
+---
+
+### 8.2 `pdmk-service` — 업무 애플리케이션
+
+**성격:** Spring Boot 3.5 / Java 21 WAR. `scanBasePackages = "nhnis"`로 FW·업무를 함께 스캔한다.
+
+레이어드 구조·의존 방향은 [§7 애플리케이션 레이어드 아키텍처](#7-애플리케이션-레이어드-아키텍처)를 본다.
+
+#### 논리 계층
+
+```text
+nhnis.mk
+├── PdmkApplication / ServletInitializer
+├── config/                 # Security, MyBatis(RDW), CORS, WebMvc
+├── common/util/            # MappingUtil 등
+└── co/
+    ├── common/             # BizPrePostAspect (업무 선·후처리)
+    └── a/                  # 업무 CO + 세부 A
+        ├── controller/
+        ├── service/
+        ├── dao/
+        └── dto/
+```
+
+| 계층 | 규칙 요약 |
+| ---- | --------- |
+| Controller | `@RestController`, 클래스 `@RequestMapping` 금지, `POST /{서비스ID}` |
+| Service | 메서드명 = 서비스 ID |
+| DAO | `@RDWMapper`, 메서드명 = SQL ID |
+| DTO | `{서비스ID}DTOin` / `DTOout` / `DTOSub*`, `DataObject` 상속 |
+| Mapper XML | `classpath:rdw.mk.co.a/{식별}-ORA.xml`, namespace = DAO FQCN |
+
+#### 데이터 접근
+
+| 항목 | 값 |
+| ---- | -- |
+| MapperScan | `nhnis.mk.**.dao` |
+| XML 위치 패턴 | `classpath*:rdw.*/*.xml` |
+| 로컬 DB | H2 in-memory (`MODE=Oracle`) |
+| 폐쇄망 | Oracle RDW (`spring.datasource.rdw`) |
+
+#### 보안
+
+- 상세: [§18 보안 아키텍처](#18-보안-아키텍처)
+- `nhnis.mk.config.SecurityConfig`: 무상태, **전체 permitAll** (샘플)
+- JWT: TCF 필터 미사용. commons `DefaultFilter` + `JwtProvider` (비-`local`)
+- `local` 프로파일: Filter JWT 생략, 헤더 없는 `dto` 허용
+
+#### 샘플 거래
+
+| 프로그램 | API | 설명 |
+| -------- | --- | ---- |
+| `mkcoa8888` | `POST /mkcoa8888S0`, `/mkcoa8888D0` | 이미지로그 조회/삭제 |
+| `mkcoa5530` | `POST /mkcoa5530S0` | 마케팅희망고객(안내항목) 목록 |
+| `mkcoa9999` | `POST /mkcoa9999S0` | 영업팁 실적 목록 |
+
+---
+
+### 8.3 `pdmk-ui` — 전문 테스트 UI
+
+**성격:** 통합 스택의 **Presentation 모듈**. 경량 Boot 앱이며 업무 DAO/`pdmk-fw`에 직접 의존하지 않고, **HTTP로 `pdmk-service`를 중계**한다.  
+서비스 ID·전문 형식은 service와 **동일 계약**을 쓴다 (카탈로그·샘플 JSON 동기화 필수).
+
+#### 패키지 맵
+
+```text
+nhnis.mk.ui
+├── PdmkUiApplication
+├── config/PdmkUiProperties     # target-base-url, timeout
+├── entry/web/
+│   ├── PdmkUiHomeController    # 정적 화면 라우팅
+│   └── PdmkUiApiController     # /api/*
+├── application/service/
+│   └── TransactionCatalog      # 등록 거래·샘플 JSON
+├── client/
+│   └── TransactionRelayService # RestClient 중계
+└── support/                    # RelayResult, TransactionInfo
+```
+
+#### UI ↔ Service 중계
+
+```text
+Browser
+  → GET  /api/config | /api/transactions
+  → POST /api/relay/{서비스ID}   또는  /api/imagelog/list|delete
+       → TransactionRelayService
+            → POST {targetBaseUrl}/{서비스ID}   (기본 http://localhost:8080)
+```
+
+정적 화면: `static/mkcoa5530/`, `mkcoa9999/`, `imagelog/`, `_shared/online-single.js`
+
+설정:
+
+```yaml
+pdmk.ui.target-base-url: http://localhost:8080
+server.port: 8090
+```
+
+---
+
+## 9. commons 공통 아키텍처
+
+`pdmk-fw`의 **`nhnis.fw.commons`** 는 PDMK 런타임 공통 경로의 본체다.  
+TCF(`nhnis.fw.tcf.*`)와 분리되며, PDMK는 **commons ON · TCF OFF**.
+
+모듈 개요: [§8.1](#81-pdmk-fw--공통-프레임워크).  
+Filter·선후·보안·에러·로그 상세는 각 전용 절을 본다.
+
+### 9.1 위치·역할
+
+| 항목 | 내용 |
+| ---- | ---- |
+| 패키지 루트 | `nhnis.fw.commons` |
+| 모듈 | `pdmk-fw` (`java-library`) |
+| 소비 | `pdmk-service` (`scanBasePackages=nhnis`) |
+| 비소비 | `pdmk-ui` (HTTP만) |
+| 대비 | `nhnis.fw.tcf.*` — `nhnis.fw.tcf.enabled=false` 로 미기동 |
+
+```text
+ nhnis.fw.commons
+ ├─ configuration / filter / interceptor / resolver   ← 요청 파이프라인
+ ├─ context / jwt / imagelog / log                    ← 컨텍스트·감사
+ ├─ dto / exception / message                         ← 전문·에러
+ ├─ transaction                                       ← (레거시 TX 홀더, 업무 TX는 앱)
+ ├─ apigw / fos                                       ← 외부 연동 유틸
+ └─ util                                              ← 문자열·날짜·JSON 등
+```
+
+### 9.2 패키지 맵
+
+| 패키지 | 주요 타입 | 역할 | PDMK |
+| ------ | --------- | ---- | ---- |
+| `configuration` | `FilterConfiguration`, `WebConfiguration`, `ClientHttpConnectorConfiguration`, `SecurityConfig` | Bean 등록·조건부 활성 | Security만 **기본 OFF** |
+| `filter` | `DefaultFilter`, `CachedBodyHttpServletRequest` | JWT·Body 캐시·`ServiceContext` | ● |
+| `interceptor` | `ServicePreventionInterceptor` | 시스템 선후·ImageLog | ● |
+| `resolver` | `RequestBody`·`RequestBodyArgumentResolver`, `ResponseBodyArgumentResolver` | `dto` 바인딩·에러 응답 | ● |
+| `context` | `ServiceContext`, `ServiceContextHolder`, `SpringContext` | 요청 스레드 컨텍스트·Environment | ● |
+| `jwt` | `JwtProvider` | HMAC JWT 검증·ssoId | ● (비-local) |
+| `imagelog` | `ImageLogHandler` | `TB_FW_IMAGE_LOG` I/U | ● |
+| `log` | `PdmkTxLog` | 거래 로그 **메시지 포맷** | ● |
+| `dto.header` | `hdr_nhnis`, `sys_comm` (+ MsgJson) | 표준 전문 헤더 | ● |
+| `dto` / `dto.imagelog` | `NH_NIS_ERR_DTO`, `ImageLogDTO` | 에러·이미지로그 DTO | ● |
+| `exception` | `NhBaseException`, `NhExceptionProvider`, … | commons 표준 예외 | ● |
+| `message` | `MessageCache`, `MessageLoader`, `MessageProperties` | 업무 메시지 캐시 | ○ (옵션) |
+| `transaction` | `ServiceTransactionManager`, `InitTransactionManager`, Holder | ThreadLocal TX 홀더(레거시) | ○ — 업무는 앱 `@Transactional` |
+| `apigw` | `ApiGatewayHandler`, DTO | APIGW WebClient 호출 | ○ 연동 시 |
+| `fos` | `ObjectStorageHandler`, DTO, enums | 오브젝트 스토리지 | ○ 연동 시 |
+| `util` | `DateUtil`, `StringUtil`, `JsonUtil`, `AES256Util`, … | 공통 유틸 | ● |
+
+● 필수 경로 · ○ 옵션/레거시
+
+### 9.3 요청 파이프라인 (commons 관점)
+
+```text
+ DefaultFilter          filter + jwt + context
+      │
+ Security (앱)          ← commons SecurityConfig 와 이중 금지
+      │
+ ServicePreventionInterceptor   interceptor + imagelog
+      │
+ RequestBodyArgumentResolver    resolver (dto)
+      │
+ Controller (service)
+      │
+ ResponseBodyArgumentResolver   예외 시 NH_NIS_ERR_DTO
+```
+
+| 스위치 | 영향 패키지 |
+| ------ | ----------- |
+| `nhnis.fw.commons.filter.enabled=true` | `filter` + `FilterConfiguration` |
+| `nhnis.fw.commons.legacy-web.enabled=true` | `configuration.WebConfiguration`, `interceptor`, `resolver`, (앱) Biz Aspect |
+| `nhnis.fw.commons.security.enabled=true` | `configuration.SecurityConfig` — **PDMK 기본 미사용** |
+| `framework.message.enabled=true` | `message` Loader→Cache |
+
+상세: [§5](#5-필터시스템-선후처리업무-선후처리) · [§6](#6-필터-아키텍처) · [§19](#19-aop-아키텍처) · [§18](#18-보안-아키텍처)
+
+### 9.4 컨텍스트·헤더·에러
+
+| 관심사 | commons 타입 | 연계 절 |
+| ------ | ------------ | ------- |
+| 요청 컨텍스트 | `ServiceContext` / Holder | [§6.6](#66-servicecontext--mdc) |
+| 설정 조회 | `SpringContext.getProperty` | [§23](#23-스프링-환경-구성-아키텍처) |
+| 전문 헤더 | `hdr_nhnis`, `sys_comm` | [§10](#10-전문-구조) |
+| 표준 예외 | `NhBaseException` (+ TYPE) | [§12](#12-에러메시지-처리-아키텍처) · [§13](#13-예외처리-아키텍처) |
+| 에러 DTO | `NH_NIS_ERR_DTO` | [§12](#12-에러메시지-처리-아키텍처) |
+| 메시지 캐시 | `MessageCache` / Loader | [§22](#22-캐시-아키텍처) |
+
+### 9.5 감사·로그·연동
+
+| 관심사 | commons | 비고 |
+| ------ | ------- | ---- |
+| 이미지로그 | `ImageLogHandler` + `ImageLogDTO` | Interceptor에서 호출. TX 분리 ([§11](#11-트랜잭션-처리-아키텍처)·[§21](#21-트랜잭션-로그-아키텍처)) |
+| 로그 포맷 | `PdmkTxLog` | `log.info`는 호출부에서 — `%C.%M` 유지 |
+| JWT | `JwtProvider` | Filter만 사용. TCF JWT 필터와 병행 금지 |
+| APIGW | `apigw.*` | timeout 설정 `apigw.*` ([§20](#20-타임아웃-아키텍처)) |
+| FOS | `fos.*` | `storage.fos.*` 프로퍼티 |
+
+### 9.6 util·transaction 경계
+
+| 규칙 | 설명 |
+| ---- | ---- |
+| util은 상태 없는 도우미 | 업무 규칙·DAO 호출 금지 |
+| `ServiceTransactionManager` | 레거시 ThreadLocal. **신규 업무 TX는 service `@Transactional` + `rdwTransactionManager`** |
+| ImageLog JDBC | commons가 Primary DS 사용 — 업무 롤백과 커밋 분리 가능 |
+| 업무 코드 금지 | `nhnis.mk.*` 를 commons에 두지 않음 |
+
+### 9.7 TCF와 구분
+
+#### commons vs TCF(표 그림)
+
+```text
+                 pdmk-fw
+        ┌──────────┴──────────┐
+        ▼                     ▼
+ nhnis.fw.commons.*     nhnis.fw.tcf.*
+  filter / interceptor    Aspect / STF·ETF
+  hdr_nhnis + dto         StandardRequestDto
+  NhBaseException         BizException
+        │                     │
+        │ enabled=true        │ enabled=false (PDMK)
+        ▼                     ▼
+   ★ PDMK 런타임          (소스만 잔존)
+```
+
+| | commons | TCF |
+| - | ------- | --- |
+| 패키지 | `nhnis.fw.commons.*` | `nhnis.fw.tcf.*` |
+| 스위치 | `commons.filter` / `legacy-web` | `nhnis.fw.tcf.enabled` |
+| 전문 | `hdr_nhnis`+`dto` | `StandardRequestDto` / `result` |
+| 예외 | `NhBaseException` | `BizException` + ETF |
+| AOP | (앱) `BizPrePostAspect` + Interceptor | `TCFAspect` `@TcfTransaction` |
+| PDMK | **사용** | **미사용** |
+
+### 9.8 체크리스트
+
+- [ ] `tcf.enabled=false`, `filter`·`legacy-web`=true
+- [ ] 앱 Security만 쓰고 commons `security.enabled` OFF
+- [ ] 신규 공통 기능은 `commons`에, 업무는 `nhnis.mk`
+- [ ] 예외는 `NhBaseException`, 로그 포맷은 `PdmkTxLog`
+- [ ] ImageLog 실패를 업무 예외로 전파하지 않음
+- [ ] ui/서비스가 commons 패키지를 직접 우회 호출하지 않는지(레이어)
+
+---
+
+## Part IV. 계약·업무 규칙
+
+> **§10~§14** — 전문·TX·에러·예외·네이밍
+>
+> [← 이전: III 구조](#part-iii-구조모듈) · [목차](#목차) · [다음: V 데이터 →](#part-v-데이터)
+
+#### Part IV 한눈에(표 그림)
+
+```text
+  서비스 ID (§14)
+       │
+       ▼
+  ┌─ 전문 hdr+dto (§10) ─┐
+  │         │              │
+  │    ┌────┴────┐         │
+  │    ▼         ▼         │
+  │  TX(§11)  에러/예외    │
+  │           (§12·§13)    │
+  └────────────────────────┘
+```
+
+| 이 Part의 절 | 한줄 |
+| ------------ | ---- |
+| [§10 전문](#10-전문-구조) | `hdr_nhnis`+`dto` |
+| [§11 TX](#11-트랜잭션-처리-아키텍처) | `@Transactional`·ImageLog |
+| [§12 에러메시지](#12-에러메시지-처리-아키텍처) | yml / MessageCache |
+| [§13 예외](#13-예외처리-아키텍처) | 전파 vs 결과코드 |
+| [§14 네이밍](#14-네이밍-아키텍처) | 서비스 ID·패키지 |
+
+## 10. 전문 구조
+
+PDMK 온라인 거래는 JSON 전문을 사용한다. 루트는 항상 **`hdr_nhnis`(공통 헤더) + `dto`(업무 본문)** 이다.
+
+| 모듈 | 전문에서의 역할 |
+| ---- | --------------- |
+| `pdmk-fw` | `hdr_nhnis`/`sys_comm` 타입, Filter·Resolver·Response Advice |
+| `pdmk-service` | `{서비스ID}DTOin`/`DTOout` 업무 본문 |
+| `pdmk-ui` | 동일 JSON을 편집·중계 (샘플 `sample-requests/`) |
+
+### 10.1 전체 구조(표 그림)
+
+```text
+┌──────────────────────── 요청 / 응답 JSON ────────────────────────┐
+│                                                                  │
+│  hdr_nhnis                          ← 공통 헤더 (FW)              │
+│  └─ sys_comm                        ← 시스템 공통 필드            │
+│       ├─ std_gbl_id                 GUID                          │
+│       ├─ rms_svc_c                  서비스 ID (= URL)             │
+│       ├─ scid                       화면/프로그램 ID              │
+│       ├─ tr_trm_ipadr / tr_brc …    단말·점·조작자 등             │
+│       └─ …                                                        │
+│                                                                  │
+│  dto                                ← 업무 본문 (서비스별)         │
+│  ├─ [요청] *DTOin 필드 (pageNo, guidList …)                       │
+│  └─ [응답] *DTOout 필드                                           │
+│         ├─ *DTOSub0[]               목록 행(있을 때)              │
+│         ├─ size / pageNo / …        페이징·건수                   │
+│         └─ …                                                      │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+| 노드 | Java 타입 | 소유 | 역할 |
+| ---- | --------- | ---- | ---- |
+| `hdr_nhnis` | `nhnis.fw.commons.dto.header.hdr_nhnis` | `pdmk-fw` | 거래 공통 헤더 래퍼 |
+| `sys_comm` | `nhnis.fw.commons.dto.header.sys_comm` | `pdmk-fw` | GUID·서비스·단말·조작자 |
+| `dto` (요청) | `{서비스ID}DTOin` | `pdmk-service` | Controller `@RequestBody` 바인딩 대상 |
+| `dto` (응답) | `{서비스ID}DTOout` | `pdmk-service` | Controller 반환 → 응답 `dto` 노드 |
+
+HTTP:
+
+| 항목 | 규칙 |
+| ---- | ---- |
+| Method / URL | `POST /{서비스ID}` (예: `/mkcoa5530S0`) |
+| Content-Type | `application/json` |
+| 클래스 `@RequestMapping` | 사용하지 않음 |
+
+### 10.2 요청 전문
+
+#### 골격
+
+```json
+{
+  "hdr_nhnis": {
+    "sys_comm": {
+      "std_gbl_id": "c3d65cb1a54a43838688b76afe82521e",
+      "rms_svc_c": "mkcoa5530S0",
+      "sync_dsc": "S",
+      "tr_sysid": "PDMK",
+      "ttl_ug_ync": 0,
+      "std_tgrm_rqr_rsp_dsc": "Q",
+      "std_tgrm_lclc": "KO",
+      "tr_trm_ipadr": "127.0.0.1",
+      "tr_dtm": "20260807000000",
+      "tr_brc": "10001",
+      "trmno": "LOCAL01",
+      "trm_kdc": "01",
+      "scid": "mkcoa5530",
+      "optr_eno": "E0000001",
+      "tr_optrnm": "LOCAL_TESTER"
+    }
+  },
+  "dto": {
+    "trtBrc": null,
+    "basDt": "20260801",
+    "pageNo": 1,
+    "pageSize": 20
+  }
+}
+```
+
+#### local 축소 요청
+
+`spring.profiles.active=local` 이면 헤더 없이 본문만 보내도 Filter가 합성 헤더를 만든다.
+
+```json
+{
+  "dto": {
+    "pageNo": 1,
+    "pageSize": 20
+  }
+}
+```
+
+| 프로파일 | `hdr_nhnis` | Filter 동작 |
+| -------- | ----------- | ----------- |
+| `local` | 선택 | 없으면 GUID·서비스 ID 등으로 합성 |
+| 비-local | **필수** | 없으면 400, JWT도 필요 |
+
+### 10.3 `sys_comm` 필드
+
+| 필드 | 의미 | PDMK에서의 쓰임 |
+| ---- | ---- | --------------- |
+| `std_gbl_id` | 거래 GUID | MDC·이미지로그 키. 없으면 Interceptor가 채번 |
+| `rms_svc_c` | 서비스 ID | URL·카탈로그와 일치 (`mkcoa5530S0`) |
+| `scid` | 화면/프로그램 ID | 보통 식별번호까지 (`mkcoa5530`) |
+| `orgtr_gbl_id` | 원거래 GUID | 연계 시 사용(선택) |
+| `trz_gbl_id` | 거래 GUID(부가) | 선택 |
+| `sync_dsc` | 동기 구분 | 샘플 `S` |
+| `async_attr_c` | 비동기 속성 | 선택 |
+| `tr_sysid` | 거래 시스템 ID | 앱명 (`PDMK` 등). Filter가 비어 있으면 보강 |
+| `ttl_ug_ync` | TTL 사용 여부 | 샘플 `0` |
+| `std_tgrm_rqr_rsp_dsc` | 요구/응답 구분 | 샘플 `Q`(요청) |
+| `std_tgrm_lclc` | 로케일 | 샘플 `KO` |
+| `tr_trm_ipadr` | 단말 IP | 이미지로그·MDC. 비면 Filter/Interceptor 보강 |
+| `tr_dtm` | 거래 일시 | `YYYYMMDDHHMMSS` |
+| `tr_brc` | 거래 점코드 | |
+| `naac_dsc` / `trmn_naac_dsc` | 계정/단말 계정 구분 | 선택 |
+| `trmno` | 단말번호 | |
+| `trm_kdc` | 단말종류코드 | |
+| `optr_eno` | 조작자 사번 | MDC `userId`. 비면 `"LOCAL"` |
+| `tr_optrnm` | 조작자명 | |
+| `optr_pzcc` | 조작자 직급 등 | 선택 |
+
+이미지로그·추적용 **핵심 필드:** `std_gbl_id`, `rms_svc_c`, `scid`, `tr_trm_ipadr`, `optr_eno`.
+
+### 10.4 업무 `dto` (DTOin / DTOout / DTOSub)
+
+```text
+서비스 ID  mkcoa5530S0
+           │
+           ├─ mkcoa5530S0DTOin     ← 요청 dto
+           ├─ mkcoa5530S0DTOout    ← 응답 dto
+           └─ mkcoa5530S0DTOSub0   ← 목록 1행 (있을 때)
+```
+
+| 구분 | 클래스 패턴 | 상속 | 필드명 |
+| ---- | ----------- | ---- | ------ |
+| 입력 | `{서비스ID}DTOin` | `DataObject` | camelCase |
+| 출력 | `{서비스ID}DTOout` | `DataObject` | camelCase |
+| 목록행 | `{서비스ID}DTOSub{순번}` | `DataObject` | camelCase |
+
+샘플 본문 예:
+
+| 서비스 | 요청 `dto` 주요 필드 | 응답 `dto` 주요 필드 |
+| ------ | -------------------- | -------------------- |
+| `mkcoa5530S0` | `trtBrc`, `basDt`, `pageNo`, `pageSize` | `mkcoa5530S0DTOSub0[]`, `size`, 페이징 |
+| `mkcoa9999S0` | 조회 조건 (페이징 **미적용** — [§17](#17-페이징-아키텍처)) | `mkcoa9999S0DTOSub0[]`, `size` |
+| `mkcoa8888S0` | 페이징 등 | 이미지로그 목록 Sub |
+| `mkcoa8888D0` | `guidList[]` | 삭제 결과 |
+
+목록 응답 개념도:
+
+```text
+dto (DTOout)
+├─ mkcoa5530S0DTOSub0 : [ {행0}, {행1}, ... ]
+├─ size               : 현재 페이지 건수
+├─ pageNo / pageSize
+├─ totalCount / totalPages
+└─ …
+```
+
+### 10.5 바인딩·직렬화 경로
+
+#### 요청·응답 바인딩(표 그림)
+
+```text
+ [요청]
+ JSON Body
+    │
+    ├─ DefaultFilter ──────────► hdr_nhnis → ServiceContext
+    │
+    └─ RequestBodyArgumentResolver
+           root.get("dto") → {서비스ID}DTOin
+           (@nhnis.fw.commons.resolver.RequestBody)
+
+ [응답]
+ Controller return {서비스ID}DTOout
+    │
+    └─ ResponseBodyArgumentResolver (ResponseBodyAdvice)
+           {
+             "hdr_nhnis": ServiceContext.header,
+             "dto": DTOout
+           }
+           ※ dtoLogicalName, fieldPropertyMap, *List/*Array 필드 제거
+```
+
+| 단계 | 컴포넌트 | 처리 |
+| ---- | -------- | ---- |
+| 요청 헤더 | `DefaultFilter` | `hdr_nhnis` 파싱·보강 → Context |
+| 요청 본문 | `RequestBodyArgumentResolver` | **`dto` 노드만** DTO 타입으로 변환 |
+| 응답 조립 | `ResponseBodyArgumentResolver` | Context 헤더 + 반환 객체를 `dto`에 넣음 |
+| 어노테이션 | `@RequestBody` | **Spring 표준이 아니라** `nhnis.fw.commons.resolver.RequestBody` |
+
+Controller 시그니처 예:
+
+```java
+@PostMapping("/mkcoa5530S0")
+public mkcoa5530S0DTOout mkcoa5530S0(
+        @RequestBody mkcoa5530S0DTOin input) throws Throwable { … }
+```
+
+응답 JSON 골격:
+
+```json
+{
+  "hdr_nhnis": {
+    "sys_comm": { "...": "요청과 동일 컨텍스트 헤더" }
+  },
+  "dto": {
+    "mkcoa5530S0DTOSub0": [ ],
+    "size": 0,
+    "pageNo": 1,
+    "pageSize": 20,
+    "totalCount": 0,
+    "totalPages": 0
+  }
+}
+```
+
+예외(`NhBaseException`) 시 `dto`에 `NH_NIS_ERR_DTO` 계열이 실릴 수 있다. 상세는 [에러처리.md](./에러처리.md).
+
+### 10.6 서비스 ID와 전문 연결
+
+```text
+[대구분2][업무2][세부1][식별4][구분자1][순번1]
+   mk      co     a     8888     S       0
+→ mkcoa8888S0
+```
+
+| 위치 | 값 예 |
+| ---- | ----- |
+| URL | `POST /mkcoa8888S0` |
+| `sys_comm.rms_svc_c` | `mkcoa8888S0` |
+| `sys_comm.scid` | `mkcoa8888` |
+| Controller/Service 메서드 | `mkcoa8888S0(...)` |
+| DTO | `mkcoa8888S0DTOin` / `DTOout` |
+| SQL ID | `mkcoa8888S0_S0` |
+
+- URL·메서드·DTO·SQL ID는 **동일 서비스 ID**로 연결한다.
+- REST 스타일(`/api/.../list`)은 **업무 API에 사용하지 않는다.** (`pdmk-ui`의 `/api/relay`는 UI 전용)
+
+상세 네이밍은 [네이밍원칙.md](./네이밍원칙.md) · [MK-NAMING_CONVENTION.md](./MK-NAMING_CONVENTION.md) 참조.  아키텍처 관점 요약은 [§14 네이밍 아키텍처](#14-네이밍-아키텍처).
+
+### 10.7 하지 말 것 (전문)
+
+| 금지 | 이유 |
+| ---- | ---- |
+| 루트에 업무 필드를 직접 둠 | Filter/Resolver는 `hdr_nhnis` + `dto`만 인식 |
+| Spring `@RequestBody` 사용 | `dto` 노드 추출이 안 됨 |
+| 응답을 DTOout만 반환했다고 끝 | Advice가 `hdr_nhnis`+`dto`로 감쌈 — 클라이언트가 이를 기대 |
+| TCF `StandardRequestDto` / `result.resultCode` 혼용 | PDMK commons 경로와 계약이 다름 |
+
+---
+
+## 11. 트랜잭션 처리 아키텍처
+
+PDMK에서 “트랜잭션”은 **두 가지 의미**로 쓰인다. 혼동하지 않도록 구분한다.
+
+| 구분 | 의미 | PDMK 현재 |
+| ---- | ---- | --------- |
+| **업무 거래(온라인 트랜잭션)** | 한 번의 `POST /서비스ID` 요청 생명주기 | Filter → Interceptor → Aspect → Controller→Service |
+| **DB 트랜잭션** | SQL commit / rollback 단위 | `rdwTransactionManager` + (권장) `@Transactional` |
+
+TCF의 `@TcfTransaction` / STF·ETF는 **업무 거래 AOP**이며 DB commit을 하지 않는다. PDMK는 `nhnis.fw.tcf.enabled=false` 이므로 이 경로는 **사용하지 않는다.**
+
+상세 보충: [트랜잭션처리.md](./트랜잭션처리.md), [4초지나면롤백되나.md](./4초지나면롤백되나.md)
+
+### 11.1 전체 구조(표 그림)
+
+```text
+ ┌────────────────── 업무 거래 (요청 1건) ──────────────────┐
+ │  DefaultFilter → Interceptor → BizAspect → Controller   │
+ │         │                                                │
+ │         ▼                                                │
+ │  ┌──────────── Service (권장: @Transactional) ────────┐ │
+ │  │  Spring TX Proxy                                    │ │
+ │  │       │                                             │ │
+ │  │       ▼                                             │ │
+ │  │  rdwTransactionManager (DataSourceTransactionManager)│ │
+ │  │       │                                             │ │
+ │  │       ▼                                             │ │
+ │  │  rdwDataSource → SqlSessionTemplate → DAO SQL       │ │
+ │  │       │                                             │ │
+ │  │  정상 → commit(쓰기) / 종료(읽기)                    │ │
+ │  │  예외 → rollback                                    │ │
+ │  └─────────────────────────────────────────────────────┘ │
+ │  Interceptor ImageLog PRE/POST  (별도 SQL, 업무 TX와 분리)│
+ └──────────────────────────────────────────────────────────┘
+```
+
+| 계층 | 컴포넌트 | 트랜잭션 역할 |
+| ---- | -------- | ------------- |
+| Cross-cutting | Filter / Interceptor / Aspect | 업무 거래 선후처리·로그. **DB TX 경계 아님** |
+| Application | `*Service` | **DB TX 경계**(권장 `@Transactional`) |
+| Persistence | DAO / MyBatis | Service TX에 참여 |
+| Infrastructure | `rdwTransactionManager` | commit/rollback 실행 |
+| (참고) FW | `InitTransactionManager` 등 | ThreadLocal 홀더. **현재 업무 경로 미사용** |
+
+### 11.2 DB 트랜잭션 인프라
+
+```text
+RdwDataSourceConfig
+├─ rdwDataSource          (@Primary, HikariCP)
+├─ rdwSqlSessionFactory   (MyBatis + rdw.*/*.xml)
+├─ rdwSqlSessionTemplate
+└─ rdwTransactionManager  (@Primary, DataSourceTransactionManager)
+         │
+         ▼
+   동일 DataSource의 Connection으로 SQL 묶음
+```
+
+| Bean | 클래스 | 비고 |
+| ---- | ------ | ---- |
+| `rdwDataSource` | `HikariDataSource` | `spring.datasource.rdw.*` |
+| `rdwTransactionManager` | `DataSourceTransactionManager` | `@Primary` |
+| MyBatis | `SqlSessionTemplate` | 같은 DS → Service TX에 합류 |
+
+Spring Boot는 `PlatformTransactionManager`가 있으면 트랜잭션 인프라를 활성화한다.  
+**선언적 TX는 Service에 `@Transactional`을 붙일 때** 경계가 생긴다.
+
+### 11.3 권장 선언 패턴
+
+```text
+@Service
+@Transactional(readOnly = true)          ← 클래스 기본: 조회
+public class mkcoaXXXXService {
+
+    public ...S0(...) { ... }             ← 읽기 TX
+
+    @Transactional(timeout = 4)           ← 메서드가 클래스 설정을 덮어씀
+    public ...D0(...) { ... }             ← 쓰기 TX (commit/rollback)
+}
+```
+
+| 용도 | 애노테이션 | 효과 |
+| ---- | ---------- | ---- |
+| 조회(S) | `@Transactional(readOnly = true)` | 읽기 전용 커넥션 힌트, 변경 없음 |
+| 등록·수정·삭제(C/U/D) | `@Transactional` 또는 `@Transactional(timeout = n)` | 다중 SQL을 한 단위로 commit/rollback |
+| 타임아웃 | `timeout = 초` | DB 작업 경계에서 초과 시 rollback. **순수 Java sleep을 끊는 타이머 아님** |
+
+쓰기 실패 시:
+
+```text
+INSERT 성공 → UPDATE 실패
+        │
+        ▼
+  @Transactional 프록시가 예외 감지
+        │
+        ▼
+  전체 rollback  (INSERT도 취소)
+        │
+        ▼
+  예외를 Controller / 응답 Advice로 전파
+```
+
+### 11.4 현재 샘플 상태와 갭
+
+| 항목 | 현재(`mkcoa*` Service) | 권장 |
+| ---- | ---------------------- | ---- |
+| `@Transactional` | **미선언** | 조회 `readOnly=true`, 삭제 등 쓰기는 메서드 단위 선언 |
+| `mkcoa8888D0` 삭제 | DAO `DELETE` 단건 호출 | `@Transactional`로 명시적 쓰기 TX |
+| TCF `@TcfTransaction` | 미사용 | 계속 미사용(commons 경로 유지) |
+| FW `ServiceTransactionManager` | 업무 코드에서 호출 없음 | 레거시 유틸로만 인지 |
+
+`@Transactional`이 없어도 SQL은 실행된다. 다만 **여러 DAO 호출을 하나의 원자 단위로 묶거나**, 예외 시 **일괄 rollback**을 보장하려면 선언이 필요하다.
+
+### 11.5 업무 거래 vs DB TX 시퀀스
+
+```text
+ Client
+   │ POST /mkcoa8888D0
+   ▼
+ Filter / Interceptor(pre) / Aspect(before)
+   │
+   ▼
+ Controller
+   │
+   ▼
+ ┌─ Spring @Transactional (쓰기) ─┐
+ │  Service.mkcoa8888D0           │
+ │    → DAO.delete                │
+ │  성공: commit                  │
+ │  RuntimeException 등: rollback │
+ └────────────────────────────────┘
+   │
+   ▼
+ Aspect(after) / Interceptor(post) / Filter finally
+   │
+   ▼
+ Response { hdr_nhnis, dto }
+```
+
+예외 시 순서:
+
+```text
+Service 예외
+  → DB TX rollback          (프록시)
+  → Aspect 후처리(있을 때)
+  → Interceptor afterCompletion (ImageLog EX)
+  → ResponseBody / ExceptionHandler
+```
+
+TCF 경로였다면 Aspect가 실패 JSON을 만들지만, **rollback은 그 전에 TX 프록시가 이미 수행**한다. PDMK commons에서도 동일하게 **DB TX가 먼저**다.
+
+### 11.6 이미지로그와 트랜잭션 경계
+
+#### TX 분리(표 그림)
+
+```text
+ Interceptor PRE ── ImageLog INSERT ── (별도 커밋 가능)
+        │
+        ▼
+ ┌─ @Transactional Service ─┐
+ │  DAO SELECT / DML         │
+ │  commit / rollback        │
+ └────────────┬──────────────┘
+              ▼
+ Interceptor POST/EX ── ImageLog UPDATE ── (업무 TX와 분리)
+
+ ※ 업무 rollback 후에도 PRE/EX 감사행이 남을 수 있음
+```
+
+| SQL | 호출 위치 | 업무 Service TX와의 관계 |
+| --- | --------- | ------------------------ |
+| ImageLog PRE | `ServicePreventionInterceptor.preHandle` | Controller/Service **이전**. 별도 연결·커밋 가능 |
+| 업무 SELECT/DML | Service → DAO | `@Transactional` 경계 안 |
+| ImageLog POST | `postHandle` | Service **이후**. 업무 TX와 **분리** |
+| ImageLog EX | `afterCompletion` | 예외 시. 업무 TX는 이미 rollback된 뒤일 수 있음 |
+
+업무 데이터가 rollback되어도 이미지로그 PRE/EX가 남을 수 있다. **감사·추적 로그와 업무 원자성은 의도적으로 분리**된 모델이다.
+
+### 11.7 전문 필드 `ttl_ug_ync`
+
+`sys_comm.ttl_ug_ync`는 헤더의 TTL 사용 여부 플래그이다.  
+**Spring `@Transactional(timeout=…)`과 자동 연동되지 않는다.**  
+타임아웃이 필요하면 Service 메서드에 `timeout`을 명시한다.
+
+### 11.8 체크리스트
+
+- [ ] 조회 Service: `@Transactional(readOnly = true)`
+- [ ] 쓰기 메서드: `@Transactional` (필요 시 `timeout`)
+- [ ] 다중 DML은 **하나의 Service 메서드 TX** 안에서 호출
+- [ ] TX는 Service에만 두고 Controller/DAO에 두지 않음
+- [ ] TCF `@TcfTransaction`을 PDMK 샘플에 재도입하지 않음
+- [ ] 이미지로그 실패가 업무 commit을 막는지(또는 반대) 요구사항을 명확히 함
+
+---
+
+## 12. 에러메시지 처리 아키텍처
+
+PDMK의 **실제 에러 응답 경로**는 commons이다. TCF(`ETF` / `BizException` / `GlobalExceptionHandler`)는 라이브러리에 있으나 `nhnis.fw.tcf.enabled=false` 이므로 **런타임에 쓰이지 않는다.**
+
+상세·이력성 설명: [에러처리.md](./에러처리.md) (TCF 중심 — 본 절과 병행 시 commons를 우선)
+
+예외 전파·포착·rollback 연동은 [§13 예외처리 아키텍처](#13-예외처리-아키텍처)를 본다.
+
+### 12.1 경로 한눈에 보기(표 그림)
+
+```text
+                    예외·오류 발생 지점
+                           │
+     ┌─────────────────────┼─────────────────────┐
+     ▼                     ▼                     ▼
+ Filter 단계            Controller 전후        Service / DAO
+ (JSON·JWT·Header)      (MVC / Advice)         (업무 로직)
+     │                     │                     │
+     │ sendError(4xx)      │                     │ throw NhBaseException
+     │                     │                     │   (권장) / RuntimeException
+     ▼                     ▼                     ▼
+ HTTP 상태+문구        ResponseBodyArgumentResolver
+ (전문 envelope 없음)   @ExceptionHandler(NhBaseException)
+                              │
+                              ▼
+                        NH_NIS_ERR_DTO 조립
+                        메시지 해석 (yml / MessageCache)
+                              │
+                              ▼
+                        ResponseBodyAdvice
+                        { hdr_nhnis, dto: 에러DTO }
+```
+
+| 경로 | 활성 조건 | 응답 형태 |
+| ---- | --------- | --------- |
+| **A. commons** `NhBaseException` → `ResponseBodyArgumentResolver` | `legacy-web.enabled=true` | `{ hdr_nhnis, dto: NH_NIS_ERR_DTO }` |
+| **B. Filter** `sendError` | `filter.enabled=true` | HTTP 400/401 + 문구 (Servlet 에러) |
+| **C. Security** EntryPoint | 앱 `SecurityConfig` | HTTP 401 (샘플은 permitAll) |
+| **D. TCF** ETF / GlobalExceptionHandler | `tcf.enabled=true` (**OFF**) | `StandardResponseDto` + `result.*` |
+
+### 12.2 예외 타입
+
+| 타입 | 패키지 | 성격 | PDMK에서의 위치 |
+| ---- | ------ | ---- | --------------- |
+| `NhBaseException` | `nhnis.fw.commons.exception` | checked, 표준 에러코드·TYPE | **commons 권장 업무/공통 예외** |
+| `BizException` | `nhnis.fw.exception` | unchecked, code+args | TCF 전용. commons 샘플은 미사용 |
+| `RuntimeException` 등 | JDK | 비표준 | 선언적 처리 없으면 컨테이너 기본 에러 |
+
+`NhBaseException.TYPE`:
+
+| TYPE | 메시지 소스 | 용도 |
+| ---- | ----------- | ---- |
+| `RUNTIME` / `COMMON` / `AUTH` | `exceptionCode.yml` (`nhnis.exception.*`) | FW 공통·인증 |
+| `SERVICE` / `BIZ` | `MessageCache` (DB 등에서 적재) | 업무 메시지 코드 |
+
+### 12.3 메시지 사전
+
+#### 메시지 해석(표 그림)
+
+```text
+ exceptionCode.yml          MessageCache
+ nhnis.exception.FWxxxx  →  (메모리 Map)
+         │                        │
+         ▼                        ▼
+ Spring property          MessageLoader 등이 put
+ (앱이 classpath import)
+         │                        │
+         └────────┬───────────────┘
+                  ▼
+     errorProcessor / ETF(비활성) 가 MessageFormat 적용
+```
+
+| 소스 | 위치 | 로더 |
+| ---- | ---- | ---- |
+| YAML | `pdmk-service`·`pdmk-fw` `exceptionCode.yml` | `spring.config.import: classpath:exceptionCode.yml` |
+| Properties 바인딩 | `ExceptionCodeProperties` (`@ConfigurationProperties("nhnis")`) | TCF ETF가 사용. commons Advice는 `SpringContext.getProperty("nhnis.exception."+code)` |
+| DB/캐시 | `MessageCache` | `MessageLoader` 등 — 수명·설정은 [§22](#22-캐시-아키텍처) |
+
+등록 예 (`exceptionCode.yml`):
+
+| 코드 | 메시지 템플릿 |
+| ---- | ------------- |
+| `FW0001` | `{0} 오류가 발생하였습니다.` |
+| `FW0401` | 인증 실패 |
+| `FW0403` | 권한 없음 |
+| `FW9999` | 예기치 않은 시스템 오류 (기본 폴백) |
+| `MP0404` / `MP0409` | 샘플 업무 코드(영업팁 계열) |
+
+미등록 코드 → `FW9999`(또는 캐시에 없으면 코드 문자열 자체).
+
+### 12.4 commons 에러 응답 조립
+
+**핸들러:** `ResponseBodyArgumentResolver.errorProcessor(NhBaseException)`
+
+```text
+ NhBaseException
+   ├─ stdErrCode
+   ├─ errMsgType
+   ├─ messageValue[]          ← MessageFormat 인자
+   ├─ stdErrMsgContents       ← 이미 완성된 문장이면 그대로
+   └─ 클래스/메서드/라인/스택
+         │
+         ▼
+ NH_NIS_ERR_DTO
+   ├─ stdErrCode
+   ├─ stdErrMsgCntn           ← 해석된 메시지
+   ├─ addMsgContents
+   ├─ errClassName / errFileName / errMethodName / errLineNo
+   ├─ errType
+   └─ stackTrace (상위 15줄)
+         │
+         ▼
+ ResponseEntity 500 + body
+         │
+         ▼
+ beforeBodyWrite → { "hdr_nhnis": ..., "dto": NH_NIS_ERR_DTO }
+```
+
+응답 개념 JSON:
+
+```json
+{
+  "hdr_nhnis": { "sys_comm": { "...": "..." } },
+  "dto": {
+    "stdErrCode": "FW0001",
+    "stdErrMsgCntn": "요청 Body 오류가 발생하였습니다.",
+    "errType": "COMMON",
+    "errClassName": "...",
+    "errMethodName": "...",
+    "errLineNo": 0,
+    "stackTrace": [ "..." ]
+  }
+}
+```
+
+HTTP 상태는 Advice가 `500`을 주는 형태다. Filter 단계 오류는 **4xx + 전문 비포장**이므로 클라이언트는 두 형태를 구분해야 한다.
+
+### 12.5 Filter·인증 단계 오류
+
+| 상황 | 처리 | HTTP | 전문 envelope |
+| ---- | ---- | ---- | ------------- |
+| Body 없음 / JSON 파싱 실패 / Header 없음(비-local) | `DefaultFilter` `sendError` | 400 | 없음 |
+| Bearer 없음·무효(비-local) | `DefaultFilter` `sendError` | 401 | 없음 |
+| Filter 내부 Exception | `sendError` | 400 | 없음 |
+| Security 미인증 | `HttpStatusEntryPoint` | 401 | 없음 (샘플은 전 URL permitAll) |
+
+```text
+ Filter 실패 ──► response.sendError(status, "한글 문구")
+                  (hdr_nhnis/dto 조립 안 함)
+```
+
+### 12.6 업무 레이어에서의 사용(권장)
+
+```text
+ Service
+   │ 검증 실패 / 대상 없음 / 중복
+   ▼
+ throw new NhBaseException("FW0001", new String[]{"요청 Body"}, TYPE.COMMON);
+   또는
+ throw new NhBaseException("MP0404", TYPE.BIZ);  // MessageCache
+   │
+   ▼
+ @Transactional rollback (선언 시)
+   │
+   ▼
+ errorProcessor → NH_NIS_ERR_DTO → { hdr_nhnis, dto }
+```
+
+| 하지 말 것 | 이유 |
+| ---------- | ---- |
+| Controller에서 에러 DTO를 직접 조립해 반환만 함 | 메시지 사전·스택 수집이 빠짐 |
+| TCF `BizException` + ETF 응답을 commons와 혼용 | 응답 스키마가 `result` vs `dto`로 갈림 |
+| 에러 메시지를 코드에 하드코딩만 | `exceptionCode.yml` / Cache와 불일치 |
+
+현재 `mkcoa*` 샘플은 조회 0건·삭제 0건을 **예외 대신 결과 코드 필드**(`RSLT_CD` 등)로 돌려주는 경우가 있다. **시스템/검증 오류는 `NhBaseException`, 업무 정상 분기(0건)는 DTOout** 으로 나누는 것이 권장이다.
+
+### 12.7 이미지로그와 에러
+
+| 시점 | 동작 |
+| ---- | ---- |
+| `afterCompletion(ex != null)` | `exceptionImagelog` — 예외 코드/메시지 기록 가능 |
+| 업무 TX | 이미 rollback된 뒤일 수 있음 ([§11.6](#116-이미지로그와-트랜잭션-경계)) |
+
+### 12.8 TCF 경로(비활성·참고)
+
+`tcf.enabled=true`일 때만:
+
+```text
+ BizException / Exception
+   → TCFAspect 또는 GlobalExceptionHandler
+   → ETF.businessFail / systemError
+   → StandardResponseDto { header, result{resultCode,errorCode,errorMessage}, body }
+```
+
+메시지: `ExceptionCodeProperties.message(code, args)`.  
+인증: `TcfAuthenticationEntryPoint` → HTTP 401 + ETF fail(`FW0401`).
+
+PDMK에서는 **이 계약을 쓰지 않는다.**
+
+### 12.9 체크리스트
+
+- [ ] 공통·FW 코드는 `exceptionCode.yml`에 등록
+- [ ] 업무 코드는 yml 또는 `MessageCache` 중 정책에 맞게 적재
+- [ ] 업무 예외는 `NhBaseException` + 적절한 `TYPE`
+- [ ] 클라이언트는 Filter 4xx(비포장) vs `{hdr_nhnis,dto}` 에러를 모두 처리
+- [ ] TCF `result.*` 스키마를 PDMK API 계약으로 문서화하지 않음
+
+---
+
+## 13. 예외처리 아키텍처
+
+§12이 **메시지·응답 DTO 조립**이라면, 본 절은 **예외의 발생·전파·포착·부수효과(rollback·ImageLog)** 에 초점을 둔다.
+
+| 구분 | 다루는 것 | 절 |
+| ---- | --------- | -- |
+| 예외처리 | throw / catch / 계층별 전파 / TX·로그 연동 | **§13 (본 절)** |
+| 에러메시지 | 코드→문구, `NH_NIS_ERR_DTO`, yml/Cache | [§12](#12-에러메시지-처리-아키텍처) |
+| DB 트랜잭션 | `@Transactional` commit/rollback | [§11](#11-트랜잭션-처리-아키텍처) |
+| Filter 조기 실패 | 예외 없이 `sendError` | [§6](#6-필터-아키텍처) |
+
+### 13.1 예외 계층(표 그림)
+
+```text
+                 Throwable
+                     │
+        ┌────────────┴────────────┐
+    Exception                 Error (JVM)
+        │
+        ├─ NhBaseException          ← commons 표준 (checked)
+        │     TYPE: RUNTIME|COMMON|BIZ|AUTH|SERVICE
+        │
+        ├─ (기타 checked)
+        │
+        └─ RuntimeException
+              ├─ BizException       ← TCF 전용 (비활성 경로)
+              ├─ ServiceCommunicationException
+              ├─ ServiceHandlerNotFound
+              └─ NPE / IAE / …
+```
+
+| 예외 | checked? | 권장 사용처 | 포착 |
+| ---- | -------- | ----------- | ---- |
+| `NhBaseException` | Yes | Service 검증·업무 실패 | `ResponseBodyArgumentResolver` |
+| `BizException` | No | TCF만 | TCFAspect / GlobalExceptionHandler (**OFF**) |
+| `ServiceCommunicationException` 등 | No | 연동·핸들러 부재 | 별도 핸들러 없으면 컨테이너 기본 |
+| 일반 `Exception` / NPE | — | 비권장(의도치 않은 시스템 오류) | 선언적 핸들러 없으면 500 기본 페이지 가능 |
+
+### 13.2 발생 지점과 전파(표 그림)
+
+```text
+ [A] Filter 단계 오류
+     JSON/JWT/Header 실패
+          │ 예외를 throw 하지 않음
+          ▼
+     response.sendError(4xx)  → 체인 중단 (MVC Advice 미도달)
+
+ [B] Controller 진입 전 MVC 오류
+     (바인딩 등 — 샘플은 커스텀 Resolver로 dto 추출)
+          │
+          ▼
+     프레임워크 기본 처리 또는 Advice (타입에 따라)
+
+ [C] Service / DAO 업무 예외
+          │ throw NhBaseException
+          ▼
+     @Transactional 프록시 ──► rollback (선언 시)
+          │
+          ▼
+     Controller 시그니처 throws 로 전파
+          │
+          ▼
+     @ExceptionHandler(NhBaseException)  ──► NH_NIS_ERR_DTO
+          │
+          ▼
+     Interceptor.afterCompletion(ex) ──► ImageLog EX
+          │
+          ▼
+     Filter finally ──► Context / MDC 정리
+
+ [D] 업무 "정상 분기" (0건·무삭제)
+          │ throw 하지 않음
+          ▼
+     DTOout 결과코드 (RSLT_CD 등) ──► 성공 전문 envelope
+```
+
+### 13.3 포착 지점(표)
+
+| 순 | 지점 | 조건 | 동작 |
+| -- | ---- | ---- | ---- |
+| 1 | `DefaultFilter` | Body/JWT/Header 실패 | `sendError`, **예외 미전파** |
+| 2 | Spring TX Proxy | Service에 `@Transactional` + 예외 | rollback 후 예외 재던짐 |
+| 3 | `ResponseBodyArgumentResolver` | `NhBaseException` | `errorProcessor` → 에러 DTO |
+| 4 | `ServicePreventionInterceptor.afterCompletion` | `ex != null` | ImageLog EX, Context 제거, 재던짐 |
+| 5 | Filter `finally` | 항상 | Context·MDC clear |
+| — | TCFAspect / GlobalExceptionHandler | `tcf.enabled=true` | **PDMK 미사용** |
+
+### 13.4 시퀀스 — 업무 예외(권장 경로)
+
+```text
+ Client
+   │ POST /서비스ID
+   ▼
+ Filter OK · Interceptor pre · Aspect before
+   ▼
+ Controller → Service
+   │  throw new NhBaseException("FW0001", args, TYPE.COMMON)
+   ▼
+ ┌─ @Transactional ─┐
+ │  rollback         │
+ └────────┬──────────┘
+          ▼
+ ExceptionHandler → NH_NIS_ERR_DTO (HTTP 500 + body)
+          ▼
+ Advice → { hdr_nhnis, dto: 에러 }
+          ▼
+ Aspect after? / Interceptor afterCompletion(EX) / Filter finally
+          ▼
+ Client
+```
+
+### 13.5 예외 vs 결과코드
+
+| 상황 | 권장 | 현재 `mkcoa*` 샘플 |
+| ---- | ---- | ------------------ |
+| 입력 필수값 누락·형식 오류 | `NhBaseException` | 일부는 서비스 내 분기 |
+| 대상 없음(조회 0건)이 **정상** | DTOout 빈목록 / 결과코드 | 빈 목록·페이징 0 |
+| 삭제 대상 없음 | 정책에 따라 예외 또는 `RSLT_CD` | `RSLT_CD=0001` 등 |
+| DB·NPE·예상 밖 | `NhExceptionProvider.exceptionBuilder` 등으로 `FW9999` 래핑 권장 | 미래핑 시 기본 에러 |
+
+**원칙:** 클라이언트가 “실패 전문”으로 받아야 하면 **예외**, “성공 전문 + 업무 결과 플래그”면 **DTOout**.
+
+### 13.6 `NhExceptionProvider`
+
+공통 래핑 유틸 (`nhnis.fw.commons.exception`).
+
+| 메서드 | 용도 |
+| ------ | ---- |
+| `nhExceptionBuilder(e, type)` | 이미 `NhBaseException`인 경우 스택·TYPE·MDC `errCode` 보강 |
+| `exceptionBuilder(e)` | 임의 예외 → `FW9999` / `TYPE.RUNTIME`, nhnis 스택 프레임 우선, cause 메시지 |
+
+업무 Service에서 임의 예외를 삼키지 말고, 경계에서 Provider로 표준화하는 패턴을 권장한다.
+
+### 13.7 Controller `throws`와 checked 예외
+
+`NhBaseException`은 **checked**이다. Controller/Service 메서드에 `throws Throwable` 또는 `throws Exception`이 있으면 컴파일러가 전파를 허용하고, 최종적으로 Advice가 포착한다.
+
+```text
+ Service throws NhBaseException
+      → Controller throws …
+           → DispatcherServlet
+                → @ExceptionHandler
+```
+
+unchecked(`RuntimeException`)만 던지면 `throws` 선언 없이도 전파되지만, PDMK commons 표준은 **`NhBaseException`** 이다.
+
+### 13.8 TCF 예외 경로(비활성)
+
+```text
+ BizException / Exception
+   → TCFAspect catch
+   → ETF.businessFail / systemError
+   → StandardResponseDto.result
+```
+
+PDMK는 commons Filter/Interceptor/Advice만 사용한다. `@TcfTransaction`·`BizException`을 샘플에 넣지 않는다.
+
+### 13.9 체크리스트
+
+- [ ] 실패를 예외로 할지 / DTOout 결과코드로 할지 거래별로 명시
+- [ ] 표준 실패는 `NhBaseException` + TYPE + 에러코드
+- [ ] 쓰기 TX가 있으면 예외 시 rollback 되는지 확인 ([§11](#11-트랜잭션-처리-아키텍처))
+- [ ] Filter `sendError`와 Advice 에러 전문을 클라이언트가 구분 처리
+- [ ] ImageLog EX가 afterCompletion에서 남는지 확인
+- [ ] TCF `BizException` 경로와 혼용하지 않음
+
+---
+
+## 14. 네이밍 아키텍처
+
+PDMK는 **서비스 ID를 축**으로 URL·클래스·DTO·SQL·리소스 경로를 한 줄로 묶는다.  
+정본은 [MK-NAMING_CONVENTION.md](./MK-NAMING_CONVENTION.md), 요약은 [네이밍원칙.md](./네이밍원칙.md)이다.  
+**충돌 시 CONVENTION 우선.**
+
+전문 JSON 골격은 [§10 전문 구조](#10-전문-구조), 패키지 레이어는 [§7](#7-애플리케이션-레이어드-아키텍처)와 함께 본다.
+
+### 14.1 식별자 축(표 그림)
+
+```text
+                    서비스 ID = mkcoa8888S0
+                              │
+     ┌────────────┬───────────┼───────────┬────────────┐
+     ▼            ▼           ▼           ▼            ▼
+  URL path    메서드명      DTO 접두    SQL ID      sys_comm
+ POST /…S0   …S0(...)   …S0DTOin/out  …S0_S0     rms_svc_c
+     │            │           │           │
+     │     Controller/Service │           DAO 메서드명
+     │     (식별번호 단위 클래스: mkcoa8888*)
+     │                        │
+     └────────────────────────┴──► rdw.mk.co.a/mkcoa8888-ORA.xml
+```
+
+| 축 | 규칙 한 줄 |
+| -- | ---------- |
+| 서비스 ID | `[mk][co][a][8888][S][0]` — 대구분·업무·세부·식별·구분자·순번 |
+| 패키지 | `nhnis.mk.co.a.{controller\|service\|dao\|dto}` |
+| C/S/DAO 파일 | 식별번호까지 (`mkcoa8888Controller`) — **구분자 제외** |
+| DTO | 서비스 ID 전체 + `DTOin`/`DTOout`/`DTOSub*` (`DTOio`는 필요 시) |
+| URL | `POST /{서비스ID}` — 클래스 `@RequestMapping` 금지 |
+| SQL ID | `{서비스ID}_{DML}{순번}` = DAO 메서드명 |
+| Mapper | `rdw.mk.co.a/{식별}-ORA.xml`, namespace = DAO FQCN |
+
+### 14.2 서비스 ID 구조
+
+#### 서비스 ID 분해(표 그림)
+
+```text
+[대구분2][업무2][세부1][식별번호4][구분자1][순번1]
+   mk      co     a      8888       S       0
+→ mkcoa8888S0
+```
+
+| 구분자 | 의미 | 순번 |
+| ------ | ---- | ---- |
+| S/C/U/D/A/R | 조회/등록/수정/삭제/혼합/리포트 | `0~9`, 초과 시 `A~Z` |
+
+동일 식별번호의 S0+D0 등은 **하나의 Controller/Service/DAO**로 묶는다.
+
+### 14.3 모듈별 네이밍 경계
+
+| 모듈 | 네이밍 범위 |
+| ---- | ----------- |
+| `pdmk-service` | `nhnis.mk.*`, `mkcoa*`, `rdw.mk.co.a` — **업무 명명의 본체** |
+| `pdmk-fw` | `nhnis.fw.*`, `PdmkTxLog`, `hdr_nhnis` — FW 공유 식별자 (업무 ID와 분리) |
+| `pdmk-ui` | 거래 카탈로그·정적 경로를 **서비스 ID와 동기화** (`/api/relay/{id}`, `/mkcoa5530`) |
+
+```text
+ pdmk-ui  TransactionCatalog.id = mkcoa5530S0
+              │
+              ▼
+ pdmk-service POST /mkcoa5530S0
+              │
+              ▼
+ nhnis.mk.co.a.controller / service / dao / dto
+              │
+              ▼
+ rdw.mk.co.a/mkcoa5530-ORA.xml
+```
+
+### 14.4 레이어 ↔ 이름
+
+| 레이어 | 이름 패턴 |
+| ------ | --------- |
+| Presentation | `mkcoa{식별}Controller`, `@PostMapping("/{서비스ID}")`, `@Slf4j` |
+| Application | `mkcoa{식별}Service`, 메서드=`서비스ID`, `throws Exception` |
+| Persistence | `mkcoa{식별}DAO`, `@RDWMapper`, 메서드=SQL ID |
+| DTO | `{서비스ID}DTOin`/`out`/`Sub{n}`, `DataObject` |
+| Cross-cutting | `BizPrePostAspect` (`nhnis.mk.co.common`), pointcut `nhnis.mk.co..controller..*` |
+
+### 14.5 하지 말 것 (아키텍처 관점)
+
+| 금지 | 영향 |
+| ---- | ---- |
+| REST `/api/mk/.../list` | Filter·카탈로그·전문 계약과 불일치 |
+| `DtoIn` / `Dao` / 패키지 `nhnis.mk.controller` | 서비스 ID·업무 경로 추적 불가 |
+| Controller 클래스명에 `S0` 포함 | 식별번호 단위 통합 규칙 붕괴 |
+| DAO 메서드 ≠ SQL ID | MyBatis 매핑 실패 |
+| UI 카탈로그 ID ≠ 서비스 URL | 중계 404·잘못된 전문 |
+
+### 14.6 체크리스트
+
+- [ ] 서비스 ID가 URL·메서드·DTO·SQL·`rms_svc_c`에 동일
+- [ ] 패키지 `nhnis.mk.{업무}.{세부}.*`
+- [ ] C/S/DAO는 식별번호 단위, DTO는 서비스 ID 전체
+- [ ] Mapper `rdw.mk.…` + namespace = DAO FQCN
+- [ ] UI 카탈로그·샘플 JSON 동기화
+- [ ] 세부 규칙은 CONVENTION 확인
+
+---
+
+## Part V. 데이터
+
+> **§15~§17** — DAO·테이블·페이징
+>
+> [← 이전: IV 계약](#part-iv-계약업무-규칙) · [목차](#목차) · [다음: VI 횡단 →](#part-vi-횡단-관심사)
+
+#### Part V 한눈에(표 그림)
+
+```text
+ Service ──► §15 DAO ──► MyBatis XML
+                │              │
+                │              ▼
+                │         §16 TB_* (RDW)
+                │
+                └──────► §17 페이징
+                         (pageNo / ROWNUM / count)
+```
+
+| 이 Part의 절 | 한줄 |
+| ------------ | ---- |
+| [§15 DAO](#15-dao-아키텍처) | MyBatis·SQL ID |
+| [§16 테이블](#16-테이블-아키텍처) | `TB_*` |
+| [§17 페이징](#17-페이징-아키텍처) | pageNo / ROWNUM / count |
+
+## 15. DAO 아키텍처
+
+DAO는 Persistence 계층의 **MyBatis Mapper 인터페이스**이다.  
+업무 규칙·페이징 계산·DTO 조립은 Service가 담당하고, DAO는 **SQL ID 호출만** 한다.
+
+명명 정본: [MK-NAMING_CONVENTION.md](./MK-NAMING_CONVENTION.md) §8·§12·§13.  
+트랜잭션 경계: [§11](#11-트랜잭션-처리-아키텍처). 레이어 위치: [§7](#7-애플리케이션-레이어드-아키텍처). 물리 테이블: [§16](#16-테이블-아키텍처).
+
+### 15.1 위치·구성(표 그림)
+
+```text
+ Service (Application)
+      │  Map 파라미터 / List<Map> · int 결과
+      ▼
+ ┌────────────────────────────────────────────┐
+ │  nhnis.mk.co.a.dao.mkcoa{식별}DAO          │
+ │  @RDWMapper  (= @Mapper)                   │
+ │  메서드명 = SQL ID                          │
+ └────────────────────┬───────────────────────┘
+                      │ MyBatis
+                      ▼
+ ┌────────────────────────────────────────────┐
+ │  resources/rdw.mk.co.a/mkcoa{식별}-ORA.xml │
+ │  namespace = DAO FQCN                       │
+ │  <select|insert|update|delete id="SQL ID"> │
+ └────────────────────┬───────────────────────┘
+                      │
+                      ▼
+         rdwSqlSessionTemplate → rdwDataSource (H2/Oracle)
+```
+
+| 항목 | 값 |
+| ---- | -- |
+| 패키지 | `nhnis.mk.{업무}.{세부}.dao` (예: `nhnis.mk.co.a.dao`) |
+| 인터페이스 | `mkcoa{식별}DAO` — 식별번호 단위 (구분자 S/D 제외) |
+| 애노테이션 | `@RDWMapper` (`nhnis.mk.config.RDWMapper` → `@Mapper`) |
+| XML 디렉터리 | `src/main/resources/rdw.mk.co.a/` |
+| XML 파일 | `mkcoa{식별}-ORA.xml` (DB구분 ORA/MYS/MSS) |
+| MapperScan | `nhnis.mk.**.dao` → `rdwSqlSessionTemplate` |
+| XML 스캔 | `classpath*:rdw.*/*.xml` |
+
+### 15.2 메서드 · SQL ID
+
+```text
+[서비스ID]_[DML][순번]
+[서비스ID]_[DML][순번]_count
+```
+
+| 예 (mkcoa8888) | DML | 반환 |
+| -------------- | --- | ---- |
+| `mkcoa8888S0_S0` | 목록 SELECT | `List<Map<String, Object>>` |
+| `mkcoa8888S0_S0_count` | COUNT | `int` |
+| `mkcoa8888D0_D0` | DELETE | `int` (영향 행 수) |
+
+| 규칙 | 설명 |
+| ---- | ---- |
+| 메서드명 = `id` | XML `<select id="…">` 와 **문자 단위 일치** |
+| 입력 | `Map<String, Object>` (Service가 DTOin → Map) |
+| 출력 | `List<Map<…>>` 또는 `int` — **DTO를 DAO에 두지 않음** |
+| 예외 | `throws Exception` |
+| 순번 | `0~9`, 초과 시 `A~Z` |
+
+### 15.3 샘플 DAO
+
+| DAO | SQL ID | 용도 |
+| --- | ------ | ---- |
+| `mkcoa8888DAO` | `…S0_S0`, `…S0_S0_count`, `…D0_D0` | 이미지로그 조회/삭제 |
+| `mkcoa5530DAO` | `…S0_S0`, `…S0_S0_count` | 안내항목 목록 |
+| `mkcoa9999DAO` | `…S0_S0`, `…S0_S0_count` | 영업팁 목록 |
+
+인터페이스 예:
+
+```java
+@RDWMapper
+public interface mkcoa8888DAO {
+    List<Map<String, Object>> mkcoa8888S0_S0(Map<String, Object> input) throws Exception;
+    int mkcoa8888S0_S0_count(Map<String, Object> input) throws Exception;
+    int mkcoa8888D0_D0(Map<String, Object> input) throws Exception;
+}
+```
+
+### 15.4 Mapper XML 계약
+
+```xml
+<mapper namespace="nhnis.mk.co.a.dao.mkcoa8888DAO">
+  <select id="mkcoa8888S0_S0"
+          parameterType="java.util.HashMap"
+          resultType="java.util.HashMap">
+    SELECT /* mkcoa8888S0_S0 */ …
+  </select>
+</mapper>
+```
+
+| 항목 | 규칙 |
+| ---- | ---- |
+| `namespace` | DAO FQCN |
+| `parameterType` / `resultType` | 명시 (단순·동적 시 `java.util.HashMap`) |
+| SQL 주석 | `/* SQL ID */` 포함 |
+| 바인딩 | `#{…}` / `<if>` / `<foreach>` / `<include>` |
+| Alias | 테이블 `T1`…, 컬럼 `AS` |
+| 페이징 | Oracle식 `ROWNUM` — 상세 [§17](#17-페이징-아키텍처) |
+
+공통 WHERE는 `<sql id="…Where">` + `<include>`로 재사용한다.
+
+### 15.5 인프라 Bean
+
+```text
+RdwDataSourceConfig
+├─ rdwDataSource              (@Primary, Hikari)
+├─ rdwSqlSessionFactory       (+ MybatisLogInterceptor)
+├─ rdwSqlSessionTemplate
+└─ rdwTransactionManager      ← Service @Transactional 이 사용
+```
+
+| 주의 | 설명 |
+| ---- | ---- |
+| TX는 Service | DAO·XML에 `@Transactional` 두지 않음 |
+| 동일 DataSource | Template과 TransactionManager가 같은 DS를 써야 원자성 유지 |
+| 키 대소문자 | H2/Oracle/MyBatis에 따라 Map 키가 `GUID`/`guid` 등으로 달라질 수 있음 → Service에서 흡수 |
+
+### 15.6 Service ↔ DAO 책임 분리
+
+```text
+ Service
+  ├─ DTOin → Map (조건·offset·pageSize·guidList)
+  ├─ DAO 호출 (목록 + count 등)
+  ├─ Map 행 → DTOSub / DTOout
+  └─ 페이징·업무 검증·결과코드
+
+ DAO
+  ├─ SQL 실행만
+  └─ 비즈니스 if / DTO / HTTP 금지
+```
+
+### 15.7 하지 말 것
+
+| 금지 | 이유 |
+| ---- | ---- |
+| DAO 메서드명 ≠ XML `id` | 매핑 실패 |
+| DAO에 `DTOin`/`DTOout` 시그니처 | Map 계약·생성 규칙과 불일치 |
+| Controller → DAO 직호출 | 레이어·TX 경계 붕괴 |
+| XML을 `mapper/` 임의 경로에 둠 | `rdw.*` 스캔·패키지 규칙 깨짐 |
+| namespace에 식별번호만 넣음 | FQCN과 불일치 |
+
+### 15.8 체크리스트
+
+- [ ] `@RDWMapper` + 패키지 `nhnis.mk.**.dao`
+- [ ] 파일명 `mkcoa{식별}DAO` (구분자 없음)
+- [ ] 메서드 = SQL ID = XML `id`
+- [ ] `rdw.mk.{업무}.{세부}/{식별}-ORA.xml`
+- [ ] `namespace` = DAO FQCN
+- [ ] 입력 Map / 출력 List·int
+- [ ] 쓰기 SQL은 Service `@Transactional` 안
+
+---
+
+## 16. 테이블 아키텍처
+
+PDMK가 접근하는 **물리 테이블**과 소유·접근 경로를 정의한다.  
+DAO/SQL 호출 규칙은 [§15](#15-dao-아키텍처), ImageLog 기록은 [§21](#21-트랜잭션-로그-아키텍처), 메시지 테이블 적재는 [§22](#22-캐시-아키텍처).
+
+`pdmk-ui`는 DB에 직접 접근하지 않는다.
+
+### 16.1 데이터소스·스키마 위치
+
+| 항목 | 내용 |
+| ---- | ---- |
+| DS Bean | `rdwDataSource` (`@Primary`, Hikari) — `spring.datasource.rdw.*` |
+| TX | `rdwTransactionManager` |
+| 로컬(H2) | `jdbc:log4jdbc:h2:mem:pdmk;MODE=Oracle;…` |
+| 폐쇄망 | Oracle RDW (`SBMFCRT` 등) — `application.yml` 주석 블록 |
+| 로컬 DDL/DML | `classpath:db/h2/schema.sql`, `data.sql` (`spring.sql.init.mode=always`) |
+| 운영 DDL | **앱이 생성하지 않음** — DBA/기존 스키마 사용. `sql.init` 비활성 |
+
+```text
+ pdmk-ui          (테이블 없음)
+      │ HTTP
+      ▼
+ pdmk-service
+      ├─ MyBatis DAO ──► rdwDataSource ──► TB_* (업무·조회)
+      └─ (내장) pdmk-fw
+           ├─ ImageLogHandler (JdbcTemplate) ──► TB_FW_IMAGE_LOG
+           └─ MessageLoader (옵션) ──► framework.message.tableName[]
+```
+
+로컬에서는 `schema.sql`이 H2에 세 테이블을 만들고, 폐쇄망에서는 **동일 논리명의 Oracle 테이블**을 전제로 한다.
+
+### 16.2 테이블 목록(현황)
+
+#### 테이블 소유·접근(표 그림)
+
+```text
+                    RDW (H2 / Oracle)
+  ┌─────────────────────┬──────────────────────┐
+  │ TB_FW_IMAGE_LOG     │ TB_CR_AH_SALES_TIP…  │
+  │  (감사 GUID)        │ TB_MK_CO_A_5530      │
+  └──────────┬──────────┴──────────┬───────────┘
+             │                     │
+    fw ImageLogHandler      service MyBatis DAO
+    (JdbcTemplate I/U)      (mkcoa8888/9999/5530)
+             │                     │
+             └──────────┬──────────┘
+                        ▼
+                 pdmk-service
+                        ▲
+                        │ HTTP only
+                   pdmk-ui (DB 없음)
+```
+
+| 테이블 | 구분 | 주 접근 | CRUD | 비고 |
+| ------ | ---- | ------- | ---- | ---- |
+| `TB_FW_IMAGE_LOG` | FW 공통(감사) | fw `ImageLogHandler` + service `mkcoa8888` | I/U(fw), S/D(service) | GUID PK |
+| `TB_CR_AH_SALES_TIP_RACT` | 업무 샘플 | `mkcoa9999` | S | 영업팁 실적 |
+| `TB_MK_CO_A_5530` | 업무 샘플 | `mkcoa5530` | S | 안내항목(L5101~) |
+| (메시지 번들 테이블) | FW 옵션 | `MessageLoader` | S(기동 시) | `CRM_MSG_C`/`MSG_CNTN`. H2 스키마 **미포함** |
+
+### 16.3 명명·소유
+
+| 패턴 | 의미 | 예 |
+| ---- | ---- | -- |
+| `TB_FW_*` | 프레임워크 공통 | `TB_FW_IMAGE_LOG` |
+| `TB_MK_{업무}_{세부}_*` | MK 샘플·식별 대응 | `TB_MK_CO_A_5530` |
+| `TB_{타시스템}_*` | 기존/공유 업무 원장 | `TB_CR_AH_SALES_TIP_RACT` |
+
+- **소유:** 스키마·권한은 RDW(운영 Oracle / 로컬 H2). 앱은 테이블 오너가 아니다.
+- **Alias:** SQL에서 `T1`, `T2`… ([MK-NAMING_CONVENTION.md](./MK-NAMING_CONVENTION.md)).
+- 새 MK 전용 테이블은 `TB_MK_…`를 우선하고, 공유 원장은 기존명을 유지한다.
+
+### 16.4 `TB_FW_IMAGE_LOG` (이미지로그)
+
+시스템 전문 헤더 감사. Filter/Interceptor 경로의 선·후·예외 처리에서 fw가 기록하고, 관리 API로 조회·삭제한다.
+
+| 컬럼 | 타입(H2) | 매핑(`hdr_nhnis.sys_comm` 등) |
+| ---- | -------- | ----------------------------- |
+| `GUID` | VARCHAR(64) PK | `std_gbl_id` |
+| `SERVICE_ID` | VARCHAR(50) | `rms_svc_c` |
+| `SCREEN_ID` | VARCHAR(50) | `scid` |
+| `OPTR_ENO` | VARCHAR(20) | `optr_eno` |
+| `CLIENT_IP` | VARCHAR(50) | `tr_trm_ipadr` |
+| `REQUEST_TIME` | VARCHAR(17) | `tr_dtm` / 서버 시각 |
+| `RESPONSE_TIME` | VARCHAR(17) | 후처리 시각 |
+| `EXCEPTION_TYPE` | VARCHAR(200) | 예외 클래스명 |
+| `EXCEPTION_CODE` | VARCHAR(50) | `NhBaseException` 코드 |
+| `EXCEPTION_MSG` | VARCHAR(1000) | 메시지(최대 1000자 truncate) |
+
+| 단계 | 주체 | SQL |
+| ---- | ---- | --- |
+| PRE | `ImageLogHandler.preImagelog` | `INSERT` |
+| POST | `postImagelog` | `UPDATE RESPONSE_TIME` |
+| EX | `exceptionImagelog` | `UPDATE` 예외 컬럼 (없으면 INSERT) |
+| 조회 | `mkcoa8888S0` / DAO | SELECT + count (페이징) |
+| 삭제 | `mkcoa8888D0` | `DELETE … GUID IN (…)` |
+
+**경계:** ImageLog JDBC 실패는 **업무 예외로 전파하지 않는다** (삼킴). 업무 `@Transactional`과 **커밋 단위가 분리**될 수 있다 ([§11](#11-트랜잭션-처리-아키텍처) · [§21](#21-트랜잭션-로그-아키텍처)).
+
+### 16.5 `TB_CR_AH_SALES_TIP_RACT` (영업팁 실적)
+
+| 컬럼 | 타입(H2) | 의미 |
+| ---- | -------- | ---- |
+| `TRT_BRC` | VARCHAR(5) PK | 취급점 코드 |
+| `TRTMN_ENO` | VARCHAR(10) PK | 취급자 사번 |
+| `SALZ_TIP_KDC` | VARCHAR(3) PK | 영업팁 종류코드 |
+| `BAS_DT` | VARCHAR(8) PK | 기준일자 `yyyyMMdd` |
+| `PRTO_CN` | VARCHAR(4000) | 포트폴리오 내용 |
+| `INQ_CN` | VARCHAR(4000) | 조회 내용 |
+| `INP_CN` | VARCHAR(4000) | 입력 내용 |
+
+| 항목 | 값 |
+| ---- | -- |
+| PK | `(TRT_BRC, TRTMN_ENO, SALZ_TIP_KDC, BAS_DT)` |
+| 접근 | `mkcoa9999DAO` / `mkcoa9999-ORA.xml` |
+| 서비스 | `mkcoa9999S0` (목록 조회, `salzTipKdc` 선택 필터) |
+| 로컬 시드 | `data.sql` 5건 |
+
+### 16.6 `TB_MK_CO_A_5530` (안내항목 샘플)
+
+운영 로그 필드 ID `L5101`~`L5104`에 맞춘 MK 샘플 테이블.
+
+| 컬럼 | 타입(H2) | 의미 |
+| ---- | -------- | ---- |
+| `L5101` | VARCHAR(20) PK | 항목코드 |
+| `L5102` | VARCHAR(100) | 항목명 |
+| `L5103` | VARCHAR(8) PK | 기준일자 |
+| `L5104` | VARCHAR(5) | 취급점코드 |
+
+| 항목 | 값 |
+| ---- | -- |
+| PK | `(L5101, L5103)` |
+| 접근 | `mkcoa5530DAO` / `mkcoa5530-ORA.xml` |
+| 서비스 | `mkcoa5530S0` (페이징, `trtBrc`→`L5104`, `basDt`→`L5103`) |
+| 로컬 시드 | `data.sql` 3건 |
+
+### 16.7 메시지 번들 테이블 (옵션)
+
+`framework.message.enabled=true`일 때 `MessageLoader`가 기동 시 조회한다. **로컬 H2 `schema.sql`에는 없다.**
+
+| 논리 컬럼 | 용도 |
+| --------- | ---- |
+| `CRM_MSG_C` | 메시지 코드 → `MessageCache` 키 |
+| `MSG_CNTN` | 템플릿 (`MessageFormat`) |
+
+테이블명(들)은 `framework.message.tableName` 배열. 복수면 `UNION ALL`. DS는 `framework.message.dataSource` Bean 이름.
+
+### 16.8 서비스·테이블 매트릭스
+
+| 서비스 ID | 프로그램 | 테이블 | DML |
+| --------- | -------- | ------ | --- |
+| (전 거래) | fw ImageLog | `TB_FW_IMAGE_LOG` | I/U |
+| `mkcoa8888S0` | 이미지로그 조회 | `TB_FW_IMAGE_LOG` | S |
+| `mkcoa8888D0` | 이미지로그 삭제 | `TB_FW_IMAGE_LOG` | D |
+| `mkcoa5530S0` | 안내항목 목록 | `TB_MK_CO_A_5530` | S |
+| `mkcoa9999S0` | 영업팁 목록 | `TB_CR_AH_SALES_TIP_RACT` | S |
+
+Mapper XML: `rdw.mk.co.a/mkcoa{식별}-ORA.xml` (Oracle/H2 Oracle 모드 공통 문법 전제).
+
+### 16.9 환경별 운영
+
+| 환경 | 스키마 생성 | 데이터 | 주의 |
+| ---- | ----------- | ------ | ---- |
+| local (H2) | `schema.sql` | `data.sql` | 재기동 시 mem DB 초기화 |
+| 폐쇄망 Oracle | DBA/기존 | 운영 데이터 | `sql.init` off, `datasource.rdw` Oracle URL |
+| 메시지 번들 | 별도 테이블 | 운영 적재 | `framework.message` 명시 |
+
+### 16.10 경계·금지
+
+| 규칙 | 설명 |
+| ---- | ---- |
+| UI → DB 직결 금지 | 중계만 |
+| FW에 업무 테이블 CRUD 금지 | 업무는 service DAO |
+| ImageLog 실패로 업무 롤백 유발 금지 | Handler가 예외 삼킴 |
+| 로컬 DDL을 운영에 자동 적용 금지 | `sql.init`는 local 전제 |
+| 임의 `@Cacheable`로 테이블 결과 캐시 | [§22](#22-캐시-아키텍처) |
+
+### 16.11 체크리스트
+
+- [ ] 신규 테이블명·PK·컬럼이 본 절·`schema.sql`(로컬)과 문서화됐는지
+- [ ] Mapper XML의 테이블·컬럼 alias가 Oracle/H2 호환인지
+- [ ] ImageLog는 fw 기록 + (필요 시) `mkcoa8888` 조회/삭제만인지
+- [ ] 폐쇄망에서 `sql.init`를 끄고 Oracle DS만 쓰는지
+- [ ] 메시지 DB 사용 시 `framework.message.*`와 실테이블 컬럼이 맞는지
+- [ ] `pdmk-ui`에 JDBC/DAO가 없는지
+
+---
+
+## 17. 페이징 아키텍처
+
+목록 조회는 **오프셋 기반 페이지 페이징**을 쓴다.  
+계산·정규화는 **Service**, SQL 슬라이스는 **DAO/MyBatis**, UI는 요청 필드·표시만 담당한다.  
+`pdmk-fw`에는 페이징 공통 유틸이 **없다**.
+
+관련: [§10 전문](#10-전문-구조) · [§15 DAO](#15-dao-아키텍처) · [§16 테이블](#16-테이블-아키텍처)
+
+### 17.1 모듈별 역할
+
+| 모듈 | 역할 |
+| ---- | ---- |
+| `pdmk-service` | `pageNo`/`pageSize` 기본·상한, `offset` 계산, count+list 호출, `totalCount`/`totalPages`/`size` 조립 |
+| `pdmk-ui` | `dto.pageNo`/`pageSize` 입력·릴레이, 응답 페이징 메타 표시 (`imagelog.js`, `online-single.js`) |
+| `pdmk-fw` | 관여 없음 |
+
+#### 페이징 파이프라인(표 그림)
+
+```text
+ UI (pageNo, pageSize)
+      │  hdr_nhnis + dto
+      ▼
+ Service
+      ├─ normalize: pageNo≥1, pageSize 1~100 (기본 20)
+      ├─ offset = (pageNo - 1) * pageSize
+      ├─ DAO *_count(param) → totalCount
+      ├─ DAO *_S0(param)    → rows (ROWNUM 슬라이스)
+      └─ DTOout: Sub[] + size + pageNo + pageSize + totalCount + totalPages
+      ▼
+ Mapper XML (Oracle ROWNUM / H2 MODE=Oracle)
+```
+
+### 17.2 계약 상수
+
+| 항목 | 값 | 비고 |
+| ---- | -- | ---- |
+| `pageNo` 기본 | **1** | null·≤0 → 1 |
+| `pageSize` 기본 | **20** | null·≤0 → 20 |
+| `pageSize` 최대 | **100** | 초과 시 100으로 clamp |
+| `offset` | `(pageNo - 1) * pageSize` | Service가 Map에 넣음. 클라이언트 전달 불필요 |
+| `totalPages` | `ceil(totalCount / pageSize)` | `(totalCount + pageSize - 1) / pageSize` |
+| 0건 | 빈 Sub 목록, `totalCount=0`, `size=0` | **예외 아님** ([§13](#13-예외처리-아키텍처)) |
+
+### 17.3 전문 필드
+
+**요청 `dto` (DTOin)**
+
+| 필드 | 타입 | 필수 | 설명 |
+| ---- | ---- | ---- | ---- |
+| `pageNo` | Integer | 선택 | 페이지 번호 |
+| `pageSize` | Integer | 선택 | 페이지 크기 |
+| (기타) | — | — | 검색 조건 (`guid`, `trtBrc` …) |
+
+**응답 `dto` (DTOout)**
+
+| 필드 | 타입 | 설명 |
+| ---- | ---- | ---- |
+| `*DTOSub0[]` | 배열 | 현재 페이지 행 |
+| `size` | int | **현재 페이지** 건수 (= Sub 길이) |
+| `pageNo` | int | 적용된 페이지 번호 |
+| `pageSize` | int | 적용된 크기(clamp 후) |
+| `totalCount` | long/int | 조건 전체 건수 (count 쿼리) |
+| `totalPages` | int | 전체 페이지 수 |
+
+`size` ≠ `totalCount`. UI는 `totalCount`/`totalPages`로 네비게이션한다.
+
+### 17.4 Service 계산 패턴
+
+샘플: `mkcoa5530Service`, `mkcoa8888Service`.
+
+```text
+pageNo   = (null|≤0) ? 1 : pageNo
+pageSize = (null|≤0) ? 20 : min(pageSize, 100)
+offset   = (pageNo - 1) * pageSize
+param ← 검색조건 + pageNo + pageSize + offset
+
+totalCount = DAO.{SQLID}_count(param)
+rows       = DAO.{SQLID}(param)
+
+DTOout.Sub ← map(rows)
+DTOout.size / pageNo / pageSize / totalCount / totalPages
+```
+
+| 금지 | 이유 |
+| ---- | ---- |
+| Controller에서 offset 계산 | 레이어 붕괴 |
+| DAO에 pageNo만 넘기고 offset 미계산 | SQL이 잘못된 구간을 자름 |
+| count 없이 `rows.size()`로 totalCount | 마지막 페이지만 알고 전체 모름 |
+| 클라이언트 `offset` 신뢰 | 조작·불일치 |
+
+### 17.5 SQL (Oracle `ROWNUM`)
+
+목록 SQL ID와 **동일 WHERE**의 count SQL을 쌍으로 둔다.
+
+| SQL ID | 용도 |
+| ------ | ---- |
+| `{서비스ID}_S0` | 페이지 행 |
+| `{서비스ID}_S0_count` | 전체 건수 |
+
+```text
+ SELECT * FROM (
+   SELECT a.*, ROWNUM rnum FROM (
+     SELECT … FROM T1 … WHERE …
+     ORDER BY …
+   ) a
+   WHERE ROWNUM <= #{offset} + #{pageSize}
+ )
+ WHERE rnum > #{offset}
+```
+
+| 항목 | 규칙 |
+| ---- | ---- |
+| 엔진 | Oracle / H2 `MODE=Oracle` |
+| `ORDER BY` | **안쪽** SELECT에 고정 (페이지 안정성) |
+| WHERE 공유 | `<sql id="…Where">` + `<include>` (count·list 동일) |
+| Keyset/커서 페이징 | **미사용** |
+
+### 17.6 서비스별 현황
+
+| 서비스 | 페이징 | count | 비고 |
+| ------ | ------ | ----- | ---- |
+| `mkcoa8888S0` | ✅ | ✅ | 이미지로그 |
+| `mkcoa5530S0` | ✅ | ✅ | 안내항목 |
+| `mkcoa9999S0` | ❌ | ❌ | **전체 목록 반환** (갭 — 신규는 페이징 권장) |
+| `mkcoa8888D0` | — | — | 삭제, 해당 없음 |
+
+### 17.7 UI
+
+| 화면/스크립트 | 동작 |
+| ------------- | ---- |
+| `/imagelog` + `imagelog.js` | pageSize 입력(max 100), prev/next, 응답 `totalCount`/`totalPages` 표시 |
+| `mkcoa5530` 등 + `online-single.js` | 샘플 dto에 `pageNo`/`pageSize` 있으면 필드 노출·payload 반영 |
+| 릴레이 | 페이징 재계산 없음 — dto 그대로 service로 |
+
+### 17.8 경계·금지
+
+| 규칙 | 설명 |
+| ---- | ---- |
+| 페이징은 Service 소유 | fw에 PageHelper 등 도입 시 팀 합의 |
+| UI가 totalCount를 추정하지 않음 | 서버 count 결과 사용 |
+| 대량 전량 SELECT 지양 | `mkcoa9999` 예외를 표준으로 삼지 말 것 |
+| Spring Data `Pageable` | 본 스택 미사용 (Map + ROWNUM) |
+
+### 17.9 체크리스트
+
+- [ ] DTOin에 `pageNo`/`pageSize`, DTOout에 `size`/`totalCount`/`totalPages`
+- [ ] 기본 1 / 20, 최대 100, offset Service 계산
+- [ ] `{SQLID}` + `{SQLID}_count` + 동일 WHERE
+- [ ] `ROWNUM` 이중 래핑 + 안쪽 `ORDER BY`
+- [ ] 0건은 빈 목록 (예외 아님)
+- [ ] UI는 서버 페이징 메타로 네비게이션
+- [ ] 신규 목록 API에 `mkcoa9999`식 전량 조회를 복제하지 않음
+
+---
+
+## Part VI. 횡단 관심사
+
+> **§18~§22** — 보안·AOP·타임아웃·로그·캐시
+>
+> [← 이전: V 데이터](#part-v-데이터) · [목차](#목차) · [다음: VII 플랫폼 →](#part-vii-플랫폼배포)
+
+#### Part VI 한눈에(표 그림)
+
+```text
+          ┌─ §18 보안 (JWT / Security / CORS)
+ 요청 ──►├─ §19 AOP (Aspect / Interceptor / Plugin)
+          ├─ §20 타임아웃 (HTTP / TX / JWT)
+          ├─ §21 TX로그 (PdmkTxLog / ImageLog / SQL)
+          └─ §22 캐시 (MessageCache / Body 버퍼)
+```
+
+| 이 Part의 절 | 한줄 |
+| ------------ | ---- |
+| [§18 보안](#18-보안-아키텍처) | JWT·Security·CORS |
+| [§19 AOP](#19-aop-아키텍처) | Aspect·Interceptor·Plugin |
+| [§20 타임아웃](#20-타임아웃-아키텍처) | HTTP·TX·JWT·연동 |
+| [§21 TX로그](#21-트랜잭션-로그-아키텍처) | PdmkTxLog·ImageLog·SQL |
+| [§22 캐시](#22-캐시-아키텍처) | MessageCache·Body |
+
+## 18. 보안 아키텍처
+
+PDMK 보안은 **Spring Security 인가 체인**과 **commons `DefaultFilter` JWT**가 역할을 나눈다.  
+TCF `JwtAuthenticationFilter` / `TcfAuthenticationEntryPoint`는 **비활성** (`nhnis.fw.tcf.enabled=false`).
+
+관련: [§6 필터](#6-필터-아키텍처) · [§12 에러](#12-에러메시지-처리-아키텍처) · [§20 타임아웃](#20-타임아웃-아키텍처) · [§25 배포](#25-배포기술-아키텍처)
+
+### 18.1 계층 한눈에
+
+#### 보안 계층(표 그림)
+
+```text
+ Browser
+   │  (직접 service 호출 시 CORS·JWT 정책 적용)
+   ▼
+ pdmk-ui :8090          ← 인증 없음. HTTP 릴레이만 (Bearer 미전달 현황)
+   │
+   ▼
+ pdmk-service :8080
+   ├─ DefaultFilter (fw)     ← 비-local: Bearer Access JWT 필수 → 401
+   ├─ SecurityFilterChain    ← STATELESS, CSRF off, **permitAll**
+   ├─ Interceptor / Aspect   ← 인가 아님 (선후·로그)
+   └─ Controller → Service → DAO  ← MyBatis #{} 바인딩
+         │
+         ▼
+      RDW (계정·네트워크 권한은 인프라)
+```
+
+| 층 | 모듈 | 하는 일 | 하지 않는 일 |
+| -- | ---- | ------- | ------------ |
+| JWT 게이트 | `pdmk-fw` `DefaultFilter` + `JwtProvider` | 비-local 토큰 검증·`ssoId` | RBAC/URL 인가 |
+| Spring Security | `pdmk-service` `SecurityConfig` | 세션·CSRF·Basic/Form 끄기 | URL별 `authenticated` (샘플은 전부 허용) |
+| CORS | service `WebMvcConfig` + yml | origins 있을 때만 `/api/**` | 기본 샘플은 origins **빈 목록** → 매핑 없음 |
+| UI | `pdmk-ui` | 서버 사이드 릴레이로 브라우저 CORS 회피 | JWT 발급·검증 |
+| 데이터 | MyBatis / DS | `#{}` 바인딩, DS 계정 분리 | 앱 레벨 row-level security |
+
+### 18.2 Spring Security (`pdmk-service`)
+
+`nhnis.mk.config.SecurityConfig`:
+
+| 항목 | 설정 |
+| ---- | ---- |
+| Session | `STATELESS` |
+| CSRF | **disable** (무상태 API) |
+| httpBasic / formLogin | disable |
+| CORS | `Customizer.withDefaults()` (+ MVC CORS) |
+| authorize | **`anyRequest().permitAll()`** |
+| EntryPoint | `HttpStatusEntryPoint(401)` — Security가 거부할 때(현재 경로 거의 없음) |
+
+**함의:** Security 체인만으로는 API가 **열려 있다.** 실인증은 Filter JWT(비-local)에 의존한다.  
+URL·역할 기반 인가가 필요하면 `authorizeHttpRequests`를 강화하고, TCF JWT 필터와 **이중으로 넣지 않는다.**
+
+FW `nhnis.fw.commons.configuration.SecurityConfig`는 `nhnis.fw.commons.security.enabled=true`일 때만 로드. **앱과 동시 활성 금지.**
+
+### 18.3 JWT (`pdmk-fw` commons)
+
+| 항목 | 내용 |
+| ---- | ---- |
+| 구현 | `JwtProvider` (JJWT, HMAC `jwt.secret`) |
+| 호출 | `DefaultFilter` — `spring.profiles.active`가 **`local`이 아닐 때** |
+| 헤더 | `Authorization: Bearer <token>` |
+| 검사 | `validate` → `isAccessToken` (`type=ACCESS`) → `getSsoId`(subject) → `request.setAttribute("ssoId")` |
+| 실패 | `401` + `sendError` 문구 ([§12.5](#125-filter인증-단계-오류)) — 전문 envelope 없음 |
+
+| 프로파일 | Filter JWT |
+| -------- | ---------- |
+| `local` | **검증 생략** (개발 편의) |
+| `local` 이외 | Bearer Access **필수** |
+
+**갭·주의**
+
+| 항목 | 현황 |
+| ---- | ---- |
+| `jwt.enabled` | yml에 있으나 commons Filter는 **프로파일명 `local` 여부**로 분기. TCF 필터용 키와 혼동하기 쉬움 |
+| `dev` 샘플 | `jwt.enabled: false`여도 프로파일이 `local`이 아니면 **Filter는 JWT 요구** |
+| `jwt.access-token-expiration` | 발급 수명 설정값. `JwtProvider`는 파싱 시 서명·claims 검증(만료 claim 포함) |
+| 토큰 발급 API | 본 스택 샘플에 **없음** (외부 IdP/게이트웨이 전제) |
+| UI 릴레이 | `RestClient`가 Authorization을 **전달하지 않음** → 비-local에서 ui→service는 별도 헤더 주입 필요 |
+| SecurityContext | commons 경로는 SecurityContext에 principal을 **안 심음** (`ssoId` attribute만) |
+
+TCF `JwtAuthenticationFilter`와 **병행 금지** ([§6.5](#65-jwt-commons-filter) · [§6.8](#68-security-충돌-주의)).
+
+### 18.4 CORS·UI 중계
+
+| 경로 | 효과 |
+| ---- | ---- |
+| 브라우저 → `pdmk-ui` → service | same-origin(ui) + 서버 릴레이 → **브라우저 CORS 이슈 회피** |
+| 브라우저 → service 직호출 | `spring.mvc.cors.allowed-origins`가 비어 있으면 MVC CORS 미등록. Security `cors` defaults만 |
+
+`application.yml` 샘플은 `spring.mvc.cors.allowed-origins`를 **비움**(자동 CORS 비활성 의도).  
+운영에서 SPA가 service를 직접 치면 origins·methods·headers를 명시한다. `/api/**` 매핑만 등록되므로 **`/mkcoa*` 직경로**는 별도 정책이 필요할 수 있다.
+
+### 18.5 시크릿·설정
+
+| 비밀/설정 | 용도 | 권장 |
+| --------- | ---- | ---- |
+| `PDMK_JWT_SECRET` / `jwt.secret` | HMAC 키 (≥32바이트) | 운영은 환경변수·시크릿 저장소. 기본값 커밋값 사용 금지 |
+| `PDMK_RDW_PASSWORD` | Oracle DS | 환경변수 |
+| `jwt.access-token-expiration` | 토큰 수명(ms) 정책값 | IdP/발급기와 일치 |
+| DB 계정 | RDW 접속 | 최소 권한. ImageLog·업무 테이블 GRANT 분리 검토 |
+
+로컬 기본 시크릿은 **개발 전용**이다 ([§25](#25-배포기술-아키텍처)).
+
+### 18.6 데이터·입력 보안
+
+| 위협 | 완화 (현황) |
+| ---- | ----------- |
+| SQL Injection | MyBatis `#{…}` 바인딩. `MessageLoader` 테이블명은 설정값 연결 — **설정 신뢰 전제** |
+| 대량 Body | Filter가 전체 Body 버퍼 ([§22](#22-캐시-아키텍처)) — 크기 제한은 앱/WAS 정책 |
+| 세션 고정/하이재킹 | STATELESS · 서버 세션 미사용 |
+| CSRF | API+JWT(+릴레이) 전제에서 CSRF off. 쿠키 세션 도입 시 재검토 |
+| 로그 유출 | MDC GUID/사용자. Filter finally 정리. 비밀번호를 로그에 남기지 않음 |
+| ImageLog 삭제 | `mkcoa8888D0` — JWT/네트워크 뒤 호출자 신뢰. 별도 관리자 인가 **없음**(샘플) |
+
+### 18.7 모듈 경계
+
+| 규칙 | 설명 |
+| ---- | ---- |
+| 인증 게이트 | **fw DefaultFilter** (비-local) |
+| Security 체인 소유 | **service** 앱 `SecurityConfig` |
+| UI | 토큰 저장·발급 로직 넣지 않음(시험용). 운영 연동 시 릴레이에 Authorization 전달 설계 |
+| TCF Security | 끄고 commons와 이중 인증 경로 만들지 않음 |
+| 업무 인가 | 필요 시 Service/Interceptor에서 역할 검사 — 샘플 미구현 |
+
+### 18.8 갭·운영 권장
+
+| 갭 | 권장 |
+| -- | ---- |
+| Security `permitAll` | 운영 URL·메서드 단위 인가 또는 APIGW 앞단 인증 |
+| ui 릴레이 JWT 미전달 | 비-local 시험 시 헤더 전파 또는 service를 local만 ui 대상 |
+| `jwt.enabled` vs profile | 문서·코드를 한쪽으로 통일 (Filter가 `jwt.enabled`를 보거나 yml 주석 정정) |
+| HTTPS/TLS | 앱 밖(WAS·LB)에서 종단 |
+| 감사 | ImageLog + 앱 로그. 개인정보 마스킹 정책은 팀 표준 |
+
+### 18.9 체크리스트
+
+- [ ] 운영 프로파일이 `local`이 아닌지 (JWT 게이트 동작)
+- [ ] `PDMK_JWT_SECRET` 교체·유출 방지
+- [ ] TCF JWT 필터와 DefaultFilter **동시 미사용**
+- [ ] FW commons Security **미활성** (앱만 사용)
+- [ ] CORS origins가 직호출 필요 시 `/mkcoa*`까지 커버하는지
+- [ ] ui→service 비-local 시 Authorization 전달 여부
+- [ ] DS 비밀번호·시크릿을 저장소/로그에 평문 커밋하지 않았는지
+- [ ] ImageLog/삭제 API 노출 범위를 네트워크·인가로 제한했는지
+
+---
+
+## 19. AOP 아키텍처
+
+횡단 관심사(선후처리·로그·TX·SQL 계측)를 **어느 메커니즘이 담당하는지** 정의한다.  
+PDMK 활성 경로는 **Spring AOP(`BizPrePostAspect`) + MVC Interceptor + MyBatis Plugin**이며, TCF `@Around` Aspect는 **OFF**.
+
+선후처리 상세·로그 문구: [§5](#5-필터시스템-선후처리업무-선후처리).  
+TX: [§11](#11-트랜잭션-처리-아키텍처). 거래 로그: [§21](#21-트랜잭션-로그-아키텍처).
+
+### 19.1 횡단 계층 맵
+
+#### AOP·인접 계층(표 그림)
+
+```text
+ Servlet Filter          DefaultFilter          ← AOP 아님 (Servlet)
+      │
+ Security FilterChain                            ← AOP 아님
+      │
+ DispatcherServlet
+      │
+ HandlerInterceptor      ServicePreventionInterceptor  ← Web MVC (시스템 선후)
+      │
+ Spring AOP @Before/@After
+                         BizPrePostAspect              ← **활성** 업무 선후
+      │
+ Controller
+      │
+ Spring AOP (TX)         @Transactional advisor        ← Service 경계(권장)
+      │
+ MyBatis Plugin          MybatisLogInterceptor          ← SQL 계측 (AOP 아님)
+      │
+ (비활성) Spring AOP @Around
+                         TCFAspect + @TcfTransaction   ← tcf.enabled=true 만
+```
+
+| 메커니즘 | 모듈 | 클래스 | 활성 조건 | 본질 |
+| -------- | ---- | ------ | --------- | ---- |
+| Spring AOP | service | `BizPrePostAspect` | `legacy-web.enabled=true` (기본) | Controller 진입/종료 로그 |
+| HandlerInterceptor | fw | `ServicePreventionInterceptor` | `legacy-web` → `WebConfiguration` | GUID·ImageLog·시스템 선후 |
+| MyBatis Plugin | service | `MybatisLogInterceptor` | 항상(Bean) | SQL ID·소요시간 debug |
+| Spring TX AOP | service | `@Transactional` | 메서드/클래스 선언 시 | DB 커밋/롤백 |
+| Spring AOP | fw | `TCFAspect` | `tcf.enabled=true` | **PDMK OFF** — STF/ETF 봉투 |
+| Servlet Filter | fw | `DefaultFilter` | `filter.enabled` | JWT·Body — AOP 아님 |
+
+`pdmk-ui`에는 Aspect/Interceptor/MyBatis Plugin이 **없다**.
+
+### 19.2 활성 Spring AOP — `BizPrePostAspect`
+
+| 항목 | 값 |
+| ---- | -- |
+| 위치 | `nhnis.mk.co.common.BizPrePostAspect` |
+| Pointcut | `execution(* nhnis.mk.co..controller..*(..))` |
+| Advice | `@Before` / `@After` (둘 다 로그) |
+| `@Order` | `100` |
+| 조건 | `@ConditionalOnProperty(nhnis.fw.commons.legacy-web.enabled=true)` |
+
+```text
+ preHandle (Interceptor)     — 시스템
+      │
+ @Before BizPrePostAspect    — 업무 선처리 + BRC 인자 로그
+      │
+ Controller → Service → DAO
+      │
+ @After  BizPrePostAspect    — 업무 후처리 + BRC
+      │
+ postHandle (Interceptor)    — 시스템
+```
+
+| 한다 | 하지 않는다 |
+| ---- | ---------- |
+| `PdmkTxLog` 업무 선/후·BRC 로그 | DB TX, ImageLog, JWT |
+| DTO에서 `getTrtBrc`/`getBrc`/`getBRC`/`getL5104` 반사 | 예외 변환·응답 조립 |
+| Controller **만** weave | Service/DAO pointcut (현재 없음) |
+
+`@After`는 정상·예외 모두 호출된다(언래핑 후). 예외 전문 조립은 Resolver/Filter 경로 ([§12](#12-에러메시지-처리-아키텍처)).
+
+### 19.3 MVC Interceptor (AOP 인접)
+
+`ServicePreventionInterceptor`는 AspectJ가 아니라 **HandlerInterceptor**다. 운영상 “시스템 AOP”로 취급한다.
+
+| 훅 | 역할 |
+| -- | ---- |
+| `preHandle` | 시스템 선처리, GUID, ImageLog PRE |
+| `postHandle` | 시스템 후처리, ImageLog POST |
+| `afterCompletion` | 예외 시 ImageLog EX, Context 정리 |
+
+등록: `WebConfiguration` — `/**`, `/error` 제외. 상세 [§5.4](#54-시스템-선후처리--servicepreventioninterceptor).
+
+### 19.4 MyBatis Plugin
+
+`MybatisLogInterceptor` (`@Intercepts` Executor query/update):
+
+- MDC `sqlId` 설정 → debug 로그 `sqlId | param | Nms`
+- Spring AOP proxy와 무관 — SqlSession 플러그인 체인
+- 성능·감사 SQL 채널 ([§21](#21-트랜잭션-로그-아키텍처))
+
+### 19.5 `@Transactional` (Spring AOP)
+
+선언적 트랜잭션은 Spring의 **TransactionInterceptor**(AOP 어드바이저)로 동작한다.
+
+| 권장 | 설명 |
+| ---- | ---- |
+| Service 메서드/클래스 | DAO·Controller에 두지 않음 |
+| self-invocation | 같은 클래스 내부 호출은 프록시 우회 → TX/AOP 미적용 |
+| readOnly / timeout | [§11](#11-트랜잭션-처리-아키텍처) · [§20](#20-타임아웃-아키텍처) |
+
+Biz Aspect(`@Order(100)`)와 TX 어드바이저 순서는 **Controller 바깥(Biz) vs Service 안(TX)** 이라 보통 충돌하지 않는다.
+
+### 19.6 비활성 — `TCFAspect`
+
+| 항목 | 값 |
+| ---- | -- |
+| Pointcut | `@Around("@annotation(TcfTransaction)")` |
+| 역할 | STF 선처리 → proceed → ETF 성공/Biz/System 실패 |
+| 반환 | `StandardResponseDto` 고정 |
+| 활성 | `nhnis.fw.tcf.enabled=true` 만 |
+
+commons `hdr_nhnis`+`dto` 경로와 **혼용하지 않는다.** PDMK는 `tcf.enabled=false`.
+
+### 19.7 설계 규칙
+
+| 규칙 | 이유 |
+| ---- | ---- |
+| 업무 공통 로그는 `BizPrePostAspect`에 | 패키지·`%C.%M`이 운영 로그와 일치 |
+| `PdmkTxLog`는 포맷만, `log.info`는 Aspect/Interceptor에서 | 위치가 유틸로 고정되면 안 됨 |
+| Aspect에 업무 규칙·DAO 호출 금지 | 테스트·TX 경계 붕괴 |
+| pointcut을 `nhnis.mk..*` 전 계층으로 확대 금지 | 노이즈·이중 로그 |
+| TCFAspect + BizPrePost 동시 ON 금지 | 이중 선후·전문 형식 충돌 |
+| UI에 Aspect 추가 금지 | 중계만 |
+
+### 19.8 스위치
+
+| 키 | Aspect/인접 영향 |
+| -- | ---------------- |
+| `nhnis.fw.commons.legacy-web.enabled` | `BizPrePostAspect`, Interceptor, Resolvers |
+| `nhnis.fw.tcf.enabled` | `TCFAspect` (기본 false) |
+| `nhnis.fw.commons.filter.enabled` | Filter만 (AOP 아님) |
+
+### 19.9 체크리스트
+
+- [ ] 활성 경로가 commons(Interceptor+Biz Aspect)인지 확인 (`tcf.enabled=false`)
+- [ ] 신규 Controller가 `nhnis.mk.co..controller` pointcut에 들어가는지
+- [ ] Aspect에서 DB/외부 호출을 하지 않는지
+- [ ] `@Transactional`이 Service에만 있는지 (프록시 self-call 주의)
+- [ ] SQL 로그는 MyBatis Plugin debug로 보는지
+- [ ] TCF `@TcfTransaction`을 commons API에 붙이지 않았는지
+
+## 20. 타임아웃 아키텍처
+
+타임아웃은 **계층마다 의미가 다르다.** 하나를 바꾸면 전체가 바뀌지 않는다.  
+세 모듈(`pdmk-fw` · `pdmk-service` · `pdmk-ui`) 기준으로 층을 나눈다.
+
+상세: [4초지나면롤백되나.md](./4초지나면롤백되나.md), [성능감시.md](./성능감시.md) · TX: [§11](#11-트랜잭션-처리-아키텍처)
+
+### 20.1 계층 한눈에 보기(표 그림)
+
+```text
+ Browser
+   │  (브라우저/네트워크 — 본 스택 밖)
+   ▼
+ pdmk-ui
+   │  pdmk.ui.timeout-ms = 10000   ← 설정·화면 노출
+   │  ※ 현재 RestClient에 미적용(갭) — 권장: HTTP 클라이언트에 연결
+   ▼
+ pdmk-service  (+ pdmk-fw)
+   │  ┌─ JWT access-token-expiration (ms)     [인증 수명]
+   │  ├─ @Transactional(timeout = 초)         [DB TX · 권장]
+   │  ├─ slow-transaction-ms (WARN, TCF문서)  [성능 경고 ≠ rollback]
+   │  └─ sys_comm.ttl_ug_ync                  [전문 플래그 ≠ Spring TX]
+   ▼
+ pdmk-fw 연동(선택)
+   │  apigw.connect/response-timeout (초)
+   │  storage.fos.connect/response-timeout
+   ▼
+ RDW / 외부 시스템
+```
+
+| 층 | 모듈 | 설정/수단 | 단위 | 초과 시 | 현재 샘플 |
+| -- | ---- | --------- | ---- | ------- | --------- |
+| UI 릴레이 HTTP | `pdmk-ui` | `pdmk.ui.timeout-ms` | ms | 클라이언트 타임아웃(적용 시) | **값만 있고 RestClient 미연결** |
+| DB 트랜잭션 | `pdmk-service` | `@Transactional(timeout=n)` | **초** | rollback + `TransactionTimedOutException` | `mkcoa*` **미선언** |
+| JWT 수명 | `pdmk-service` + fw `JwtProvider` | `jwt.access-token-expiration` | ms | 토큰 무효 → Filter 401 | local 180000 / dev 240000 |
+| 전문 TTL 플래그 | fw 헤더 / ui 샘플 | `sys_comm.ttl_ug_ync` | int | **자동 timeout 없음** | 샘플 `0` |
+| APIGW | `pdmk-fw` | `apigw.*-timeout` | 초 | 연동 실패 | 기본 30 |
+| FOS 스토리지 | `pdmk-fw` | `storage.fos.*-timeout` | 초 (`-1`=무제한) | 연동 실패 | 기본 -1 |
+| 느린 거래 WARN | (문서/TCF 계열) | `slow-transaction-ms` | ms | 로그만 | DB timeout과 **별개** |
+
+### 20.2 모듈별 정의
+
+#### `pdmk-ui`
+
+| 키 | 기본 | 역할 |
+| -- | ---- | ---- |
+| `pdmk.ui.timeout-ms` | `10000` | `/api/config`의 `timeoutMs`로 화면에 전달 |
+
+```yaml
+# pdmk-ui application.yml
+pdmk.ui:
+  target-base-url: http://localhost:8080
+  timeout-ms: 10000
+```
+
+**갭:** `TransactionRelayService`의 `RestClient`는 현재 timeout을 설정하지 않는다.  
+아키텍처상 UI HTTP timeout ≥ service DB timeout(+여유)이 되도록 **클라이언트에 연결**하는 것을 권장한다.
+
+#### `pdmk-service`
+
+| 구분 | 권장 | 비고 |
+| ---- | ---- | ---- |
+| 조회 | `@Transactional(readOnly=true)` (± timeout) | |
+| 쓰기 | `@Transactional(timeout=n)` | 예: 4초 — 확정값만, 추측 금지 |
+| JWT | `jwt.access-token-expiration` | local `180000`ms, dev `240000`ms |
+
+```text
+ Service 시작
+   → DAO SQL …
+   → timeout 초 초과 (다음 DB 경계·커밋 시점에 감지)
+   → TransactionTimedOutException
+   → rollback
+```
+
+`timeout`은 **순수 Java sleep을 끊는 wall-clock 타이머가 아니다.** ([4초지나면롤백되나.md](./4초지나면롤백되나.md))
+
+#### `pdmk-fw`
+
+| 영역 | 키 | 기본 |
+| ---- | -- | ---- |
+| APIGW | `apigw.connect-timeout` / `response-timeout` | 30초 |
+| FOS | `storage.fos.connect-timeout` / `response-timeout` | -1 (무제한) |
+| 헤더 | `ttl_ug_ync` | Spring TX와 **비연동** |
+
+Filter·Interceptor 자체에 “요청 절대시간 강제 kill” 타임아웃은 없다.
+
+### 20.3 권장 관계(표 그림)
+
+```text
+ UI HTTP timeout-ms
+        ≥
+ service @Transactional(timeout) × 1000  +  직렬화·필터 여유
+        ≥
+ 개별 SQL / 외부 APIGW·FOS timeout
+```
+
+| 관계 | 권장 |
+| ---- | ---- |
+| UI vs DB TX | UI가 먼저 끊기면 사용자는 실패로 보지만 DB TX는 계속될 수 있음 → UI ≥ TX+여유 **또는** TX를 더 짧게 |
+| WARN vs TX | `slow-transaction-ms`(예 3초)는 TX timeout(예 4초)보다 짧게: 먼저 WARN, 이후 rollback |
+| TTL 플래그 | 문서·게이트웨이 정책용. 코드에 `@Transactional(timeout)`을 대신하지 않음 |
+
+### 20.4 타임아웃 vs 다른 개념
+
+| 개념 | timeout인가? |
+| ---- | ------------ |
+| `@Transactional(timeout)` | **예** — DB TX |
+| `pdmk.ui.timeout-ms` | **예(의도)** — HTTP 릴레이 |
+| `jwt.access-token-expiration` | 토큰 **수명** (요청 한 건 timeout과 다름) |
+| `ttl_ug_ync` | 전문 **플래그** |
+| `slow-transaction-ms` | **성능 WARN** (rollback 아님) |
+| ImageLog PRE/POST | 감사 SQL — 업무 TX와 분리 ([§11.6](#116-이미지로그와-트랜잭션-경계)) |
+
+### 20.5 예외·응답
+
+| 발생 | 전파 | 참고 |
+| ---- | ---- | ---- |
+| `TransactionTimedOutException` | TX rollback → [§13](#13-예외처리-아키텍처) | 필요 시 `NhBaseException` 래핑 정책 |
+| UI HTTP timeout (적용 후) | `RelayResult` 502/오류 JSON | service와 전문 envelope 다를 수 있음 |
+| JWT 만료 | Filter `401` | [§6](#6-필터-아키텍처) · [§12.5](#125-filter인증-단계-오류) |
+
+### 20.6 체크리스트
+
+- [ ] 쓰기 Service에 필요한 `@Transactional(timeout)`이 **확정값**으로 있는지 (추측 금지)
+- [ ] UI `timeout-ms`와 RestClient 실제 적용 여부 확인
+- [ ] UI timeout ≥ DB TX(+여유) 또는 반대 정책이 문서화돼 있는지
+- [ ] `ttl_ug_ync`를 TX timeout으로 오해하지 않는지
+- [ ] APIGW/FOS timeout이 업무 TX보다 길거나, 연동 실패 시 업무 롤백 정책이 있는지
+- [ ] `slow-transaction-ms`와 TX timeout을 혼동하지 않는지
+
+---
+
+## 21. 트랜잭션 로그 아키텍처
+
+한 건의 온라인 거래(`POST /서비스ID`)에 대해 PDMK는 **애플리케이션 로그 + DB 이미지로그 + SQL 로그**를 남긴다.  
+포맷 유틸은 `pdmk-fw`의 `PdmkTxLog`, 호출은 **각 계층에서 직접 `log.info`** 한다 (`%C.%M` 위치 유지).
+
+관련: [§5](#5-필터시스템-선후처리업무-선후처리) 선후처리 · [§11.6](#116-이미지로그와-트랜잭션-경계) ImageLog·TX · [성능감시.md](./성능감시.md)
+
+### 21.1 로그 채널(표 그림)
+
+```text
+ Browser ──(선택)──► pdmk-ui  RelayResult(elapsedMs)     [ui 중계 소요]
+                         │
+                         ▼
+              pdmk-service + pdmk-fw
+ ┌──────────────────────────────────────────────────────────┐
+ │ ① MDC / ThreadContext                                    │
+ │    guid · ip · userId · serviceId  (DefaultFilter)       │
+ │    sqlId                       (MybatisLogInterceptor)  │
+ ├──────────────────────────────────────────────────────────┤
+ │ ② 애플리케이션 거래 로그 (Slf4j + PdmkTxLog 메시지)         │
+ │    Interceptor → Aspect → Controller → Service           │
+ ├──────────────────────────────────────────────────────────┤
+ │ ③ 이미지로그 DB  TB_FW_IMAGE_LOG  (ImageLogHandler)       │
+ │    PRE INSERT → POST UPDATE → EX UPDATE                  │
+ ├──────────────────────────────────────────────────────────┤
+ │ ④ SQL 로그  MybatisLogInterceptor (debug + MDC sqlId)     │
+ └──────────────────────────────────────────────────────────┘
+```
+
+| 채널 | 모듈 | 저장소 | 목적 |
+| ---- | ---- | ------ | ---- |
+| 거래 타임라인 | fw + service | 앱 로그 파일 | 선후처리·Controller/Service 추적 |
+| MDC | fw (+ service SQL) | Log4j ThreadContext | GUID·서비스·SQL ID 상관관계 |
+| 이미지로그 | fw | `TB_FW_IMAGE_LOG` | 전문 헤더 감사·예외 흔적 |
+| SQL | service | SQL 전용 로거 | 쿼리 ID·파라미터·소요(ms) |
+| UI 릴레이 | ui | `RelayResult` | HTTP 상태·중계 소요시간 |
+
+### 21.2 타임라인과 메시지 포맷
+
+정상 거래 시 대략적 순서 (`PdmkTxLog`):
+
+```text
+[ServicePreventionInterceptor] SystemPreProcessor Start!     ← fw
+[ServicePreventionInterceptor] GUID: <std_gbl_id>
+▶▶▶▶▶▶ mpco 업무 공통 선처리 ▶▶▶▶▶▶                         ← service Aspect
+[bizPrePostAspect().before()] Argument: BRC : …
+▷▷▷▷▷▷▷▷ mkcoa5530 Controller Start!                       ← service (또는 PdmkTxLog.controller*)
+▶▶▶▶▶▶▶▶ mkcoa5530S0 Service Start!
+▶▶▶▶▶▶▶▶ mkcoa5530S0 Service End! - Total: n
+▷▷▷▷▷▷▷▷ mkcoa5530 Controller End!…
+▶▶▶▶▶▶ mpco 업무 공통 후처리 ▶▶▶▶▶▶
+[bizPrePostAspect().after()] Argument: BRC : …
+[ServicePreventionInterceptor] SystemPostProcessor           ← fw
+```
+
+예외 시: `[ServicePreventionInterceptor] SystemErrorProcessor` + ImageLog EX.
+
+| 기호/접두 | 출처 | API (`PdmkTxLog`) |
+| --------- | ---- | ----------------- |
+| `[ServicePreventionInterceptor]` | fw Interceptor | `systemPreProcessorStart`, `systemGuid`, `systemPostProcessor`, `systemErrorProcessor` |
+| `▶▶▶▶▶▶` (6) | service Aspect | `bizPreProcess` / `bizPostProcess`, `bizArgument*` |
+| `▷▷▷▷▷▷▷▷` (8) | Controller | `controllerStart` / `controllerEnd` (샘플은 문자열 직접 쓰기도 함) |
+| `▶▶▶▶▶▶▶▶` (8) | Service | `serviceStart` / `serviceEnd` |
+
+**규칙:** 메시지 조립만 `PdmkTxLog`에 두고, `log.info(...)`는 Interceptor/Aspect/Controller/Service **호출부**에서 수행한다.
+
+### 21.3 계층별 책임
+
+| 계층 | 모듈 | 로그 |
+| ---- | ---- | ---- |
+| `DefaultFilter` | fw | MDC 시드; 오류 시 Filter error 로그 · `sendError` |
+| `ServicePreventionInterceptor` | fw | 시스템 선/후/에러 + ImageLog PRE/POST/EX |
+| `BizPrePostAspect` | service | 업무 선/후 + BRC 인자 |
+| Controller / Service | service | Start/End · 건수 등 |
+| `MybatisLogInterceptor` | service | SQL ID · param · elapsed(ms) @ debug |
+| `TransactionRelayService` | ui | `RelayResult`에 status·elapsedMs (앱 타임라인 로그와 별개) |
+
+### 21.4 이미지로그 (DB)
+
+`ImageLogHandler` (`pdmk-fw`):
+
+| 시점 | 동작 | 업무 TX |
+| ---- | ---- | ------- |
+| preHandle | INSERT (GUID, 서비스, 화면, 조작자, IP, REQUEST_TIME) | **분리** — 실패해도 업무에 영향 없게 삼킴 |
+| postHandle | RESPONSE_TIME UPDATE | 분리 |
+| afterCompletion(ex) | 예외 타입/코드/메시지 UPDATE | 업무는 이미 rollback됐을 수 있음 |
+
+조회·삭제는 업무 API `mkcoa8888S0`/`D0`로 `TB_FW_IMAGE_LOG`를 다룬다 ([§15](#15-dao-아키텍처) · [§16](#16-테이블-아키텍처)).
+
+### 21.5 MDC 키
+
+| 키 | 설정 위치 | 용도 |
+| -- | --------- | ---- |
+| `guid` | `DefaultFilter` / Interceptor | 거래 상관 ID (`std_gbl_id`) |
+| `ip` | Filter | 단말 IP |
+| `userId` | Filter | 조작자 |
+| `serviceId` | Filter (URI 또는 `rms_svc_c`) | 서비스 ID |
+| `sqlId` | `MybatisLogInterceptor` | Mapper statement ID |
+| `errCode` | `NhExceptionProvider` (사용 시) | 에러 코드 |
+
+Filter `finally`에서 Context·ThreadContext를 **반드시 clear** ([§6.6](#66-servicecontext--mdc)).
+
+### 21.6 모듈 경계
+
+| 모듈 | 한다 | 하지 않는다 |
+| ---- | ---- | ---------- |
+| `pdmk-fw` | `PdmkTxLog` 포맷, Interceptor/Filter MDC, ImageLog | 업무 Controller 로그 문구 강제 |
+| `pdmk-service` | Aspect·C/S 로그, Mybatis SQL 로그, log4j2 어펜더 | UI 릴레이 로그 대체 |
+| `pdmk-ui` | 중계 소요·상태 반환 | `PdmkTxLog` / ImageLog 직접 기록 |
+
+### 21.7 하지 말 것
+
+| 금지 | 이유 |
+| ---- | ---- |
+| `PdmkTxLog` 안에서 `Logger` 호출 | `%C.%M`이 유틸로 고정되어 운영 위치와 불일치 |
+| ImageLog 실패를 업무 예외로 전파 | 감사 실패가 거래를 막음 (현 Handler는 삼킴) |
+| MDC clear 생략 | 워커 재사용 시 GUID 오염 |
+| UI elapsed만으로 service 성능을 단정 | 네트워크·릴레이 포함 |
+
+### 21.8 체크리스트
+
+- [ ] 시스템/업무 선후처리 로그가 GUID와 함께 남는지
+- [ ] Controller/Service Start·End 패턴이 샘플과 맞는지
+- [ ] ImageLog PRE/POST(·EX)가 GUID 기준으로 쌓이는지
+- [ ] SQL 로그에 `sqlId` MDC·소요시간이 필요한지 (debug)
+- [ ] Filter finally MDC/Context 정리
+- [ ] TCF Trace 로그와 commons 경로를 혼동하지 않는지 (`tcf.enabled=false`)
+
+---
+
+## 22. 캐시 아키텍처
+
+PDMK는 **분산 캐시(Redis 등)·Spring Cache·MyBatis 2차 캐시를 쓰지 않는다.**  
+캐시에 해당하는 것은 **프로세스 내 메모리 Map**과 **요청 단위 Body 버퍼**, **기동 시 적재 사전**이다.
+
+### 22.1 모듈별 역할
+
+| 모듈 | 캐시성 저장소 | 수명 | 비고 |
+| ---- | ------------- | ---- | ---- |
+| `pdmk-fw` | `MessageCache` | JVM 기동~종료 (또는 clear 후 재적재) | 업무 메시지 코드 → 문구 |
+| `pdmk-fw` | `CachedBodyHttpServletRequest` | **요청 1회** | Servlet Body 다중 소비 |
+| `pdmk-fw` / `pdmk-service` | `exceptionCode.yml` → Spring Environment | 기동 시 로드 | FW/공통 에러 템플릿 ([§12](#12-에러메시지-처리-아키텍처)) |
+| `pdmk-fw` | `ServiceContextHolder` · MDC | **요청 1회** (Filter finally 정리) | 컨텍스트이지 업무 캐시 아님 |
+| `pdmk-service` | (없음) | — | `@Cacheable`·Redis·MyBatis cache **미사용** |
+| `pdmk-ui` | `TransactionCatalog` 내부 Map | JVM 기동~종료 | 샘플 거래·경로·Body 카탈로그 |
+
+#### 캐시 계층(표 그림)
+
+```text
+ 요청 Body 버퍼 (요청 스코프)          메시지/사전 (프로세스 스코프)
+ ┌─────────────────────────┐          ┌──────────────────────────────┐
+ │ CachedBodyHttpServlet   │          │ MessageCache (ConcurrentMap) │
+ │ Request  — fw Filter    │          │  ← MessageLoader @PostConstruct│
+ └─────────────────────────┘          │ exceptionCode.yml (Environment)│
+                                      │ TransactionCatalog (ui only) │
+                                      └──────────────────────────────┘
+```
+
+### 22.2 요청 Body 캐시 (`pdmk-fw`)
+
+Filter가 JSON을 한 번 읽고, Resolver·Controller가 다시 읽어야 하므로 **요청 스코프 바이트 버퍼**를 둔다. 상세는 [§6.4](#64-body-캐시--cachedbodyhttpservletrequest).
+
+#### 요청 스코프 버퍼(표 그림)
+
+```text
+ HTTP Request Body (JSON)
+        │ DefaultFilter readAllBytes
+        ▼
+ CachedBodyHttpServletRequest (요청 1회 힙 버퍼)
+        │
+        ├─ Filter JSON 파싱
+        └─ Resolver / Controller 재읽기 (동일 바이트)
+ ※ multipart 는 래핑하지 않음
+```
+
+| 항목 | 내용 |
+| ---- | ---- |
+| 클래스 | `nhnis.fw.commons.filter.CachedBodyHttpServletRequest` |
+| 적재 시점 | `DefaultFilter`가 일반 JSON 요청을 래핑할 때 `readAllBytes()` |
+| 조회 | `getInputStream()` / `getReader()` → 동일 바이트 재재생 |
+| 제외 | `multipart` — 래핑하지 않음 |
+| 분산·공유 | 없음 (해당 HTTP 요청 스레드만) |
+
+대용량 Body는 **힙에 전체가 올라간다.** 업로드·대형 전문은 multipart 경로 또는 상한 정책을 별도로 둔다.
+
+### 22.3 업무 메시지 캐시 — `MessageCache` (`pdmk-fw`)
+
+`NhBaseException`의 `TYPE.SERVICE` / `TYPE.BIZ` 메시지 해석에 사용한다 ([§12.3](#123-메시지-사전)).
+
+| 항목 | 내용 |
+| ---- | ---- |
+| 클래스 | `MessageCache` — `ConcurrentHashMap<String,String>` |
+| 로더 | `MessageLoader` (`@PostConstruct`) |
+| 설정 | `framework.message.*` (`MessageProperties`) |
+| 키/값 | `CRM_MSG_C` / `MSG_CNTN` (테이블 UNION 조회) |
+| 조회 API | `get` / `getMessage(code, args…)` — `MessageFormat`; **미존재 시 코드 문자열 반환** |
+| 소비처 | `ResponseBodyArgumentResolver.errorProcessor` |
+
+```text
+ framework.message.enabled=true
+         │
+         ▼
+ MessageLoader.init()
+   clear → SELECT CRM_MSG_C, MSG_CNTN FROM {tableName[]} (UNION ALL)
+         │
+         ▼
+ MessageCache.put(code, pattern)
+         │
+         ▼  (거래 중 예외)
+ TYPE.BIZ/SERVICE → messageCache.getMessage(code, args)
+```
+
+| `framework.message` 키 | 기본 | 의미 |
+| ---------------------- | ---- | ---- |
+| `enabled` | `false` | `true`일 때만 DB 적재. 꺼져 있으면 Loader는 no-op |
+| `dataSource` | (필수 if on) | Spring Bean 이름 (`DataSource`) |
+| `tableName` | 배열 | 메시지 테이블명(들). UNION ALL |
+
+**현재 샘플 `pdmk-service` yml에는 `framework.message` 설정이 없다** → 기본 `enabled=false` → **캐시는 비어 있는 상태**로 기동한다.  
+이 경우 BIZ/SERVICE 예외는 캐시 미히트 → **코드 문자열이 그대로** `stdErrMsgCntn`에 실릴 수 있다. 운영에서 업무 메시지를 DB로 쓰려면 service 설정에 명시적으로 켠다.
+
+### 22.4 기동 시 사전·카탈로그 (캐시성)
+
+| 저장소 | 모듈 | 적재 | 갱신 |
+| ------ | ---- | ---- | ---- |
+| `exceptionCode.yml` → `nhnis.exception.*` | fw + service classpath | Boot / `spring.config.import` | **재기동** (핫리로드 API 없음) |
+| `MessageCache` | fw | `MessageLoader` @PostConstruct | clear+재적재 API **미제공** → 재기동 또는 별도 관리 API 필요 |
+| `TransactionCatalog` | ui | `@PostConstruct`에 샘플 JSON 등록 | 코드·classpath 샘플 변경 후 **재기동** |
+
+`TransactionCatalog`는 UI 중계·카탈로그 API용이며 service/DAO와 무관하다. Redis/공유 캐시가 아니다.
+
+### 22.5 의도적으로 캐시하지 않는 것
+
+| 대상 | 이유 |
+| ---- | ---- |
+| 업무 조회 결과 (DAO/Map) | 정합성·동시성; MyBatis 2차 캐시 미설정 |
+| JWT / 세션 | commons는 요청마다 검증(또는 local 생략). 토큰 캐시 없음 |
+| ImageLog / RDW 행 | 감사·원장성 — 캐시 금지 |
+| Spring `@Cacheable` | 스택에 의존성·어노테이션 미사용 |
+
+### 22.6 모듈 경계
+
+| 규칙 | 설명 |
+| ---- | ---- |
+| 메시지 캐시 소유 | **`pdmk-fw`**. service는 설정·DS만 제공 |
+| UI | `MessageCache`/Body 캐시에 **접근하지 않음**. 카탈로그 Map만 보유 |
+| service 업무 코드 | 조회 결과를 JVM static Map에 쌓지 않음 (요청·트랜잭션 단위) |
+| Body 캐시 | Filter 전용. Controller에서 별도 전역 Body 저장 금지 |
+
+### 22.7 갭·주의
+
+| 항목 | 현황 | 권장 |
+| ---- | ---- | ---- |
+| `framework.message` 미설정 | BIZ/SERVICE → 코드 문자열 폴백 | 운영 DS·테이블명으로 enable |
+| MessageCache 핫리로드 | 없음 | 관리 API 또는 재기동 절차 |
+| 멀티 인스턴스 | 인스턴스별 독립 Map | DB 원본 일치 + 동시 재기동/롤링 |
+| 대용량 Body 버퍼 | 힙 전체 적재 | 크기 제한·multipart 분리 |
+| Redis 등 도입 | 범위 밖 | 도입 시 fw 공통 vs service 로컬을 문서에 분리 |
+
+### 22.8 체크리스트
+
+- [ ] 업무 메시지(DB)를 쓰는지 / yml만 쓰는지 정책을 정했는지
+- [ ] `framework.message.enabled`·`dataSource`·`tableName`이 정책과 일치하는지
+- [ ] BIZ/SERVICE 예외 응답 문구가 캐시 히트인지(코드 폴백이 아닌지) 확인
+- [ ] multipart와 JSON Body 캐시 경로를 혼동하지 않는지
+- [ ] Filter finally에서 Context/MDC 정리 (요청 스코프 “캐시” 누수 방지)
+- [ ] UI `TransactionCatalog` 변경 후 ui 재기동했는지
+- [ ] 업무 DAO에 MyBatis cache / `@Cacheable`을 임의 추가하지 않았는지
+
+---
+
+## Part VII. 플랫폼·배포
+
+> **§23~§25** — Spring·Gradle·기동/WAS
+>
+> [← 이전: VI 횡단](#part-vi-횡단-관심사) · [목차](#목차) · [다음: VIII 지침 →](#part-viii-지침참고)
+
+#### Part VII 한눈에(표 그림)
+
+```text
+  §23 Spring yml/프로파일
+         │
+         ▼
+  §24 Gradle Wrapper · 의존 · 산출물
+         │
+         ▼
+  §25 기동 · WAS · local/폐쇄망 전환
+```
+
+| 이 Part의 절 | 한줄 |
+| ------------ | ---- |
+| [§23 스프링](#23-스프링-환경-구성-아키텍처) | Boot·yml·프로파일 |
+| [§24 Gradle](#24-gradle-빌더-환경-아키텍처) | Wrapper·의존·산출물 |
+| [§25 배포](#25-배포기술-아키텍처) | 기동·WAS·환경 전환 |
+
+## 23. 스프링 환경 구성 아키텍처
+
+Spring Boot **기동·스캔·프로파일·외부화 설정·@Configuration** 조립을 정의한다.  
+배포 산출물·기동 명령은 [§25](#25-배포기술-아키텍처), 개별 도메인 키는 본 절 요약표와 각 아키텍처 절을 본다.
+
+### 23.1 모듈별 Boot 엔트리
+
+| 모듈 | Main | 스캔 | PropertiesScan | 비고 |
+| ---- | ---- | ---- | -------------- | ---- |
+| `pdmk-service` | `nhnis.mk.PdmkApplication` | `scanBasePackages = "nhnis"` | `@ConfigurationPropertiesScan("nhnis")` | fw(`nhnis.fw.*`) + 업무(`nhnis.mk.*`) **동시 스캔** |
+| `pdmk-fw` | 없음 | (소비 앱 스캔에 편입) | — | `java-library`, Boot 앱 아님 |
+| `pdmk-ui` | `nhnis.mk.ui.PdmkUiApplication` | 기본(앱 패키지↓) | `@ConfigurationPropertiesScan` | **fw 미의존** |
+
+```text
+ PdmkApplication
+   scanBasePackages = "nhnis"
+        │
+        ├─ nhnis.mk.*          ← service 업무·config·Aspect
+        └─ nhnis.fw.*          ← commons Filter/Interceptor/JWT …
+             └─ nhnis.fw.tcf.* ← @ConditionalOnProperty → 대부분 미생성
+```
+
+WAS 배포 시 `ServletInitializer` → 동일 `PdmkApplication` ([§25](#25-배포기술-아키텍처)).
+
+### 23.2 설정 소스·우선순위
+
+#### 설정 적층(표 그림)
+
+```text
+ 환경변수 / 시스템 프로퍼티     (최상위·시크릿)
+      │
+ spring.profiles.active=local|dev|…
+      │
+ application.yml
+   ├─ 공통 블록 (profiles·DS·nhnis.fw·sql.init …)
+   ├─ --- on-profile: local   → jwt.*
+   └─ --- on-profile: dev     → jwt.*
+      │
+ spring.config.import
+   └─ classpath:exceptionCode.yml   → nhnis.exception.*
+      │
+ (참고) pdmk-fw application-fw-defaults.yml
+   └─ 라이브러리 샘플 — 앱 yml이 덮어씀. 자동 import 아님
+```
+
+| 소스 | 모듈 | 역할 |
+| ---- | ---- | ---- |
+| `pdmk-service/.../application.yml` | service | **런타임 정본** |
+| `exceptionCode.yml` | service(+fw classpath) | 에러 메시지 사전 import |
+| `log4j2.xml` | service | Log4j2 (starter-logging exclude) |
+| `db/h2/schema.sql`·`data.sql` | service | local `sql.init` |
+| `application-fw-defaults.yml` | fw | 개발 참고용 기본값 샘플 |
+| `pdmk-ui/.../application.yml` | ui | port·`pdmk.ui.*` |
+
+로컬↔폐쇄망 전환은 **같은 파일 내 주석 블록 교체**(Nexus·Oracle DS) — [§25.4](#244-런타임-배치환경) · [§24.4](#234-저장소-로컬-vs-폐쇄망).
+
+### 23.3 프로파일
+
+| 프로파일 | 활성화 | 효과(샘플) |
+| -------- | ------ | ---------- |
+| `local` | `spring.profiles.active: local` (기본) | H2·`sql.init`, Filter **JWT 생략**(`active=local`), `jwt.*` 문서용 |
+| `dev` | `--spring.profiles.active=dev` 등 | `jwt.access-token-expiration=240000`. Filter는 프로파일이 `local`이 아니면 JWT 요구 ([§18](#18-보안-아키텍처)) |
+| (기타) | 팀 추가 | Oracle·시크릿·CORS origins 명시 |
+
+문서상 `jwt.enabled`와 Filter의 **`local` 프로파일명 분기**를 혼동하지 않는다.
+
+### 23.4 `@Configuration` · 조건부 빈
+
+**`pdmk-service`**
+
+| 클래스 | 역할 |
+| ------ | ---- |
+| `RdwDataSourceConfig` | `rdwDataSource`(@Primary,@ConfigurationProperties `spring.datasource.rdw`), SqlSession, TX, `@MapperScan` |
+| `SecurityConfig` | SecurityFilterChain ([§18](#18-보안-아키텍처)) |
+| `WebMvcConfig` | CORS 매핑 (`CorsProperties`) |
+| `MybatisLogInterceptor` | MyBatis Plugin Bean |
+
+**`pdmk-fw` (조건부)**
+
+| 클래스 | 조건 키 | 역할 |
+| ------ | ------- | ---- |
+| `FilterConfiguration` | `nhnis.fw.commons.filter.enabled=true` | `DefaultFilter` RegistrationBean order=1 |
+| `WebConfiguration` | `legacy-web.enabled=true` (기본) | Interceptor·RequestBody Resolver |
+| `ClientHttpConnectorConfiguration` | `legacy-web` | WebClient connector (MissingBean 시) |
+| `SecurityConfig`(fw) | `commons.security.enabled=true` | **기본 OFF** — 앱과 이중 금지 |
+| TCF `*`(Aspect/Filter/STF/ETF…) | `nhnis.fw.tcf.enabled=true` | **PDMK OFF** |
+
+**Properties 바인딩**
+
+| 타입 | prefix | 모듈 |
+| ---- | ------ | ---- |
+| `CorsProperties` | `spring.mvc.cors` | service |
+| `MessageProperties` | `framework.message` | fw |
+| `JwtProperties`(TCF) | `jwt` | fw TCF |
+| `ExceptionCodeProperties` | `nhnis` | fw (exception yml) |
+| `PdmkUiProperties` | `pdmk.ui` | ui |
+| `JwtProvider` | `@Value jwt.secret` | fw commons |
+
+런타임 `Environment` 조회: `SpringContext.getProperty` (에러 메시지·FOS 등).
+
+### 23.5 핵심 네임스페이스 맵
+
+```text
+ spring.*
+   profiles / config.import / datasource.rdw / sql.init / mvc.cors / application.name
+
+ nhnis.fw.*
+   tcf.enabled
+   commons.filter.enabled
+   commons.legacy-web.enabled
+   commons.security.enabled   (기본 미사용)
+
+ jwt.*
+   enabled / secret / access-token-expiration
+
+ framework.message.*
+   enabled / dataSource / tableName
+
+ pdmk.ui.*          (ui 전용)
+   target-base-url / timeout-ms
+
+ nhnis.exception.*  (exceptionCode.yml)
+```
+
+### 23.6 환경변수·시크릿
+
+| 변수 | 용도 |
+| ---- | ---- |
+| `PDMK_JWT_SECRET` | `jwt.secret` 덮어쓰기 |
+| `PDMK_RDW_PASSWORD` | Oracle DS 비밀번호(폐쇄망 주석 블록) |
+| `JAVA_HOME` / `JAVA_TOOL_OPTIONS` | 기동 스크립트 UTF-8 등 ([§25](#25-배포기술-아키텍처)) |
+
+평문 시크릿을 운영 yml에 커밋하지 않는다.
+
+### 23.7 로깅 환경
+
+| 항목 | 내용 |
+| ---- | ---- |
+| 구현 | Log4j2 (`spring-boot-starter-logging` exclude) |
+| 설정 | `classpath:log4j2.xml` |
+| MDC | Filter·Interceptor·Mybatis Plugin (`guid`, `sqlId` …) — [§21](#21-트랜잭션-로그-아키텍처) |
+
+### 23.8 UI 환경
+
+| 키 | 기본 | 의미 |
+| -- | ---- | ---- |
+| `server.port` | 8090 | UI HTTP |
+| `pdmk.ui.target-base-url` | `http://localhost:8080` | 릴레이 대상 |
+| `pdmk.ui.timeout-ms` | 10000 | 의도 timeout ([§20](#20-타임아웃-아키텍처), RestClient 미연결 갭) |
+
+프로파일 분할 없음(단일 `application.yml`).
+
+### 23.9 설정 키 요약표
+
+용어·키워드 색인의 짧은 표: [§28.5](#285-설정-키--절).
+
+| 키 | 기본(local) | 의미 |
+| -- | ----------- | ---- |
+| `spring.profiles.active` | `local` | 로컬 H2·JWT 게이트 완화 |
+| `nhnis.fw.tcf.enabled` | `false` | TCF 비활성 |
+| `nhnis.fw.commons.legacy-web.enabled` | `true` | Interceptor·Resolver·`BizPrePostAspect` ([§19](#19-aop-아키텍처)) |
+| `nhnis.fw.commons.filter.enabled` | `true` | DefaultFilter |
+| `jwt.enabled` | `false` (local) | TCF/문서용. commons Filter는 **`local` 프로파일**이면 생략 ([§18](#18-보안-아키텍처)) |
+| `spring.datasource.rdw` | H2 mem | RDW 데이터소스 |
+| `spring.config.import` | `classpath:exceptionCode.yml` | 에러 메시지 사전 |
+| `spring.sql.init.schema-locations` | `classpath:db/h2/schema.sql` | 로컬 테이블 DDL ([§16](#16-테이블-아키텍처)) |
+| `spring.sql.init.data-locations` | `classpath:db/h2/data.sql` | 로컬 시드 |
+| `framework.message.enabled` | `false` | DB MessageCache 적재 ([§22](#22-캐시-아키텍처)) |
+| `jwt.access-token-expiration` | 180000 (local) | JWT 수명(ms) |
+| `pdmk.ui.timeout-ms` | 10000 | UI 릴레이 의도 timeout(ms) — [§20](#20-타임아웃-아키텍처) |
+
+### 23.10 경계·체크리스트
+
+| 규칙 | 설명 |
+| ---- | ---- |
+| 설정 정본은 **service/ui 앱 yml** | fw defaults만으로 운영하지 않음 |
+| `scanBasePackages=nhnis` 축소 금지 | fw Bean 누락 |
+| fw Security + 앱 Security 동시 ON 금지 | [§18](#18-보안-아키텍처) |
+| TCF 스위치와 commons 스위치 분리 | `tcf.enabled` vs `legacy-web`/`filter` |
+| 폐쇄망 전환 시 DS·sql.init·repositories 함께 | [§25](#25-배포기술-아키텍처) |
+
+- [ ] `spring.profiles.active`가 의도한 환경인지
+- [ ] `nhnis.fw.tcf.enabled=false` + commons filter/legacy-web=true
+- [ ] `@ConfigurationPropertiesScan` / Cors·jwt·pdmk.ui 바인딩 확인
+- [ ] 시크릿이 환경변수로 주입되는지
+- [ ] IDE 기동 시 Gradle CP로 fw가 스캔되는지 (`writeIdeLaunch`)
+
+---
+
+## 24. Gradle 빌더 환경 아키텍처
+
+PDMK 세 모듈의 **Gradle 멀티/단독 프로젝트 구성·플러그인·저장소·의존·태스크**를 정의한다.  
+기동·WAS 배치는 [§25](#25-배포기술-아키텍처), Spring 런타임 설정은 [§23](#23-스프링-환경-구성-아키텍처).
+
+### 24.1 프로젝트 토폴로지
+
+```text
+ nsight-tcf-framework/
+ ├─ pdmk-fw/          ← 단독 Gradle 루트 (java-library JAR)
+ │    settings.gradle   rootProject.name = pdmk-fw
+ │    build.gradle
+ │    gradlew.bat + gradle/wrapper (8.10.1)
+ │
+ ├─ pdmk-service/     ← 단독 Gradle 루트 + fw composite
+ │    settings.gradle   include ':pdmk-fw' → ../pdmk-fw
+ │    build.gradle      implementation project(':pdmk-fw')
+ │    gradle.properties UTF-8 JVM args
+ │    script/build.bat · RUN.bat
+ │
+ └─ pdmk-ui/          ← 단독 Gradle 루트 (Boot JAR, fw 미포함)
+      settings.gradle   rootProject.name = pdmk-ui
+      build.gradle
+```
+
+| 관계 | 방식 |
+| ---- | ---- |
+| service → fw | `settings.gradle` `include` + `projectDir=../pdmk-fw` + `implementation project(':pdmk-fw')` |
+| ui → service/fw | **Gradle 의존 없음** (HTTP만) |
+| 모노레포 단일 root | **없음** — 모듈마다 자체 `settings.gradle` / Wrapper |
+
+fw만 빌드하거나, service 빌드 시 fw가 **같은 빌드에 포함**된다.
+
+### 24.2 툴체인·Wrapper
+
+| 항목 | 값 |
+| ---- | -- |
+| Gradle Wrapper | **8.10.1** (`gradle-wrapper.properties` 세 모듈 동일) |
+| JDK | **21** (`java.toolchain`) |
+| Spring Boot plugin | `3.5.14` (세 모듈) |
+| Dependency Management | `1.1.7` |
+| 로컬 인코딩 | `gradle.properties` + `JavaCompile`/`bootRun` UTF-8 (CP949 회피) |
+
+> **참고:** `pdmk-fw`는 plugin `3.5.14`이지만 일부 starter를 **명시 버전**으로 고정한다 (`spring-boot-starter-security`·`log4j2` = `3.5.10`, webflux/aop/autoconfigure = `3.5.14`). BOM만 보지 말고 `pdmk-fw/build.gradle`의 핀을 함께 본다.
+
+반드시 **`gradlew.bat`** 사용(로컬에 깐 Gradle 버전 불일치 방지). 스크립트는 `--no-daemon` 권장.
+
+### 24.3 플러그인·산출물
+
+| 모듈 | plugins | bootJar / war | 주 산출물 |
+| ---- | ------- | ------------- | --------- |
+| `pdmk-fw` | `java-library`, Boot, dependency-mgmt, eclipse | `bootJar` **off**, `jar` **on** | `pdmk-fw-0.0.1-SNAPSHOT.jar` |
+| `pdmk-service` | `java`, `war`, Boot, dependency-mgmt, eclipse | `bootWar` **off**, `war` **on** | `*.war` (WAS용) |
+| `pdmk-ui` | `java`, Boot, dependency-mgmt, eclipse | `bootJar` → `pdmk-ui.jar` | 실행형 JAR |
+
+| group | version |
+| ----- | ------- |
+| fw `nhnis.fw` | `0.0.1-SNAPSHOT` |
+| service/ui `nhnis.mk` | `0.0.1-SNAPSHOT` |
+
+service: `providedRuntime` Tomcat — WAR 시 컨테이너 제공. 로컬은 `bootRun` embedded.
+
+### 24.4 저장소 (로컬 vs 폐쇄망)
+
+세 모듈 `settings.gradle` / `build.gradle`에 **주석 전환** 패턴이 동일하다.
+
+| 환경 | pluginManagement | repositories |
+| ---- | ---------------- | ------------ |
+| 로컬 | `gradlePluginPortal()` + `mavenCentral()` | `mavenCentral()` |
+| 폐쇄망 | 사내 Nexus `http://19.88.120.152:9010/repository/maven-releases/` (`allowInsecureProtocol`) | 동일 Nexus |
+
+로컬에서 Nexus 블록을 켜면 해석 실패할 수 있다. 배포·DS 전환과 함께 맞춘다 ([§25](#25-배포기술-아키텍처)).
+
+### 24.5 의존성 전략
+
+**fw (`api`로 소비자에 전파)**
+
+- Boot Web / Security / AOP / Autoconfigure / WebFlux
+- MyBatis starter, Log4j2 + log4jdbc
+- JWT (jjwt), commons-lang3, httpclient5, gson
+- `fileTree(libs)` 사내 JAR(있으면)
+- `spring-boot-starter-logging` **exclude** → Log4j2
+- Netty native (macos/epoll/kqueue) **exclude**
+
+**service**
+
+- `implementation project(':pdmk-fw')` — fw transitive `api` 흡수
+- Lombok compileOnly + AP
+- 로컬 `runtimeOnly` H2 / 폐쇄망 ojdbc·orai18n (주석 전환)
+- `fileTree(libs)`
+- 동일 logging·netty exclude
+
+**ui**
+
+- `spring-boot-starter-web` + test만 (경량)
+- fw/MyBatis/Security **미포함**
+
+### 24.6 주요 태스크·스크립트
+
+| 목적 | 명령 |
+| ---- | ---- |
+| fw JAR | `pdmk-fw` → `gradlew jar` |
+| service 전체 | `script\build.bat` 또는 `gradlew clean build` → `build/libs/*.war` |
+| service 기동 | `RUN.bat` / `script\run.bat` → `bootRun` |
+| ui 빌드 | `script\build.bat` → `pdmk-ui.jar` |
+| ui 기동 | `RUN.bat` 또는 `script\run.bat jar` |
+| IDE CP | `gradlew writeIdeLaunch` → `../.vscode/launch.json` |
+
+`writeIdeLaunch` (service): `dependsOn classes, :pdmk-fw:jar` — jdt.ls 단독 CP로 fw 빠지는 문제 우회.
+
+### 24.7 인코딩·Windows
+
+| 장치 | 내용 |
+| ---- | ---- |
+| `pdmk-service/gradle.properties` | `org.gradle.jvmargs`·`systemProp.*.encoding=UTF-8` |
+| `JavaCompile` / `processResources` | UTF-8 |
+| `bootRun` jvmArgs | file/stdout/stderr encoding |
+| `script\*.bat` | ASCII-only 주석 (cmd CP949 파서) |
+
+경로에 괄호(`Programming(23-08-15)`)가 있어도 스크립트는 quoted `pushd`로 처리한다.
+
+### 24.8 경계·금지
+
+| 규칙 | 설명 |
+| ---- | ---- |
+| service 없이 fw 소스만 IDE에 넣기 | `project(':pdmk-fw')` 누락 위험 |
+| ui에 `implementation project(':pdmk-fw')` | UI 경량·경계 위반 |
+| bootJar로 service 운영 산출물 교체 | WAS WAR 전제와 충돌 ([§25](#25-배포기술-아키텍처)) |
+| Wrapper 무시하고 임의 Gradle | 플러그인/버전 불일치 |
+| 로컬·폐쇄망 repositories 혼재 커밋 | 팀원 빌드 깨짐 |
+
+### 24.9 체크리스트
+
+- [ ] Wrapper 8.10.1 · JDK 21 toolchain
+- [ ] service `settings.gradle`에 `:pdmk-fw` include 경로 맞음
+- [ ] 로컬 Central / 폐쇄망 Nexus 주석 상태 일치
+- [ ] H2 vs ojdbc 의존 주석 상태 = application.yml DS
+- [ ] `gradlew clean build` 후 WAR/JAR 산출 확인
+- [ ] IDE는 `writeIdeLaunch` 또는 Gradle 프로젝트 기동
+- [ ] UTF-8 `gradle.properties` / compile 옵션
+
+## 25. 배포기술 아키텍처
+
+빌드·패키징·기동·런타임 배치를 정의한다.  
+Gradle 빌더 상세는 [§24](#24-gradle-빌더-환경-아키텍처), 스프링 설정은 [§23](#23-스프링-환경-구성-아키텍처), 토폴로지는 [§3](#3-시스템-구성).
+
+현재 저장소 기준: **Gradle + Java 21 + Spring Boot 3.5.x**. Docker/K8s 매니페스트는 **없음**.
+
+### 25.1 모듈·산출물
+
+| 모듈 | Gradle 성격 | 주 산출물 | 기동 주체 | 포트 |
+| ---- | ----------- | --------- | --------- | ---- |
+| `pdmk-fw` | `java-library` | `pdmk-fw-*.jar` (`bootJar` **off**) | 단독 기동 **불가** (라이브러리) | — |
+| `pdmk-service` | Boot + `war` | `*.war` (`bootWar` **off**, `war` **on**) | 로컬: embedded Tomcat / 운영: **외부 WAS** | **8080** (Boot 기본) |
+| `pdmk-ui` | Boot | `pdmk-ui.jar` (`bootJar`) | embedded Tomcat | **8090** |
+
+```text
+ ┌─────────────┐   include project    ┌──────────────────┐
+ │  pdmk-fw    │ ◄─────────────────── │  pdmk-service    │
+ │  jar only   │   implementation     │  WAR → WAS       │
+ └─────────────┘                      │  or bootRun:8080 │
+                                      └────────▲─────────┘
+                                               │ HTTP relay
+                                      ┌────────┴─────────┐
+                                      │  pdmk-ui         │
+                                      │  JAR / bootRun   │
+                                      │  :8090           │
+                                      └──────────────────┘
+```
+
+| 관계 | 기술 |
+| ---- | ---- |
+| service → fw | `settings.gradle` `include ':pdmk-fw'` + `projectDir = ../pdmk-fw` |
+| ui → service | HTTP만 (`pdmk.ui.target-base-url`) — **빌드 의존 없음** |
+| ui ↔ fw | 의존 없음 |
+
+### 25.2 빌드 스택
+
+| 항목 | 값 |
+| ---- | -- |
+| JDK | **21** (`java.toolchain`) |
+| Spring Boot | `3.5.14` |
+| 빌드 | Gradle Wrapper (`gradlew.bat`) |
+| 로컬 저장소 | `mavenCentral()` / `gradlePluginPortal()` |
+| 폐쇄망 저장소 | 사내 Nexus (`19.88.120.152:9010/…`) — yml/gradle **주석 전환** |
+| 로깅 | Log4j2 (`spring-boot-starter-logging` exclude) |
+| 인코딩 | 컴파일·리소스·JVM `UTF-8` (Windows CP949 대비) |
+
+**service WAR 정책**
+
+| 설정 | 의미 |
+| ---- | ---- |
+| `bootWar { enabled = false }` | 실행형 Boot WAR 비활성 |
+| `war { enabled = true }` | **일반 WAR** (외부 Tomcat 등 WAS 배포) |
+| `providedRuntime` Tomcat | WAR 시 WAS 제공 컨테이너 사용 |
+| `ServletInitializer` | `SpringBootServletInitializer` → WAS 기동 시 `PdmkApplication` |
+
+로컬은 `bootRun`으로 embedded Tomcat을 쓴다. 운영 WAS 배포가 기본 전제다 (`script/run.bat` 주석과 동일).
+
+**fw JAR 정책:** `bootJar` off / `jar` on — 앱이 아님.
+
+**ui JAR 정책:** `bootJar.archiveFileName = 'pdmk-ui.jar'` — 실행형 JAR.
+
+### 25.3 빌드·기동 절차
+
+#### 빌드·기동 순서(표 그림)
+
+```text
+ [1] pdmk-fw
+      gradlew jar
+         │
+ [2] pdmk-service  (fw를 project 의존으로 함께 빌드)
+      script\build.bat   → clean build → build/libs/*.war
+      RUN.bat / script\run.bat → bootRun :8080
+         │
+ [3] pdmk-ui
+      script\build.bat   → build/libs/pdmk-ui.jar
+      RUN.bat / bootRun  → :8090
+      (옵션) script\run.bat jar → java -jar pdmk-ui.jar
+```
+
+| 목적 | 명령 |
+| ---- | ---- |
+| FW만 | `pdmk-fw` → `gradlew jar` |
+| Service WAR | `pdmk-service` → `script\build.bat` 또는 `gradlew clean build` / `war` |
+| Service 로컬 기동 | `RUN.bat` 또는 `script\run.bat` → `bootRun` |
+| Service 프로파일 | `script\run.bat --args="--spring.profiles.active=dev"` |
+| UI 로컬 기동 | `pdmk-ui\RUN.bat` |
+| UI JAR 기동 | `script\build.bat` 후 `script\run.bat jar` |
+| IDE Launch | `gradlew writeIdeLaunch` → `.vscode/launch.json` (Gradle CP 고정) |
+
+기동 순서: **service(8080) → ui(8090)**. UI만 띄우면 릴레이 대상이 없다.
+
+검증: UI `http://localhost:8090`, API `http://localhost:8080/mkcoa5530S0`.
+
+### 25.4 런타임 배치(환경)
+
+| 환경 | service | ui | DB | 저장소 |
+| ---- | ------- | -- | -- | ------ |
+| 로컬 개발 | `bootRun` embedded | `bootRun`/`pdmk-ui.jar` | H2 mem + `sql.init` | Maven Central |
+| 폐쇄망/운영 | **WAS에 WAR** | 필요 시 JAR 또는 미배포(직접 API) | Oracle RDW | 사내 Nexus |
+| 프로파일 | `local` / `dev` … | (단일어플) | [§23](#23-스프링-환경-구성-아키텍처) | gradle 주석 전환 |
+
+운영 전환 시 대표 작업:
+
+1. `repositories` / `pluginManagement` → 사내 Nexus  
+2. `ojdbc` 등 Oracle 의존 활성화, H2·`sql.init` 비활성  
+3. `spring.datasource.rdw` Oracle URL·계정  
+4. JWT·시크릿 등 프로파일/환경변수 (`PDMK_JWT_SECRET`, `PDMK_RDW_PASSWORD` 등)  
+5. WAR를 WAS context에 배포 (`ServletInitializer`)
+
+### 25.5 프로세스·네트워크
+
+```text
+ Browser ──► pdmk-ui:8090 ──HTTP POST──► pdmk-service:8080
+                  │                            │
+             정적/카탈로그/relay            nhnis.fw commons
+                  │                            │
+                  └──── DB 없음                └──► RDW (H2/Oracle)
+```
+
+| 항목 | 내용 |
+| ---- | ---- |
+| service Main | `nhnis.mk.PdmkApplication` (`scanBasePackages = "nhnis"` → fw·업무 스캔) |
+| ui Main | `nhnis.mk.ui.PdmkUiApplication` |
+| CORS | ui가 서버 사이드 릴레이 → 브라우저↔service 직접 CORS 회피 |
+| 멀티 인스턴스 | 문서화·스크립트 없음. ImageLog/`MessageCache`는 인스턴스 로컬 ([§16](#16-테이블-아키텍처)·[§22](#22-캐시-아키텍처)) |
+
+### 25.6 JVM·스크립트 관례
+
+| 항목 | 내용 |
+| ---- | ---- |
+| `JAVA_HOME` | 로컬 `RUN.bat`에 Temurin 21 경로 예시(환경마다 수정) |
+| `JAVA_TOOL_OPTIONS` | `-Dfile.encoding=UTF-8` 등 콘솔/파일 인코딩 |
+| `chcp 65001` | cmd UTF-8 |
+| bat 한글 | `script\*.bat`는 **ASCII-only** (CP949 파서 깨짐 방지) |
+| Wrapper | `--no-daemon` 권장(스크립트) |
+
+IDE는 **jdt.ls-java-project 단독 기동보다** Gradle/`writeIdeLaunch` 클래스패스를 권장한다 (`:pdmk-fw` 누락 방지).
+
+### 25.7 배포 산출물 체크
+
+| 산출물 | 위치 | 포함 |
+| ------ | ---- | ---- |
+| fw JAR | `pdmk-fw/build/libs/` | `nhnis.fw.*` (+ 의존 transitive는 소비 측) |
+| service WAR | `pdmk-service/build/libs/` | 업무 + **임베드된 fw** (project 의존) |
+| ui JAR | `pdmk-ui/build/libs/pdmk-ui.jar` | UI만 (service/fw **미포함**) |
+
+### 25.8 범위 밖·갭
+
+| 항목 | 현황 |
+| ---- | ---- |
+| Docker / Compose / K8s | 저장소에 없음 |
+| CI/CD 파이프라인 | 본 문서 범위 밖(팀 표준 따름) |
+| APIGW/FOS 앞단 | 연동·타임아웃만 [§20](#20-타임아웃-아키텍처) |
+| service 실행형 bootJar/bootWar | **의도적 비활성** — WAS WAR |
+| ui 운영 필수 여부 | 개발·시험용. 운영은 API 직호출 가능 |
+
+### 25.9 체크리스트
+
+- [ ] JDK 21 · UTF-8 JVM 옵션
+- [ ] 로컬: service → ui 순 기동, 8080/8090 확인
+- [ ] 폐쇄망: Nexus·Oracle·`sql.init` off·JWT/시크릿
+- [ ] 운영 WAR: `ServletInitializer` + WAS Tomcat, `bootWar` 아님
+- [ ] fw 변경 후 service **재빌드**(project 의존)
+- [ ] IDE는 Gradle CP / `writeIdeLaunch`
+- [ ] ui `target-base-url`이 실제 service와 일치
+
+---
+
+## Part VIII. 지침·참고
+
+> **§26~§29** — Do/Don't · 갭 · 참고 · 용어 · 실무가이드
+>
+> [← 이전: VII 플랫폼](#part-vii-플랫폼배포) · [목차](#목차)
+
+#### Part VIII 한눈에(표 그림)
+
+```text
+  §26 경계 ──► 갭 · Do/Don't · 새 거래 체크
+  §27 참고 ──► README · 상세 MD
+  §28 용어 ──► 키워드 → 절
+  §29 실무 ──► 역할 · 환경 · 장애 · 영향
+```
+
+| 이 Part의 절 | 한줄 |
+| ------------ | ---- |
+| [§26 경계·확장](#26-경계와-확장-지침) | [갭 요약](#260-현황-갭-한눈에-문서-수집) · Do / Don't · [새 거래](#264-새-거래-추가-체크리스트) |
+| [§27 참고](#27-참고-문서) | README·상세 MD |
+| [§28 용어](#28-용어약어-색인) | 키워드 → 상세 절 |
+| [§29 실무](#29-실무-가이드) | 역할·환경·장애·영향 |
+
+## 26. 경계와 확장 지침
+
+### 26.0 현황 갭 한눈에 (문서 수집)
+
+본문 각 절에 흩어진 **현재 샘플/운영 갭**을 한곳에 모은다. 상세는 링크 절을 본다.
+
+#### 갭 지도(표 그림)
+
+```text
+  [데이터] mkcoa9999 전량 ───────► §17 페이징
+  [UI]     timeout-ms 미연결 ────► §20 타임아웃
+  [보안]   Bearer 미전달 ────────► §18 보안
+  [보안]   permitAll 샘플 ───────► §18.8
+  [TX]     @Transactional 일부미명시 ► §11.4
+  [FW]     TCF 소스 잔존 ────────► §9.7
+  [배포]   컨테이너 없음 ────────► §25.8
+```
+
+> **검증:** 2026-08-08 기준 코드 대조 — 페이징 미적용·UI RestClient timeout 미연결·`tcf.enabled=false`·`permitAll`·샘플 `mkcoa5530/8888/9999`·`TB_FW_IMAGE_LOG`·Gradle 8.10.1 / Boot plugin 3.5.14 / JDK 21 확인.
+
+| # | 갭 | 영향 | 상세 |
+| - | -- | ---- | ---- |
+| 1 | `mkcoa9999S0` 페이징 미적용 (전체 목록) | 대량 데이터 시 응답·메모리 | [§17.6](#176-서비스별-현황) |
+| 2 | UI `pdmk.ui.timeout-ms` ↔ `RestClient` 미연결 | 릴레이 HTTP timeout 미동작 | [§20](#20-타임아웃-아키텍처) |
+| 3 | UI → service `Authorization` 미전달 | 비-local JWT 경로에서 인증 실패 가능 | [§18](#18-보안-아키텍처) |
+| 4 | service Security `permitAll` 샘플 | Filter JWT와 역할 분리·운영 강화 필요 | [§18.8](#188-갭운영-권장) |
+| 5 | 일부 Service `@Transactional` 미명시 | TX 경계가 암묵적일 수 있음 | [§11.4](#114-현재-샘플-상태와-갭) |
+| 6 | TCF 소스 잔존·런타임 OFF | 혼동 가능 — commons만 사용 | [§9.7](#97-tcf와-구분) |
+| 7 | 배포 자동화/컨테이너 범위 밖 | 로컬·WAS 수동 경로 중심 | [§25.8](#258-범위-밖갭) |
+
+### 26.1 해야 할 것
+
+#### 경계 유지(표 그림)
+
+```text
+  ┌─ pdmk-ui ─┐   HTTP만    ┌─ pdmk-service ─┐  impl  ┌─ pdmk-fw ─┐
+  │ 화면·릴레이│ ─────────► │ Cont·Svc·DAO   │ ◄──── │ commons   │
+  │ 카탈로그   │            │ Biz Aspect     │       │ Filter…   │
+  └───────────┘            └────────┬───────┘       └─────┬─────┘
+                                    │                     │
+                                    └────────┬────────────┘
+                                             ▼
+                                          RDW TB_*
+  ★ 업무 코드는 service / 공통만 fw / UI는 HTTP
+```
+
+- 변경·설계 시 **`pdmk-fw` / `pdmk-service` / `pdmk-ui` 세 모듈 영향**을 함께 본다 ([§2.2](#22-문서-절--모듈-매핑))
+- 새 거래는 `nhnis.mk.{업무}.{세부}.{controller|service|dao|dto}` + `rdw.mk.{업무}.{세부}/` ([§14](#14-네이밍-아키텍처))
+- FW 공통 기능만 `pdmk-fw`에 추가 (`nhnis.mk.*` 업무 코드를 FW에 넣지 않음)
+- UI 카탈로그(`TransactionCatalog`)와 정적 화면에 서비스 ID 동기화 (`pdmk-ui`)
+- 조회/쓰기 Service에 `@Transactional` 경계를 명시 ([§11](#11-트랜잭션-처리-아키텍처))
+- 타임아웃 계층(UI HTTP · DB TX · JWT · 연동)을 구분한다 ([§20](#20-타임아웃-아키텍처))
+- 거래 로그는 `PdmkTxLog` + ImageLog + SQL 채널을 유지한다 ([§21](#21-트랜잭션-로그-아키텍처))
+- 물리 테이블·스키마 경계를 지킨다 ([§16](#16-테이블-아키텍처))
+- 메시지·Body 캐시 경계를 지킨다 ([§22](#22-캐시-아키텍처))
+- 목록 페이징 계약(기본·상한·count)을 지킨다 ([§17](#17-페이징-아키텍처))
+- JWT·Security·CORS 경계를 지킨다 ([§18](#18-보안-아키텍처))
+- Aspect/Interceptor/TCF AOP 경계를 지킨다 ([§19](#19-aop-아키텍처))
+- commons 패키지 경계·TCF 분리를 지킨다 ([§9](#9-commons-공통-아키텍처))
+- 로컬·WAS 배포 경로를 구분한다 ([§25](#25-배포기술-아키텍처))
+- 스프링 프로파일·스캔·설정 소스를 환경에 맞게 둔다 ([§23](#23-스프링-환경-구성-아키텍처))
+- Gradle Wrapper·모듈 include·저장소 전환을 맞춘다 ([§24](#24-gradle-빌더-환경-아키텍처))
+- 시스템·검증 오류는 `NhBaseException` + `exceptionCode.yml` ([§12](#12-에러메시지-처리-아키텍처) · [§13](#13-예외처리-아키텍처))
+- 명명은 [MK-NAMING_CONVENTION.md](./MK-NAMING_CONVENTION.md) 정본을 따른다
+
+### 26.2 하지 말 것
+
+- 세 모듈 중 하나만 보고 전문·URL·카탈로그를 어긋나게 변경
+- 업무 Controller에 REST `/api/...` URL 도입 (`pdmk-ui`의 `/api/relay`는 UI 전용)
+- `pdmk-ui`에 `pdmk-fw`/DAO를 직접 붙이기
+- TCF를 켠 채로 commons Filter/Interceptor와 이중 경로 혼용
+- Controller/Service/DAO 클래스명에 구분자(`S0` 등) 포함
+- DAO 메서드명 ≠ SQL ID ([§15](#15-dao-아키텍처))
+- Controller·DAO에 `@Transactional`을 두는 것 (Service에만)
+- 업무 조회 결과에 Spring Cache / MyBatis 2차 캐시를 임의 도입 ([§22](#22-캐시-아키텍처))
+- 운영에 로컬 H2/`sql.init`·Central-only 설정을 그대로 반입 ([§25](#25-배포기술-아키텍처))
+- `scanBasePackages`에서 `nhnis.fw`를 빼 fw Bean을 누락시키기 ([§23](#23-스프링-환경-구성-아키텍처))
+- service `settings.gradle` 없이 fw를 수동 classpath에만 넣기 ([§24](#24-gradle-빌더-환경-아키텍처))
+- ui에 `pdmk-fw`를 Gradle 의존으로 붙이기 ([§24](#24-gradle-빌더-환경-아키텍처))
+- 목록에서 count 없이 전량 SELECT를 표준으로 삼기 ([§17](#17-페이징-아키텍처))
+- TCF JWT 필터와 commons DefaultFilter JWT를 동시에 켜기 ([§18](#18-보안-아키텍처))
+- `TCFAspect`와 commons `BizPrePostAspect`/Interceptor를 한 API에서 혼용 ([§19](#19-aop-아키텍처))
+- Aspect 안에서 DAO·업무 규칙 실행 ([§19](#19-aop-아키텍처))
+- 운영에서 `local` 프로파일·기본 JWT 시크릿을 그대로 사용 ([§18](#18-보안-아키텍처))
+- service를 bootJar로 바꿔 WAS WAR 전제를 깨뜨리기 (팀 합의 없이)
+- TCF `BizException`/`result.*` 응답과 commons `NH_NIS_ERR_DTO`를 한 API에서 혼용
+
+### 26.3 TCF 패키지 (`pdmk-fw`)
+
+#### 런타임 스위치(표 그림)
+
+```text
+  nhnis.fw.tcf.enabled
+         │
+    false │ (PDMK 기본)          true │ (비권장·혼용금지)
+         ▼                           ▼
+   commons 경로만                 TCFAspect + STF/ETF
+   Filter+Interceptor+BizAspect   + commons 이중 경로 위험
+```
+
+현재 PDMK/PDMG 소비처는 TCF를 쓰지 않는다. 라이브러리에 소스가 남아 있어도 런타임 영향은 없다. 제거 여부는 팀 정책에 따르며, 제거 시 `nhnis.fw.tcf.**`와 TCF 전용 ExceptionHandler를 함께 정리한다.
+
+### 26.4 새 거래 추가 체크리스트
+
+새 서비스 ID를 넣을 때 **세 모듈**을 같은 순서로 맞춘다.
+
+#### 추가 파이프라인(표 그림)
+
+```text
+ ① 네이밍·패키지 (§14)
+        │
+        ▼
+ ② 전문 DTO (§10) ──────────────────┐
+        │                           │ ui 샘플 JSON
+        ▼                           │
+ ③ C/S/DAO/XML (§7·§15)             │
+        │                           │
+        ▼                           │
+ ④ 페이징·TX·테이블 (§17·§11·§16)   │
+        │                           │
+        ▼                           ▼
+ ⑤ UI 카탈로그·화면 ◄───────────────┘
+        │
+        ▼
+ ⑥ (필요 시) fw commons만
+```
+
+| # | 할 일 | 모듈 | 참고 |
+| - | ----- | ---- | ---- |
+| 1 | 서비스 ID·패키지·mapper 경로 확정 | — | [§14](#14-네이밍-아키텍처) · [CONVENTION](./MK-NAMING_CONVENTION.md) |
+| 2 | DTOin/out/Sub + `hdr_nhnis` 계약 | service (+ ui 샘플) | [§10](#10-전문-구조) |
+| 3 | Controller `POST /{서비스ID}` · Service · DAO · `*-ORA.xml` | service | [§7](#7-애플리케이션-레이어드-아키텍처)·[§15](#15-dao-아키텍처) |
+| 4 | 목록이면 pageNo/Size·count·ROWNUM | service | [§17](#17-페이징-아키텍처) (**9999 갭 반복 금지**) |
+| 5 | Service에 `@Transactional` 명시 | service | [§11](#11-트랜잭션-처리-아키텍처) |
+| 6 | 필요 시 테이블·schema/data 시드 | service | [§16](#16-테이블-아키텍처) |
+| 7 | UI 카탈로그·정적 화면·샘플 JSON | ui | [§8.3](#83-pdmk-ui--전문-테스트-ui) |
+| 8 | FW 변경이 필요하면 commons만 (업무 코드 금지) | fw | [§9](#9-commons-공통-아키텍처)·[§26.1](#261-해야-할-것) |
+
+---
+
+## 27. 참고 문서
+
+전체 절 탐색은 상단 [목차](#목차) (부 I~VIII). 용어 [§28](#28-용어약어-색인) · 실무 [§29](#29-실무-가이드).
+
+### 부 단위 빠른 이동
+
+| 부 | 이동 |
+| -- | ---- |
+| I | [개요](#part-i-개요) |
+| II | [런타임 경로](#part-ii-런타임-경로) |
+| III | [구조·모듈](#part-iii-구조모듈) |
+| IV | [계약·업무 규칙](#part-iv-계약업무-규칙) |
+| V | [데이터](#part-v-데이터) |
+| VI | [횡단 관심사](#part-vi-횡단-관심사) |
+| VII | [플랫폼·배포](#part-vii-플랫폼배포) |
+| VIII | [지침·참고](#part-viii-지침참고) · [갭](#260-현황-갭-한눈에-문서-수집) · [용어](#28-용어약어-색인) · [실무](#29-실무-가이드) |
+
+| 문서 | 내용 |
+| ---- | ---- |
+| [pdmk-fw/README.md](../../pdmk-fw/README.md) | FW 포함 범위·주의사항 |
+| [pdmk-service/README.md](../README.md) | Service 샘플·호출 흐름 |
+| [pdmk-ui/README.md](../../pdmk-ui/README.md) | UI 기동·전문 형식 |
+| [네이밍원칙.md](./네이밍원칙.md) | 서비스 ID·패키지 요약 |
+| [MK-NAMING_CONVENTION.md](./MK-NAMING_CONVENTION.md) | 네이밍 상세 |
+| [트랜잭션처리.md](./트랜잭션처리.md) | 트랜잭션 동작(상세) |
+| [4초지나면롤백되나.md](./4초지나면롤백되나.md) | `@Transactional(timeout)` |
+| [성능감시.md](./성능감시.md) | 느린 거래 WARN 등 |
+| [목차](#목차) / [§1 빅픽처](#1-pdmk-빅픽처-아키텍처) / [§9 commons](#9-commons-공통-아키텍처) / [§23 스프링](#23-스프링-환경-구성-아키텍처) / [§25 배포](#25-배포기술-아키텍처) | 본 문서 |
+| [에러처리.md](./에러처리.md) | 에러 처리(TCF 중심 상세) |
+| [§1 빅픽처](#1-pdmk-빅픽처-아키텍처) / [§9 commons](#9-commons-공통-아키텍처) / [§19 AOP](#19-aop-아키텍처) | 본 문서 요약 |
+
+---
+
+## 28. 용어·약어 색인
+
+PDMK 문서·코드에서 자주 쓰는 용어를 **상세 절**로 연결한다.
+
+#### 용어 지도(표 그림)
+
+```text
+  [스택] PDMK = fw + service + ui     → §1·§2·§8
+  [경로] commons ON / TCF OFF         → §9
+  [계약] 서비스ID · hdr+dto           → §10·§14
+  [데이터] DAO · TB_* · 페이징        → §15~§17
+  [횡단] JWT · AOP · 로그 · 캐시      → §18~§22
+  [실무] 갭 · 체크리스트 · 장애추적   → §26·§29
+```
+
+### 28.1 스택·모듈
+
+| 용어 | 의미 | 절 |
+| ---- | ---- | -- |
+| PDMK | MK 대구분 샘플 스택 (`pdmk-fw`·`pdmk-service`·`pdmk-ui`) | [§1](#1-pdmk-빅픽처-아키텍처)·[§2](#2-목적과-범위) |
+| `pdmk-fw` | 공통 프레임워크 JAR (`nhnis.fw.*`) | [§8.1](#81-pdmk-fw--공통-프레임워크)·[§9](#9-commons-공통-아키텍처) |
+| `pdmk-service` | 업무 Boot/WAR (`nhnis.mk.*`) | [§8.2](#82-pdmk-service--업무-애플리케이션) |
+| `pdmk-ui` | 전문 테스트·HTTP 릴레이 (:8090) | [§8.3](#83-pdmk-ui--전문-테스트-ui) |
+| commons | `nhnis.fw.commons` 런타임 경로 (PDMK ON) | [§9](#9-commons-공통-아키텍처) |
+| TCF | `nhnis.fw.tcf` 경로 (PDMK OFF) | [§9.7](#97-tcf와-구분)·[§26.3](#263-tcf-패키지-pdmk-fw) |
+| RDW | 업무/감사 DB 논리명·DS `rdw` | [§15](#15-dao-아키텍처)·[§16](#16-테이블-아키텍처) |
+
+### 28.2 런타임·횡단
+
+| 용어 | 의미 | 절 |
+| ---- | ---- | -- |
+| `DefaultFilter` | JWT·Body 캐시·`ServiceContext` | [§6](#6-필터-아키텍처) |
+| `ServicePreventionInterceptor` | 시스템 선후·ImageLog | [§5](#5-필터시스템-선후처리업무-선후처리) |
+| `BizPrePostAspect` | 업무 선후 로그 (service) | [§19](#19-aop-아키텍처) |
+| ImageLog | `TB_FW_IMAGE_LOG` 감사 I/U | [§11.6](#116-이미지로그와-트랜잭션-경계)·[§21](#21-트랜잭션-로그-아키텍처) |
+| `PdmkTxLog` | 거래 로그 메시지 포맷 | [§21](#21-트랜잭션-로그-아키텍처) |
+| `ServiceContext` | 요청 스레드 컨텍스트 | [§6.6](#66-servicecontext--mdc) |
+| JWT | commons Filter HMAC 검증 (비-local) | [§18](#18-보안-아키텍처) |
+
+### 28.3 전문·네이밍·데이터
+
+| 용어 | 의미 | 절 |
+| ---- | ---- | -- |
+| 서비스 ID | URL·메서드·거래 식별자 (`mkcoa8888S0` 등) | [§14](#14-네이밍-아키텍처) |
+| `hdr_nhnis` | 표준 전문 헤더 | [§10](#10-전문-구조) |
+| `dto` / DTOin·DTOout·DTOSub | 업무 본문 | [§10.4](#104-업무-dto-dtoin--dtoout--dtosub) |
+| `NhBaseException` | commons 표준 예외 | [§12](#12-에러메시지-처리-아키텍처)·[§13](#13-예외처리-아키텍처) |
+| SQL ID | DAO 메서드명 = MyBatis `id` | [§15](#15-dao-아키텍처) |
+| 페이징 | `pageNo`/`pageSize` + ROWNUM + count | [§17](#17-페이징-아키텍처) |
+
+### 28.4 샘플 거래 빠른 맵
+
+| 서비스 ID | 역할 | 페이징 | 비고 |
+| --------- | ---- | ------ | ---- |
+| `mkcoa5530S*` | 안내항목 샘플 | ○ (목록) | [§16.6](#166-tb_mk_co_a_5530-안내항목-샘플) |
+| `mkcoa8888S*` | 영업팁·ImageLog 샘플 | ○ (목록) | [§16.5](#165-tb_cr_ah_sales_tip_ract-영업팁-실적) |
+| `mkcoa9999S0` | 조회 샘플 | ❌ 전량 | [갭 §26.0](#260-현황-갭-한눈에-문서-수집) |
+
+### 28.5 설정 키 → 절
+
+자주 찾는 키만 모은다. 전체 표는 [§23.9](#239-설정-키-요약표).
+
+| 키 | 한줄 | 절 |
+| -- | ---- | -- |
+| `nhnis.fw.tcf.enabled` | TCF ON/OFF | [§9](#9-commons-공통-아키텍처)·[§23.9](#239-설정-키-요약표) |
+| `nhnis.fw.commons.filter.enabled` | DefaultFilter | [§6](#6-필터-아키텍처) |
+| `nhnis.fw.commons.legacy-web.enabled` | Interceptor·Resolver·Biz Aspect | [§5](#5-필터시스템-선후처리업무-선후처리)·[§19](#19-aop-아키텍처) |
+| `jwt.secret` / `PDMK_JWT_SECRET` | JWT 시크릿 | [§18](#18-보안-아키텍처) |
+| `spring.profiles.active=local` | H2·JWT 스킵 | [§18](#18-보안-아키텍처)·[§23](#23-스프링-환경-구성-아키텍처) |
+| `pdmk.ui.target-base-url` | 릴레이 대상 | [§3](#3-시스템-구성)·[§25](#25-배포기술-아키텍처) |
+| `pdmk.ui.timeout-ms` | 의도 timeout (RestClient 미연결) | [§20](#20-타임아웃-아키텍처)·[갭](#260-현황-갭-한눈에-문서-수집) |
+
+---
+
+## 29. 실무 가이드
+
+아키텍처 절을 **현장 작업**에 바로 연결하는 가이드다. 설계 세부는 각 전용 절을 본다.
+
+#### 실무 진입점(표 그림)
+
+```text
+              ┌──────── §29.1 역할별 경로
+  현장 질문 ─┼──────── §29.2 환경 매트릭스
+              ├──────── §29.3 장애 추적
+              ├──────── §29.4 변경 영향
+              └──────── §29.5 포트·URL
+```
+
+### 29.1 역할별 읽기 경로
+
+#### 역할 → 절(표 그림)
+
+```text
+ 신규 ──► §1→§3→§4→§8→§14
+ 업무 ──► §26.4→§10/14/15/17→§11
+ FW   ──► §9→§5/6→§18/19
+ 운영 ──► §23/24/25→§29.2
+ 장애 ──► §29.3→§21/12/13
+ 리뷰 ──► §26.0/26.1/26.2→§29.4
+```
+
+| 역할 | 추천 순서 | 목적 |
+| ---- | --------- | ---- |
+| 신규 합류 | [§1](#1-pdmk-빅픽처-아키텍처) → [§3](#3-시스템-구성) → [§4](#4-런타임-요청-흐름) → [§8](#8-모듈별-아키텍처) → [§14](#14-네이밍-아키텍처) | 스택·호출·패키지 감각 |
+| 업무 개발 | [§26.4](#264-새-거래-추가-체크리스트) → [§10](#10-전문-구조)·[§14](#14-네이밍-아키텍처)·[§15](#15-dao-아키텍처)·[§17](#17-페이징-아키텍처) → [§11](#11-트랜잭션-처리-아키텍처) | 거래 추가·CRUD |
+| FW/공통 | [§9](#9-commons-공통-아키텍처) → [§5](#5-필터시스템-선후처리업무-선후처리)·[§6](#6-필터-아키텍처) → [§18](#18-보안-아키텍처)·[§19](#19-aop-아키텍처) | commons 경계 유지 |
+| 운영/배포 | [§23](#23-스프링-환경-구성-아키텍처)·[§24](#24-gradle-빌더-환경-아키텍처)·[§25](#25-배포기술-아키텍처) → [§29.2](#292-환경-매트릭스-local--폐쇄망) | 기동·프로파일·WAS |
+| 장애 분석 | [§29.3](#293-장애디버그-추적) → [§21](#21-트랜잭션-로그-아키텍처)·[§12](#12-에러메시지-처리-아키텍처)·[§13](#13-예외처리-아키텍처) | 로그·에러 경로 |
+| 설계 리뷰 | [§26.0](#260-현황-갭-한눈에-문서-수집)·[§26.1](#261-해야-할-것)·[§26.2](#262-하지-말-것) → [§29.4](#294-모듈-변경-영향-매트릭스) | 갭·경계·영향 |
+
+### 29.2 환경 매트릭스 (local ↔ 폐쇄망)
+
+#### 환경 토폴로지(표 그림)
+
+```text
+  [local]                         [폐쇄망/WAS]
+  ┌──────────────┐                ┌──────────────┐
+  │ ui :8090     │                │ ui :8090     │
+  │ service:8080 │                │ service WAR  │
+  │ H2 mem       │                │ Oracle RDW   │
+  │ JWT 스킵     │                │ JWT 검증 ON  │
+  │ Central      │                │ Nexus        │
+  └──────────────┘                └──────────────┘
+         │ 설정 반입 금지 │
+         └────── ✕ ──────┘
+```
+
+| 항목 | `local` (기본 샘플) | 폐쇄망/WAS |
+| ---- | ------------------- | ---------- |
+| DB | H2 mem + `sql.init` | Oracle RDW (`spring.datasource.rdw`) |
+| JWT | Filter 검증 **스킵** (`profile=local`) | Bearer 검증 ON · 시크릿 환경변수 |
+| Security | `permitAll` 샘플 | 운영 인가 강화 검토 ([§18.8](#188-갭운영-권장)) |
+| Gradle 저장소 | Maven Central | 사내 Nexus (주석 전환) |
+| service 산출 | `bootRun` / WAR | **외부 WAS**에 WAR |
+| UI 릴레이 | `http://localhost:8080` | 실제 service base URL |
+| 메시지 캐시 | `framework.message.enabled=false` 흔함 | 정책에 따라 DB 적재 |
+| 주의 | 운영에 local 설정 반입 금지 | Central-only·H2 시드 반입 금지 |
+
+상세: [§23](#23-스프링-환경-구성-아키텍처) · [§24.4](#244-저장소-로컬-vs-폐쇄망) · [§25](#25-배포기술-아키텍처) · [§18](#18-보안-아키텍처).
+
+### 29.3 장애·디버그 추적
+
+증상 → 먼저 볼 곳.
+
+#### 추적 의사결정(표 그림)
+
+```text
+ 증상 발생
+    │
+    ├─ UI만? ──────────► target-base-url / 릴레이 (§3·§8.3)
+    ├─ 401? ───────────► Filter JWT / local / Bearer (§6·§18)
+    ├─ 전문 파싱? ─────► hdr+dto / Resolver (§10)
+    ├─ 에러코드 응답? ─► NhBaseException / yml (§12·§13)
+    ├─ SQL? ───────────► DAO=SQL ID / DS rdw (§15)
+    ├─ 목록 폭주? ─────► 페이징·9999 갭 (§17·§26.0)
+    ├─ TX 의외? ───────► @Transactional / ImageLog (§11)
+    └─ Bean 없음? ─────► scan=nhnis / :pdmk-fw (§23·§24)
+```
+
+| 증상 | 1차 확인 | 절 |
+| ---- | -------- | -- |
+| UI만 실패·service 직접은 성공 | `pdmk.ui.target-base-url` · 릴레이 로그 · CORS(직접 호출 시) | [§3](#3-시스템-구성)·[§8.3](#83-pdmk-ui--전문-테스트-ui) |
+| UI 타임아웃이 안 됨 | `timeout-ms`는 있으나 RestClient 미연결 갭 | [§20](#20-타임아웃-아키텍처)·[§26.0](#260-현황-갭-한눈에-문서-수집) |
+| 401 / 인증 문구·envelope 없음 | Filter JWT · `local` 여부 · UI `Authorization` 미전달 | [§6](#6-필터-아키텍처)·[§12.5](#125-filter인증-단계-오류)·[§18](#18-보안-아키텍처) |
+| 전문 바인딩 실패 | `hdr_nhnis`+`dto` · Resolver · Content-Type | [§10](#10-전문-구조) |
+| 표준 에러코드 응답 | `NhBaseException` · `exceptionCode.yml` · MessageCache | [§12](#12-에러메시지-처리-아키텍처)·[§13](#13-예외처리-아키텍처) |
+| SQL/매퍼 오류 | DAO 메서드명=SQL ID · `rdw.*-ORA.xml` · DS `rdw` | [§15](#15-dao-아키텍처) |
+| 목록이 과도하게 큼 | `mkcoa9999` 전량 갭 · pageNo/count 누락 | [§17](#17-페이징-아키텍처) |
+| TX 롤백 의도와 다름 | `@Transactional` 위치(Service) · ImageLog 별도 경계 | [§11](#11-트랜잭션-처리-아키텍처) |
+| 로그로 거래 추적 | `PdmkTxLog` · MDC `guid` · ImageLog · SQL 플러그인 | [§21](#21-트랜잭션-로그-아키텍처) |
+| FW Bean 없음 | `scanBasePackages=nhnis` · `:pdmk-fw` include | [§23](#23-스프링-환경-구성-아키텍처)·[§24](#24-gradle-빌더-환경-아키텍처) |
+| TCF/commons 혼동 | `tcf.enabled=false` 인지 · Aspect 이중 경로 | [§9.7](#97-tcf와-구분)·[§19](#19-aop-아키텍처) |
+
+### 29.4 모듈 변경 영향 매트릭스
+
+#### 영향 파급(표 그림)
+
+```text
+  변경점
+    │
+    ├─ 서비스ID/DTO/DAO ──► service●  ui●(카탈로그)
+    ├─ 헤더 필드 ─────────► fw● service● ui●
+    ├─ Filter/JWT ────────► fw●  service○  ui○(Bearer)
+    ├─ 테이블 ────────────► service●  fw○(ImageLog)
+    ├─ 페이징 계약 ───────► service●  ui●
+    └─ Gradle/Boot ───────► fw● service● ui●
+```
+
+| 변경 내용 | fw | service | ui | 같이 볼 절 |
+| --------- | -- | ------- | -- | ---------- |
+| 새 서비스 ID·DTO·DAO | — | ● | ● (카탈로그·샘플) | [§26.4](#264-새-거래-추가-체크리스트) |
+| 전문 헤더 필드 | ● | ● | ● (샘플 JSON) | [§10](#10-전문-구조) |
+| Filter/JWT/Interceptor | ● | ○ (yml) | ○ (Bearer 전달 여부) | [§6](#6-필터-아키텍처)·[§18](#18-보안-아키텍처) |
+| Biz Aspect 로그만 | — | ● | — | [§19](#19-aop-아키텍처) |
+| 테이블·스키마 | ○ (ImageLog) | ● | — | [§16](#16-테이블-아키텍처) |
+| 페이징 계약 | — | ● | ● (화면 파라미터) | [§17](#17-페이징-아키텍처) |
+| 에러코드 yml | ●/공유 | ● | ○ (표시) | [§12](#12-에러메시지-처리-아키텍처) |
+| 포트·릴레이 URL | — | ○ | ● | [§29.5](#295-포트url-빠른-카드) |
+| Gradle/Boot/JDK | ● | ● | ● | [§24](#24-gradle-빌더-환경-아키텍처) |
+| TCF 활성화 | ● | ● (혼용 금지) | — | [§26.2](#262-하지-말-것)·[§26.3](#263-tcf-패키지-pdmk-fw) |
+
+● 필수 검토 · ○ 설정/표시 영향 · — 해당 없음
+
+### 29.5 포트·URL 빠른 카드
+
+#### 네트워크 카드(표 그림)
+
+```text
+  :8090                :8080
+ ┌────────┐  POST     ┌──────────┐
+ │pdmk-ui │ ────────► │pdmk-svc  │
+ │ relay  │ /{서비스ID}│ + fw     │
+ └───┬────┘           └────┬─────┘
+     │                     │
+  /api/relay            MyBatis
+  /api/config              │
+                           ▼
+                        RDW DB
+```
+
+| 구분 | 값 |
+| ---- | -- |
+| service | `http://localhost:8080` · `POST /{서비스ID}` |
+| ui | `http://localhost:8090` · 릴레이 `/api/relay` 등 |
+| ui → service | `pdmk.ui.target-base-url` (기본 8080) |
+| 샘플 ID | `mkcoa5530*` · `mkcoa8888*` · `mkcoa9999S0` — [§28.4](#284-샘플-거래-빠른-맵) |
+| ImageLog | UI 고정 경로 중계 가능 · 테이블 `TB_FW_IMAGE_LOG` |
+

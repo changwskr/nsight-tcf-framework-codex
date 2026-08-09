@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDMG 이미지로그 관리</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+</head>
+<body>
+  <div class="wrap wrap-wide">
+    <header>
+      <h1>이미지로그 관리</h1>
+      <p>TB_FW_IMAGE_LOG 조회·삭제 화면입니다. 조건 검색, 페이징, 선택 삭제를 지원합니다.</p>
+      <div class="nav-links">
+        <a class="nav-link" href="/index.html">← 거래 목록</a>
+        <span class="nav-link" id="targetInfo">대상 확인 중...</span>
+      </div>
+    </header>
+
+    <section class="toolbar">
+      <div class="field field-wide">
+        <label for="targetBaseUrl">pdmg-service URL</label>
+        <input id="targetBaseUrl" type="text" value="http://localhost:8080">
+      </div>
+      <div class="field">
+        <label for="guid">GUID</label>
+        <input id="guid" type="text" placeholder="std_gbl_id 정확 일치">
+      </div>
+      <div class="field">
+        <label for="serviceId">서비스 ID</label>
+        <input id="serviceId" type="text" placeholder="예: mgcoa5530S0">
+      </div>
+      <div class="field">
+        <label for="screenId">화면 ID</label>
+        <input id="screenId" type="text" placeholder="예: mgcoa5530">
+      </div>
+      <div class="field">
+        <label for="optrEno">사용자(사번)</label>
+        <input id="optrEno" type="text" placeholder="예: E0000001">
+      </div>
+      <div class="field field-check">
+        <label for="exceptionOnly">예외만</label>
+        <label class="check-line">
+          <input id="exceptionOnly" type="checkbox">
+          <span>EXCEPTION_TYPE 있는 건만</span>
+        </label>
+      </div>
+      <div class="field">
+        <label for="pageSize">페이지 크기</label>
+        <input id="pageSize" type="number" min="1" max="100" value="20">
+      </div>
+      <div class="actions">
+        <button class="btn-secondary" id="resetBtn" type="button">초기화</button>
+        <button class="btn-danger" id="deleteBtn" type="button">선택 삭제</button>
+        <button class="btn-primary" id="searchBtn" type="button">조회</button>
+      </div>
+    </section>
+
+    <section class="response-meta" id="resultMeta">
+      <span class="empty">조건을 입력한 뒤 조회하세요.</span>
+    </section>
+
+    <section class="panel table-panel">
+      <div class="panel-head">
+        <h2>조회 결과</h2>
+        <span id="resultCount" class="group-tag">0건</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="resultTable">
+          <thead>
+            <tr>
+              <th class="col-check"><input id="checkAll" type="checkbox" title="전체 선택"></th>
+              <th>GUID</th>
+              <th>서비스</th>
+              <th>화면</th>
+              <th>사용자</th>
+              <th>IP</th>
+              <th>요청시각</th>
+              <th>응답시각</th>
+              <th>상태</th>
+            </tr>
+          </thead>
+          <tbody id="resultBody">
+            <tr><td colspan="9" class="empty">데이터 없음</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pager" id="pager">
+        <button class="btn-secondary" id="prevPageBtn" type="button" disabled>이전</button>
+        <span id="pageInfo">1 / 1</span>
+        <button class="btn-secondary" id="nextPageBtn" type="button" disabled>다음</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal" id="detailModal" hidden>
+    <div class="modal-backdrop" data-close="true"></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <div class="panel-head">
+        <h2 id="detailTitle">이미지로그 상세</h2>
+        <button class="btn-secondary" type="button" data-close="true">닫기</button>
+      </div>
+      <div class="modal-body" id="detailBody"></div>
+    </div>
+  </div>
+
+  <script src="/imagelog/imagelog.js"></script>
+</body>
+</html>

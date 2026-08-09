@@ -1,0 +1,3 @@
+# 샘플 IN — 엔티티
+
+APPLICATION, PAYMENT_TX, STUDENT

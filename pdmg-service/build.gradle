@@ -1,0 +1,159 @@
+plugins {
+    id 'java'
+    id 'war'
+    id 'eclipse'
+    id 'org.springframework.boot' version '3.5.14'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'nhnis.mg'
+version = '0.0.1-SNAPSHOT'
+
+bootWar {
+    enabled = false
+}
+
+war {
+    enabled = true
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+/*
+ * 사내(농협상호금융) 원본 설정 - 폐쇄망에서는 아래 블록을 되살리고
+ * 그 아래 로컬 개발용 repositories 블록을 주석 처리한다.
+ *
+ * repositories {
+ *     maven {
+ *         url = uri("http://19.88.120.152:9010/repository/maven-releases/")
+ *         allowInsecureProtocol = true
+ *     }
+ * }
+ */
+
+/* 로컬 개발 PC용 - 사내 넥서스에 접근할 수 없는 환경 */
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    /* TCF/공통 FW는 pdmk-fw에서 제공 (내장 nhnis.fw 소스 제거) */
+    implementation project(':pdmk-fw')
+
+    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test:6.5.7'
+
+    /*
+     * 사내(농협상호금융) 원본 설정 - 폐쇄망 Oracle 접속용.
+     * 아래 H2 의존성을 주석 처리하고 이 두 줄을 되살린다.
+     *
+     * implementation 'com.oracle.database.jdbc:ojdbc11:23.3.0.23.09'
+     * implementation 'com.oracle.ojdbc:orai18n:19.3.0.0'
+     */
+
+    /* 로컬 개발 PC용 - H2 인메모리 DB */
+    runtimeOnly 'com.h2database:h2:2.3.232'
+
+    /* ETC (사내 JAR가 있으면) */
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+}
+
+configurations {
+    all {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
+    configureEach {
+        exclude group: 'io.netty', module: 'netty-resolver-dns-native-macos'
+        exclude group: 'io.netty', module: 'netty-transport-native-epoll'
+        exclude group: 'io.netty', module: 'netty-transport-native-kqueue'
+    }
+}
+
+/* 소스에 한글 주석이 있어 플랫폼 기본 인코딩(CP949)으로는 컴파일되지 않는다. */
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    filteringCharset = 'UTF-8'
+}
+
+tasks.named('bootRun').configure {
+    jvmArgs = [
+            '-Dfile.encoding=UTF-8',
+            '-Dsun.jnu.encoding=UTF-8',
+            '-Dstdout.encoding=UTF-8',
+            '-Dstderr.encoding=UTF-8',
+            '-Dconsole.encoding=UTF-8'
+    ]
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    jvmArgs '-Dfile.encoding=UTF-8', '-Dsun.jnu.encoding=UTF-8'
+}
+
+/* Cursor Run/Debug: Gradle 클래스패스를 launch.json에 고정 (jdt.ls-java-project 우회) */
+tasks.register('writeIdeLaunch') {
+    dependsOn classes, ':pdmk-fw:jar'
+    doLast {
+        def outDir = file("${rootProject.projectDir}/../.vscode")
+        outDir.mkdirs()
+        def launchFile = new File(outDir, 'launch.json')
+
+        def entries = sourceSets.main.runtimeClasspath.files.collect {
+            def p = it.absolutePath.replace('\\', '/')
+            // Cursor sandbox Gradle 캐시 → 사용자 .gradle 캐시
+            p = p.replaceFirst(
+                    /(?i)C:\/Users\/[^\/]+\/AppData\/Local\/Temp\/cursor-sandbox-cache\/[^\/]+\/gradle\/caches/,
+                    'C:/Users/chang.JWS/.gradle/caches')
+            p
+        }
+
+        def serviceConfig = [
+                type     : 'java',
+                name     : 'PdmgApplication',
+                request  : 'launch',
+                mainClass: 'nhnis.mg.PdmgApplication',
+                cwd      : '${workspaceFolder}/pdmg-service',
+                console  : 'integratedTerminal',
+                vmArgs   : '-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8',
+                encoding : 'utf8',
+                classPaths: entries,
+                env      : [
+                        JAVA_HOME: 'C:\\Users\\chang.JWS\\.jdks\\temurin-21.0.4',
+                        JAVA_TOOL_OPTIONS: '-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8'
+                ]
+        ]
+
+        def root = [version: '0.2.0', configurations: []]
+        if (launchFile.exists()) {
+            root = new groovy.json.JsonSlurper().parse(launchFile) as Map
+            if (root.configurations == null) {
+                root.configurations = []
+            }
+        }
+        def configs = (root.configurations as List).findAll { it.name != 'PdmgApplication' }
+        configs.add(serviceConfig)
+        // PdmgUiApplication 이 있으면 앞에, service 는 뒤에 유지
+        def ui = configs.find { it.name == 'PdmgUiApplication' }
+        if (ui != null) {
+            configs = configs.findAll { it.name != 'PdmgUiApplication' }
+            configs.add(0, ui)
+        }
+        root.configurations = configs
+
+        launchFile.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(root))
+        println "Wrote ${launchFile} (PdmgApplication, ${entries.size()} classpath entries)"
+    }
+}

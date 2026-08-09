@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.mk.co.a.dao.mkcoa8888DAO">
+
+    <sql id="mkcoa8888Where">
+        WHERE 1 = 1
+        <if test="guid != null and guid != ''">
+           AND T1.GUID = #{guid}
+        </if>
+        <if test="serviceId != null and serviceId != ''">
+           AND T1.SERVICE_ID LIKE '%' || #{serviceId} || '%'
+        </if>
+        <if test="screenId != null and screenId != ''">
+           AND T1.SCREEN_ID LIKE '%' || #{screenId} || '%'
+        </if>
+        <if test="optrEno != null and optrEno != ''">
+           AND T1.OPTR_ENO = #{optrEno}
+        </if>
+        <if test="exceptionOnly != null and exceptionOnly == true">
+           AND T1.EXCEPTION_TYPE IS NOT NULL
+        </if>
+    </sql>
+
+    <select id="mkcoa8888S0_S0" resultType="java.util.HashMap"
+            parameterType="java.util.HashMap">
+        SELECT * FROM (
+          SELECT a.*, ROWNUM rnum
+            FROM (
+               SELECT /* mkcoa8888S0_S0 */
+                      T1.GUID           AS GUID
+                    , T1.SERVICE_ID     AS SERVICE_ID
+                    , T1.SCREEN_ID      AS SCREEN_ID
+                    , T1.OPTR_ENO       AS OPTR_ENO
+                    , T1.CLIENT_IP      AS CLIENT_IP
+                    , T1.REQUEST_TIME   AS REQUEST_TIME
+                    , T1.RESPONSE_TIME  AS RESPONSE_TIME
+                    , T1.EXCEPTION_TYPE AS EXCEPTION_TYPE
+                    , T1.EXCEPTION_CODE AS EXCEPTION_CODE
+                    , T1.EXCEPTION_MSG  AS EXCEPTION_MSG
+                 FROM TB_FW_IMAGE_LOG T1
+               <include refid="mkcoa8888Where"/>
+                ORDER BY T1.REQUEST_TIME DESC, T1.GUID DESC
+            ) a
+           WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+        )
+        WHERE rnum > #{offset}
+    </select>
+
+    <select id="mkcoa8888S0_S0_count" resultType="int"
+            parameterType="java.util.HashMap">
+        SELECT /* mkcoa8888S0_S0_count */ COUNT(*)
+          FROM TB_FW_IMAGE_LOG T1
+        <include refid="mkcoa8888Where"/>
+    </select>
+
+    <delete id="mkcoa8888D0_D0" parameterType="java.util.HashMap">
+        DELETE /* mkcoa8888D0_D0 */ FROM TB_FW_IMAGE_LOG
+         WHERE GUID IN
+        <foreach collection="guidList" item="guid" open="(" separator="," close=")">
+            #{guid}
+        </foreach>
+    </delete>
+
+</mapper>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.mk.co.a.dao.mkcoa5530DAO">
+
+    <sql id="mkcoa5530Where">
+        WHERE 1 = 1
+        <if test="trtBrc != null and trtBrc != ''">
+           AND T1.L5104 = #{trtBrc}
+        </if>
+        <if test="basDt != null and basDt != ''">
+           AND T1.L5103 = #{basDt}
+        </if>
+    </sql>
+
+    <select id="mkcoa5530S0_S0" resultType="java.util.HashMap"
+            parameterType="java.util.HashMap">
+        SELECT * FROM (
+          SELECT a.*, ROWNUM rnum
+            FROM (
+               SELECT /*+ INDEX(T1 TB_MK_CO_A_5530_PK) */ /* mkcoa5530S0_S0 */
+                      T1.L5101 AS L5101
+                    , T1.L5102 AS L5102
+                    , T1.L5103 AS L5103
+                    , T1.L5104 AS L5104
+                 FROM TB_MK_CO_A_5530 T1
+               <include refid="mkcoa5530Where"/>
+                ORDER BY T1.L5101
+            ) a
+           WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+        )
+        WHERE rnum > #{offset}
+    </select>
+
+    <select id="mkcoa5530S0_S0_count" resultType="int"
+            parameterType="java.util.HashMap">
+        SELECT /* mkcoa5530S0_S0_count */ COUNT(*)
+          FROM TB_MK_CO_A_5530 T1
+        <include refid="mkcoa5530Where"/>
+    </select>
+
+</mapper>
