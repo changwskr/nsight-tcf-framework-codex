@@ -5,12 +5,18 @@ spring:
     name: pdmg
   config:
     import: classpath:exceptionCode.yml
-  # CORS 자동 설정 비활성화 (수동 설정 우선)
+  # pdmg-ui(브라우저) → pdmg-service 직접 호출용 CORS
   mvc:
     cors:
       allowed-origins:
+        - http://localhost:8090
+        - http://127.0.0.1:8090
       allowed-methods:
+        - GET
+        - POST
+        - OPTIONS
       allowed-headers:
+        - "*"
 
   # 사내(농협상호금융) 원본 설정 - 폐쇄망 Oracle(SBMFCRT) 접속용.
   # 아래 H2 datasource / sql.init 블록을 주석 처리하고 이 블록을 되살린다.
@@ -36,11 +42,18 @@ spring:
       schema-locations: classpath:db/h2/schema.sql
       data-locations: classpath:db/h2/data.sql
 
-# PDMG 공통 FW (pdmk-fw commons) — TCF 경로 비활성
+# PDMG 공통 FW — TCF 단일 Controller + 기존 Filter/시스템·업무 선후처리 유지
 nhnis:
   fw:
     tcf:
-      enabled: false
+      enabled: true
+    # 온라인 거래 공통 타임아웃 (TcfFacade → OnlineTimeoutExecutor)
+    # enabled=false 이면 기존 동기 경로(SyncOnlineTimeoutExecutor)
+    timeout:
+      enabled: true
+      milliseconds: 5000
+      pool-size: 20
+      queue-capacity: 100
     commons:
       legacy-web:
         enabled: true

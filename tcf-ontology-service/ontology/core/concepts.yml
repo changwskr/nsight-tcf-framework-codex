@@ -1,0 +1,54 @@
+'@context':
+  '@vocab': 'https://nsight.local/ontology#'
+  nsight: 'https://nsight.local/ontology#'
+'@id': nsight:core
+'@type': OntologyBundle
+version: '0.1.0'
+modules:
+  - id: pdmg-fw
+    role: runtime-framework
+    description: Filter, TCF, Timeout, Interceptor, Response resolver
+  - id: pdmg-service
+    role: business-service
+    description: MG 업무 Handler~DAO
+  - id: pdmg-ui
+    role: channel-ui
+    description: 브라우저 채널·샘플·릴레이
+  - id: tcf-ontology-service
+    role: knowledge-hub
+    description: 아키텍처·개발·데이터·운영 지식 허브
+componentTypes:
+  - id: Handler
+    packageSuffix: entry.handler
+    naming: '{programId}Handler'
+    tx: inside-worker-tx
+  - id: Facade
+    packageSuffix: application.facade
+    naming: '{programId}Facade'
+    tx: joins-required
+  - id: Controller
+    packageSuffix: application.controller
+    naming: '{programId}Controller'
+    note: TCF OFF 호환
+  - id: Service
+    packageSuffix: application.service
+    naming: '{programId}Service'
+    tx: inside-worker-tx
+  - id: DAO
+    packageSuffix: persistence.dao
+    naming: '{programId}DAO'
+  - id: DTO
+    packageSuffix: dto
+    naming: '{serviceId}DTO{in|out|Sub*}'
+  - id: MapperXml
+    resourcePattern: 'rdw.{major}.{business}.{function}/{programId}-ORA.xml'
+serviceIdPattern:
+  description: '[대그룹2][업무2][기능1][식별4][구분자1][순번1]'
+  example: mgcoa9001S0
+  separators:
+    S: query
+    C: create
+    U: update
+    D: delete
+    A: mixed
+    R: report

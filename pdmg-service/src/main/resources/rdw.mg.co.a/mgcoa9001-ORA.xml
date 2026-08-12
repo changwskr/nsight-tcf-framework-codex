@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.mg.co.a.persistence.dao.mgcoa9001DAO">
+
+    <sql id="mgcoa9001Where">
+        WHERE 1 = 1
+        <if test="controlType != null and controlType != ''">
+           AND T1.CONTROL_TYPE = #{controlType}
+        </if>
+        <if test="blockYn != null and blockYn != ''">
+           AND T1.BLOCK_YN = #{blockYn}
+        </if>
+        <if test="targetKeyword != null and targetKeyword != ''">
+           AND (
+                UPPER(T1.SERVICE_ID) LIKE '%' || UPPER(#{targetKeyword}) || '%'
+             OR UPPER(T1.BUSINESS_CODE) LIKE '%' || UPPER(#{targetKeyword}) || '%'
+             OR UPPER(T1.USER_ID) LIKE '%' || UPPER(#{targetKeyword}) || '%'
+             OR UPPER(T1.CHANNEL_ID) LIKE '%' || UPPER(#{targetKeyword}) || '%'
+             OR UPPER(T1.BRANCH_ID) LIKE '%' || UPPER(#{targetKeyword}) || '%'
+             OR UPPER(T1.SERVICE_NAME) LIKE '%' || UPPER(#{targetKeyword}) || '%'
+           )
+        </if>
+    </sql>
+
+    <select id="mgcoa9001S0_S0" resultType="java.util.HashMap"
+            parameterType="java.util.HashMap">
+        SELECT * FROM (
+          SELECT a.*, ROWNUM rnum
+            FROM (
+               SELECT /* mgcoa9001S0_S0 */
+                      T1.SERVICE_ID       AS "serviceId"
+                    , T1.TRANSACTION_CODE AS "transactionCode"
+                    , T1.BUSINESS_CODE    AS "businessCode"
+                    , T1.SERVICE_NAME     AS "serviceName"
+                    , T1.USER_ID          AS "userId"
+                    , T1.CHANNEL_ID       AS "channelId"
+                    , T1.BRANCH_ID        AS "branchId"
+                    , T1.CONTROL_TYPE     AS "controlType"
+                    , T1.BLOCK_YN         AS "blockYn"
+                    , T1.CHANGE_REASON    AS "changeReason"
+                    , T1.REG_USER_ID      AS "regUserId"
+                    , T1.REG_DTM          AS "regDtm"
+                    , T1.CHG_USER_ID      AS "chgUserId"
+                    , T1.CHG_DTM          AS "chgDtm"
+                 FROM TB_MG_TX_CONTROL T1
+               <include refid="mgcoa9001Where"/>
+                ORDER BY T1.CONTROL_TYPE, T1.BUSINESS_CODE, T1.SERVICE_ID, T1.USER_ID
+            ) a
+           WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+        )
+        WHERE rnum > #{offset}
+    </select>
+
+    <select id="mgcoa9001S0_S0_count" resultType="int"
+            parameterType="java.util.HashMap">
+        SELECT /* mgcoa9001S0_S0_count */ COUNT(*)
+          FROM TB_MG_TX_CONTROL T1
+        <include refid="mgcoa9001Where"/>
+    </select>
+
+    <select id="mgcoa9001S0_S0_exists" resultType="int"
+            parameterType="java.util.HashMap">
+        SELECT /* mgcoa9001S0_S0_exists */ COUNT(*)
+          FROM TB_MG_TX_CONTROL T1
+         WHERE T1.SERVICE_ID = #{serviceId}
+           AND T1.TRANSACTION_CODE = #{transactionCode}
+           AND T1.BUSINESS_CODE = #{businessCode}
+           AND T1.SERVICE_NAME = #{serviceName}
+           AND T1.USER_ID = #{userId}
+           AND T1.CHANNEL_ID = #{channelId}
+           AND T1.BRANCH_ID = #{branchId}
+    </select>
+
+    <insert id="mgcoa9001C0_C0" parameterType="java.util.HashMap">
+        INSERT /* mgcoa9001C0_C0 */ INTO TB_MG_TX_CONTROL (
+            SERVICE_ID, TRANSACTION_CODE, BUSINESS_CODE, SERVICE_NAME,
+            USER_ID, CHANNEL_ID, BRANCH_ID, CONTROL_TYPE, BLOCK_YN,
+            CHANGE_REASON, REG_USER_ID, REG_DTM
+        ) VALUES (
+            #{serviceId}, #{transactionCode}, #{businessCode}, #{serviceName},
+            #{userId}, #{channelId}, #{branchId}, #{controlType}, #{blockYn},
+            #{changeReason}, #{regUserId}, #{regDtm}
+        )
+    </insert>
+
+    <update id="mgcoa9001U0_U0" parameterType="java.util.HashMap">
+        UPDATE /* mgcoa9001U0_U0 */ TB_MG_TX_CONTROL
+           SET CONTROL_TYPE  = #{controlType}
+             , BLOCK_YN      = #{blockYn}
+             , CHANGE_REASON = #{changeReason}
+             , CHG_USER_ID   = #{chgUserId}
+             , CHG_DTM       = #{chgDtm}
+         WHERE SERVICE_ID = #{serviceId}
+           AND TRANSACTION_CODE = #{transactionCode}
+           AND BUSINESS_CODE = #{businessCode}
+           AND SERVICE_NAME = #{serviceName}
+           AND USER_ID = #{userId}
+           AND CHANNEL_ID = #{channelId}
+           AND BRANCH_ID = #{branchId}
+    </update>
+
+    <delete id="mgcoa9001D0_D0" parameterType="java.util.HashMap">
+        DELETE /* mgcoa9001D0_D0 */ FROM TB_MG_TX_CONTROL
+         WHERE SERVICE_ID = #{serviceId}
+           AND TRANSACTION_CODE = #{transactionCode}
+           AND BUSINESS_CODE = #{businessCode}
+           AND SERVICE_NAME = #{serviceName}
+           AND USER_ID = #{userId}
+           AND CHANNEL_ID = #{channelId}
+           AND BRANCH_ID = #{branchId}
+    </delete>
+
+</mapper>

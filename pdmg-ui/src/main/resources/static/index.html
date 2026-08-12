@@ -4,57 +4,273 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PDMG UI</title>
+  <script src="/_shared/ui-context.js"></script>
   <link rel="stylesheet" href="/_shared/online.css">
 </head>
-<body>
-  <div class="wrap">
-    <header>
-      <h1>PDMG UI</h1>
-      <p>pdmg-service 전문 테스트와 이미지로그 관리 화면입니다.</p>
-      <div class="nav-links">
-        <a class="nav-link" href="/imagelog/index.html">이미지로그 관리 →</a>
-        <span class="nav-link" id="targetInfo">대상 확인 중...</span>
+<body class="tcf-home pdmg-shell-page">
+  <div class="pdmg-shell">
+    <aside class="pdmg-sidebar" aria-label="주 메뉴">
+      <div class="pdmg-sidebar__brand">
+        <a class="pdmg-sidebar__logo" href="#view=dashboard" data-shell-view="dashboard">PDMG UI</a>
+        <p class="pdmg-sidebar__tag">온라인 거래 테스트</p>
       </div>
-    </header>
 
-    <section class="hub-grid" id="programGrid">
-      <article class="hub-card">
-        <h2>이미지로그 관리</h2>
-        <p>TB_FW_IMAGE_LOG 조건 검색·목록·상세. 전문 JSON 편집 없이 관리합니다.</p>
-        <div class="links">
-          <a href="/imagelog/index.html">이미지로그 관리 화면 열기</a>
+      <nav class="pdmg-sidebar__nav">
+        <div class="pdmg-menu-group">
+          <div class="pdmg-menu-group__label">홈</div>
+          <a class="pdmg-menu-link pdmg-menu-link--active" href="#view=dashboard" data-shell-view="dashboard">대시보드</a>
+          <a class="pdmg-menu-link" href="#view=dashboard&section=trackSection" data-shell-view="dashboard" data-shell-section="trackSection">빠른 이동</a>
+          <a class="pdmg-menu-link" href="#view=dashboard&section=serviceSection" data-shell-view="dashboard" data-shell-section="serviceSection">서비스 카드</a>
         </div>
-      </article>
-      <div class="empty" id="txLoading">거래 목록을 불러오는 중...</div>
-    </section>
+
+        <div class="pdmg-menu-group">
+          <div class="pdmg-menu-group__label">전문 테스트</div>
+          <a class="pdmg-menu-link" href="#view=mgcoa5530" data-shell-view="mgcoa5530" data-shell-src="/mgcoa5530/index.html">mgcoa5530 · 마케팅희망고객</a>
+          <a class="pdmg-menu-link" href="#view=mgcoa8888" data-shell-view="mgcoa8888" data-shell-src="/mgcoa8888/index.html">mgcoa8888 · 이미지로그</a>
+          <a class="pdmg-menu-link" href="#view=mgcoa9000" data-shell-view="mgcoa9000" data-shell-src="/mgcoa9000/index.html">mgcoa9000 · 거래 파라미터</a>
+          <a class="pdmg-menu-link" href="#view=mgcoa9999" data-shell-view="mgcoa9999" data-shell-src="/mgcoa9999/index.html">mgcoa9999 · 영업팁 실적</a>
+        </div>
+
+        <div class="pdmg-menu-group">
+          <div class="pdmg-menu-group__label">관리 화면</div>
+          <a class="pdmg-menu-link" href="#view=imagelog" data-shell-view="imagelog" data-shell-src="/imagelog/index.html">이미지로그 관리</a>
+          <a class="pdmg-menu-link" href="#view=txparam" data-shell-view="txparam" data-shell-src="/txparam/index.html">거래 파라미터 관리</a>
+        </div>
+      </nav>
+
+      <div class="pdmg-sidebar__foot">
+        <span class="badge" id="targetInfo">대상 확인 중...</span>
+      </div>
+    </aside>
+
+    <div class="pdmg-shell__main">
+      <header class="tcf-topbar" id="homeTopbar">
+        <div class="tcf-topbar__brand">
+          <h1>PDMG UI</h1>
+          <p>pdmg-service 전문 테스트 · 이미지로그 · 거래 파라미터 관리 허브. 브라우저는 pdmg-service를 직접 호출합니다 (CORS).</p>
+        </div>
+      </header>
+
+      <div class="tcf-main tcf-main--shell" id="dashboardPanel">
+        <section id="trackSection" class="tcf-section">
+          <div class="tcf-section__head">
+            <h2>빠른 이동</h2>
+            <p>전문 JSON 테스트와 조건검색 관리 화면을 구분해서 진입합니다.</p>
+          </div>
+          <div class="track-grid">
+            <article class="track-card">
+              <h3>전문 테스트</h3>
+              <p>hdr_nhnis + dto 샘플을 편집·전송합니다. 전송마다 GUID를 신규 채번합니다.</p>
+              <a href="#view=mgcoa5530" data-shell-view="mgcoa5530" data-shell-src="/mgcoa5530/index.html">mgcoa5530 열기 →</a>
+            </article>
+            <article class="track-card">
+              <h3>이미지로그 관리</h3>
+              <p>최근 구간·소요시간·예외 조건으로 TB_FW_IMAGE_LOG를 조회·삭제합니다.</p>
+              <a href="#view=imagelog" data-shell-view="imagelog" data-shell-src="/imagelog/index.html">관리 화면 열기 →</a>
+            </article>
+            <article class="track-card">
+              <h3>거래 파라미터 관리</h3>
+              <p>거래명·ID·앱·경로·HTTP 메소드를 조회·등록·수정·삭제합니다.</p>
+              <a href="#view=txparam" data-shell-view="txparam" data-shell-src="/txparam/index.html">관리 화면 열기 →</a>
+            </article>
+          </div>
+        </section>
+
+        <section id="serviceSection" class="tcf-section tcf-section--hub">
+          <div class="tcf-section__head">
+            <h2>서비스 카드</h2>
+            <p>프로그램별 테스트·관리 화면입니다. 카드 설명을 보고 필요한 화면으로 이동하세요.</p>
+          </div>
+          <div class="hub-grid" id="programGrid">
+            <article class="hub-card hub-card--featured">
+              <h2>mgcoa9000 <span class="group-tag">거래 파라미터</span></h2>
+              <p>TB_MG_TX_PARAM CRUD. 검색·추가·수정·삭제 관리 화면과 전문 테스트를 제공합니다.</p>
+              <div class="links links--stack">
+                <a href="#view=mgcoa9000" data-shell-view="mgcoa9000" data-shell-src="/mgcoa9000/index.html">전문 테스트 (S0/C0/U0/D0)</a>
+                <a href="#view=txparam" data-shell-view="txparam" data-shell-src="/txparam/index.html">관리 화면 (그리드 UI)</a>
+              </div>
+            </article>
+            <article class="hub-card hub-card--featured">
+              <h2>mgcoa8888 <span class="group-tag">이미지로그</span></h2>
+              <p>TB_FW_IMAGE_LOG 조회/삭제. withinSeconds·minElapsedSeconds·예외 조건 지원.</p>
+              <div class="links links--stack">
+                <a href="#view=mgcoa8888" data-shell-view="mgcoa8888" data-shell-src="/mgcoa8888/index.html">전문 테스트 (S0/D0)</a>
+                <a href="#view=imagelog" data-shell-view="imagelog" data-shell-src="/imagelog/index.html">관리 화면 (조건검색 UI)</a>
+              </div>
+            </article>
+            <article class="hub-card">
+              <h2>mgcoa5530 <span class="group-tag">조회</span></h2>
+              <p>마케팅희망고객 / 안내항목 목록 조회. Handler → Facade(@Transactional) → Service.</p>
+              <div class="links">
+                <a href="#view=mgcoa5530" data-shell-view="mgcoa5530" data-shell-src="/mgcoa5530/index.html">전문 테스트 (S0)</a>
+              </div>
+            </article>
+            <article class="hub-card">
+              <h2>mgcoa9999 <span class="group-tag">조회</span></h2>
+              <p>영업팁 실적 목록 조회. dto.salzTipKdc 를 비우면 전체 조회.</p>
+              <div class="links">
+                <a href="#view=mgcoa9999" data-shell-view="mgcoa9999" data-shell-src="/mgcoa9999/index.html">전문 테스트 (S0)</a>
+              </div>
+            </article>
+            <div class="empty" id="txLoading">추가 거래 목록을 불러오는 중...</div>
+          </div>
+        </section>
+      </div>
+
+      <iframe id="contentFrame" class="pdmg-content-frame" title="PDMG 화면" hidden></iframe>
+    </div>
   </div>
 
+  <script src="/_shared/error-codes.js"></script>
+  <script src="/_shared/error-popup.js"></script>
   <script>
+    function uiUrl(path) {
+      return typeof window.nsightUiUrl === 'function' ? window.nsightUiUrl(path) : path;
+    }
+
+    const STATIC_PROGRAM_IDS = new Set(['mgcoa9000', 'mgcoa8888', 'mgcoa5530', 'mgcoa9999']);
+    const homeTopbar = document.getElementById('homeTopbar');
+    const dashboardPanel = document.getElementById('dashboardPanel');
+    const contentFrame = document.getElementById('contentFrame');
+
+    const VIEW_SRC = {
+      mgcoa5530: '/mgcoa5530/index.html',
+      mgcoa8888: '/mgcoa8888/index.html',
+      mgcoa9000: '/mgcoa9000/index.html',
+      mgcoa9999: '/mgcoa9999/index.html',
+      imagelog: '/imagelog/index.html',
+      txparam: '/txparam/index.html'
+    };
+
+    function parseHash() {
+      const raw = (location.hash || '').replace(/^#/, '');
+      const params = new URLSearchParams(raw.includes('=') ? raw : ('view=' + (raw || 'dashboard')));
+      return {
+        view: params.get('view') || 'dashboard',
+        section: params.get('section') || ''
+      };
+    }
+
+    function setActiveMenu(view, section) {
+      document.querySelectorAll('.pdmg-menu-link').forEach((link) => {
+        const linkView = link.dataset.shellView || '';
+        const linkSection = link.dataset.shellSection || '';
+        let active = false;
+        if (view === 'dashboard') {
+          if (section) {
+            active = linkView === 'dashboard' && linkSection === section;
+          } else {
+            active = linkView === 'dashboard' && !linkSection;
+          }
+        } else {
+          active = linkView === view && !link.dataset.shellSection;
+        }
+        link.classList.toggle('pdmg-menu-link--active', active);
+      });
+    }
+
+    function showDashboard(section) {
+      homeTopbar.hidden = false;
+      dashboardPanel.hidden = false;
+      contentFrame.hidden = true;
+      if (contentFrame.getAttribute('src')) {
+        contentFrame.removeAttribute('src');
+      }
+      setActiveMenu('dashboard', section || '');
+      if (section) {
+        const el = document.getElementById(section);
+        if (el) {
+          requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+        }
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    function showFrame(view, src) {
+      const path = src || VIEW_SRC[view];
+      if (!path) {
+        showDashboard();
+        return;
+      }
+      homeTopbar.hidden = true;
+      dashboardPanel.hidden = true;
+      contentFrame.hidden = false;
+      const next = uiUrl(path);
+      if (contentFrame.getAttribute('src') !== next) {
+        contentFrame.src = next;
+      }
+      setActiveMenu(view, '');
+    }
+
+    function navigate(view, src, section) {
+      if (!view || view === 'dashboard') {
+        const hash = section
+            ? '#view=dashboard&section=' + encodeURIComponent(section)
+            : '#view=dashboard';
+        if (location.hash !== hash) {
+          location.hash = hash;
+        } else {
+          showDashboard(section);
+        }
+        return;
+      }
+      const hash = '#view=' + encodeURIComponent(view);
+      if (location.hash !== hash) {
+        location.hash = hash;
+      } else {
+        showFrame(view, src);
+      }
+    }
+
+    function applyRoute() {
+      const { view, section } = parseHash();
+      if (!view || view === 'dashboard') {
+        showDashboard(section);
+      } else {
+        showFrame(view, VIEW_SRC[view]);
+      }
+    }
+
     function renderProgramCard(programId, items) {
-      if (programId === 'mgcoa8888') {
+      if (STATIC_PROGRAM_IDS.has(programId)) {
         return '';
       }
       const links = items
-        .map(tx => `<a href="/${programId}/index.html">${tx.id} · ${tx.name}</a>`)
+        .map(tx => `<a href="${uiUrl('/' + programId + '/index.html')}">${tx.id} · ${tx.name}</a>`)
         .join('');
       return `
         <article class="hub-card">
           <h2>${programId} <span class="group-tag">${items.length}건</span></h2>
           <p>${items[0].description}</p>
-          <div class="links">${links}</div>
+          <div class="links links--stack">${links}</div>
         </article>
       `;
     }
 
+    document.addEventListener('click', (event) => {
+      const link = event.target.closest('[data-shell-view]');
+      if (!link) {
+        return;
+      }
+      event.preventDefault();
+      navigate(link.dataset.shellView, link.dataset.shellSrc, link.dataset.shellSection || '');
+    });
+
+    window.addEventListener('hashchange', applyRoute);
+
     async function init() {
+      applyRoute();
+
       const [txRes, configRes] = await Promise.all([
-        fetch('/api/transactions'),
-        fetch('/api/config')
+        fetch(uiUrl('/api/transactions')),
+        fetch(uiUrl('/api/config'))
       ]);
       const transactions = await txRes.json();
       const config = await configRes.json();
 
-      document.getElementById('targetInfo').textContent = `대상 pdmg-service: ${config.targetBaseUrl}`;
+      document.getElementById('targetInfo').textContent =
+        'pdmg-service · ' + (config.targetBaseUrl || 'http://localhost:8080');
 
       const grouped = new Map();
       transactions.forEach(tx => {
@@ -71,11 +287,11 @@
 
       const loading = document.getElementById('txLoading');
       if (loading) {
-        loading.outerHTML = cards;
+        loading.outerHTML = cards || '';
       }
     }
 
-    init().catch(error => alert('거래 목록 로드 실패: ' + error.message));
+    init().catch(error => PdmgErrorPopup.showSimple('거래 목록 로드 실패: ' + error.message));
   </script>
 </body>
 </html>

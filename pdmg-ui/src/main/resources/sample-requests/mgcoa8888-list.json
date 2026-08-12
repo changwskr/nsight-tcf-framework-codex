@@ -1,7 +1,6 @@
 {
   "hdr_nhnis": {
     "sys_comm": {
-      "std_gbl_id": "c3d65cb1a54a43838688b76afe82521e",
       "rms_svc_c": "mgcoa8888S0",
       "sync_dsc": "S",
       "tr_sysid": "PDMG",
@@ -24,6 +23,8 @@
     "screenId": null,
     "optrEno": null,
     "exceptionOnly": false,
+    "withinSeconds": 300,
+    "minElapsedSeconds": null,
     "pageNo": 1,
     "pageSize": 20
   }

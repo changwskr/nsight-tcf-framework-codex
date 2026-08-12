@@ -48,6 +48,8 @@ tasks.withType(JavaCompile).configureEach {
 
 tasks.named('processResources', ProcessResources).configure {
     filteringCharset = 'UTF-8'
+    /* sample JSON 은 placeholder 치환 대상이 아니다. 누락 없이 복사한다. */
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
 tasks.named('bootRun').configure {

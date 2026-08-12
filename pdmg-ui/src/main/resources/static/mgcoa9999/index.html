@@ -4,16 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PDMG 전문 테스트 (mgcoa9999)</title>
+  <script src="/_shared/ui-context.js"></script>
   <link rel="stylesheet" href="/_shared/online.css">
 </head>
-<body>
-  <div class="wrap">
-    <header>
-      <h1>PDMG 전문 테스트 (mgcoa9999)</h1>
-      <p>hdr_nhnis + dto 전문을 pdmg-service로 전송합니다. 호출은 pdmg-ui가 중계하므로 CORS와 무관합니다.</p>
-      <div class="nav-links">
-        <a class="nav-link" href="/index.html">← 거래 목록</a>
+<body class="pdmg-page">
+  <div class="tcf-main">
+    <header class="tcf-topbar">
+      <div class="tcf-topbar__brand">
+        <h1>mgcoa9999 · 영업팁 실적</h1>
+        <p>영업팁 실적 목록을 조회합니다. dto.salzTipKdc 를 비우면 전체를 조회합니다.</p>
       </div>
+      <nav class="tcf-topbar__nav" aria-label="화면 이동">
+        <a class="tcf-topbar__link" href="/index.html">홈</a>
+        <a class="tcf-topbar__link" href="/mgcoa5530/index.html">mgcoa5530</a>
+        <a class="tcf-topbar__link" href="/mgcoa8888/index.html">mgcoa8888</a>
+        <a class="tcf-topbar__link tcf-topbar__link--active" href="/mgcoa9999/index.html">mgcoa9999</a>
+        <a class="tcf-topbar__link" href="/imagelog/index.html">이미지로그</a>
+      </nav>
     </header>
 
     <section class="toolbar">
@@ -65,6 +72,9 @@
       </article>
     </section>
   </div>
+  <script src="/_shared/error-codes.js"></script>
+  <script src="/_shared/error-popup.js"></script>
+  <script src="/_shared/service-client.js"></script>
   <script src="/_shared/online-single.js"></script>
 </body>
 </html>

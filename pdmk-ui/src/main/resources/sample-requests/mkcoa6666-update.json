@@ -1,0 +1,41 @@
+{
+  "hdr_nhnis": {
+    "sys_comm": {
+      "std_gbl_id": "a3333333333333333333333333333333",
+      "rms_svc_c": "mkcoa6666U0",
+      "sync_dsc": "S",
+      "tr_sysid": "PDMK-OM",
+      "ttl_ug_ync": 0,
+      "std_tgrm_rqr_rsp_dsc": "Q",
+      "std_tgrm_lclc": "KO",
+      "tr_trm_ipadr": "127.0.0.1",
+      "tr_dtm": "20260808120000",
+      "tr_brc": "10001",
+      "trmno": "LOCAL01",
+      "trm_kdc": "01",
+      "scid": "mkcoa6666",
+      "optr_eno": "E0000001",
+      "tr_optrnm": "LOCAL_TESTER"
+    }
+  },
+  "dto": {
+    "serviceCode": "mkcoa5530S0",
+    "serviceName": "안내항목 조회",
+    "businessCode": "mk",
+    "scid": "mkcoa5530",
+    "enabled": "Y",
+    "status": "NORMAL",
+    "allowedSystemIds": "PDMK,PDMK-UI,PDMK-OM",
+    "allowedTerminalTypes": "01",
+    "allowedBranches": "*",
+    "syncType": "S",
+    "allowedStartTime": "0000",
+    "allowedEndTime": "2400",
+    "timeoutMs": 3000,
+    "maxTps": 100,
+    "maxConcurrent": 50,
+    "duplicateWindowSec": 0,
+    "auditLevel": "NORMAL",
+    "reason": "카탈로그 수정 샘플"
+  }
+}

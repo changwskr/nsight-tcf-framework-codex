@@ -1,0 +1,23 @@
+'@context':
+  '@vocab': 'https://nsight.local/ontology#'
+'@id': nsight:shape-service-id
+'@type': Shape
+version: '0.1.0'
+target: ServiceId
+# Java Pattern 문자열 (YAML double-quote → 단일 백슬래시)
+pattern: "^[a-z]{2}[a-z]{2}[a-z][0-9]{4}[SCUDAR][0-9A-Z]$"
+examples:
+  valid:
+    - mgcoa9001S0
+    - mgcoa9001C0
+    - mgmma0001A0
+  invalid:
+    - MGCOA9001S0
+    - mgcoa9001
+    - mg.coa.9001.S0
+packageAxis:
+  pattern: "^nhnis\\.[a-z]{2}\\.[a-z]{2}\\.[a-z]\\."
+  example: nhnis.mg.co.a
+mapperAxis:
+  pattern: "^rdw\\.[a-z]{2}\\.[a-z]{2}\\.[a-z]/"
+  example: rdw.mg.co.a/

@@ -160,16 +160,16 @@
             <AppenderRef ref="FRAMEWORK_LOG_FILE"/>
         </Logger>
 
-        <Logger name="nhnis.mg.config.MybatisLogInterceptor" level="debug" additivity="false">
+        <Logger name="nhnis.mg.co.a.config.MybatisLogInterceptor" level="debug" additivity="false">
             <AppenderRef ref="SQL"/>
         </Logger>
 
-        <Logger name="nhnis.mg.entry.aspect" level="info" additivity="false">
+        <Logger name="nhnis.mg.co.a.entry.aspect" level="info" additivity="false">
             <AppenderRef ref="BIZ"/>
             <AppenderRef ref="SERVICE_LOG_FILE"/>
         </Logger>
 
-        <Logger name="nhnis.mg.entry.aspect.BizPrePostAspect" level="info" additivity="false">
+        <Logger name="nhnis.mg.co.a.entry.aspect.BizPrePostAspect" level="info" additivity="false">
             <AppenderRef ref="BIZ"/>
             <AppenderRef ref="SERVICE_LOG_FILE"/>
         </Logger>

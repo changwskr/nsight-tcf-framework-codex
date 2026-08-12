@@ -1,0 +1,75 @@
+spring:
+  application:
+    name: tcf-ontology-service
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+server:
+  port: 8098
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+
+nhnis:
+  ontology:
+    base-path: ontology
+    versions-path: ontology/versions
+    product-version: 0.1.0-RC1
+    schema-version: "1.0"
+    knowledge-snapshot: 2026.08.10.03
+    knowledge-path: docs/knowledge/exearchidoc
+    # Safe default: admin mutation APIs off unless local/dev profile enables them.
+    admin-mutations-enabled: false
+    scan:
+      pdmg-service: ../pdmg-service
+      pdmg-ui: ../pdmg-ui
+      pdmg-fw: ../pdmg-fw
+      import-output: test-data/ontology/inventory-pdmg.yml
+      report-output: test-data/queries/last-validation-report.json
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+
+server:
+  port: 8098
+
+nhnis:
+  ontology:
+    admin-mutations-enabled: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+server:
+  port: 8098
+
+nhnis:
+  ontology:
+    admin-mutations-enabled: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+server:
+  port: 8098
+
+nhnis:
+  ontology:
+    admin-mutations-enabled: false

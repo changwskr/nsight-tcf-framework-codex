@@ -1,0 +1,310 @@
+﻿{
+    "status":  "OK",
+    "request":  {
+                    "system":  "MG",
+                    "business":  "CO",
+                    "function":  "A",
+                    "intent":  "query"
+                },
+    "recommendations":  [
+                            {
+                                "programId":  "mgcoa5530",
+                                "title":  "ë§ì¼í\u0085í¬ë§ê³ ê°",
+                                "score":  95,
+                                "reasons":  [
+                                                "same system MG",
+                                                "same business CO",
+                                                "same function A",
+                                                "query-oriented"
+                                            ],
+                                "reuse":  {
+                                              "packageRoot":  "nhnis.mg.co.a",
+                                              "data":  {
+                                                           "mapperXml":  "rdw.mg.co.a/mgcoa5530-ORA.xml",
+                                                           "namespace":  "nhnis.mg.co.a.persistence.dao.mgcoa5530DAO",
+                                                           "table":  "TB_MK_CO_A_5530",
+                                                           "pk":  [
+                                                                      "L5101",
+                                                                      "L5103"
+                                                                  ],
+                                                           "deleteMode":  "n/a"
+                                                       },
+                                              "services":  [
+                                                               {
+                                                                   "serviceId":  "mgcoa5530S0",
+                                                                   "op":  "S",
+                                                                   "method":  "mgcoa5530S0",
+                                                                   "dtoIn":  "nhnis.mg.co.a.dto.mgcoa5530S0DTOin",
+                                                                   "dtoOut":  "nhnis.mg.co.a.dto.mgcoa5530S0DTOout",
+                                                                   "sqlIds":  [
+                                                                                  "mgcoa5530S0_S0",
+                                                                                  "mgcoa5530S0_S0_count"
+                                                                              ]
+                                                               }
+                                                           ],
+                                              "development":  {
+                                                                  "handler":  "nhnis.mg.co.a.entry.handler.mgcoa5530Handler",
+                                                                  "facade":  "nhnis.mg.co.a.application.facade.mgcoa5530Facade",
+                                                                  "controller":  "nhnis.mg.co.a.application.controller.mgcoa5530Controller",
+                                                                  "service":  "nhnis.mg.co.a.application.service.mgcoa5530Service",
+                                                                  "dao":  "nhnis.mg.co.a.persistence.dao.mgcoa5530DAO"
+                                                              },
+                                              "path":  "MG â CO â A â mgcoa5530"
+                                          }
+                            },
+                            {
+                                "programId":  "mgcoa8888",
+                                "title":  "ì´ë¯¸ì§ë¡ê·¸",
+                                "score":  95,
+                                "reasons":  [
+                                                "same system MG",
+                                                "same business CO",
+                                                "same function A",
+                                                "query-oriented"
+                                            ],
+                                "reuse":  {
+                                              "packageRoot":  "nhnis.mg.co.a",
+                                              "data":  {
+                                                           "mapperXml":  "rdw.mg.co.a/mgcoa8888-ORA.xml",
+                                                           "namespace":  "nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                                                           "table":  "TB_FW_IMAGE_LOG",
+                                                           "pk":  "GUID",
+                                                           "deleteMode":  "physical"
+                                                       },
+                                              "services":  [
+                                                               {
+                                                                   "serviceId":  "mgcoa8888S0",
+                                                                   "op":  "S",
+                                                                   "method":  "mgcoa8888S0",
+                                                                   "dtoIn":  "nhnis.mg.co.a.dto.mgcoa8888S0DTOin",
+                                                                   "dtoOut":  "nhnis.mg.co.a.dto.mgcoa8888S0DTOout",
+                                                                   "sqlIds":  [
+                                                                                  "mgcoa8888S0_S0",
+                                                                                  "mgcoa8888S0_S0_count"
+                                                                              ]
+                                                               },
+                                                               {
+                                                                   "serviceId":  "mgcoa8888D0",
+                                                                   "op":  "D",
+                                                                   "method":  "mgcoa8888D0",
+                                                                   "dtoIn":  "nhnis.mg.co.a.dto.mgcoa8888D0DTOin",
+                                                                   "dtoOut":  "nhnis.mg.co.a.dto.mgcoa8888D0DTOout",
+                                                                   "sqlIds":  [
+                                                                                  "mgcoa8888D0_D0"
+                                                                              ]
+                                                               }
+                                                           ],
+                                              "development":  {
+                                                                  "handler":  "nhnis.mg.co.a.entry.handler.mgcoa8888Handler",
+                                                                  "facade":  "nhnis.mg.co.a.application.facade.mgcoa8888Facade",
+                                                                  "controller":  "nhnis.mg.co.a.application.controller.mgcoa8888Controller",
+                                                                  "service":  "nhnis.mg.co.a.application.service.mgcoa8888Service",
+                                                                  "dao":  "nhnis.mg.co.a.persistence.dao.mgcoa8888DAO"
+                                                              },
+                                              "path":  "MG â CO â A â mgcoa8888"
+                                          }
+                            },
+                            {
+                                "programId":  "mgcoa9999",
+                                "title":  "ìì\u0085í ì¤ì ",
+                                "score":  95,
+                                "reasons":  [
+                                                "same system MG",
+                                                "same business CO",
+                                                "same function A",
+                                                "query-oriented"
+                                            ],
+                                "reuse":  {
+                                              "packageRoot":  "nhnis.mg.co.a",
+                                              "data":  {
+                                                           "mapperXml":  "rdw.mg.co.a/mgcoa9999-ORA.xml",
+                                                           "namespace":  "nhnis.mg.co.a.persistence.dao.mgcoa9999DAO",
+                                                           "table":  "TB_CR_AH_SALES_TIP_RACT",
+                                                           "pk":  [
+                                                                      "TRT_BRC",
+                                                                      "TRTMN_ENO",
+                                                                      "SALZ_TIP_KDC",
+                                                                      "BAS_DT"
+                                                                  ],
+                                                           "deleteMode":  "n/a"
+                                                       },
+                                              "services":  [
+                                                               {
+                                                                   "serviceId":  "mgcoa9999S0",
+                                                                   "op":  "S",
+                                                                   "method":  "mgcoa9999S0",
+                                                                   "dtoIn":  "nhnis.mg.co.a.dto.mgcoa9999S0DTOin",
+                                                                   "dtoOut":  "nhnis.mg.co.a.dto.mgcoa9999S0DTOout",
+                                                                   "sqlIds":  [
+                                                                                  "mgcoa9999S0_S0"
+                                                                              ]
+                                                               }
+                                                           ],
+                                              "development":  {
+                                                                  "handler":  "nhnis.mg.co.a.entry.handler.mgcoa9999Handler",
+                                                                  "facade":  "nhnis.mg.co.a.application.facade.mgcoa9999Facade",
+                                                                  "controller":  "nhnis.mg.co.a.application.controller.mgcoa9999Controller",
+                                                                  "service":  "nhnis.mg.co.a.application.service.mgcoa9999Service",
+                                                                  "dao":  "nhnis.mg.co.a.persistence.dao.mgcoa9999DAO"
+                                                              },
+                                              "path":  "MG â CO â A â mgcoa9999"
+                                          }
+                            },
+                            {
+                                "programId":  "mgcoa9000",
+                                "title":  "ê±°ë íë¼ë¯¸í°",
+                                "score":  75,
+                                "reasons":  [
+                                                "same system MG",
+                                                "same business CO",
+                                                "same function A",
+                                                "has query service"
+                                            ],
+                                "reuse":  {
+                                              "packageRoot":  "nhnis.mg.co.a",
+                                              "data":  {
+                                                           "mapperXml":  "rdw.mg.co.a/mgcoa9000-ORA.xml",
+                                                           "namespace":  "nhnis.mg.co.a.persistence.dao.mgcoa9000DAO",
+                                                           "table":  "TB_MG_TX_PARAM",
+                                                           "pk":  "TX_ID",
+                                                           "deleteMode":  "physical"
+                                                       },
+                                              "services":  [
+                                                               {
+                                                                   "serviceId":  "mgcoa9000S0",
+                                                                   "op":  "S",
+                                                                   "method":  "mgcoa9000S0",
+                                                                   "dtoIn":  "nhnis.mg.co.a.dto.mgcoa9000S0DTOin",
+                                                                   "dtoOut":  "nhnis.mg.co.a.dto.mgcoa9000S0DTOout",
+                                                                   "sqlIds":  [
+                                                                                  "mgcoa9000S0_S0",
+                                                                                  "mgcoa9000S0_S0_count",
+                                                                                  "mgcoa9000S0_S0_exists"
+                                                                              ]
+                                                               },
+                                                               {
+                                                                   "serviceId":  "mgcoa9000C0",
+                                                                   "op":  "C",
+                                                                   "method":  "mgcoa9000C0",
+                                                                   "dtoIn":  "nhnis.mg.co.a.dto.mgcoa9000C0DTOin",
+                                                                   "dtoOut":  "nhnis.mg.co.a.dto.mgcoa9000C0DTOout",
+                                                                   "sqlIds":  [
+                                                                                  "mgcoa9000C0_C0"
+                                                                              ]
+                                                               },
+                                                               {
+                                                                   "serviceId":  "mgcoa9000U0",
+                                                                   "op":  "U",
+                                                                   "method":  "mgcoa9000U0",
+                                                                   "dtoIn":  "nhnis.mg.co.a.dto.mgcoa9000U0DTOin",
+                                                                   "dtoOut":  "nhnis.mg.co.a.dto.mgcoa9000U0DTOout",
+                                                                   "sqlIds":  [
+                                                                                  "mgcoa9000U0_U0"
+                                                                              ]
+                                                               },
+                                                               {
+                                                                   "serviceId":  "mgcoa9000D0",
+                                                                   "op":  "D",
+                                                                   "method":  "mgcoa9000D0",
+                                                                   "dtoIn":  "nhnis.mg.co.a.dto.mgcoa9000D0DTOin",
+                                                                   "dtoOut":  "nhnis.mg.co.a.dto.mgcoa9000D0DTOout",
+                                                                   "sqlIds":  [
+                                                                                  "mgcoa9000D0_D0"
+                                                                              ]
+                                                               }
+                                                           ],
+                                              "development":  {
+                                                                  "handler":  "nhnis.mg.co.a.entry.handler.mgcoa9000Handler",
+                                                                  "facade":  "nhnis.mg.co.a.application.facade.mgcoa9000Facade",
+                                                                  "controller":  "nhnis.mg.co.a.application.controller.mgcoa9000Controller",
+                                                                  "service":  "nhnis.mg.co.a.application.service.mgcoa9000Service",
+                                                                  "dao":  "nhnis.mg.co.a.persistence.dao.mgcoa9000DAO"
+                                                              },
+                                              "path":  "MG â CO â A â mgcoa9000"
+                                          }
+                            },
+                            {
+                                "programId":  "mgcoa9001",
+                                "title":  "ê±°ëíµì ",
+                                "score":  75,
+                                "reasons":  [
+                                                "same system MG",
+                                                "same business CO",
+                                                "same function A",
+                                                "has query service"
+                                            ],
+                                "reuse":  {
+                                              "packageRoot":  "nhnis.mg.co.a",
+                                              "data":  {
+                                                           "mapperXml":  "rdw.mg.co.a/mgcoa9001-ORA.xml",
+                                                           "namespace":  "nhnis.mg.co.a.persistence.dao.mgcoa9001DAO",
+                                                           "table":  "TB_MG_TX_CONTROL",
+                                                           "pk":  "SERVICE_ID",
+                                                           "deleteMode":  "physical"
+                                                       },
+                                              "services":  [
+                                                               {
+                                                                   "serviceId":  "mgcoa9001S0",
+                                                                   "op":  "S",
+                                                                   "method":  "mgcoa9001S0",
+                                                                   "dtoIn":  "nhnis.mg.co.a.dto.mgcoa9001S0DTOin",
+                                                                   "dtoOut":  "nhnis.mg.co.a.dto.mgcoa9001S0DTOout",
+                                                                   "sqlIds":  [
+                                                                                  "mgcoa9001S0_S0",
+                                                                                  "mgcoa9001S0_S0_count",
+                                                                                  "mgcoa9001S0_S0_exists"
+                                                                              ]
+                                                               },
+                                                               {
+                                                                   "serviceId":  "mgcoa9001C0",
+                                                                   "op":  "C",
+                                                                   "method":  "mgcoa9001C0",
+                                                                   "dtoIn":  "nhnis.mg.co.a.dto.mgcoa9001C0DTOin",
+                                                                   "dtoOut":  "nhnis.mg.co.a.dto.mgcoa9001C0DTOout",
+                                                                   "sqlIds":  [
+                                                                                  "mgcoa9001C0_C0"
+                                                                              ]
+                                                               },
+                                                               {
+                                                                   "serviceId":  "mgcoa9001U0",
+                                                                   "op":  "U",
+                                                                   "method":  "mgcoa9001U0",
+                                                                   "dtoIn":  "nhnis.mg.co.a.dto.mgcoa9001U0DTOin",
+                                                                   "dtoOut":  "nhnis.mg.co.a.dto.mgcoa9001U0DTOout",
+                                                                   "sqlIds":  [
+                                                                                  "mgcoa9001U0_U0"
+                                                                              ]
+                                                               },
+                                                               {
+                                                                   "serviceId":  "mgcoa9001D0",
+                                                                   "op":  "D",
+                                                                   "method":  "mgcoa9001D0",
+                                                                   "dtoIn":  "nhnis.mg.co.a.dto.mgcoa9001D0DTOin",
+                                                                   "dtoOut":  "nhnis.mg.co.a.dto.mgcoa9001D0DTOout",
+                                                                   "sqlIds":  [
+                                                                                  "mgcoa9001D0_D0"
+                                                                              ]
+                                                               }
+                                                           ],
+                                              "development":  {
+                                                                  "handler":  "nhnis.mg.co.a.entry.handler.mgcoa9001Handler",
+                                                                  "facade":  "nhnis.mg.co.a.application.facade.mgcoa9001Facade",
+                                                                  "controller":  "nhnis.mg.co.a.application.controller.mgcoa9001Controller",
+                                                                  "service":  "nhnis.mg.co.a.application.service.mgcoa9001Service",
+                                                                  "dao":  "nhnis.mg.co.a.persistence.dao.mgcoa9001DAO"
+                                                              },
+                                              "path":  "MG â CO â A â mgcoa9001"
+                                          }
+                            }
+                        ],
+    "topProgramId":  "mgcoa5530",
+    "promptMarkdown":  "# Ontology Prompt Context â mgcoa5530\n\n\u003e ì´ ë¸ë¡ì `tcf-ontology-service`ê° ìì±í ì§ì íë¸ ì»¨í\u0085ì¤í¸ë¤.\n\u003e `32.ë²ì©CRUDíë¡¬íí¸.md` ìêµ¬ì¬í­ ìì±Â·êµ¬í ì **ì¶ì  ê¸ì§**, ìë ê³ì½ì ì°ì íë¤.\n\n## íë¡ê·¸ë¨\n\n- programId: `mgcoa5530`\n- title: ë§ì¼í\u0085í¬ë§ê³ ê°\n- ë¶ë¥: MG/CO/A (ê³µíµê´ë¦¬)\n- packageRoot: `nhnis.mg.co.a`\n\n## ìí¤í\u0085ì² ê³ì½\n\n```text\nRequestThread(TXë°): Filter â Interceptor.pre â Controller â TcfFacade â Future.get\nWorker(TXì=TransactionTemplate): Dispatcher â Handler â Facade(REQUIRED) â BizPre â Service â DAO â BizPost â Deadline\nRequestThread(TXë°): ResponseResolver â Interceptor.after â Filter clear\noutcomes: {success=HTTP 200 + dto, bizException=ROLLBACK + result ì¤ë¥ì ë¬¸, timeout=HTTP 504 FW_TIMEOUT then worker ROLLBACK, overload=HTTP 503 FW_OVERLOADED â TX not started}\n```\n\n## ì»´í¬ëí¸ ê²½ê³ ê·ì¹\n\n- **R-HANDLER-NO-DAO** (error): Handlerë Facade ë¼ì°í\u0085ë§. DAO/SQL/ë³µì¡ ì\u0085ë¬´ ê¸ì§\n- **R-TX-OWNER-EXECUTOR** (error): ì\u0085ë¬´ DB TX ìì ìë TimeoutExecutor TransactionTemplate. Facadeë REQUIRED ì°¸ì¬\n- **R-IMAGELOG-OUTSIDE-TX** (warning): ImageLog ìì²­/ìëµ ê¸°ë¡ì ì\u0085ë¬´ TX ë°. ì\u0085ë¬´ Rollbackê³¼ ë\u0085ë¦½\n- **R-BIZPREPOST-ON-SERVICE** (info): ì\u0085ë¬´ ì íì²ë¦¬ë Service pointcut. ëì¼ rdw TX ì°¸ì¬\n- **R-NAMING-SERVICEID-METHOD** (error): Facade/Service ë©ìëëª\u0085 = ìë¹ì¤ ID\n- **R-PROGRAM-SINGLE-HANDLER** (error): ëì¼ ìë³ë²í¸(íë¡ê·¸ë¨)ë Handler/Facade/Service/DAO ê°ê° íë\n\n## ê°ë° ë§¤í\n\n- handler: `nhnis.mg.co.a.entry.handler.mgcoa5530Handler`\n- facade: `nhnis.mg.co.a.application.facade.mgcoa5530Facade`\n- controller: `nhnis.mg.co.a.application.controller.mgcoa5530Controller`\n- service: `nhnis.mg.co.a.application.service.mgcoa5530Service`\n- dao: `nhnis.mg.co.a.persistence.dao.mgcoa5530DAO`\n\n## ìë¹ì¤ ID\n\n| serviceId | op | method | sqlIds |\n|---|---|---|---|\n| `mgcoa5530S0` | S | `mgcoa5530S0` | [mgcoa5530S0_S0, mgcoa5530S0_S0_count] |\n\n## ë°ì´í°\n\n- table: `TB_MK_CO_A_5530`\n- pk: `[L5101, L5103]`\n- mapperXml: `rdw.mg.co.a/mgcoa5530-ORA.xml`\n- deleteMode: n/a\n\n## ì´ì\n\n- uiRoute: `/mgcoa5530/index.html`\n- exceptionCodes: [MP0404]\n- envelope success/error: {success={ hdr_nhnis, dto }, error={ hdr_nhnis, result }}\n- samples: [sample-requests/mgcoa5530-list.json]\n\n## íë¡¬íí¸ ì¬ì©ë²\n\n1. ì ì»¨í\u0085ì¤í¸ë¥¼ CRUD íë¡¬íí¸ ìì ë¶ì¸ë¤.\n2. ë¯¸ì  í­ëª©ë§ ì§ë¬¸íê³ , ì¬ê¸° ìë serviceId/table/FQCNì ì¬ì¶ì íì§ ìëë¤.\n3. êµ¬í ì  impact APIë¡ ë³ê²½ íì¼ ëª©ë¡ì íì¸íë¤: `GET /api/ontology/impact?from=mgcoa5530`\n",
+    "nextSteps":  [
+                      "Reuse package/component pattern from topProgramId",
+                      "Allocate new identifier (4 digits) under same MG/CO/A axis",
+                      "Run seedPdmg after implementation, then validatePdmg",
+                      "Attach promptMarkdown to 32.ë²ì©CRUDíë¡¬íí¸"
+                  ],
+    "metaModel":  "ontology/core/meta-model.yml",
+    "relations":  "ontology/core/relations.yml"
+}

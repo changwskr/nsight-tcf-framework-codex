@@ -1,0 +1,82 @@
+'@context':
+  '@vocab': 'https://nsight.local/ontology#'
+'@id': nsight:mapping-mgcoa9000
+'@type': ProgramMapping
+version: '0.1.0'
+programId: mgcoa9000
+title: 거래 파라미터
+majorGroup: MG
+businessCode: CO
+functionCode: A
+functionName: 공통관리
+identifier: '9000'
+packageRoot: nhnis.mg.co.a
+modules:
+  fw: pdmg-fw
+  service: pdmg-service
+  ui: pdmg-ui
+architecture:
+  runtimeRef: nsight:technical-tx-runtime
+  txBoundary: inside-worker-tx
+  notes:
+    - CRUD 샘플 (S0/C0/U0/D0)
+    - mgcoa9001 거래통제와 별도 원장
+development:
+  handler: nhnis.mg.co.a.entry.handler.mgcoa9000Handler
+  facade: nhnis.mg.co.a.application.facade.mgcoa9000Facade
+  controller: nhnis.mg.co.a.application.controller.mgcoa9000Controller
+  service: nhnis.mg.co.a.application.service.mgcoa9000Service
+  dao: nhnis.mg.co.a.persistence.dao.mgcoa9000DAO
+services:
+  - serviceId: mgcoa9000S0
+    op: S
+    method: mgcoa9000S0
+    dtoIn: nhnis.mg.co.a.dto.mgcoa9000S0DTOin
+    dtoOut: nhnis.mg.co.a.dto.mgcoa9000S0DTOout
+    sqlIds: [mgcoa9000S0_S0, mgcoa9000S0_S0_count, mgcoa9000S0_S0_exists]
+  - serviceId: mgcoa9000C0
+    op: C
+    method: mgcoa9000C0
+    dtoIn: nhnis.mg.co.a.dto.mgcoa9000C0DTOin
+    dtoOut: nhnis.mg.co.a.dto.mgcoa9000C0DTOout
+    sqlIds: [mgcoa9000C0_C0]
+  - serviceId: mgcoa9000U0
+    op: U
+    method: mgcoa9000U0
+    dtoIn: nhnis.mg.co.a.dto.mgcoa9000U0DTOin
+    dtoOut: nhnis.mg.co.a.dto.mgcoa9000U0DTOout
+    sqlIds: [mgcoa9000U0_U0]
+  - serviceId: mgcoa9000D0
+    op: D
+    method: mgcoa9000D0
+    dtoIn: nhnis.mg.co.a.dto.mgcoa9000D0DTOin
+    dtoOut: nhnis.mg.co.a.dto.mgcoa9000D0DTOout
+    sqlIds: [mgcoa9000D0_D0]
+data:
+  mapperXml: rdw.mg.co.a/mgcoa9000-ORA.xml
+  namespace: nhnis.mg.co.a.persistence.dao.mgcoa9000DAO
+  table: TB_MG_TX_PARAM
+  pk: TX_ID
+  deleteMode: physical
+operations:
+  uiRoute: /mgcoa9000/index.html
+  shellView: mgcoa9000
+  samples:
+    - sample-requests/mgcoa9000-list.json
+    - sample-requests/mgcoa9000-create.json
+    - sample-requests/mgcoa9000-update.json
+    - sample-requests/mgcoa9000-delete.json
+  exceptionCodes: [MP0401, MP0403, MP0404, MP0409]
+  envelope:
+    success: '{ hdr_nhnis, dto }'
+    error: '{ hdr_nhnis, result }'
+  configKeys:
+    - nhnis.fw.tcf.enabled
+    - nhnis.fw.timeout.enabled
+rulesRef:
+  - R-HANDLER-NO-DAO
+  - R-TX-OWNER-EXECUTOR
+  - R-NAMING-SERVICEID-METHOD
+  - R-PROGRAM-SINGLE-HANDLER
+shapesRef:
+  - nsight:shape-service-id

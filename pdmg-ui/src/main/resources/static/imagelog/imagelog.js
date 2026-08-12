@@ -1,9 +1,11 @@
 /*
  * 이미지로그 관리 화면.
- * 필터 + 페이징 + 선택 삭제 + 상세 모달.
- * list  : /api/imagelog/list  → POST /mgcoa8888S0
- * delete: /api/imagelog/delete → POST /mgcoa8888D0
+ * 브라우저 → pdmg-service 직접 호출
+ * list  : POST /mgcoa8888S0
+ * delete: POST /mgcoa8888D0
  */
+
+let serviceConfig = { timeoutMs: 10000 };
 
 const targetBaseUrlEl = document.getElementById('targetBaseUrl');
 const guidEl = document.getElementById('guid');
@@ -11,6 +13,12 @@ const serviceIdEl = document.getElementById('serviceId');
 const screenIdEl = document.getElementById('screenId');
 const optrEnoEl = document.getElementById('optrEno');
 const exceptionOnlyEl = document.getElementById('exceptionOnly');
+const withinSecondsEl = document.getElementById('withinSeconds');
+const withinHintEl = document.getElementById('withinHint');
+const withinSecondsGroup = document.getElementById('withinSecondsGroup');
+const minElapsedSecondsEl = document.getElementById('minElapsedSeconds');
+const elapsedHintEl = document.getElementById('elapsedHint');
+const minElapsedSecondsGroup = document.getElementById('minElapsedSecondsGroup');
 const pageSizeEl = document.getElementById('pageSize');
 const resultMetaEl = document.getElementById('resultMeta');
 const resultCountEl = document.getElementById('resultCount');
@@ -50,11 +58,125 @@ function currentPageSize() {
   return Math.min(size, 100);
 }
 
+function newGuid() {
+  if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+    return window.crypto.randomUUID().replaceAll('-', '');
+  }
+  return 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'.replace(/x/g, () =>
+    ((Math.random() * 16) | 0).toString(16));
+}
+
+function currentWithinSeconds() {
+  const raw = withinSecondsEl.value.trim();
+  if (!raw) {
+    return null;
+  }
+  const n = parseInt(raw, 10);
+  if (Number.isNaN(n) || n <= 0) {
+    return null;
+  }
+  return n;
+}
+
+function formatWithinLabel(seconds) {
+  if (seconds == null) {
+    return '시간창 미적용 · 전체 기간';
+  }
+  if (seconds < 60) {
+    return `현재시각 기준 최근 ${seconds}초 이내 REQUEST_TIME`;
+  }
+  if (seconds % 60 === 0) {
+    return `현재시각 기준 최근 ${seconds / 60}분 이내 REQUEST_TIME`;
+  }
+  return `현재시각 기준 최근 ${seconds}초 이내 REQUEST_TIME`;
+}
+
+function setWithinSeconds(seconds, { syncException } = {}) {
+  const value = seconds == null || seconds === '' ? '' : String(seconds);
+  withinSecondsEl.value = value;
+  const n = currentWithinSeconds();
+  withinHintEl.textContent = formatWithinLabel(n);
+
+  withinSecondsGroup.querySelectorAll('.time-chip').forEach((btn) => {
+    const chipSec = btn.dataset.seconds || '';
+    btn.classList.toggle('active', chipSec === value);
+  });
+
+  if (syncException && n != null) {
+    exceptionOnlyEl.checked = true;
+  }
+}
+
+function currentMinElapsedSeconds() {
+  const raw = minElapsedSecondsEl.value.trim();
+  if (!raw) {
+    return null;
+  }
+  const n = parseInt(raw, 10);
+  if (Number.isNaN(n) || n <= 0) {
+    return null;
+  }
+  return n;
+}
+
+function formatElapsedLabel(seconds) {
+  if (seconds == null) {
+    return '소요시간 조건 미적용';
+  }
+  return `응답−요청 소요 ${seconds}초 이상`;
+}
+
+function setMinElapsedSeconds(seconds) {
+  const value = seconds == null || seconds === '' ? '' : String(seconds);
+  minElapsedSecondsEl.value = value;
+  const n = currentMinElapsedSeconds();
+  elapsedHintEl.textContent = formatElapsedLabel(n);
+
+  minElapsedSecondsGroup.querySelectorAll('.time-chip').forEach((btn) => {
+    const chipSec = btn.dataset.elapsed || '';
+    btn.classList.toggle('active', chipSec === value);
+  });
+}
+
+function parseYmdHms(value) {
+  const s = String(value || '').replace(/\D/g, '');
+  if (s.length < 14) {
+    return null;
+  }
+  const y = Number(s.slice(0, 4));
+  const mo = Number(s.slice(4, 6)) - 1;
+  const d = Number(s.slice(6, 8));
+  const h = Number(s.slice(8, 10));
+  const mi = Number(s.slice(10, 12));
+  const se = Number(s.slice(12, 14));
+  const ms = s.length >= 17 ? Number(s.slice(14, 17)) : 0;
+  const dt = new Date(y, mo, d, h, mi, se, ms);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+function elapsedLabel(row) {
+  const req = parseYmdHms(row && row.requestTime);
+  const res = parseYmdHms(row && row.responseTime);
+  if (!req || !res) {
+    return '-';
+  }
+  const ms = res.getTime() - req.getTime();
+  if (ms < 0) {
+    return '-';
+  }
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
 function buildListBody() {
+  const withinSeconds = currentWithinSeconds();
+  const minElapsedSeconds = currentMinElapsedSeconds();
   return {
     hdr_nhnis: {
       sys_comm: {
-        std_gbl_id: crypto.randomUUID().replaceAll('-', ''),
+        std_gbl_id: newGuid(),
         rms_svc_c: 'mgcoa8888S0',
         scid: 'mgcoa8888',
         optr_eno: 'LOCAL',
@@ -70,6 +192,8 @@ function buildListBody() {
       screenId: screenIdEl.value.trim() || null,
       optrEno: optrEnoEl.value.trim() || null,
       exceptionOnly: !!exceptionOnlyEl.checked,
+      withinSeconds: withinSeconds,
+      minElapsedSeconds: minElapsedSeconds,
       pageNo: pageNo,
       pageSize: currentPageSize()
     }
@@ -137,7 +261,7 @@ function renderRows(rows, paging) {
   checkAllEl.indeterminate = false;
 
   if (!rowsCache.length) {
-    resultBodyEl.innerHTML = '<tr><td colspan="9" class="empty">조회 결과가 없습니다.</td></tr>';
+    resultBodyEl.innerHTML = '<tr><td colspan="10" class="empty">조회 결과가 없습니다.</td></tr>';
     return;
   }
 
@@ -151,6 +275,7 @@ function renderRows(rows, paging) {
       <td>${escapeHtml(row.clientIp)}</td>
       <td class="mono">${escapeHtml(row.requestTime)}</td>
       <td class="mono">${escapeHtml(row.responseTime)}</td>
+      <td class="mono">${escapeHtml(elapsedLabel(row))}</td>
       <td>${statusBadge(row)}</td>
     </tr>
   `).join('');
@@ -165,9 +290,12 @@ function renderDetail(row) {
     ['클라이언트 IP', row.clientIp],
     ['요청시각', row.requestTime],
     ['응답시각', row.responseTime],
+    ['소요', elapsedLabel(row)],
     ['예외타입', row.exceptionType],
     ['예외코드', row.exceptionCode],
-    ['예외메시지', row.exceptionMsg]
+    ['예외메시지', row.exceptionMsg],
+    ['요청전문', row.requestMsg],
+    ['응답전문', row.responseMsg]
   ];
 
   detailBodyEl.innerHTML = `
@@ -175,7 +303,7 @@ function renderDetail(row) {
       ${fields.map(([label, value]) => `
         <div>
           <dt>${escapeHtml(label)}</dt>
-          <dd class="${label.includes('메시지') || label === 'GUID' ? 'mono wrap' : 'mono'}">${escapeHtml(value)}</dd>
+          <dd class="${label.includes('메시지') || label.includes('전문') || label === 'GUID' ? 'mono wrap' : 'mono'}">${escapeHtml(value)}</dd>
         </div>
       `).join('')}
     </dl>
@@ -189,15 +317,22 @@ function closeDetail() {
 
 async function search() {
   resultMetaEl.innerHTML = '<span class="empty">조회 중...</span>';
-  resultBodyEl.innerHTML = '<tr><td colspan="9" class="empty">조회 중...</td></tr>';
+  resultBodyEl.innerHTML = '<tr><td colspan="10" class="empty">조회 중...</td></tr>';
 
-  const query = new URLSearchParams({ baseUrl: targetBaseUrlEl.value.trim() });
-  const response = await fetch(`/api/imagelog/list?${query}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(buildListBody())
-  });
-  const result = await response.json();
+  let result;
+  try {
+    result = await PdmgServiceClient.postPath(
+        targetBaseUrlEl.value,
+        '/mgcoa8888S0',
+        buildListBody(),
+        serviceConfig.timeoutMs,
+        'mgcoa8888S0');
+  } catch (error) {
+    resultMetaEl.innerHTML = '<span class="badge fail">호출 실패</span>';
+    resultBodyEl.innerHTML = '<tr><td colspan="10" class="empty">조회 실패</td></tr>';
+    PdmgErrorPopup.showSimple(error.message || String(error), '호출 오류');
+    return;
+  }
   const httpOk = result.httpStatus >= 200 && result.httpStatus < 300;
 
   let parsed = null;
@@ -209,7 +344,8 @@ async function search() {
 
   const dto = extractDto(parsed) || {};
   const rows = extractRows(parsed);
-  const ok = httpOk && !(parsed && parsed.error);
+  const serviceError = PdmgErrorPopup.errorPayload(parsed);
+  const ok = httpOk && !(parsed && parsed.error) && !serviceError;
   renderRows(rows, {
     pageNo: dto.pageNo,
     pageSize: dto.pageSize,
@@ -217,46 +353,63 @@ async function search() {
     totalPages: dto.totalPages
   });
 
+  const minElapsed = currentMinElapsedSeconds();
   resultMetaEl.innerHTML = `
     <span class="badge ${ok ? 'ok' : 'fail'}">HTTP ${result.httpStatus}</span>
     <span>${result.elapsedMs} ms</span>
     <span>Total: ${totalCount} · page ${pageNo}/${Math.max(totalPages, 1)}</span>
+    <span>${escapeHtml(formatWithinLabel(currentWithinSeconds()))}</span>
+    ${minElapsed != null ? `<span class="badge">${escapeHtml(formatElapsedLabel(minElapsed))}</span>` : ''}
+    ${exceptionOnlyEl.checked ? '<span class="badge fail">예외만</span>' : ''}
     <span>${escapeHtml(result.targetUrl)}</span>
     ${ok ? '' : `<span class="badge fail">${escapeHtml((parsed && (parsed.error || parsed.message)) || '조회 실패')}</span>`}
   `;
+
+  if (!ok) {
+    PdmgErrorPopup.showFromResponse(
+        parsed,
+        result.httpStatus,
+        '이미지로그 조회에 실패했습니다.',
+        result.responseBody);
+  }
 }
 
 async function deleteSelected() {
   const guids = selectedGuids();
   if (!guids.length) {
-    alert('삭제할 항목을 선택하세요.');
+    PdmgErrorPopup.showSimple('삭제할 항목을 선택하세요.', '확인');
     return;
   }
   if (!confirm(`${guids.length}건을 삭제할까요?`)) {
     return;
   }
 
-  const query = new URLSearchParams({ baseUrl: targetBaseUrlEl.value.trim() });
-  const response = await fetch(`/api/imagelog/delete?${query}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      hdr_nhnis: {
-        sys_comm: {
-          std_gbl_id: crypto.randomUUID().replaceAll('-', ''),
-          rms_svc_c: 'mgcoa8888D0',
-          scid: 'mgcoa8888',
-          optr_eno: 'LOCAL',
-          tr_trm_ipadr: '127.0.0.1',
-          tr_sysid: 'PDMG-UI',
-          sync_dsc: 'S',
-          std_tgrm_rqr_rsp_dsc: 'Q'
-        }
-      },
-      dto: { guidList: guids, GUID_LIST: guids }
-    })
-  });
-  const result = await response.json();
+  let result;
+  try {
+    result = await PdmgServiceClient.postPath(
+        targetBaseUrlEl.value,
+        '/mgcoa8888D0',
+        {
+          hdr_nhnis: {
+            sys_comm: {
+              std_gbl_id: newGuid(),
+              rms_svc_c: 'mgcoa8888D0',
+              scid: 'mgcoa8888',
+              optr_eno: 'LOCAL',
+              tr_trm_ipadr: '127.0.0.1',
+              tr_sysid: 'PDMG-UI',
+              sync_dsc: 'S',
+              std_tgrm_rqr_rsp_dsc: 'Q'
+            }
+          },
+          dto: { guidList: guids, GUID_LIST: guids }
+        },
+        serviceConfig.timeoutMs,
+        'mgcoa8888D0');
+  } catch (error) {
+    PdmgErrorPopup.showSimple(error.message || String(error), '호출 오류');
+    return;
+  }
   const httpOk = result.httpStatus >= 200 && result.httpStatus < 300;
 
   let parsed = null;
@@ -266,9 +419,19 @@ async function deleteSelected() {
     parsed = null;
   }
   const dto = extractDto(parsed) || {};
-  const ok = httpOk && !(parsed && parsed.error) && (dto.RSLT_CD == null || dto.RSLT_CD === '0000');
+  const serviceError = PdmgErrorPopup.errorPayload(parsed);
+  const ok = httpOk && !(parsed && parsed.error) && !serviceError
+      && (dto.RSLT_CD == null || dto.RSLT_CD === '0000');
   if (!ok) {
-    alert('삭제 실패: ' + ((parsed && (parsed.error || parsed.message)) || dto.RSLT_MSG || 'unknown'));
+    if (!PdmgErrorPopup.showFromResponse(
+        parsed,
+        result.httpStatus,
+        dto.RSLT_MSG || '삭제 실패',
+        result.responseBody)) {
+      PdmgErrorPopup.showSimple(
+          (parsed && (parsed.error || parsed.message)) || dto.RSLT_MSG || 'unknown',
+          '삭제 실패');
+    }
     return;
   }
 
@@ -282,27 +445,42 @@ function resetFilters() {
   screenIdEl.value = '';
   optrEnoEl.value = '';
   exceptionOnlyEl.checked = false;
+  setWithinSeconds('', { syncException: false });
+  setMinElapsedSeconds('');
   pageSizeEl.value = '20';
   pageNo = 1;
   totalPages = 1;
   totalCount = 0;
-  resultMetaEl.innerHTML = '<span class="empty">조건을 입력한 뒤 조회하세요.</span>';
+  resultMetaEl.innerHTML = '<span class="empty">최근 구간·소요시간을 고르고 조회하세요.</span>';
   renderRows([], { pageNo: 1, totalCount: 0, totalPages: 1 });
 }
 
 async function init() {
   const configRes = await fetch('/api/config');
-  const config = await configRes.json();
-  targetBaseUrlEl.value = config.targetBaseUrl || 'http://localhost:8080';
+  serviceConfig = await configRes.json();
+  targetBaseUrlEl.value = serviceConfig.targetBaseUrl || 'http://localhost:8080';
   document.getElementById('targetInfo').textContent = `대상 pdmg-service: ${targetBaseUrlEl.value}`;
+
+  setWithinSeconds('', { syncException: false });
+  setMinElapsedSeconds('');
+  withinSecondsGroup.querySelectorAll('.time-chip').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      setWithinSeconds(btn.dataset.seconds || '', { syncException: true });
+    });
+  });
+  minElapsedSecondsGroup.querySelectorAll('.time-chip').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      setMinElapsedSeconds(btn.dataset.elapsed || '');
+    });
+  });
 
   document.getElementById('searchBtn').addEventListener('click', () => {
     pageNo = 1;
-    search().catch((error) => alert('조회 실패: ' + error.message));
+    search().catch((error) => PdmgErrorPopup.showSimple('조회 실패: ' + error.message));
   });
   document.getElementById('resetBtn').addEventListener('click', resetFilters);
   document.getElementById('deleteBtn').addEventListener('click', () => {
-    deleteSelected().catch((error) => alert('삭제 실패: ' + error.message));
+    deleteSelected().catch((error) => PdmgErrorPopup.showSimple('삭제 실패: ' + error.message));
   });
 
   prevPageBtn.addEventListener('click', () => {
@@ -310,14 +488,14 @@ async function init() {
       return;
     }
     pageNo -= 1;
-    search().catch((error) => alert('조회 실패: ' + error.message));
+    search().catch((error) => PdmgErrorPopup.showSimple('조회 실패: ' + error.message));
   });
   nextPageBtn.addEventListener('click', () => {
     if (pageNo >= totalPages) {
       return;
     }
     pageNo += 1;
-    search().catch((error) => alert('조회 실패: ' + error.message));
+    search().catch((error) => PdmgErrorPopup.showSimple('조회 실패: ' + error.message));
   });
 
   checkAllEl.addEventListener('change', () => {
@@ -354,4 +532,4 @@ async function init() {
   });
 }
 
-init().catch((error) => alert('화면 초기화 실패: ' + error.message));
+init().catch((error) => PdmgErrorPopup.showSimple('화면 초기화 실패: ' + error.message));

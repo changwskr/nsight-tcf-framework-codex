@@ -1,0 +1,13 @@
+﻿spring:
+  profiles:
+    active: local
+  application:
+    name: tcf-ontology-service
+
+server:
+  port: 8098
+
+nhnis:
+  ontology:
+    base-path: ontology
+    versions-path: ontology/versions

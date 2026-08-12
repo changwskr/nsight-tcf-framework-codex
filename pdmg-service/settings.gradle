@@ -22,6 +22,6 @@ pluginManagement {
 
 rootProject.name = 'pdmg-service'
 
-/* 형제 라이브러리: 내장 nhnis.fw / TCF 대신 pdmk-fw 사용 */
-include ':pdmk-fw'
-project(':pdmk-fw').projectDir = file('../pdmk-fw')
+/* 형제 라이브러리: 내장 nhnis.fw / TCF 대신 pdmg-fw 사용 */
+include ':pdmg-fw'
+project(':pdmg-fw').projectDir = file('../pdmg-fw')

@@ -1,0 +1,473 @@
+﻿{
+    "serviceId":  "mgcoa8888S0",
+    "concept":  {
+                    "id":  "service:mgcoa8888S0",
+                    "type":  "SERVICE_ID",
+                    "name":  "mgcoa8888S0",
+                    "description":  "ServiceId mgcoa8888S0",
+                    "attributes":  {
+                                       "groupCode":  "mg",
+                                       "businessCode":  "co",
+                                       "functionCode":  "a",
+                                       "programNo":  "8888",
+                                       "operationType":  "S",
+                                       "sequence":  "0",
+                                       "fullServiceId":  "mgcoa8888S0",
+                                       "programId":  "mgcoa8888",
+                                       "shortId":  "mgcoa8888S0",
+                                       "method":  "mgcoa8888S0",
+                                       "op":  "S"
+                                   },
+                    "version":  "1.0",
+                    "status":  "ACTIVE",
+                    "provenance":  {
+                                       "sourceType":  "YAML_MAPPING",
+                                       "sourceSystem":  "pdmg",
+                                       "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                       "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                       "discoveredBy":  "YamlGraphLoader",
+                                       "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                       "verificationStatus":  "VERIFIED"
+                                   }
+                },
+    "classification":  [
+                           {
+                               "from":  "system:MG",
+                               "predicate":  "HAS_BUSINESS",
+                               "to":  "business:MG:CO",
+                               "toType":  "BUSINESS"
+                           },
+                           {
+                               "from":  "business:MG:CO",
+                               "predicate":  "HAS_FUNCTION",
+                               "to":  "function:MG:CO:A",
+                               "toType":  "FUNCTION"
+                           },
+                           {
+                               "from":  "function:MG:CO:A",
+                               "predicate":  "HAS_PROGRAM",
+                               "to":  "program:MG:CO:A:8888",
+                               "toType":  "PROGRAM"
+                           },
+                           {
+                               "from":  "program:MG:CO:A:8888",
+                               "predicate":  "PROVIDES_SERVICE",
+                               "to":  "service:mgcoa8888S0",
+                               "toType":  "SERVICE_ID"
+                           }
+                       ],
+    "structure":  [
+                      {
+                          "depth":  1,
+                          "from":  "service:mgcoa8888S0",
+                          "predicate":  "HANDLED_BY",
+                          "to":  "component:nhnis.mg.co.a.entry.handler.mgcoa8888Handler",
+                          "graphType":  "DESIGN",
+                          "toType":  "COMPONENT",
+                          "toName":  "mgcoa8888Handler",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  2,
+                          "from":  "component:nhnis.mg.co.a.entry.handler.mgcoa8888Handler",
+                          "predicate":  "CALLS",
+                          "to":  "component:nhnis.mg.co.a.application.facade.mgcoa8888Facade",
+                          "graphType":  "DESIGN",
+                          "toType":  "COMPONENT",
+                          "toName":  "mgcoa8888Facade",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  3,
+                          "from":  "component:nhnis.mg.co.a.application.facade.mgcoa8888Facade",
+                          "predicate":  "CALLS",
+                          "to":  "component:nhnis.mg.co.a.application.service.mgcoa8888Service",
+                          "graphType":  "DESIGN",
+                          "toType":  "COMPONENT",
+                          "toName":  "mgcoa8888Service",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  4,
+                          "from":  "component:nhnis.mg.co.a.application.service.mgcoa8888Service",
+                          "predicate":  "USES",
+                          "to":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                          "graphType":  "DESIGN",
+                          "toType":  "COMPONENT",
+                          "toName":  "mgcoa8888DAO",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  5,
+                          "from":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                          "predicate":  "EXECUTES",
+                          "to":  "sql:mgcoa8888D0_D0",
+                          "graphType":  "DESIGN",
+                          "toType":  "SQL_ID",
+                          "toName":  "mgcoa8888D0_D0",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  6,
+                          "from":  "sql:mgcoa8888D0_D0",
+                          "predicate":  "ACCESSES",
+                          "to":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "graphType":  "DESIGN",
+                          "toType":  "TABLE",
+                          "toName":  "TB_FW_IMAGE_LOG",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  7,
+                          "from":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "predicate":  "HAS_COLUMN",
+                          "to":  "column:RDW:TB_FW_IMAGE_LOG:GUID",
+                          "graphType":  "DESIGN",
+                          "toType":  "COLUMN",
+                          "toName":  "GUID",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  5,
+                          "from":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                          "predicate":  "EXECUTES",
+                          "to":  "sql:mgcoa8888S0_S0",
+                          "graphType":  "DESIGN",
+                          "toType":  "SQL_ID",
+                          "toName":  "mgcoa8888S0_S0",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  6,
+                          "from":  "sql:mgcoa8888S0_S0",
+                          "predicate":  "ACCESSES",
+                          "to":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "graphType":  "DESIGN",
+                          "toType":  "TABLE",
+                          "toName":  "TB_FW_IMAGE_LOG",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  7,
+                          "from":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "predicate":  "HAS_COLUMN",
+                          "to":  "column:RDW:TB_FW_IMAGE_LOG:GUID",
+                          "graphType":  "DESIGN",
+                          "toType":  "COLUMN",
+                          "toName":  "GUID",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  5,
+                          "from":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                          "predicate":  "EXECUTES",
+                          "to":  "sql:mgcoa8888S0_S0_count",
+                          "graphType":  "DESIGN",
+                          "toType":  "SQL_ID",
+                          "toName":  "mgcoa8888S0_S0_count",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  6,
+                          "from":  "sql:mgcoa8888S0_S0_count",
+                          "predicate":  "ACCESSES",
+                          "to":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "graphType":  "DESIGN",
+                          "toType":  "TABLE",
+                          "toName":  "TB_FW_IMAGE_LOG",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  7,
+                          "from":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "predicate":  "HAS_COLUMN",
+                          "to":  "column:RDW:TB_FW_IMAGE_LOG:GUID",
+                          "graphType":  "DESIGN",
+                          "toType":  "COLUMN",
+                          "toName":  "GUID",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  5,
+                          "from":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                          "predicate":  "EXECUTES",
+                          "to":  "mapper:rdw.mg.co.a/mgcoa8888-ORA.xml",
+                          "graphType":  "DESIGN",
+                          "toType":  "MAPPER",
+                          "toName":  "mgcoa8888-ORA.xml",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  6,
+                          "from":  "mapper:rdw.mg.co.a/mgcoa8888-ORA.xml",
+                          "predicate":  "ACCESSES",
+                          "to":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "graphType":  "DESIGN",
+                          "toType":  "TABLE",
+                          "toName":  "TB_FW_IMAGE_LOG",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  7,
+                          "from":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "predicate":  "HAS_COLUMN",
+                          "to":  "column:RDW:TB_FW_IMAGE_LOG:GUID",
+                          "graphType":  "DESIGN",
+                          "toType":  "COLUMN",
+                          "toName":  "GUID",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      }
+                  ],
+    "summary":  [
+                    "mgcoa8888S0",
+                    "mgcoa8888Handler",
+                    "mgcoa8888Facade",
+                    "mgcoa8888Service",
+                    "mgcoa8888DAO",
+                    "mgcoa8888D0_D0",
+                    "TB_FW_IMAGE_LOG",
+                    "GUID"
+                ],
+    "tables":  [
+                   {
+                       "id":  "table:RDW:TB_FW_IMAGE_LOG",
+                       "type":  "TABLE",
+                       "name":  "TB_FW_IMAGE_LOG",
+                       "description":  "Table TB_FW_IMAGE_LOG",
+                       "attributes":  {
+                                          "tableName":  "TB_FW_IMAGE_LOG",
+                                          "schema":  "RDW",
+                                          "pk":  "GUID",
+                                          "deleteMode":  "physical"
+                                      },
+                       "version":  "1.0",
+                       "status":  "ACTIVE",
+                       "provenance":  {
+                                          "sourceType":  "YAML_MAPPING",
+                                          "sourceSystem":  "pdmg",
+                                          "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                          "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                          "discoveredBy":  "YamlGraphLoader",
+                                          "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                          "verificationStatus":  "VERIFIED"
+                                      }
+                   }
+               ],
+    "sqlIds":  [
+                   {
+                       "id":  "sql:mgcoa8888D0_D0",
+                       "type":  "SQL_ID",
+                       "name":  "mgcoa8888D0_D0",
+                       "description":  "SQL mgcoa8888D0_D0",
+                       "attributes":  {
+                                          "sqlId":  "mgcoa8888D0_D0",
+                                          "serviceId":  "mgcoa8888D0"
+                                      },
+                       "version":  "1.0",
+                       "status":  "ACTIVE",
+                       "provenance":  {
+                                          "sourceType":  "YAML_MAPPING",
+                                          "sourceSystem":  "pdmg",
+                                          "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                          "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                          "discoveredBy":  "YamlGraphLoader",
+                                          "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                          "verificationStatus":  "VERIFIED"
+                                      }
+                   },
+                   {
+                       "id":  "sql:mgcoa8888S0_S0",
+                       "type":  "SQL_ID",
+                       "name":  "mgcoa8888S0_S0",
+                       "description":  "SQL mgcoa8888S0_S0",
+                       "attributes":  {
+                                          "sqlId":  "mgcoa8888S0_S0",
+                                          "serviceId":  "mgcoa8888S0"
+                                      },
+                       "version":  "1.0",
+                       "status":  "ACTIVE",
+                       "provenance":  {
+                                          "sourceType":  "YAML_MAPPING",
+                                          "sourceSystem":  "pdmg",
+                                          "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                          "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                          "discoveredBy":  "YamlGraphLoader",
+                                          "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                          "verificationStatus":  "VERIFIED"
+                                      }
+                   },
+                   {
+                       "id":  "sql:mgcoa8888S0_S0_count",
+                       "type":  "SQL_ID",
+                       "name":  "mgcoa8888S0_S0_count",
+                       "description":  "SQL mgcoa8888S0_S0_count",
+                       "attributes":  {
+                                          "sqlId":  "mgcoa8888S0_S0_count",
+                                          "serviceId":  "mgcoa8888S0"
+                                      },
+                       "version":  "1.0",
+                       "status":  "ACTIVE",
+                       "provenance":  {
+                                          "sourceType":  "YAML_MAPPING",
+                                          "sourceSystem":  "pdmg",
+                                          "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                          "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                          "discoveredBy":  "YamlGraphLoader",
+                                          "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                          "verificationStatus":  "VERIFIED"
+                                      }
+                   }
+               ],
+    "mappers":  [
+                    {
+                        "id":  "mapper:rdw.mg.co.a/mgcoa8888-ORA.xml",
+                        "type":  "MAPPER",
+                        "name":  "mgcoa8888-ORA.xml",
+                        "description":  "Mapper mgcoa8888-ORA.xml",
+                        "attributes":  {
+                                           "mapperXml":  "rdw.mg.co.a/mgcoa8888-ORA.xml",
+                                           "namespace":  "nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                                           "programId":  "mgcoa8888"
+                                       },
+                        "version":  "1.0",
+                        "status":  "ACTIVE",
+                        "provenance":  {
+                                           "sourceType":  "YAML_MAPPING",
+                                           "sourceSystem":  "pdmg",
+                                           "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                           "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                           "discoveredBy":  "YamlGraphLoader",
+                                           "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                           "verificationStatus":  "VERIFIED"
+                                       }
+                    }
+                ]
+}

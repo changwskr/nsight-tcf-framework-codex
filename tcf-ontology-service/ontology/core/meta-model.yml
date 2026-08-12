@@ -1,0 +1,94 @@
+'@context':
+  '@vocab': 'https://nsight.local/ontology#'
+'@id': nsight:meta-model
+'@type': MetaModel
+version: '0.2.0'
+description: NSIGHT/PDMG ontology meta model — types and required properties
+
+types:
+  System:
+    idPattern: '^[A-Z]{2}$'
+    required: [id, name]
+    properties:
+      id: { example: MG, note: 대그룹/플랫폼 코드 }
+      name: { example: Market Group Platform }
+      modules: { example: [pdmg-fw, pdmg-service, pdmg-ui] }
+
+  Business:
+    idPattern: '^[A-Z]{2}$'
+    required: [id, name, systemId]
+    properties:
+      id: { example: CO }
+      name: { example: 공통 }
+      systemId: { example: MG }
+
+  Function:
+    idPattern: '^[A-D]$'
+    required: [id, name, businessId]
+    properties:
+      id: { example: A }
+      name: { example: 공통관리 }
+      businessId: { example: CO }
+
+  Program:
+    idPattern: '^[a-z]{2}[a-z]{2}[a-z][0-9]{4}$'
+    required: [id, systemId, businessId, functionId, identifier]
+    properties:
+      id: { example: mgcoa8888 }
+      title: { example: 이미지로그 }
+      systemId: { example: MG }
+      businessId: { example: CO }
+      functionId: { example: A }
+      identifier: { example: '8888' }
+      packageRoot: { example: nhnis.mg.co.a }
+
+  ServiceId:
+    idPattern: '^[a-z]{2}[a-z]{2}[a-z][0-9]{4}[SCUDAR][0-9A-Z]$'
+    length: 11
+    required: [id, programId, op]
+    properties:
+      id: { example: mgcoa8888S0 }
+      programId: { example: mgcoa8888 }
+      op: { enum: [S, C, U, D, A, R] }
+
+  JavaClass:
+    required: [id, role]
+    properties:
+      id: { example: nhnis.mg.co.a.entry.handler.mgcoa8888Handler }
+      role: { enum: [handler, facade, controller, service, dao, dto] }
+
+  Table:
+    required: [id]
+    properties:
+      id: { example: TB_FW_IMAGE_LOG }
+      pk: { example: GUID }
+
+  MapperXml:
+    required: [id]
+    properties:
+      id: { example: rdw.mg.co.a/mgcoa8888-ORA.xml }
+
+  SqlId:
+    required: [id]
+    properties:
+      id: { example: mgcoa8888S0_S0 }
+
+  UiRoute:
+    required: [id]
+    properties:
+      id: { example: /mgcoa8888/index.html }
+
+  ExceptionCode:
+    required: [id]
+    properties:
+      id: { example: MP0404 }
+
+  ConfigKey:
+    required: [id]
+    properties:
+      id: { example: nhnis.fw.tcf.enabled }
+
+pathConvention:
+  description: System → Business → Function → Program → ServiceId
+  example: MG / CO / A / mgcoa8888 / mgcoa8888S0
+  serviceIdComposition: '{system}{business}{function}{identifier}{op}{seq}'

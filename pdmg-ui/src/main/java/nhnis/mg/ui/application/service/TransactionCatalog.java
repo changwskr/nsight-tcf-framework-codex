@@ -40,7 +40,7 @@ public class TransactionCatalog {
                 "mgcoa8888",
                 "POST",
                 "/mgcoa8888S0",
-                "TB_FW_IMAGE_LOG 조회(페이징). 관리 화면(/imagelog)에서 사용한다.",
+                "pdmg-service TB_FW_IMAGE_LOG 조회(페이징). withinSeconds·minElapsedSeconds·예외여부 지원. 관리 화면(/imagelog)도 동일 API.",
                 readSample("mgcoa8888-list.json")));
 
         register(new TransactionInfo(
@@ -49,16 +49,16 @@ public class TransactionCatalog {
                 "mgcoa8888",
                 "POST",
                 "/mgcoa8888D0",
-                "TB_FW_IMAGE_LOG 삭제. dto.guidList 로 다건 삭제한다.",
+                "pdmg-service TB_FW_IMAGE_LOG 삭제. dto.guidList 로 다건 삭제한다.",
                 readSample("mgcoa8888-delete.json")));
 
         register(new TransactionInfo(
                 "mgcoa5530S0",
-                "안내항목 목록 조회",
+                "마케팅희망고객 목록 조회",
                 "mgcoa5530",
                 "POST",
                 "/mgcoa5530S0",
-                "TB_MK_CO_A_5530 목록 조회(페이징).",
+                "마케팅희망고객/안내항목 목록 조회(페이징).",
                 readSample("mgcoa5530-list.json")));
 
         register(new TransactionInfo(
@@ -67,8 +67,44 @@ public class TransactionCatalog {
                 "mgcoa9999",
                 "POST",
                 "/mgcoa9999S0",
-                "TB_CR_AH_SALES_TIP_RACT 목록 조회. dto.salzTipKdc 를 비우면 전체를 조회한다.",
+                "영업팁 실적 목록 조회. dto.salzTipKdc 를 비우면 전체를 조회한다.",
                 readSample("mgcoa9999-list.json")));
+
+        register(new TransactionInfo(
+                "mgcoa9000S0",
+                "거래 파라미터 목록 조회",
+                "mgcoa9000",
+                "POST",
+                "/mgcoa9000S0",
+                "TB_MG_TX_PARAM 조회(페이징). keyword·txId·appId·httpMethod 조건. 관리 화면(/txparam)도 동일 API.",
+                readSample("mgcoa9000-list.json")));
+
+        register(new TransactionInfo(
+                "mgcoa9000C0",
+                "거래 파라미터 등록",
+                "mgcoa9000",
+                "POST",
+                "/mgcoa9000C0",
+                "TB_MG_TX_PARAM 등록. txId·txName 필수.",
+                readSample("mgcoa9000-create.json")));
+
+        register(new TransactionInfo(
+                "mgcoa9000U0",
+                "거래 파라미터 수정",
+                "mgcoa9000",
+                "POST",
+                "/mgcoa9000U0",
+                "TB_MG_TX_PARAM 수정. txId 기준 거래명·앱·경로·메소드 변경.",
+                readSample("mgcoa9000-update.json")));
+
+        register(new TransactionInfo(
+                "mgcoa9000D0",
+                "거래 파라미터 삭제",
+                "mgcoa9000",
+                "POST",
+                "/mgcoa9000D0",
+                "TB_MG_TX_PARAM 삭제. dto.txIdList 로 다건 삭제한다.",
+                readSample("mgcoa9000-delete.json")));
     }
 
     public List<TransactionInfo> findAll() {
@@ -89,6 +125,11 @@ public class TransactionCatalog {
 
     private JsonNode readSample(String fileName) {
         ClassPathResource resource = new ClassPathResource("sample-requests/" + fileName);
+        if (!resource.exists()) {
+            throw new IllegalStateException(
+                    "샘플 전문이 classpath에 없습니다: sample-requests/" + fileName
+                            + " (src/main/resources 확인 후 pdmg-ui 에서 clean processResources 또는 script\\build.bat 실행)");
+        }
         try (InputStream in = resource.getInputStream()) {
             return objectMapper.readTree(in);
         } catch (IOException e) {

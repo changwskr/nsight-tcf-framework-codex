@@ -9,6 +9,7 @@ pdmg:
   ui:
     # 전문 테스트 대상. 화면에서 바꿔가며 시험할 수 있고 여기 값은 초기값이다.
     target-base-url: http://localhost:8080
+    # 브라우저 → pdmg-service 직접 fetch Abort 제한(ms). 서버 OnlineTimeout(5s)과 별개.
     timeout-ms: 10000
 
 logging:

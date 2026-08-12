@@ -1,0 +1,52 @@
+'@context':
+  '@vocab': 'https://nsight.local/ontology#'
+'@id': nsight:rules-component-boundaries
+'@type': RuleSet
+version: '0.1.0'
+gateFamily: APPLICATION_ARCHITECTURE_GATE
+note: >
+  These R-* rules are Architecture Conformance targets.
+  Current ArchitectureRuleValidator implements ONTOLOGY_INTEGRITY_GATE (RULE-001~006) only.
+rules:
+  - id: R-HANDLER-NO-DAO
+    statement: Handler는 Facade 라우팅만. DAO/SQL/복잡 업무 금지
+    severity: error
+    implemented: false
+    executor: NOT_YET
+    scope: APPLICATION
+    sourceBacked: true
+  - id: R-TX-OWNER-EXECUTOR
+    statement: 업무 DB TX 소유자는 TimeoutExecutor TransactionTemplate. Facade는 REQUIRED 참여
+    severity: error
+    implemented: false
+    executor: NOT_YET
+    scope: APPLICATION
+    sourceBacked: true
+  - id: R-IMAGELOG-OUTSIDE-TX
+    statement: ImageLog 요청/응답 기록은 업무 TX 밖. 업무 Rollback과 독립
+    severity: warning
+    implemented: false
+    executor: NOT_YET
+    scope: APPLICATION
+    sourceBacked: true
+  - id: R-BIZPREPOST-ON-SERVICE
+    statement: 업무 선후처리는 Service pointcut. 동일 rdw TX 참여
+    severity: info
+    implemented: false
+    executor: NOT_YET
+    scope: APPLICATION
+    sourceBacked: true
+  - id: R-NAMING-SERVICEID-METHOD
+    statement: Facade/Service 메서드명 = 서비스 ID
+    severity: error
+    implemented: false
+    executor: NOT_YET
+    scope: APPLICATION
+    sourceBacked: true
+  - id: R-PROGRAM-SINGLE-HANDLER
+    statement: 동일 식별번호(프로그램)는 Handler/Facade/Service/DAO 각각 하나
+    severity: error
+    implemented: false
+    executor: NOT_YET
+    scope: APPLICATION
+    sourceBacked: false

@@ -1,5 +1,6 @@
 /*
  * pdmg-service 전문 테스트용 단일 거래 화면 스크립트.
+ * 브라우저가 pdmg-service(POST /{serviceId})를 직접 호출한다.
  * 전문 형식: { "hdr_nhnis": { "sys_comm": { ... } }, "dto": { ... } }
  */
 
@@ -57,7 +58,11 @@ function emptySysComm(guid) {
   };
 }
 
-/** 샘플/요청 전문에 hdr_nhnis 를 맞추고 GUID를 새로 채번한다. */
+/**
+ * 샘플/요청 전문에 hdr_nhnis 를 맞춘다.
+ * @param {boolean} refreshGuid true 이면 std_gbl_id 를 항상 신규 채번한다.
+ *        (textarea에 남아 있는 샘플 GUID 재사용 → ImageLog PK 중복을 막기 위함)
+ */
 function ensureHdrNhnis(payload, refreshGuid) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     payload = { dto: {} };
@@ -95,7 +100,9 @@ async function init() {
   transactions = programId ? all.filter(tx => tx.programId === programId) : all;
   config = await configRes.json();
 
-  targetBaseUrlEl.value = config.targetBaseUrl || 'http://localhost:8080';
+  targetBaseUrlEl.value = document.documentElement.dataset.defaultBaseUrl
+      || config.targetBaseUrl
+      || 'http://localhost:8080';
   renderTransactionOptions();
 
   const id = defaultTransactionId();
@@ -170,10 +177,13 @@ function mergePagingIntoPayload(payload) {
 }
 
 async function refreshTargetUrl() {
-  const query = new URLSearchParams({ baseUrl: targetBaseUrlEl.value.trim() });
-  const res = await fetch(`/api/transactions/${transactionIdEl.value}/target-url?${query}`);
-  document.getElementById('metaTargetUrl').textContent =
-    res.ok ? (await res.json()).targetUrl : 'URL 계산 실패';
+  document.getElementById('metaTargetUrl').textContent = currentTargetUrl();
+}
+
+function currentTargetUrl() {
+  const tx = transactions.find(item => item.id === transactionIdEl.value);
+  const path = tx?.path || ('/' + transactionIdEl.value);
+  return PdmgServiceClient.joinUrl(targetBaseUrlEl.value, path);
 }
 
 function describeError(parsed, httpStatus) {
@@ -201,6 +211,9 @@ function dtoSummary(parsed) {
   if (Array.isArray(dto.records)) {
     return `records: ${dto.records.length}`;
   }
+  if (Array.isArray(dto.mgcoa5530S0DTOSub0)) {
+    return `Total: ${dto.size != null ? dto.size : dto.mgcoa5530S0DTOSub0.length}`;
+  }
   if (Array.isArray(dto.mgcoa8888S0DTOSub0)) {
     return `Total: ${dto.size != null ? dto.size : dto.mgcoa8888S0DTOSub0.length}`;
   }
@@ -218,7 +231,7 @@ function refreshGuidInEditor() {
   try {
     payload = JSON.parse(requestBodyEl.value);
   } catch (error) {
-    alert('요청 JSON 형식이 올바르지 않습니다.\n' + error.message);
+    PdmgErrorPopup.showSimple('요청 JSON 형식이 올바르지 않습니다.\n' + error.message, '입력 오류');
     return;
   }
   payload = ensureHdrNhnis(payload, true);
@@ -230,24 +243,31 @@ async function sendRequest() {
   try {
     payload = JSON.parse(requestBodyEl.value);
   } catch (error) {
-    alert('요청 JSON 형식이 올바르지 않습니다.\n' + error.message);
+    PdmgErrorPopup.showSimple('요청 JSON 형식이 올바르지 않습니다.\n' + error.message, '입력 오류');
     return;
   }
 
-  payload = ensureHdrNhnis(payload, false);
+  // 전송마다 std_gbl_id 를 새로 채번해 ImageLog PK 중복을 막는다.
+  payload = ensureHdrNhnis(payload, true);
   payload = mergePagingIntoPayload(payload);
   requestBodyEl.value = JSON.stringify(payload, null, 2);
 
   responseMetaEl.innerHTML = '<span class="empty">요청 중...</span>';
   responseBodyEl.value = '';
 
-  const query = new URLSearchParams({ baseUrl: targetBaseUrlEl.value.trim() });
-  const response = await fetch(`/api/relay/${transactionIdEl.value}?${query}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  const result = await response.json();
+  let result;
+  try {
+    result = await PdmgServiceClient.post(
+        currentTargetUrl(),
+        payload,
+        config.timeoutMs,
+        transactionIdEl.value);
+  } catch (error) {
+    responseMetaEl.innerHTML = '<span class="badge fail">호출 실패</span>';
+    PdmgErrorPopup.showSimple(error.message || String(error), '호출 오류');
+    return;
+  }
+
   const httpOk = result.httpStatus >= 200 && result.httpStatus < 300;
 
   let parsed = null;
@@ -258,7 +278,8 @@ async function sendRequest() {
     responseBodyEl.value = result.responseBody || '';
   }
 
-  const ok = httpOk && !(parsed && parsed.error);
+  const serviceError = PdmgErrorPopup.errorPayload(parsed);
+  const ok = httpOk && !(parsed && parsed.error) && !serviceError;
   const summary = dtoSummary(parsed);
   responseMetaEl.innerHTML = `
     <span class="badge ${ok ? 'ok' : 'fail'}">HTTP ${result.httpStatus}</span>
@@ -268,6 +289,14 @@ async function sendRequest() {
     <span>${result.targetUrl}</span>
     ${ok ? '' : `<span class="badge fail">${describeError(parsed, result.httpStatus)}</span>`}
   `;
+
+  if (!ok) {
+    PdmgErrorPopup.showFromResponse(
+        parsed,
+        result.httpStatus,
+        describeError(parsed, result.httpStatus),
+        result.responseBody);
+  }
 }
 
 targetBaseUrlEl.addEventListener('change', refreshTargetUrl);
@@ -279,4 +308,4 @@ if (refreshGuidBtn) {
 }
 document.getElementById('sendBtn').addEventListener('click', sendRequest);
 
-init().catch(error => alert('화면 초기화 실패: ' + error.message));
+init().catch(error => PdmgErrorPopup.showSimple('화면 초기화 실패: ' + error.message));

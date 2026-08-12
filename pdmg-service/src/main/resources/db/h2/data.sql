@@ -30,3 +30,32 @@ VALUES
     ('18', STRINGDECODE('\uC608\uAE08\uB9CC\uAE30\uC548\uB0B4'), '20260801', '10001'),
     ('19', STRINGDECODE('\uB300\uCD9C\uAE08\uB9AC\uC548\uB0B4'), '20260801', '10001'),
     ('20', STRINGDECODE('\uCE74\uB4DC\uD61C\uD0DD\uC548\uB0B4'), '20260801', '10002');
+
+-- mgcoa9000S0 sample rows (거래 파라미터)
+INSERT INTO TB_MG_TX_PARAM
+    (TX_ID, TX_NAME, APP_ID, PATH_URL, HTTP_METHOD, REG_USER_ID, REG_DTM)
+VALUES
+    ('mgcoa8888S0',
+     STRINGDECODE('\uC774\uBBF8\uC9C0\uB85C\uADF8\u0020\uBAA9\uB85D\u0020\uC870\uD68C'),
+     'pdmg-service', '/mgcoa8888S0', 'POST', 'sysadmin', '20260809090000'),
+    ('mgcoa8888D0',
+     STRINGDECODE('\uC774\uBBF8\uC9C0\uB85C\uADF8\u0020\uC0AD\uC81C'),
+     'pdmg-service', '/mgcoa8888D0', 'POST', 'sysadmin', '20260809090100'),
+    ('mgcoa5530S0',
+     STRINGDECODE('\uB9C8\uCF00\uD305\uD76C\uB9DD\uACE0\uAC1D\u0020\uBAA9\uB85D\u0020\uC870\uD68C'),
+     'pdmg-service', '/mgcoa5530S0', 'POST', 'sysadmin', '20260809090200'),
+    ('mgcoa9999S0',
+     STRINGDECODE('\uC601\uC5C5\uD301\u0020\uC2E4\uC801\u0020\uBAA9\uB85D\u0020\uC870\uD68C'),
+     'pdmg-service', '/mgcoa9999S0', 'POST', 'sysadmin', '20260809090300'),
+    ('mgcoa9000S0',
+     STRINGDECODE('\uAC70\uB798\u0020\uD30C\uB77C\uBBF8\uD130\u0020\uBAA9\uB85D\u0020\uC870\uD68C'),
+     'pdmg-service', '/mgcoa9000S0', 'POST', 'sysadmin', '20260809090400'),
+    ('mgcoa9000C0',
+     STRINGDECODE('\uAC70\uB798\u0020\uD30C\uB77C\uBBF8\uD130\u0020\uB4F1\uB85D'),
+     'pdmg-service', '/mgcoa9000C0', 'POST', 'sysadmin', '20260809090500'),
+    ('mgcoa9000U0',
+     STRINGDECODE('\uAC70\uB798\u0020\uD30C\uB77C\uBBF8\uD130\u0020\uC218\uC815'),
+     'pdmg-service', '/mgcoa9000U0', 'POST', 'sysadmin', '20260809090600'),
+    ('mgcoa9000D0',
+     STRINGDECODE('\uAC70\uB798\u0020\uD30C\uB77C\uBBF8\uD130\u0020\uC0AD\uC81C'),
+     'pdmg-service', '/mgcoa9000D0', 'POST', 'sysadmin', '20260809090700');

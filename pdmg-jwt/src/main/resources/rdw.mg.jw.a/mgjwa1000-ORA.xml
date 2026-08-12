@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.mg.jw.a.persistence.dao.mgjwa1000DAO">
+
+    <select id="selectUserForLogin" parameterType="string" resultType="map">
+        SELECT U.USER_ID AS "userId", U.USER_NAME AS "userName", U.PASSWORD_HASH AS "passwordHash",
+               U.BRANCH_ID AS "branchId", U.AUTH_GROUP_ID AS "authGroupId",
+               G.AUTH_GROUP_NAME AS "authGroupName", U.USE_YN AS "useYn", U.LAST_LOGIN_TIME AS "lastLoginTime"
+          FROM OM_USER U
+          LEFT JOIN OM_AUTH_GROUP G ON U.AUTH_GROUP_ID = G.AUTH_GROUP_ID
+         WHERE U.USER_ID = #{userId}
+    </select>
+
+    <update id="updateUserLastLoginTime" parameterType="map">
+        UPDATE OM_USER
+           SET LAST_LOGIN_TIME = #{lastLoginTime}
+         WHERE USER_ID = #{userId}
+    </update>
+
+    <update id="updateUserPasswordHash" parameterType="map">
+        UPDATE OM_USER
+           SET PASSWORD_HASH = #{passwordHash}
+         WHERE USER_ID = #{userId}
+    </update>
+
+    <select id="selectUsersWithoutPasswordHash" resultType="map">
+        SELECT USER_ID AS "userId"
+          FROM OM_USER
+         WHERE PASSWORD_HASH IS NULL OR TRIM(PASSWORD_HASH) = ''
+    </select>
+
+    <insert id="insertJwtToken" parameterType="map">
+        INSERT INTO TCF_JWT_TOKEN (
+            TOKEN_ID, JTI, ISSUER, USER_ID, BRANCH_ID, CHANNEL_ID, AUTH_GROUP_ID,
+            TOKEN_TYPE, AUDIENCE, ISSUED_AT, EXPIRES_AT, REVOKED_YN, CLIENT_IP, USER_AGENT
+        ) VALUES (
+            #{tokenId}, #{jti}, #{issuer}, #{userId}, #{branchId}, #{channelId}, #{authGroupId},
+            #{tokenType}, #{audience}, #{issuedAt}, #{expiresAt}, 'N', #{clientIp}, #{userAgent}
+        )
+    </insert>
+
+    <update id="revokeJwtToken" parameterType="map">
+        UPDATE TCF_JWT_TOKEN
+           SET REVOKED_YN = 'Y',
+               REVOKED_AT = #{revokedAt},
+               REVOKE_REASON = #{revokeReason}
+         WHERE ISSUER = #{issuer}
+           AND JTI = #{jti}
+           AND REVOKED_YN = 'N'
+    </update>
+
+    <insert id="insertRefreshToken" parameterType="map">
+        INSERT INTO TCF_REFRESH_TOKEN (
+            REFRESH_TOKEN_ID, USER_ID, TOKEN_HASH, TOKEN_FAMILY_ID,
+            ISSUED_AT, EXPIRES_AT, ROTATED_YN, REVOKED_YN, CLIENT_IP, USER_AGENT
+        ) VALUES (
+            #{refreshTokenId}, #{userId}, #{tokenHash}, #{tokenFamilyId},
+            #{issuedAt}, #{expiresAt}, 'N', 'N', #{clientIp}, #{userAgent}
+        )
+    </insert>
+
+    <select id="selectRefreshTokenByHash" parameterType="string" resultType="map">
+        SELECT REFRESH_TOKEN_ID AS "refreshTokenId",
+               USER_ID AS "userId",
+               TOKEN_HASH AS "tokenHash",
+               TOKEN_FAMILY_ID AS "tokenFamilyId",
+               ISSUED_AT AS "issuedAt",
+               EXPIRES_AT AS "expiresAt",
+               ROTATED_YN AS "rotatedYn",
+               REVOKED_YN AS "revokedYn"
+          FROM TCF_REFRESH_TOKEN
+         WHERE TOKEN_HASH = #{tokenHash}
+    </select>
+
+    <update id="markRefreshTokenRotated" parameterType="string">
+        UPDATE TCF_REFRESH_TOKEN
+           SET ROTATED_YN = 'Y',
+               LAST_USED_AT = CURRENT_TIMESTAMP
+         WHERE REFRESH_TOKEN_ID = #{refreshTokenId}
+    </update>
+
+    <update id="revokeRefreshToken" parameterType="map">
+        UPDATE TCF_REFRESH_TOKEN
+           SET REVOKED_YN = 'Y',
+               REVOKED_AT = #{revokedAt}
+         WHERE REFRESH_TOKEN_ID = #{refreshTokenId}
+    </update>
+
+    <insert id="insertDenylist" parameterType="map">
+        MERGE INTO TCF_TOKEN_DENYLIST (ISSUER, JTI, USER_ID, EXPIRES_AT, REVOKED_AT, REVOKE_REASON)
+        KEY (ISSUER, JTI)
+        VALUES (#{issuer}, #{jti}, #{userId}, #{expiresAt}, #{revokedAt}, #{revokeReason})
+    </insert>
+
+    <select id="countDenylist" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+          FROM TCF_TOKEN_DENYLIST
+         WHERE ISSUER = #{issuer}
+           AND JTI = #{jti}
+    </select>
+</mapper>
+

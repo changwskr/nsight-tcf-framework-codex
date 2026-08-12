@@ -3,17 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDMG 이미지로그 조회 (mgcoa8888)</title>
+  <title>PDMG 이미지로그 (mgcoa8888)</title>
+  <script src="/_shared/ui-context.js"></script>
   <link rel="stylesheet" href="/_shared/online.css">
 </head>
-<body>
-  <div class="wrap">
-    <header>
-      <h1>PDMG 이미지로그 조회 (mgcoa8888)</h1>
-      <p>TB_FW_IMAGE_LOG 를 조회합니다. GUID·서비스ID·화면ID·사용자·예외여부 조건으로 필터링할 수 있습니다.</p>
-      <div class="nav-links">
-        <a class="nav-link" href="/index.html">← 거래 목록</a>
+<body class="pdmg-page">
+  <div class="tcf-main">
+    <header class="tcf-topbar">
+      <div class="tcf-topbar__brand">
+        <h1>mgcoa8888 · 이미지로그</h1>
+        <p>TB_FW_IMAGE_LOG 조회/삭제 전문 테스트. withinSeconds·minElapsedSeconds·예외 조건을 넣을 수 있습니다. 전송마다 GUID를 신규 채번합니다.</p>
       </div>
+      <nav class="tcf-topbar__nav" aria-label="화면 이동">
+        <a class="tcf-topbar__link" href="/index.html">홈</a>
+        <a class="tcf-topbar__link tcf-topbar__link--active" href="/mgcoa8888/index.html">전문 테스트</a>
+        <a class="tcf-topbar__link" href="/imagelog/index.html">관리 화면</a>
+        <a class="tcf-topbar__link" href="/mgcoa5530/index.html">mgcoa5530</a>
+        <a class="tcf-topbar__link" href="/mgcoa9999/index.html">mgcoa9999</a>
+      </nav>
     </header>
 
     <section class="toolbar">
@@ -28,7 +35,7 @@
       <div class="actions">
         <button class="btn-secondary" id="reloadSampleBtn" type="button">샘플 불러오기</button>
         <button class="btn-secondary" id="refreshGuidBtn" type="button">GUID 재채번</button>
-        <button class="btn-primary" id="sendBtn" type="button">이미지로그 조회</button>
+        <button class="btn-primary" id="sendBtn" type="button">전문 전송</button>
       </div>
     </section>
 
@@ -65,6 +72,9 @@
       </article>
     </section>
   </div>
+  <script src="/_shared/error-codes.js"></script>
+  <script src="/_shared/error-popup.js"></script>
+  <script src="/_shared/service-client.js"></script>
   <script src="/_shared/online-single.js"></script>
 </body>
 </html>

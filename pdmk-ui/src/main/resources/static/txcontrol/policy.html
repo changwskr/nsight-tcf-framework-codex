@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>서비스별 온라인 거래통제</title>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/txcontrol/policy.css?v=20260808m">
+  <style>
+    /* 탭 패널 강제 분리 (캐시된 CSS여도 동작) */
+    #policyTabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; padding: 0 0 10px; border-bottom: 1px solid var(--border, #333); }
+    #policyTabs .tab-btn { border: 1px solid var(--border, #444); background: var(--panel-2, #1a1a1a); color: inherit; border-radius: 999px; padding: 0.45rem 0.9rem; cursor: pointer; font: inherit; font-size: 0.85rem; }
+    #policyTabs .tab-btn.active { border-color: var(--accent, #60a5fa); color: var(--accent, #60a5fa); font-weight: 700; background: rgba(96,165,250,0.16); }
+    .tab-panel[hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="wrap wrap-wide">
+    <header>
+      <h1>서비스별 온라인 거래통제</h1>
+      <p>PDMK-OM &gt; 거래통제 · 설계서 <code>02.거래통제UI화면.md</code></p>
+      <div class="nav-links">
+        <a class="nav-link" href="/index.html">← 거래 목록</a>
+        <a class="nav-link" href="/txcontrol/index.html">Catalog 관리 →</a>
+        <a class="nav-link" href="/mkcoa6666/index.html">전문 테스트 →</a>
+        <span class="nav-link" id="targetInfo">대상 확인 중...</span>
+      </div>
+    </header>
+
+    <section class="panel section-panel">
+      <div class="panel-head"><h2>조회조건</h2></div>
+      <div class="panel-pad form-grid">
+        <div class="field field-wide"><label>pdmk-om URL</label><input id="targetBaseUrl" value="http://localhost:8081"></div>
+        <div class="field"><label>업무코드</label>
+          <select id="qBusinessCode">
+            <option value="">전체</option>
+            <option value="mk">MK</option>
+            <option value="om">OM</option>
+          </select>
+        </div>
+        <div class="field"><label>서비스ID</label><input id="qServiceCode" placeholder="mkcoa6666S0" value="mkcoa6666S0"></div>
+        <div class="field"><label>서비스명</label><input id="qServiceName" placeholder="부분검색"></div>
+        <div class="field"><label>상태</label>
+          <select id="qStatus">
+            <option value="">전체</option>
+            <option value="NORMAL">NORMAL</option>
+            <option value="MAINTENANCE">MAINTENANCE</option>
+            <option value="STOP">STOP</option>
+            <option value="EMERGENCY">EMERGENCY</option>
+          </select>
+        </div>
+        <div class="field"><label>통제상태</label>
+          <select id="qForce">
+            <option value="">전체</option>
+            <option value="N">강제OFF</option>
+            <option value="Y">강제ON</option>
+          </select>
+        </div>
+        <div class="actions-inline">
+          <button class="btn-primary" id="searchBtn" type="button">조회</button>
+          <button class="btn-secondary" id="resetBtn" type="button">초기화</button>
+        </div>
+      </div>
+      <div class="panel-pad">
+        <label>검색 결과</label>
+        <select id="servicePick" class="service-pick"></select>
+      </div>
+    </section>
+
+    <section class="panel section-panel" id="basicPanel">
+      <div class="panel-head"><h2>서비스 기본정보</h2></div>
+      <div class="panel-pad basic-grid" id="basicInfo">
+        <div><span class="k">서비스ID</span><span class="v mono" id="bServiceCode">-</span></div>
+        <div><span class="k">서비스명</span><span class="v" id="bServiceName">-</span></div>
+        <div><span class="k">업무코드</span><span class="v" id="bBusinessCode">-</span></div>
+        <div><span class="k">현재상태</span><span class="v" id="bStatus">-</span></div>
+        <div><span class="k">사용여부</span><span class="v" id="bEnabled">-</span></div>
+        <div><span class="k">Online 강제통제</span><span class="v" id="bForce">-</span></div>
+        <div><span class="k">Timeout</span><span class="v" id="bTimeout">-</span></div>
+        <div><span class="k">최근 1분 TPS</span><span class="v" id="bTps">-</span></div>
+        <div><span class="k">현재 실행건수</span><span class="v" id="bConcurrent">-</span></div>
+        <div><span class="k">최근 차단건수</span><span class="v" id="bBlocks">-</span></div>
+      </div>
+    </section>
+
+    <section class="panel section-panel">
+      <div class="panel-head"><h2>거래통제 정책</h2></div>
+      <div class="panel-pad">
+        <div class="tabs" id="policyTabs" role="tablist">
+          <button type="button" class="tab-btn active" data-tab="service" role="tab">① 서비스</button>
+          <button type="button" class="tab-btn" data-tab="branch" role="tab">② 지점</button>
+          <button type="button" class="tab-btn" data-tab="terminal" role="tab">③ 단말</button>
+          <button type="button" class="tab-btn" data-tab="ip" role="tab">④ IP</button>
+          <button type="button" class="tab-btn" data-tab="time" role="tab">⑤ 시간</button>
+          <button type="button" class="tab-btn" data-tab="user" role="tab">⑥ 사용자</button>
+          <button type="button" class="tab-btn" data-tab="force" role="tab">⑦ 강제통제</button>
+          <button type="button" class="tab-btn" data-tab="priority" role="tab">우선순위</button>
+          <button type="button" class="tab-btn" data-tab="results" role="tab">최근결과</button>
+        </div>
+
+        <div class="tab-panel" data-panel="service" role="tabpanel">
+          <h3 class="tab-title">① 서비스ID 통제</h3>
+          <div class="form-grid">
+            <div class="field"><label>통제 사용</label>
+              <select id="pServiceCtrlUse"><option value="Y">Y</option><option value="N">N</option></select>
+            </div>
+            <div class="field"><label>서비스 상태</label>
+              <select id="pStatus">
+                <option value="NORMAL">NORMAL</option>
+                <option value="MAINTENANCE">MAINTENANCE</option>
+                <option value="STOP">STOP</option>
+                <option value="EMERGENCY">EMERGENCY</option>
+              </select>
+            </div>
+            <div class="field"><label>사용여부</label>
+              <select id="pEnabled"><option value="Y">Y</option><option value="N">N</option></select>
+            </div>
+            <div class="field"><label>Timeout(ms)</label><input id="pTimeoutMs" type="number" value="3000"></div>
+            <div class="field"><label>maxTps</label><input id="pMaxTps" type="number" value="100"></div>
+            <div class="field"><label>maxConcurrent</label><input id="pMaxConcurrent" type="number" value="50"></div>
+            <div class="hint-block">○ NORMAL 정상 · ○ MAINTENANCE 점검 · ○ STOP 신규차단 · ○ EMERGENCY 즉시강제</div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="branch" role="tabpanel" hidden>
+          <h3 class="tab-title">② 지점별 통제</h3>
+          <div class="form-grid">
+            <div class="field"><label>통제방식</label>
+              <select id="pBranchMode">
+                <option value="ALL">전체허용</option>
+                <option value="OWN_AND_ALLOW">소속지점+허용지점</option>
+                <option value="LIST">허용목록만</option>
+              </select>
+            </div>
+          </div>
+          <div class="sub-label">허용지점</div>
+          <div class="chip-row" id="allowBranchChips"></div>
+          <div class="sub-label">차단지점</div>
+          <div class="chip-row" id="denyBranchChips"></div>
+          <div class="inline-add">
+            <input id="branchAddCode" placeholder="지점코드">
+            <input id="branchAddName" placeholder="지점명">
+            <button type="button" class="btn-secondary" id="allowBranchAdd">허용추가</button>
+            <button type="button" class="btn-secondary" id="denyBranchAdd">차단추가</button>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="terminal" role="tabpanel" hidden>
+          <h3 class="tab-title">③ 단말종류별 통제</h3>
+          <div class="check-grid">
+            <label><input type="checkbox" id="trm01" checked> 01 전용단말 허용</label>
+            <label><input type="checkbox" id="trm02" checked> 02 WEBTOPSUITE 허용</label>
+            <label><input type="checkbox" id="trm03" checked> 03 일반 WEB 허용</label>
+            <label><input type="checkbox" id="trm04"> 04 모바일 차단</label>
+            <label><input type="checkbox" id="trm05"> 05 외부채널 차단</label>
+          </div>
+          <div class="field" style="max-width:220px;margin-top:10px;">
+            <label>미등록 단말종류 처리</label>
+            <select id="pUnknownTrm"><option value="BLOCK">차단</option><option value="ALLOW">허용</option></select>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="ip" role="tabpanel" hidden>
+          <h3 class="tab-title">④ IP별 통제</h3>
+          <div class="form-grid">
+            <div class="field"><label>IP 통제</label>
+              <select id="pIpCtrlUse"><option value="Y">사용</option><option value="N">미사용</option></select>
+            </div>
+            <div class="field"><label>미등록 IP 처리</label>
+              <select id="pUnknownIp"><option value="BLOCK">차단</option><option value="ALLOW">허용</option></select>
+            </div>
+            <div class="field"><label>127.0.0.1 허용</label>
+              <select id="pLoopback"><option value="DEV_ONLY">개발환경만</option><option value="ALLOW">허용</option><option value="DENY">차단</option></select>
+            </div>
+          </div>
+          <div class="sub-label">허용 IP / 대역</div>
+          <div class="chip-row" id="allowIpChips"></div>
+          <div class="sub-label">차단 IP</div>
+          <div class="chip-row" id="denyIpChips"></div>
+          <div class="inline-add">
+            <input id="ipAdd" placeholder="IP/대역" style="min-width:220px;">
+            <button type="button" class="btn-secondary" id="allowIpAdd">허용추가</button>
+            <button type="button" class="btn-secondary" id="denyIpAdd">차단추가</button>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="time" role="tabpanel" hidden>
+          <h3 class="tab-title">⑤ 시간대별 통제</h3>
+          <table class="mini-table">
+            <thead><tr><th>구분</th><th>시작</th><th>종료</th><th>허용</th></tr></thead>
+            <tbody>
+              <tr><td>평일</td><td><input id="twWeekStart" value="0800"></td><td><input id="twWeekEnd" value="2200"></td><td><select id="twWeekAllow"><option value="Y">Y</option><option value="N">N</option></select></td></tr>
+              <tr><td>토요일</td><td><input id="twSatStart" value="0900"></td><td><input id="twSatEnd" value="1800"></td><td><select id="twSatAllow"><option value="Y">Y</option><option value="N">N</option></select></td></tr>
+              <tr><td>일요일</td><td><input id="twSunStart" value="0000"></td><td><input id="twSunEnd" value="0000"></td><td><select id="twSunAllow"><option value="N">N</option><option value="Y">Y</option></select></td></tr>
+              <tr><td>공휴일</td><td><input id="twHolStart" value="0000"></td><td><input id="twHolEnd" value="0000"></td><td><select id="twHolAllow"><option value="N">N</option><option value="Y">Y</option></select></td></tr>
+            </tbody>
+          </table>
+          <div class="sub-label">특정 차단시간 (JSON 간단 편집)</div>
+          <textarea id="pBlockWindows" rows="3" placeholder='[{"start":"1200","end":"1300","reason":"점검시간"}]'></textarea>
+          <div class="field" style="max-width:220px;margin-top:8px;">
+            <label>시간외 요청 처리</label>
+            <select id="pOutOfHours"><option value="BLOCK">BLOCK</option><option value="ALLOW">ALLOW</option></select>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="user" role="tabpanel" hidden>
+          <h3 class="tab-title">⑥ 사용자별 통제</h3>
+          <div class="form-grid">
+            <div class="field"><label>사용자 통제</label>
+              <select id="pUserCtrlUse"><option value="Y">사용</option><option value="N">미사용</option></select>
+            </div>
+            <div class="field"><label>기본정책</label>
+              <select id="pUserDefault"><option value="ALLOW_AUTH">권한보유 사용자 허용</option><option value="ALLOW_ALL">전체허용</option><option value="DENY">기본차단</option></select>
+            </div>
+            <div class="field"><label>optr_eno 일치 확인</label>
+              <select id="pAuthMatch"><option value="Y">필수</option><option value="N">선택</option></select>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table" id="userTable">
+              <thead><tr><th>사용자ID</th><th>사용자명</th><th>지점</th><th>상태</th><th>허용</th><th></th></tr></thead>
+              <tbody id="userBody"><tr><td colspan="6" class="empty">없음</td></tr></tbody>
+            </table>
+          </div>
+          <div class="inline-add">
+            <input id="userIdAdd" placeholder="사용자ID">
+            <input id="userNameAdd" placeholder="사용자명">
+            <input id="userBranchAdd" placeholder="지점">
+            <button type="button" class="btn-secondary" id="allowUserAdd">허용추가</button>
+            <button type="button" class="btn-secondary" id="denyUserAdd">차단추가</button>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="force" role="tabpanel" hidden>
+          <h3 class="tab-title">⑦ 온라인 강제통제</h3>
+          <div class="form-grid">
+            <div class="field"><label>강제통제</label>
+              <select id="pForceActive"><option value="N">OFF</option><option value="Y">ON</option></select>
+            </div>
+            <div class="field"><label>범위</label>
+              <select id="pForceScope">
+                <option value="SERVICE">현재 서비스만</option>
+                <option value="BUSINESS">업무코드 전체</option>
+                <option value="BRANCH">특정 지점</option>
+                <option value="USER">특정 사용자</option>
+                <option value="IP">특정 IP</option>
+              </select>
+            </div>
+            <div class="field"><label>통제방식</label>
+              <select id="pForceMode">
+                <option value="NEW_ONLY">신규거래만 차단</option>
+                <option value="IMMEDIATE" selected>신규거래 즉시 차단</option>
+                <option value="DRAIN">신규차단+실행중 종료요청</option>
+              </select>
+            </div>
+            <div class="field field-wide"><label>통제사유</label><input id="pForceReason"></div>
+            <div class="field"><label>시작일시</label><input id="pForceStart" placeholder="yyyyMMddHHmmss"></div>
+            <div class="field"><label>종료예정</label><input id="pForceEnd" placeholder="yyyyMMddHHmmss"></div>
+          </div>
+          <div class="actions-inline" style="margin-top:8px;">
+            <button class="btn-danger" id="forceOnBtn" type="button">온라인 강제통제 실행</button>
+            <button class="btn-secondary" id="forceOffBtn" type="button">강제통제 해제</button>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="priority" role="tabpanel" hidden>
+          <h3 class="tab-title">통제 우선순위</h3>
+          <ol class="priority-list">
+            <li>온라인 강제통제</li>
+            <li>서비스ID 상태</li>
+            <li>사용자</li>
+            <li>지점</li>
+            <li>단말종류</li>
+            <li>IP</li>
+            <li>시간대</li>
+            <li>최종 ALLOW / BLOCK</li>
+          </ol>
+        </div>
+
+        <div class="tab-panel" data-panel="results" role="tabpanel" hidden>
+          <div class="tab-head-row">
+            <h3 class="tab-title">최근 통제 결과</h3>
+            <button class="btn-secondary" id="reloadResultsBtn" type="button">새로고침</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>시간</th><th>Global ID</th><th>서비스ID</th><th>사용자</th>
+                  <th>지점</th><th>단말</th><th>IP</th><th>결과</th><th>사유</th>
+                </tr>
+              </thead>
+              <tbody id="resultBody"><tr><td colspan="9" class="empty">데이터 없음</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="footer-actions">
+      <button class="btn-primary" id="saveBtn" type="button">저장</button>
+      <button class="btn-secondary" id="copyBtn" type="button">정책복사</button>
+      <button class="btn-secondary" id="validateBtn" type="button">정책검증</button>
+      <button class="btn-secondary" id="historyBtn" type="button">변경이력</button>
+      <a class="btn-secondary" href="/txcontrol/index.html">닫기</a>
+    </section>
+    <section class="response-meta" id="meta"><span class="empty">서비스를 조회하세요.</span></section>
+  </div>
+
+  <script src="/_shared/error-codes.js?v=20260809a"></script>
+    <script src="/_shared/error-popup.js?v=20260808m"></script>
+  <script src="/txcontrol/policy.js?v=20260808m"></script>
+</body>
+</html>

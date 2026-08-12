@@ -1,0 +1,92 @@
+server:
+  port: 8110
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+spring:
+  profiles:
+    active: local
+  application:
+    name: pdmg-jwt
+  config:
+    import: classpath:exceptionCode.yml
+  mvc:
+    cors:
+      allowed-origins:
+        - http://localhost:8090
+        - http://127.0.0.1:8090
+      allowed-methods:
+        - GET
+        - POST
+        - OPTIONS
+      allowed-headers:
+        - "*"
+  datasource:
+    rdw:
+      jdbc-url: jdbc:log4jdbc:h2:mem:pdmg_jwt;MODE=Oracle;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;DATABASE_TO_UPPER=false
+      driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+      username: sa
+      password:
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+      schema-locations: classpath:db/h2/schema.sql
+      data-locations: classpath:db/h2/data.sql
+
+nhnis:
+  fw:
+    tcf:
+      enabled: true
+    timeout:
+      enabled: true
+      milliseconds: 5000
+      pool-size: 20
+      queue-capacity: 100
+    commons:
+      legacy-web:
+        enabled: true
+      filter:
+        enabled: true
+    # JWT 발급/검증은 업무 거래통제 대상이 아님 (테이블·규칙 없음)
+    txcontrol:
+      enabled: false
+
+nsight:
+  security:
+    jwt:
+      issuer: NSIGHT-AUTH
+      audience: NSIGHT-MP
+      access-token-valid-minutes: 15
+      refresh-token-valid-hours: 8
+      clock-skew-seconds: 60
+      algorithm: RS256
+      issuer-uri: http://127.0.0.1:8110
+      jwk-set-uri: http://127.0.0.1:8110/.well-known/jwks.json
+      denylist-check-enabled: true
+      refresh-token-rotation-enabled: true
+      header-name: Authorization
+      token-prefix: Bearer
+      schema-auto-init: true
+      internal:
+        shared-secret: nsight-local-jwt-internal-secret
+        allowed-service: tcf-om
+        timestamp-skew-seconds: 180
+        allowed-ips:
+          - 127.0.0.1
+          - 0:0:0:0:0:0:0:1
+          - ::1
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+
+jwt:
+  enabled: false
+  secret: "${PDMG_JWT_SECRET:pdmg-local-dev-secret-key-change-me-32b}"
+  access-token-expiration: 180000

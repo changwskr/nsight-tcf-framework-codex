@@ -1,0 +1,23 @@
+/*
+ * 사내(농협상호금융) 원본 설정 - 폐쇄망에서는 아래 블록을 되살리고
+ * 그 아래 로컬 개발용 pluginManagement 블록을 주석 처리한다.
+ *
+ * pluginManagement {
+ *     repositories {
+ *         maven {
+ *             url = uri("http://19.88.120.152:9010/repository/maven-releases/")
+ *             allowInsecureProtocol = true
+ *         }
+ *     }
+ * }
+ */
+
+/* 로컬 개발 PC용 - 사내 넥서스에 접근할 수 없는 환경 */
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'tcf-ontology-service'

@@ -13,7 +13,7 @@ public class PdmgUiProperties {
     /** pdmg-service 기본 주소. */
     private String targetBaseUrl = "http://localhost:8080";
 
-    /** 릴레이 타임아웃(ms). */
+    /** 브라우저 fetch Abort 타임아웃(ms). pdmg-service OnlineTimeout과 별개. */
     private int timeoutMs = 10000;
 
     public String getTargetBaseUrl() {

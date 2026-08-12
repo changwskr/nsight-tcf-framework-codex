@@ -1,0 +1,111 @@
+plugins {
+    id 'java'
+    id 'war'
+    id 'eclipse'
+    id 'org.springframework.boot' version '3.5.14'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'nhnis.ontology'
+version = '0.1.0-RC1'
+
+bootWar {
+    enabled = false
+}
+
+war {
+    enabled = true
+    archiveFileName = 'tcf-ontology-service.war'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    runtimeOnly 'com.h2database:h2:2.3.232'
+
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    filteringCharset = 'UTF-8'
+    from('ontology') {
+        into 'ontology'
+    }
+    from('docs/knowledge/exearchidoc') {
+        into 'docs/knowledge/exearchidoc'
+    }
+}
+
+tasks.named('bootRun').configure {
+    jvmArgs = [
+            '-Dfile.encoding=UTF-8',
+            '-Dsun.jnu.encoding=UTF-8',
+            '-Dstdout.encoding=UTF-8',
+            '-Dstderr.encoding=UTF-8',
+            '-Dconsole.encoding=UTF-8'
+    ]
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    jvmArgs '-Dfile.encoding=UTF-8', '-Dsun.jnu.encoding=UTF-8'
+}
+
+tasks.register('validatePdmg', JavaExec) {
+    group = 'verification'
+    description = 'Scan pdmg-* and validate against ontology mappings/shapes'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'nhnis.ontology.OntologyApplication'
+    args '--nhnis.ontology.job=validate'
+}
+
+tasks.register('importPdmg', JavaExec) {
+    group = 'verification'
+    description = 'Scan pdmg-* into test-data/ontology/inventory-pdmg.yml'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'nhnis.ontology.OntologyApplication'
+    args '--nhnis.ontology.job=import'
+}
+
+tasks.register('promptContext', JavaExec) {
+    group = 'documentation'
+    description = 'Export CRUD prompt context markdown ( -Ptarget=mgcoa9001 )'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'nhnis.ontology.OntologyApplication'
+    def target = project.findProperty('target') ?: 'mgcoa9001'
+    args "--nhnis.ontology.job=prompt", "--nhnis.ontology.target=${target}"
+}
+
+tasks.register('seedPdmg', JavaExec) {
+    group = 'verification'
+    description = 'Scan pdmg-* and generate mapping YAML seeds ( -Poverwrite=true to replace curated )'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'nhnis.ontology.OntologyApplication'
+    def overwrite = project.findProperty('overwrite') ?: 'false'
+    args '--nhnis.ontology.job=seed', "--nhnis.ontology.seed.overwrite=${overwrite}"
+}

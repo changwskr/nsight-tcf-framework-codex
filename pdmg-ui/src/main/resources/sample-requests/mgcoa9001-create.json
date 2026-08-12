@@ -1,0 +1,27 @@
+{
+  "hdr_nhnis": {
+    "sys_comm": {
+      "rms_svc_c": "mgcoa9001C0",
+      "sync_dsc": "S",
+      "tr_sysid": "PDMG",
+      "ttl_ug_ync": 0,
+      "std_tgrm_rqr_rsp_dsc": "Q",
+      "std_tgrm_lclc": "KO",
+      "tr_trm_ipadr": "127.0.0.1",
+      "tr_dtm": "20260810000000",
+      "tr_brc": "10001",
+      "trmno": "LOCAL01",
+      "trm_kdc": "01",
+      "scid": "mgcoa9001",
+      "optr_eno": "E0000001",
+      "tr_optrnm": "LOCAL_TESTER"
+    }
+  },
+  "dto": {
+    "controlType": "SERVICE",
+    "targetValue": "mgcoa5530S0",
+    "blockYn": "Y",
+    "changeReason": "샘플 서비스 차단 등록",
+    "regUserId": "E0000001"
+  }
+}

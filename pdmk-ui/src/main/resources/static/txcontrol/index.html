@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>거래통제 Catalog (mkcoa6666) — PDMK-OM UI</title>
+  <meta http-equiv="refresh" content="0; url=/txcontrol/policy.html">
+  <link rel="stylesheet" href="/_shared/online.css">
+  <style>
+    .hint { font-size: 0.8rem; opacity: 0.75; margin: 0.25rem 0 0; line-height: 1.5; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 0.6rem 0.8rem;
+      width: 100%;
+    }
+    .form-grid .field-wide { grid-column: 1 / -1; }
+    .section-block {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel-2);
+      padding: 12px 14px;
+      margin-top: 4px;
+    }
+    .section-block h3 { margin: 0 0 10px; font-size: 0.95rem; color: var(--accent); }
+    .section-block .sub { margin: -4px 0 12px; font-size: 0.78rem; color: var(--muted); }
+    .fld-name { font-family: Consolas, "Courier New", monospace; font-size: 0.82rem; color: var(--accent); }
+    .badge.allow { background: rgba(52, 211, 153, 0.15); color: var(--success); }
+    .badge.block, .badge.reject { background: rgba(248, 113, 113, 0.15); color: var(--fail); }
+    .badge.throttle { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+    .badge.stop { background: rgba(248, 113, 113, 0.15); color: var(--fail); }
+    .badge.maint { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+    .badge.normal { background: rgba(52, 211, 153, 0.15); color: var(--success); }
+    .row-actions { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+    .toolbar-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+    .sim-result {
+      margin-top: 10px; padding: 10px 12px; border-radius: 8px;
+      border: 1px dashed var(--border); font-size: 0.88rem; line-height: 1.55;
+    }
+    .sim-result.empty-state { color: var(--muted); }
+    .status-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+      width: 100%;
+      margin-bottom: 4px;
+    }
+    .status-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      text-align: center;
+    }
+    .status-card .label { font-size: 0.75rem; color: var(--muted); }
+    .status-card .value { font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
+    .preset-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .preset-chip {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: inherit;
+      border-radius: 6px;
+      padding: 0.3rem 0.55rem;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.78rem;
+    }
+    .preset-chip:hover { border-color: var(--accent); color: var(--accent); }
+    .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .tab-btn {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 0.4rem 0.75rem;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.85rem;
+    }
+    .tab-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.12);
+    }
+    .tab-panel[hidden] { display: none; }
+    .btn-tiny { padding: 0.2rem 0.45rem; font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap wrap-wide">
+    <header>
+      <h1>거래통제 (mkcoa6666)</h1>
+      <p>
+        설계서 <code>01.UI설계서-거래통제UI설계.md</code> Catalog 관리 화면.
+        <strong>서비스별 온라인 거래통제(탭)</strong>은
+        <a href="/txcontrol/policy.html">/txcontrol/policy.html</a> 을 사용하세요.
+      </p>
+      <div class="nav-links">
+        <a class="nav-link" href="/txcontrol/policy.html">★ 서비스별 통제(탭) →</a>
+        <a class="nav-link" href="/index.html">← 거래 목록</a>
+        <a class="nav-link" href="/mkcoa6666/index.html">전문 테스트 →</a>
+        <span class="nav-link" id="targetInfo">대상 확인 중...</span>
+      </div>
+    </header>
+
+    <section class="status-cards" id="statusCards" aria-label="Catalog 상태 요약">
+      <div class="status-card"><div class="label">전체</div><div class="value" id="cardTotal">-</div></div>
+      <div class="status-card"><div class="label">NORMAL</div><div class="value" id="cardNormal">-</div></div>
+      <div class="status-card"><div class="label">MAINTENANCE</div><div class="value" id="cardMaint">-</div></div>
+      <div class="status-card"><div class="label">STOP</div><div class="value" id="cardStop">-</div></div>
+      <div class="status-card"><div class="label">enabled=N</div><div class="value" id="cardDisabled">-</div></div>
+    </section>
+
+    <section class="toolbar">
+      <div class="field field-wide">
+        <label for="targetBaseUrl">pdmk-om URL</label>
+        <input id="targetBaseUrl" type="text" value="http://localhost:8081">
+      </div>
+
+      <div class="section-block">
+        <h3>① sys_comm 평가 (mkcoa6666E0)</h3>
+        <p class="sub">요건 §23 순서로 평가합니다. checkStep으로 차단 단계를 확인하세요.</p>
+        <div class="form-grid">
+          <div class="field"><label><span class="fld-name">std_gbl_id</span></label><input id="eStdGblId" value="992674f81e9d4762b0d56a7fb38a1cc0"></div>
+          <div class="field"><label><span class="fld-name">rms_svc_c</span></label><input id="eRmsSvcC" value="mkcoa5530S0"></div>
+          <div class="field"><label><span class="fld-name">sync_dsc</span></label><input id="eSyncDsc" value="S"></div>
+          <div class="field"><label><span class="fld-name">tr_sysid</span></label><input id="eTrSysid" value="PDMK"></div>
+          <div class="field"><label><span class="fld-name">std_tgrm_rqr_rsp_dsc</span></label><input id="eRqrRsp" value="Q"></div>
+          <div class="field"><label><span class="fld-name">std_tgrm_lclc</span></label><input id="eLclc" value="KO"></div>
+          <div class="field"><label><span class="fld-name">tr_trm_ipadr</span></label><input id="eIp" value="127.0.0.1"></div>
+          <div class="field"><label><span class="fld-name">tr_dtm</span></label><input id="eTrDtm" value="20260808120000"></div>
+          <div class="field"><label><span class="fld-name">tr_brc</span></label><input id="eTrBrc" value="10001"></div>
+          <div class="field"><label><span class="fld-name">trmno</span></label><input id="eTrmno" value="LOCAL01"></div>
+          <div class="field"><label><span class="fld-name">trm_kdc</span></label><input id="eTrmKdc" value="01"></div>
+          <div class="field"><label><span class="fld-name">scid</span></label><input id="eScid" value="mkcoa5530"></div>
+          <div class="field"><label><span class="fld-name">optr_eno</span></label><input id="eOptrEno" value="E0000001"></div>
+          <div class="field"><label>authUserId</label><input id="eAuthUserId" placeholder="선택"></div>
+        </div>
+        <div class="preset-chips" id="evalPresets">
+          <button type="button" class="preset-chip" data-preset="allow">UI-05 ALLOW</button>
+          <button type="button" class="preset-chip" data-preset="unreg">UI-06 미등록</button>
+          <button type="button" class="preset-chip" data-preset="stop">UI-07 STOP</button>
+          <button type="button" class="preset-chip" data-preset="maint">UI-08 MAINT</button>
+          <button type="button" class="preset-chip" data-preset="sys">UI-09 시스템</button>
+          <button type="button" class="preset-chip" data-preset="brc">UI-10 지점</button>
+          <button type="button" class="preset-chip" data-preset="time">UI-11 시간외</button>
+          <button type="button" class="preset-chip" data-preset="rsp">UI-12 R전문</button>
+        </div>
+        <div class="toolbar-actions" style="margin-top:12px;">
+          <button class="btn-primary" id="evaluateBtn" type="button">평가 실행</button>
+          <button class="btn-secondary" id="evalToNewBtn" type="button">이 서비스로 Catalog 등록</button>
+        </div>
+        <div class="sim-result empty-state" id="evalResult">평가 전입니다.</div>
+      </div>
+
+      <div class="section-block">
+        <h3>② Service Catalog 필터</h3>
+        <div class="form-grid">
+          <div class="field"><label for="qServiceCode"><span class="fld-name">serviceCode</span></label><input id="qServiceCode" placeholder="부분검색"></div>
+          <div class="field"><label for="qBusinessCode">businessCode</label><input id="qBusinessCode" placeholder="mk / om"></div>
+          <div class="field"><label for="qStatus">status</label>
+            <select id="qStatus">
+              <option value="">전체</option>
+              <option value="NORMAL">NORMAL</option>
+              <option value="STOP">STOP</option>
+              <option value="MAINTENANCE">MAINTENANCE</option>
+            </select>
+          </div>
+          <div class="field"><label for="qEnabled">enabled</label>
+            <select id="qEnabled">
+              <option value="" selected>전체</option>
+              <option value="Y">Y</option>
+              <option value="N">N</option>
+            </select>
+          </div>
+          <div class="field"><label for="pageSize">pageSize</label><input id="pageSize" type="number" min="1" max="100" value="20"></div>
+        </div>
+        <div class="toolbar-actions" style="margin-top:12px;">
+          <button class="btn-secondary" id="resetBtn" type="button">초기화</button>
+          <button class="btn-primary" id="searchBtn" type="button">Catalog 조회</button>
+          <button class="btn-primary" id="newBtn" type="button">신규 등록</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="response-meta" id="resultMeta"><span class="empty">조회 대기</span></section>
+
+    <section class="panel table-panel">
+      <div class="panel-head">
+        <h2>TB_OM_SVC_CATALOG</h2>
+        <span id="resultCount" class="group-tag">0건</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>serviceCode</th>
+              <th>name</th>
+              <th>biz</th>
+              <th>status</th>
+              <th>enabled</th>
+              <th>systems</th>
+              <th>trm</th>
+              <th>brc</th>
+              <th>sync</th>
+              <th>time</th>
+              <th>timeout</th>
+              <th>TPS</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="resultBody"><tr><td colspan="13" class="empty">데이터 없음</td></tr></tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <button class="btn-secondary" id="prevPageBtn" type="button" disabled>이전</button>
+        <span id="pageInfo">1 / 1</span>
+        <button class="btn-secondary" id="nextPageBtn" type="button" disabled>다음</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal" id="editModal" hidden>
+    <div class="modal-backdrop" data-close="true"></div>
+    <div class="modal-card error-modal-card" role="dialog" aria-modal="true" style="max-width:860px;">
+      <div class="panel-head">
+        <h2 id="editTitle">Service Catalog 등록</h2>
+        <button class="btn-secondary" type="button" data-close="true">닫기</button>
+      </div>
+      <div class="modal-body">
+        <p class="hint">STOP/MAINTENANCE/enabled=N 저장 시 reason 필수. timeoutMs &gt; 0, 시작시각 ≤ 종료시각.</p>
+        <div class="tabs" id="editTabs">
+          <button type="button" class="tab-btn active" data-tab="basic">기본정보</button>
+          <button type="button" class="tab-btn" data-tab="system">호출시스템</button>
+          <button type="button" class="tab-btn" data-tab="terminal">지점·단말</button>
+          <button type="button" class="tab-btn" data-tab="perf">성능·Timeout</button>
+          <button type="button" class="tab-btn" data-tab="dup">중복</button>
+        </div>
+
+        <div class="tab-panel" data-panel="basic">
+          <div class="form-grid">
+            <div class="field"><label for="fServiceCode">serviceCode *</label><input id="fServiceCode" placeholder="rms_svc_c"></div>
+            <div class="field"><label for="fServiceName">serviceName</label><input id="fServiceName"></div>
+            <div class="field"><label for="fBusinessCode">businessCode</label><input id="fBusinessCode" value="mk"></div>
+            <div class="field"><label for="fScid">scid</label><input id="fScid"></div>
+            <div class="field"><label for="fEnabled">enabled</label>
+              <select id="fEnabled"><option value="Y">Y</option><option value="N">N</option></select>
+            </div>
+            <div class="field"><label for="fStatus">status</label>
+              <select id="fStatus">
+                <option value="NORMAL">NORMAL</option>
+                <option value="STOP">STOP</option>
+                <option value="MAINTENANCE">MAINTENANCE</option>
+              </select>
+            </div>
+            <div class="field"><label for="fSyncType">syncType</label>
+              <select id="fSyncType"><option value="S">S</option><option value="A">A</option></select>
+            </div>
+            <div class="field"><label for="fAuditLevel">auditLevel</label><input id="fAuditLevel" value="NORMAL"></div>
+            <div class="field field-wide"><label for="fReason">reason</label><input id="fReason" placeholder="STOP/MAINT 시 필수"></div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="system" hidden>
+          <div class="form-grid">
+            <div class="field field-wide">
+              <label for="fAllowedSystemIds">allowedSystemIds (CSV / *)</label>
+              <input id="fAllowedSystemIds" value="*" placeholder="PDMK,PDMK-UI 또는 *">
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="terminal" hidden>
+          <div class="form-grid">
+            <div class="field field-wide"><label for="fAllowedTerminalTypes">allowedTerminalTypes</label><input id="fAllowedTerminalTypes" value="*"></div>
+            <div class="field field-wide"><label for="fAllowedBranches">allowedBranches</label><input id="fAllowedBranches" value="*"></div>
+            <div class="field"><label for="fAllowedStartTime">allowedStartTime</label><input id="fAllowedStartTime" value="0000"></div>
+            <div class="field"><label for="fAllowedEndTime">allowedEndTime</label><input id="fAllowedEndTime" value="2400"></div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="perf" hidden>
+          <div class="form-grid">
+            <div class="field"><label for="fTimeoutMs">timeoutMs</label><input id="fTimeoutMs" type="number" value="3000"></div>
+            <div class="field"><label for="fMaxTps">maxTps</label><input id="fMaxTps" type="number" value="100"></div>
+            <div class="field"><label for="fMaxConcurrent">maxConcurrent</label><input id="fMaxConcurrent" type="number" value="50"></div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="dup" hidden>
+          <div class="form-grid">
+            <div class="field"><label for="fDupWin">duplicateWindowSec</label><input id="fDupWin" type="number" value="0"></div>
+            <div class="field field-wide"><label for="fRequiredAuthorities">requiredAuthorities</label><input id="fRequiredAuthorities" placeholder="후속"></div>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:1rem;">
+          <button class="btn-secondary" type="button" data-close="true">취소</button>
+          <button class="btn-primary" id="saveBtn" type="button">저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/_shared/error-codes.js?v=20260809a"></script>
+    <script src="/_shared/error-popup.js?v=20260808i"></script>
+  <script src="/txcontrol/txcontrol.js?v=20260808i"></script>
+</body>
+</html>

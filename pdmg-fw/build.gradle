@@ -1,0 +1,97 @@
+plugins {
+    id 'java-library'
+    id 'eclipse'
+    id 'org.springframework.boot' version '3.5.14'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'nhnis.fw'
+version = '0.0.1-SNAPSHOT'
+
+/*
+ * 프레임워크 라이브러리 JAR.
+ * Boot 실행 가능 앱이 아니므로 bootJar는 비활성화한다.
+ */
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled = true
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+/*
+ * 사내(농협상호금융) 원본 설정 - 폐쇄망에서는 아래 블록을 되살리고
+ * 그 아래 로컬 개발용 repositories 블록을 주석 처리한다.
+ *
+ * repositories {
+ *     maven {
+ *         url = uri("http://19.88.120.152:9010/repository/maven-releases/")
+ *         allowInsecureProtocol = true
+ *     }
+ * }
+ */
+
+/* 로컬 개발 PC용 - 사내 넥서스에 접근할 수 없는 환경 */
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api 'org.springframework.boot:spring-boot-starter-web'
+    api 'org.springframework.security:spring-security-web:6.5.7'
+    api 'org.springframework.security:spring-security-config:6.5.7'
+    api 'org.springframework.boot:spring-boot-starter-security:3.5.10'
+    api 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4'
+    api 'org.springframework.boot:spring-boot-starter-webflux:3.5.14'
+    api 'org.springframework.boot:spring-boot-autoconfigure:3.5.14'
+    api 'org.springframework.boot:spring-boot-starter-aop:3.5.14'
+
+    /* Log4j2 */
+    api 'org.springframework.boot:spring-boot-starter-log4j2:3.5.10'
+    api 'org.bgee.log4jdbc-log4j2:log4jdbc-log4j2-jdbc4.1:1.16'
+
+    api 'org.apache.commons:commons-lang3:3.17.0'
+    api 'org.apache.httpcomponents.client5:httpclient5:5.5.2'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    api 'com.google.code.gson:gson:2.10.1'
+
+    /* JWT */
+    api 'io.jsonwebtoken:jjwt-api:0.13.0'
+    api 'io.jsonwebtoken:jjwt-jackson:0.13.0'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
+
+    /* 사내 JAR (있는 경우) */
+    api fileTree(dir: 'libs', include: ['*.jar'])
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test:6.5.7'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+configurations {
+    all {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
+    configureEach {
+        exclude group: 'io.netty', module: 'netty-resolver-dns-native-macos'
+        exclude group: 'io.netty', module: 'netty-transport-native-epoll'
+        exclude group: 'io.netty', module: 'netty-transport-native-kqueue'
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}

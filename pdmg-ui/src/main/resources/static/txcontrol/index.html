@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>거래통제 관리</title>
+  <script src="/_shared/ui-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+  <style>
+    .txc-top { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px;
+      padding:14px 18px; margin-bottom:12px; border-radius:12px; border:1px solid var(--border); background:var(--panel); }
+    .txc-top.on { border-color:rgba(52,211,153,.5); background:linear-gradient(135deg,rgba(52,211,153,.07),transparent); }
+    .txc-top.off { border-color:rgba(251,191,36,.4); }
+    .txc-top-left { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .txc-dot { width:10px; height:10px; border-radius:50%; }
+    .txc-dot.on { background:#34d399; box-shadow:0 0 8px rgba(52,211,153,.6); }
+    .txc-dot.off { background:#fbbf24; }
+    .txc-top-title { font-weight:600; font-size:.95rem; }
+    .txc-hint { color:var(--muted); font-size:.82rem; margin:0 0 14px; line-height:1.5; }
+    .txc-form { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:14px; }
+    .txc-form h3 { margin:0 0 12px; font-size:.92rem; color:var(--muted); font-weight:600; }
+    .txc-pills { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+    .txc-pill { border:1px solid var(--border); background:transparent; color:inherit; border-radius:999px;
+      padding:7px 13px; font-size:.8rem; cursor:pointer; transition:background .15s,border-color .15s; }
+    .txc-pill:hover { border-color:rgba(129,140,248,.6); }
+    .txc-pill.active { border-color:rgba(129,140,248,.8); background:rgba(129,140,248,.18); font-weight:600; }
+    .txc-pill:disabled { opacity:.55; cursor:not-allowed; }
+    .txc-form-row { display:grid; grid-template-columns:1.2fr auto auto 1.2fr auto; gap:10px; align-items:end; }
+    @media (max-width:960px) { .txc-form-row { grid-template-columns:1fr 1fr; } }
+    .txc-form-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:end; }
+    .txc-block-toggle { display:flex; gap:4px; }
+    .txc-block-toggle button { border:1px solid var(--border); background:transparent; color:inherit;
+      border-radius:8px; padding:8px 12px; font-size:.82rem; cursor:pointer; min-width:52px; }
+    .txc-block-toggle button.active-y { border-color:rgba(248,113,113,.6); background:rgba(248,113,113,.15); color:#fca5a5; font-weight:600; }
+    .txc-block-toggle button.active-n { border-color:rgba(52,211,153,.6); background:rgba(52,211,153,.12); color:#6ee7b7; font-weight:600; }
+    .txc-badge-block { color:#fca5a5; font-weight:600; }
+    .txc-badge-allow { color:#6ee7b7; font-weight:600; }
+    .txc-badge-global { color:#7dd3fc; font-weight:600; }
+    .txc-toolbar { margin-bottom:12px; }
+    .txc-list-status { margin:0 0 8px; color:var(--muted); font-size:.85rem; }
+    .txc-mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.86rem; }
+    #ctrlBody tr.om-row-selectable { cursor:pointer; }
+    #ctrlBody tr.om-row-selected { background:rgba(129,140,248,.12); }
+  </style>
+</head>
+<body class="pdmg-page">
+<script>
+(function(){
+  if (window.self === window.top) return;
+  document.documentElement.classList.add("pdmg-embed");
+  document.addEventListener("click", function(e){
+    var a = e.target.closest('a[href*="index.html#/"]');
+    if (!a) return;
+    e.preventDefault();
+    var href = a.getAttribute("href") || "";
+    var i = href.indexOf("#");
+    if (i >= 0) window.parent.location.hash = href.slice(i);
+  });
+})();
+</script>
+  <div class="tcf-main tcf-main--wide">
+    <header class="tcf-topbar">
+      <div class="tcf-topbar__brand">
+        <h1>거래통제 관리 · mgcoa9001</h1>
+        <p>TB_MG_TX_CONTROL · OM 거래통제(유형·대상·차단) 모델. 전체 허용 시 개별 차단이 무시됩니다.</p>
+      </div>
+      <nav class="tcf-topbar__nav" aria-label="화면 이동">
+        <a class="tcf-topbar__link" href="/index.html#/home">홈</a>
+        <a class="tcf-topbar__link" href="/index.html#/mgcoa9001">전문 테스트</a>
+        <a class="tcf-topbar__link tcf-topbar__link--active" href="/index.html#/txcontrol">관리 화면</a>
+        <span class="badge" id="targetInfo">대상 확인 중...</span>
+      </nav>
+    </header>
+
+    <section class="toolbar txc-toolbar">
+      <div class="field field-wide">
+        <label for="targetBaseUrl">pdmg-service URL</label>
+        <input id="targetBaseUrl" type="text" value="http://localhost:8080">
+      </div>
+      <div class="field">
+        <label for="optrEno">사용자 ID</label>
+        <input id="optrEno" type="text" value="sysadmin" maxlength="50">
+      </div>
+    </section>
+
+    <div class="txc-top off" id="globalBar">
+      <div class="txc-top-left">
+        <span class="txc-dot off" id="globalDot"></span>
+        <span class="txc-top-title" id="globalLabel">전체 거래 허용</span>
+      </div>
+      <div class="txc-form-actions">
+        <button class="btn-primary btn-sm" id="enableGlobalBtn" type="button">켜기</button>
+        <button class="btn-secondary btn-sm" id="disableGlobalBtn" type="button">끄기</button>
+      </div>
+    </div>
+    <p class="txc-hint">통제유형을 선택하고 대상값 1건을 입력한 뒤 차단=Y 이면 해당 거래를 차단합니다. 전체 허용이 켜져 있으면 개별 차단이 무시됩니다.</p>
+
+    <div class="txc-form">
+      <h3 id="formTitle">규칙 등록</h3>
+      <div class="txc-pills" id="typePills"></div>
+      <div class="txc-form-row">
+        <div class="field" id="targetWrap">
+          <label for="fTargetInput">통제 대상</label>
+          <input id="fTargetInput" type="text" placeholder="mgcoa5530S0">
+        </div>
+        <div class="field">
+          <span class="label">차단</span>
+          <div class="txc-block-toggle">
+            <button type="button" id="blockY">차단</button>
+            <button type="button" id="blockN">허용</button>
+          </div>
+        </div>
+        <div class="field field-wide">
+          <label for="fReason">변경 사유</label>
+          <input id="fReason" type="text" placeholder="5자 이상">
+        </div>
+        <div class="txc-form-actions">
+          <button class="btn-primary" id="saveBtn" type="button">규칙 저장</button>
+          <button class="btn-secondary" id="cancelBtn" type="button">취소</button>
+          <button class="btn-secondary" id="deleteBtn" type="button" hidden>삭제</button>
+        </div>
+      </div>
+    </div>
+
+    <section class="toolbar txc-toolbar">
+      <div class="field field-wide">
+        <label for="filterKw">검색</label>
+        <input id="filterKw" type="text" placeholder="대상값 키워드">
+      </div>
+      <div class="field">
+        <label for="filterControlType">통제유형</label>
+        <select id="filterControlType">
+          <option value="">전체</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="pageSize">페이지 크기</label>
+        <select id="pageSize">
+          <option value="10">10</option>
+          <option value="20" selected>20</option>
+          <option value="50">50</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button class="btn-primary" id="searchBtn" type="button">조회</button>
+      </div>
+    </section>
+
+    <p class="txc-list-status" id="listStatus">-</p>
+    <section class="panel table-panel">
+      <div class="panel-head">
+        <h2>통제 규칙 목록</h2>
+        <span id="resultCount" class="group-tag">0건</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="resultTable">
+          <thead>
+            <tr>
+              <th>유형</th>
+              <th>대상</th>
+              <th>상태</th>
+              <th>변경 사유</th>
+              <th>등록일시</th>
+            </tr>
+          </thead>
+          <tbody id="ctrlBody">
+            <tr><td colspan="5" class="empty">조회 후 결과가 표시됩니다.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pager" id="pager">
+        <button class="btn-secondary" id="prevPageBtn" type="button" disabled>이전</button>
+        <span id="pageInfo">1 / 1</span>
+        <button class="btn-secondary" id="nextPageBtn" type="button" disabled>다음</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="/_shared/error-codes.js"></script>
+  <script src="/_shared/error-popup.js"></script>
+  <script src="/_shared/service-client.js"></script>
+  <script src="/txcontrol/txcontrol.js"></script>
+</body>
+</html>

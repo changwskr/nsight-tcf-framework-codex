@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.mg.jw.a.persistence.dao.mgjwa1003DAO">
+<sql id="refreshTokenWhere">
+        <where>
+            <if test="userId != null and userId != ''">
+                AND R.USER_ID = #{userId}
+            </if>
+            <if test="revokedYn != null and revokedYn != ''">
+                AND R.REVOKED_YN = #{revokedYn}
+            </if>
+            <if test="activeOnly != null and activeOnly != ''">
+                AND R.REVOKED_YN = 'N'
+                AND R.ROTATED_YN = 'N'
+                AND R.EXPIRES_AT &gt; CURRENT_TIMESTAMP
+            </if>
+        </where>
+    </sql>
+<select id="searchRefreshTokens" parameterType="map" resultType="map">
+        SELECT R.REFRESH_TOKEN_ID AS "refreshTokenId",
+               R.USER_ID AS "userId",
+               U.USER_NAME AS "userName",
+               R.TOKEN_HASH AS "tokenHash",
+               R.TOKEN_FAMILY_ID AS "tokenFamilyId",
+               R.ISSUED_AT AS "issuedAt",
+               R.EXPIRES_AT AS "expiresAt",
+               R.LAST_USED_AT AS "lastUsedAt",
+               R.ROTATED_YN AS "rotatedYn",
+               R.REVOKED_YN AS "revokedYn",
+               R.REVOKED_AT AS "revokedAt",
+               R.CLIENT_IP AS "clientIp",
+               R.USER_AGENT AS "userAgent"
+          FROM TCF_REFRESH_TOKEN R
+          LEFT JOIN OM_USER U ON R.USER_ID = U.USER_ID
+        <include refid="refreshTokenWhere"/>
+         ORDER BY R.ISSUED_AT DESC
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+<select id="countRefreshTokens" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+          FROM TCF_REFRESH_TOKEN R
+        <include refid="refreshTokenWhere"/>
+    </select>
+</mapper>

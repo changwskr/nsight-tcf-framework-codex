@@ -1,0 +1,332 @@
+﻿{
+    "table":  {
+                  "id":  "column:RDW:TB_FW_IMAGE_LOG:GUID",
+                  "type":  "COLUMN",
+                  "name":  "GUID",
+                  "description":  "PK GUID",
+                  "attributes":  {
+                                     "tableName":  "TB_FW_IMAGE_LOG",
+                                     "columnName":  "GUID",
+                                     "pk":  true
+                                 },
+                  "version":  "1.0",
+                  "status":  "ACTIVE",
+                  "provenance":  {
+                                     "sourceType":  "YAML_MAPPING",
+                                     "sourceSystem":  "pdmg",
+                                     "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                     "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                     "discoveredBy":  "YamlGraphLoader",
+                                     "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                                     "verificationStatus":  "VERIFIED"
+                                 }
+              },
+    "affectedSqlIds":  [
+                           "mgcoa8888D0_D0",
+                           "mgcoa8888S0_S0",
+                           "mgcoa8888S0_S0_count"
+                       ],
+    "affectedMappers":  [
+                            "mgcoa8888-ORA.xml"
+                        ],
+    "affectedDaos":  [
+                         "mgcoa8888DAO"
+                     ],
+    "affectedServices":  [
+                             "mgcoa8888Service"
+                         ],
+    "affectedFacades":  [
+                            "mgcoa8888Facade"
+                        ],
+    "affectedHandlers":  [
+                             "mgcoa8888Handler"
+                         ],
+    "affectedServiceIds":  [
+                               "mgcoa8888D0",
+                               "mgcoa8888S0"
+                           ],
+    "affectedPrograms":  [
+                             "mgcoa8888"
+                         ],
+    "affectedBusinesses":  [
+                               "CO"
+                           ],
+    "paths":  [
+                  [
+                      {
+                          "from":  "service:mgcoa8888D0",
+                          "fromType":  "SERVICE_ID",
+                          "fromName":  "mgcoa8888D0",
+                          "predicate":  "HANDLED_BY",
+                          "to":  "column:RDW:TB_FW_IMAGE_LOG:GUID",
+                          "note":  "synthesized-from-design-structure"
+                      },
+                      {
+                          "to":  "column:RDW:TB_FW_IMAGE_LOG:GUID",
+                          "predicate":  "HAS_COLUMN",
+                          "from":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "graphType":  "DESIGN",
+                          "fromType":  "TABLE",
+                          "fromName":  "TB_FW_IMAGE_LOG"
+                      },
+                      {
+                          "to":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "predicate":  "ACCESSES",
+                          "from":  "mapper:rdw.mg.co.a/mgcoa8888-ORA.xml",
+                          "graphType":  "DESIGN",
+                          "fromType":  "MAPPER",
+                          "fromName":  "mgcoa8888-ORA.xml"
+                      },
+                      {
+                          "to":  "mapper:rdw.mg.co.a/mgcoa8888-ORA.xml",
+                          "predicate":  "EXECUTES",
+                          "from":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888DAO"
+                      },
+                      {
+                          "to":  "column:RDW:TB_FW_IMAGE_LOG:GUID",
+                          "predicate":  "HAS_COLUMN",
+                          "from":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "graphType":  "DESIGN",
+                          "fromType":  "TABLE",
+                          "fromName":  "TB_FW_IMAGE_LOG"
+                      },
+                      {
+                          "to":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "predicate":  "ACCESSES",
+                          "from":  "sql:mgcoa8888S0_S0_count",
+                          "graphType":  "DESIGN",
+                          "fromType":  "SQL_ID",
+                          "fromName":  "mgcoa8888S0_S0_count"
+                      },
+                      {
+                          "to":  "sql:mgcoa8888S0_S0_count",
+                          "predicate":  "EXECUTES",
+                          "from":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888DAO"
+                      },
+                      {
+                          "to":  "column:RDW:TB_FW_IMAGE_LOG:GUID",
+                          "predicate":  "HAS_COLUMN",
+                          "from":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "graphType":  "DESIGN",
+                          "fromType":  "TABLE",
+                          "fromName":  "TB_FW_IMAGE_LOG"
+                      },
+                      {
+                          "to":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "predicate":  "ACCESSES",
+                          "from":  "sql:mgcoa8888S0_S0",
+                          "graphType":  "DESIGN",
+                          "fromType":  "SQL_ID",
+                          "fromName":  "mgcoa8888S0_S0"
+                      },
+                      {
+                          "to":  "sql:mgcoa8888S0_S0",
+                          "predicate":  "EXECUTES",
+                          "from":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888DAO"
+                      },
+                      {
+                          "to":  "column:RDW:TB_FW_IMAGE_LOG:GUID",
+                          "predicate":  "HAS_COLUMN",
+                          "from":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "graphType":  "DESIGN",
+                          "fromType":  "TABLE",
+                          "fromName":  "TB_FW_IMAGE_LOG"
+                      },
+                      {
+                          "to":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "predicate":  "ACCESSES",
+                          "from":  "sql:mgcoa8888D0_D0",
+                          "graphType":  "DESIGN",
+                          "fromType":  "SQL_ID",
+                          "fromName":  "mgcoa8888D0_D0"
+                      },
+                      {
+                          "to":  "sql:mgcoa8888D0_D0",
+                          "predicate":  "EXECUTES",
+                          "from":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888DAO"
+                      },
+                      {
+                          "to":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                          "predicate":  "USES",
+                          "from":  "component:nhnis.mg.co.a.application.service.mgcoa8888Service",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888Service"
+                      },
+                      {
+                          "to":  "component:nhnis.mg.co.a.application.service.mgcoa8888Service",
+                          "predicate":  "CALLS",
+                          "from":  "component:nhnis.mg.co.a.application.facade.mgcoa8888Facade",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888Facade"
+                      },
+                      {
+                          "to":  "component:nhnis.mg.co.a.application.facade.mgcoa8888Facade",
+                          "predicate":  "CALLS",
+                          "from":  "component:nhnis.mg.co.a.entry.handler.mgcoa8888Handler",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888Handler"
+                      },
+                      {
+                          "to":  "component:nhnis.mg.co.a.entry.handler.mgcoa8888Handler",
+                          "predicate":  "HANDLED_BY",
+                          "from":  "service:mgcoa8888D0",
+                          "graphType":  "DESIGN",
+                          "fromType":  "SERVICE_ID",
+                          "fromName":  "mgcoa8888D0"
+                      }
+                  ],
+                  [
+                      {
+                          "from":  "service:mgcoa8888S0",
+                          "fromType":  "SERVICE_ID",
+                          "fromName":  "mgcoa8888S0",
+                          "predicate":  "HANDLED_BY",
+                          "to":  "column:RDW:TB_FW_IMAGE_LOG:GUID",
+                          "note":  "synthesized-from-design-structure"
+                      },
+                      {
+                          "to":  "column:RDW:TB_FW_IMAGE_LOG:GUID",
+                          "predicate":  "HAS_COLUMN",
+                          "from":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "graphType":  "DESIGN",
+                          "fromType":  "TABLE",
+                          "fromName":  "TB_FW_IMAGE_LOG"
+                      },
+                      {
+                          "to":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "predicate":  "ACCESSES",
+                          "from":  "mapper:rdw.mg.co.a/mgcoa8888-ORA.xml",
+                          "graphType":  "DESIGN",
+                          "fromType":  "MAPPER",
+                          "fromName":  "mgcoa8888-ORA.xml"
+                      },
+                      {
+                          "to":  "mapper:rdw.mg.co.a/mgcoa8888-ORA.xml",
+                          "predicate":  "EXECUTES",
+                          "from":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888DAO"
+                      },
+                      {
+                          "to":  "column:RDW:TB_FW_IMAGE_LOG:GUID",
+                          "predicate":  "HAS_COLUMN",
+                          "from":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "graphType":  "DESIGN",
+                          "fromType":  "TABLE",
+                          "fromName":  "TB_FW_IMAGE_LOG"
+                      },
+                      {
+                          "to":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "predicate":  "ACCESSES",
+                          "from":  "sql:mgcoa8888S0_S0_count",
+                          "graphType":  "DESIGN",
+                          "fromType":  "SQL_ID",
+                          "fromName":  "mgcoa8888S0_S0_count"
+                      },
+                      {
+                          "to":  "sql:mgcoa8888S0_S0_count",
+                          "predicate":  "EXECUTES",
+                          "from":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888DAO"
+                      },
+                      {
+                          "to":  "column:RDW:TB_FW_IMAGE_LOG:GUID",
+                          "predicate":  "HAS_COLUMN",
+                          "from":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "graphType":  "DESIGN",
+                          "fromType":  "TABLE",
+                          "fromName":  "TB_FW_IMAGE_LOG"
+                      },
+                      {
+                          "to":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "predicate":  "ACCESSES",
+                          "from":  "sql:mgcoa8888S0_S0",
+                          "graphType":  "DESIGN",
+                          "fromType":  "SQL_ID",
+                          "fromName":  "mgcoa8888S0_S0"
+                      },
+                      {
+                          "to":  "sql:mgcoa8888S0_S0",
+                          "predicate":  "EXECUTES",
+                          "from":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888DAO"
+                      },
+                      {
+                          "to":  "column:RDW:TB_FW_IMAGE_LOG:GUID",
+                          "predicate":  "HAS_COLUMN",
+                          "from":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "graphType":  "DESIGN",
+                          "fromType":  "TABLE",
+                          "fromName":  "TB_FW_IMAGE_LOG"
+                      },
+                      {
+                          "to":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "predicate":  "ACCESSES",
+                          "from":  "sql:mgcoa8888D0_D0",
+                          "graphType":  "DESIGN",
+                          "fromType":  "SQL_ID",
+                          "fromName":  "mgcoa8888D0_D0"
+                      },
+                      {
+                          "to":  "sql:mgcoa8888D0_D0",
+                          "predicate":  "EXECUTES",
+                          "from":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888DAO"
+                      },
+                      {
+                          "to":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                          "predicate":  "USES",
+                          "from":  "component:nhnis.mg.co.a.application.service.mgcoa8888Service",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888Service"
+                      },
+                      {
+                          "to":  "component:nhnis.mg.co.a.application.service.mgcoa8888Service",
+                          "predicate":  "CALLS",
+                          "from":  "component:nhnis.mg.co.a.application.facade.mgcoa8888Facade",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888Facade"
+                      },
+                      {
+                          "to":  "component:nhnis.mg.co.a.application.facade.mgcoa8888Facade",
+                          "predicate":  "CALLS",
+                          "from":  "component:nhnis.mg.co.a.entry.handler.mgcoa8888Handler",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888Handler"
+                      },
+                      {
+                          "to":  "component:nhnis.mg.co.a.entry.handler.mgcoa8888Handler",
+                          "predicate":  "HANDLED_BY",
+                          "from":  "service:mgcoa8888S0",
+                          "graphType":  "DESIGN",
+                          "fromType":  "SERVICE_ID",
+                          "fromName":  "mgcoa8888S0"
+                      }
+                  ]
+              ]
+}

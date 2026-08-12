@@ -1,0 +1,34 @@
+{
+  "hdr_nhnis": {
+    "sys_comm": {
+      "rms_svc_c": "mgcoa9001U0",
+      "sync_dsc": "S",
+      "tr_sysid": "PDMG",
+      "ttl_ug_ync": 0,
+      "std_tgrm_rqr_rsp_dsc": "Q",
+      "std_tgrm_lclc": "KO",
+      "tr_trm_ipadr": "127.0.0.1",
+      "tr_dtm": "20260810000000",
+      "tr_brc": "10001",
+      "trmno": "LOCAL01",
+      "trm_kdc": "01",
+      "scid": "mgcoa9001",
+      "optr_eno": "E0000001",
+      "tr_optrnm": "LOCAL_TESTER"
+    }
+  },
+  "dto": {
+    "serviceId": "mgcoa9999S0",
+    "transactionCode": "*",
+    "businessCode": "*",
+    "serviceName": "*",
+    "userId": "*",
+    "channelId": "*",
+    "branchId": "*",
+    "controlType": "SERVICE",
+    "targetValue": "mgcoa9999S0",
+    "blockYn": "N",
+    "changeReason": "샘플 서비스 허용으로 변경",
+    "chgUserId": "E0000001"
+  }
+}

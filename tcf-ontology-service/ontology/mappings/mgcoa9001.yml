@@ -1,0 +1,92 @@
+'@context':
+  '@vocab': 'https://nsight.local/ontology#'
+'@id': nsight:mapping-mgcoa9001
+'@type': ProgramMapping
+version: '0.1.0'
+programId: mgcoa9001
+title: 거래통제
+majorGroup: MG
+businessCode: CO
+functionCode: A
+functionName: 공통관리
+identifier: '9001'
+packageRoot: nhnis.mg.co.a
+modules:
+  fw: pdmg-fw
+  service: pdmg-service
+  ui: pdmg-ui
+architecture:
+  runtimeRef: nsight:technical-tx-runtime
+  txBoundary: inside-worker-tx
+  notes:
+    - TCF ON 시 Handler → Facade
+    - Facade @Transactional(rdw, REQUIRED) 가 Worker TX에 참여
+    - 런타임 Filter/Interceptor 거래통제 강제(enforce)는 미포함 — CRUD 마스터만
+development:
+  handler: nhnis.mg.co.a.entry.handler.mgcoa9001Handler
+  facade: nhnis.mg.co.a.application.facade.mgcoa9001Facade
+  controller: nhnis.mg.co.a.application.controller.mgcoa9001Controller
+  service: nhnis.mg.co.a.application.service.mgcoa9001Service
+  dao: nhnis.mg.co.a.persistence.dao.mgcoa9001DAO
+services:
+  - serviceId: mgcoa9001S0
+    op: S
+    method: mgcoa9001S0
+    dtoIn: nhnis.mg.co.a.dto.mgcoa9001S0DTOin
+    dtoOut: nhnis.mg.co.a.dto.mgcoa9001S0DTOout
+    sqlIds: [mgcoa9001S0_S0, mgcoa9001S0_S0_count, mgcoa9001S0_S0_exists]
+  - serviceId: mgcoa9001C0
+    op: C
+    method: mgcoa9001C0
+    dtoIn: nhnis.mg.co.a.dto.mgcoa9001C0DTOin
+    dtoOut: nhnis.mg.co.a.dto.mgcoa9001C0DTOout
+    sqlIds: [mgcoa9001C0_C0]
+  - serviceId: mgcoa9001U0
+    op: U
+    method: mgcoa9001U0
+    dtoIn: nhnis.mg.co.a.dto.mgcoa9001U0DTOin
+    dtoOut: nhnis.mg.co.a.dto.mgcoa9001U0DTOout
+    sqlIds: [mgcoa9001U0_U0]
+  - serviceId: mgcoa9001D0
+    op: D
+    method: mgcoa9001D0
+    dtoIn: nhnis.mg.co.a.dto.mgcoa9001D0DTOin
+    dtoOut: nhnis.mg.co.a.dto.mgcoa9001D0DTOout
+    sqlIds: [mgcoa9001D0_D0]
+data:
+  mapperXml: rdw.mg.co.a/mgcoa9001-ORA.xml
+  namespace: nhnis.mg.co.a.persistence.dao.mgcoa9001DAO
+  table: TB_MG_TX_CONTROL
+  pk:
+    - SERVICE_ID
+    - TRANSACTION_CODE
+    - BUSINESS_CODE
+    - SERVICE_NAME
+    - USER_ID
+    - CHANNEL_ID
+    - BRANCH_ID
+  deleteMode: physical
+operations:
+  uiRoute: /mgcoa9001/index.html
+  adminRoute: /txcontrol/index.html
+  shellView: mgcoa9001
+  samples:
+    - sample-requests/mgcoa9001-list.json
+    - sample-requests/mgcoa9001-create.json
+    - sample-requests/mgcoa9001-update.json
+    - sample-requests/mgcoa9001-delete.json
+  exceptionCodes: [MP0401, MP0403, MP0404, MP0409]
+  envelope:
+    success: '{ hdr_nhnis, dto }'
+    error: '{ hdr_nhnis, result }'
+  configKeys:
+    - nhnis.fw.tcf.enabled
+    - nhnis.fw.timeout.enabled
+    - nhnis.fw.timeout.milliseconds
+rulesRef:
+  - R-HANDLER-NO-DAO
+  - R-TX-OWNER-EXECUTOR
+  - R-NAMING-SERVICEID-METHOD
+  - R-PROGRAM-SINGLE-HANDLER
+shapesRef:
+  - nsight:shape-service-id

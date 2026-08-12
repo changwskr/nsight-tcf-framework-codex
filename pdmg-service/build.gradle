@@ -41,8 +41,8 @@ repositories {
 }
 
 dependencies {
-    /* TCF/공통 FW는 pdmk-fw에서 제공 (내장 nhnis.fw 소스 제거) */
-    implementation project(':pdmk-fw')
+    /* TCF/공통 FW는 pdmg-fw에서 제공 (내장 nhnis.fw 소스 제거) */
+    implementation project(':pdmg-fw')
 
     providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
     compileOnly 'org.projectlombok:lombok'
@@ -105,7 +105,7 @@ tasks.withType(Test).configureEach {
 
 /* Cursor Run/Debug: Gradle 클래스패스를 launch.json에 고정 (jdt.ls-java-project 우회) */
 tasks.register('writeIdeLaunch') {
-    dependsOn classes, ':pdmk-fw:jar'
+    dependsOn classes, ':pdmg-fw:jar'
     doLast {
         def outDir = file("${rootProject.projectDir}/../.vscode")
         outDir.mkdirs()

@@ -1,0 +1,805 @@
+﻿{
+    "status":  "PASS",
+    "failCount":  0,
+    "findings":  [
+                     {
+                         "ruleId":  "RULE-001",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9000S0",
+                         "message":  "ServiceId format OK",
+                         "evidence":  {
+                                          "serviceId":  "mgcoa9000S0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9000.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9000.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-001",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9001U0",
+                         "message":  "ServiceId format OK",
+                         "evidence":  {
+                                          "serviceId":  "mgcoa9001U0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9001.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9001.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-001",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9000C0",
+                         "message":  "ServiceId format OK",
+                         "evidence":  {
+                                          "serviceId":  "mgcoa9000C0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9000.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9000.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-001",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa8888D0",
+                         "message":  "ServiceId format OK",
+                         "evidence":  {
+                                          "serviceId":  "mgcoa8888D0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.175444Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-001",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9001D0",
+                         "message":  "ServiceId format OK",
+                         "evidence":  {
+                                          "serviceId":  "mgcoa9001D0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9001.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9001.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-001",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9001S0",
+                         "message":  "ServiceId format OK",
+                         "evidence":  {
+                                          "serviceId":  "mgcoa9001S0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9001.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9001.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-001",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9001C0",
+                         "message":  "ServiceId format OK",
+                         "evidence":  {
+                                          "serviceId":  "mgcoa9001C0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9001.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9001.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-001",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa5530S0",
+                         "message":  "ServiceId format OK",
+                         "evidence":  {
+                                          "serviceId":  "mgcoa5530S0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.166414800Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-001",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9000U0",
+                         "message":  "ServiceId format OK",
+                         "evidence":  {
+                                          "serviceId":  "mgcoa9000U0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9000.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9000.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-001",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9999S0",
+                         "message":  "ServiceId format OK",
+                         "evidence":  {
+                                          "serviceId":  "mgcoa9999S0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9999.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9999.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.177456100Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-001",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9000D0",
+                         "message":  "ServiceId format OK",
+                         "evidence":  {
+                                          "serviceId":  "mgcoa9000D0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9000.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9000.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-001",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa8888S0",
+                         "message":  "ServiceId format OK",
+                         "evidence":  {
+                                          "serviceId":  "mgcoa8888S0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.175444Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-002",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9000S0",
+                         "message":  "HANDLED_BY present",
+                         "evidence":  {
+                                          "serviceConceptId":  "service:mgcoa9000S0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9000.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9000.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-002",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9001U0",
+                         "message":  "HANDLED_BY present",
+                         "evidence":  {
+                                          "serviceConceptId":  "service:mgcoa9001U0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9001.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9001.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-002",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9000C0",
+                         "message":  "HANDLED_BY present",
+                         "evidence":  {
+                                          "serviceConceptId":  "service:mgcoa9000C0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9000.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9000.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-002",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa8888D0",
+                         "message":  "HANDLED_BY present",
+                         "evidence":  {
+                                          "serviceConceptId":  "service:mgcoa8888D0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.175444Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-002",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9001D0",
+                         "message":  "HANDLED_BY present",
+                         "evidence":  {
+                                          "serviceConceptId":  "service:mgcoa9001D0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9001.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9001.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-002",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9001S0",
+                         "message":  "HANDLED_BY present",
+                         "evidence":  {
+                                          "serviceConceptId":  "service:mgcoa9001S0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9001.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9001.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-002",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9001C0",
+                         "message":  "HANDLED_BY present",
+                         "evidence":  {
+                                          "serviceConceptId":  "service:mgcoa9001C0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9001.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9001.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-002",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa5530S0",
+                         "message":  "HANDLED_BY present",
+                         "evidence":  {
+                                          "serviceConceptId":  "service:mgcoa5530S0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.166414800Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-002",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9000U0",
+                         "message":  "HANDLED_BY present",
+                         "evidence":  {
+                                          "serviceConceptId":  "service:mgcoa9000U0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9000.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9000.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-002",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9999S0",
+                         "message":  "HANDLED_BY present",
+                         "evidence":  {
+                                          "serviceConceptId":  "service:mgcoa9999S0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9999.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9999.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.177456100Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-002",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9000D0",
+                         "message":  "HANDLED_BY present",
+                         "evidence":  {
+                                          "serviceConceptId":  "service:mgcoa9000D0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9000.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9000.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-002",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa8888S0",
+                         "message":  "HANDLED_BY present",
+                         "evidence":  {
+                                          "serviceConceptId":  "service:mgcoa8888S0"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.175444Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-003",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa5530Handler",
+                         "message":  "Handler-ServiceId relations consistent with programId",
+                         "evidence":  {
+                                          "programId":  "mgcoa5530",
+                                          "linkedServiceIds":  [
+                                                                   "mgcoa5530S0"
+                                                               ]
+                                      },
+                         "source":  {
+                                        "sourceType":  "SOURCE_CODE",
+                                        "sourceSystem":  "pdmg-service",
+                                        "sourcePath":  "pdmg-service/src/main/java/nhnis/mg/co/a/entry/handler/mgcoa5530Handler.java",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.172432700Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-003",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9001Handler",
+                         "message":  "Handler-ServiceId relations consistent with programId",
+                         "evidence":  {
+                                          "programId":  "mgcoa9001",
+                                          "linkedServiceIds":  [
+                                                                   "mgcoa9001U0",
+                                                                   "mgcoa9001S0",
+                                                                   "mgcoa9001C0",
+                                                                   "mgcoa9001D0"
+                                                               ]
+                                      },
+                         "source":  {
+                                        "sourceType":  "SOURCE_CODE",
+                                        "sourceSystem":  "pdmg-service",
+                                        "sourcePath":  "pdmg-service/src/main/java/nhnis/mg/co/a/entry/handler/mgcoa9001Handler.java",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-003",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9999Handler",
+                         "message":  "Handler-ServiceId relations consistent with programId",
+                         "evidence":  {
+                                          "programId":  "mgcoa9999",
+                                          "linkedServiceIds":  [
+                                                                   "mgcoa9999S0"
+                                                               ]
+                                      },
+                         "source":  {
+                                        "sourceType":  "SOURCE_CODE",
+                                        "sourceSystem":  "pdmg-service",
+                                        "sourcePath":  "pdmg-service/src/main/java/nhnis/mg/co/a/entry/handler/mgcoa9999Handler.java",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.177456100Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-003",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9000Handler",
+                         "message":  "Handler-ServiceId relations consistent with programId",
+                         "evidence":  {
+                                          "programId":  "mgcoa9000",
+                                          "linkedServiceIds":  [
+                                                                   "mgcoa9000C0",
+                                                                   "mgcoa9000D0",
+                                                                   "mgcoa9000U0",
+                                                                   "mgcoa9000S0"
+                                                               ]
+                                      },
+                         "source":  {
+                                        "sourceType":  "SOURCE_CODE",
+                                        "sourceSystem":  "pdmg-service",
+                                        "sourcePath":  "pdmg-service/src/main/java/nhnis/mg/co/a/entry/handler/mgcoa9000Handler.java",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-003",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa8888Handler",
+                         "message":  "Handler-ServiceId relations consistent with programId",
+                         "evidence":  {
+                                          "programId":  "mgcoa8888",
+                                          "linkedServiceIds":  [
+                                                                   "mgcoa8888D0",
+                                                                   "mgcoa8888S0"
+                                                               ]
+                                      },
+                         "source":  {
+                                        "sourceType":  "SOURCE_CODE",
+                                        "sourceSystem":  "pdmg-service",
+                                        "sourcePath":  "pdmg-service/src/main/java/nhnis/mg/co/a/entry/handler/mgcoa8888Handler.java",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.175444Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-004",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9999",
+                         "message":  "Program provides ServiceId",
+                         "evidence":  {
+                                          "programConceptId":  "program:MG:CO:A:9999"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9999.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9999.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.177456100Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-004",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa5530",
+                         "message":  "Program provides ServiceId",
+                         "evidence":  {
+                                          "programConceptId":  "program:MG:CO:A:5530"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.166414800Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-004",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa8888",
+                         "message":  "Program provides ServiceId",
+                         "evidence":  {
+                                          "programConceptId":  "program:MG:CO:A:8888"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.175444Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-004",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9001",
+                         "message":  "Program provides ServiceId",
+                         "evidence":  {
+                                          "programConceptId":  "program:MG:CO:A:9001"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9001.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9001.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-004",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9000",
+                         "message":  "Program provides ServiceId",
+                         "evidence":  {
+                                          "programConceptId":  "program:MG:CO:A:9000"
+                                      },
+                         "source":  {
+                                        "sourceType":  "YAML_MAPPING",
+                                        "sourceSystem":  "pdmg",
+                                        "sourcePath":  "ontology/mappings/mgcoa9000.yml",
+                                        "sourceDocument":  "ontology/mappings/mgcoa9000.yml",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-005",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa5530Service",
+                         "message":  "Service has USES/CALLS dependency",
+                         "evidence":  {
+                                          "serviceConceptId":  "component:nhnis.mg.co.a.application.service.mgcoa5530Service"
+                                      },
+                         "source":  {
+                                        "sourceType":  "SOURCE_CODE",
+                                        "sourceSystem":  "pdmg-service",
+                                        "sourcePath":  "pdmg-service/src/main/java/nhnis/mg/co/a/application/service/mgcoa5530Service.java",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.172432700Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-005",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9000Service",
+                         "message":  "Service has USES/CALLS dependency",
+                         "evidence":  {
+                                          "serviceConceptId":  "component:nhnis.mg.co.a.application.service.mgcoa9000Service"
+                                      },
+                         "source":  {
+                                        "sourceType":  "SOURCE_CODE",
+                                        "sourceSystem":  "pdmg-service",
+                                        "sourcePath":  "pdmg-service/src/main/java/nhnis/mg/co/a/application/service/mgcoa9000Service.java",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-005",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9999Service",
+                         "message":  "Service has USES/CALLS dependency",
+                         "evidence":  {
+                                          "serviceConceptId":  "component:nhnis.mg.co.a.application.service.mgcoa9999Service"
+                                      },
+                         "source":  {
+                                        "sourceType":  "SOURCE_CODE",
+                                        "sourceSystem":  "pdmg-service",
+                                        "sourcePath":  "pdmg-service/src/main/java/nhnis/mg/co/a/application/service/mgcoa9999Service.java",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.177456100Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-005",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9001Service",
+                         "message":  "Service has USES/CALLS dependency",
+                         "evidence":  {
+                                          "serviceConceptId":  "component:nhnis.mg.co.a.application.service.mgcoa9001Service"
+                                      },
+                         "source":  {
+                                        "sourceType":  "SOURCE_CODE",
+                                        "sourceSystem":  "pdmg-service",
+                                        "sourcePath":  "pdmg-service/src/main/java/nhnis/mg/co/a/application/service/mgcoa9001Service.java",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-005",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa8888Service",
+                         "message":  "Service has USES/CALLS dependency",
+                         "evidence":  {
+                                          "serviceConceptId":  "component:nhnis.mg.co.a.application.service.mgcoa8888Service"
+                                      },
+                         "source":  {
+                                        "sourceType":  "SOURCE_CODE",
+                                        "sourceSystem":  "pdmg-service",
+                                        "sourcePath":  "pdmg-service/src/main/java/nhnis/mg/co/a/application/service/mgcoa8888Service.java",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.175444Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-006",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9999DAO",
+                         "message":  "DAO EXECUTES Mapper/SqlId",
+                         "evidence":  {
+                                          "daoConceptId":  "component:nhnis.mg.co.a.persistence.dao.mgcoa9999DAO"
+                                      },
+                         "source":  {
+                                        "sourceType":  "SOURCE_CODE",
+                                        "sourceSystem":  "pdmg-service",
+                                        "sourcePath":  "pdmg-service/src/main/java/nhnis/mg/co/a/persistence/dao/mgcoa9999DAO.java",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.177456100Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-006",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa8888DAO",
+                         "message":  "DAO EXECUTES Mapper/SqlId",
+                         "evidence":  {
+                                          "daoConceptId":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO"
+                                      },
+                         "source":  {
+                                        "sourceType":  "SOURCE_CODE",
+                                        "sourceSystem":  "pdmg-service",
+                                        "sourcePath":  "pdmg-service/src/main/java/nhnis/mg/co/a/persistence/dao/mgcoa8888DAO.java",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.175444Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-006",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9001DAO",
+                         "message":  "DAO EXECUTES Mapper/SqlId",
+                         "evidence":  {
+                                          "daoConceptId":  "component:nhnis.mg.co.a.persistence.dao.mgcoa9001DAO"
+                                      },
+                         "source":  {
+                                        "sourceType":  "SOURCE_CODE",
+                                        "sourceSystem":  "pdmg-service",
+                                        "sourcePath":  "pdmg-service/src/main/java/nhnis/mg/co/a/persistence/dao/mgcoa9001DAO.java",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-006",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa9000DAO",
+                         "message":  "DAO EXECUTES Mapper/SqlId",
+                         "evidence":  {
+                                          "daoConceptId":  "component:nhnis.mg.co.a.persistence.dao.mgcoa9000DAO"
+                                      },
+                         "source":  {
+                                        "sourceType":  "SOURCE_CODE",
+                                        "sourceSystem":  "pdmg-service",
+                                        "sourcePath":  "pdmg-service/src/main/java/nhnis/mg/co/a/persistence/dao/mgcoa9000DAO.java",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.176446900Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     },
+                     {
+                         "ruleId":  "RULE-006",
+                         "verdict":  "PASS",
+                         "target":  "mgcoa5530DAO",
+                         "message":  "DAO EXECUTES Mapper/SqlId",
+                         "evidence":  {
+                                          "daoConceptId":  "component:nhnis.mg.co.a.persistence.dao.mgcoa5530DAO"
+                                      },
+                         "source":  {
+                                        "sourceType":  "SOURCE_CODE",
+                                        "sourceSystem":  "pdmg-service",
+                                        "sourcePath":  "pdmg-service/src/main/java/nhnis/mg/co/a/persistence/dao/mgcoa5530DAO.java",
+                                        "discoveredBy":  "YamlGraphLoader",
+                                        "extractedAt":  "2026-08-10T02:22:12.172432700Z",
+                                        "verificationStatus":  "VERIFIED"
+                                    }
+                     }
+                 ]
+}

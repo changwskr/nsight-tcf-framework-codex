@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.mg.jw.a.persistence.dao.mgjwa1004DAO">
+<select id="selectSecurityPolicy" parameterType="string" resultType="map">
+        SELECT POLICY_ID AS "policyId",
+               ISSUER AS "issuer",
+               AUDIENCE AS "audience",
+               ACCESS_TOKEN_VALID_MINUTES AS "accessTokenValidMinutes",
+               REFRESH_TOKEN_VALID_HOURS AS "refreshTokenValidHours",
+               ALGORITHM AS "algorithm",
+               CLOCK_SKEW_SECONDS AS "clockSkewSeconds",
+               DENYLIST_CHECK_ENABLED AS "denylistCheckEnabled",
+               REFRESH_TOKEN_ROTATION_ENABLED AS "refreshTokenRotationEnabled",
+               UPDATED_AT AS "updatedAt",
+               UPDATED_BY AS "updatedBy"
+          FROM TCF_JWT_SECURITY_POLICY
+         WHERE POLICY_ID = #{policyId}
+    </select>
+<insert id="mergeSecurityPolicy" parameterType="map">
+        MERGE INTO TCF_JWT_SECURITY_POLICY (
+            POLICY_ID, ISSUER, AUDIENCE, ACCESS_TOKEN_VALID_MINUTES, REFRESH_TOKEN_VALID_HOURS,
+            ALGORITHM, CLOCK_SKEW_SECONDS, DENYLIST_CHECK_ENABLED, REFRESH_TOKEN_ROTATION_ENABLED,
+            UPDATED_AT, UPDATED_BY
+        ) KEY (POLICY_ID) VALUES (
+            #{policyId}, #{issuer}, #{audience}, #{accessTokenValidMinutes}, #{refreshTokenValidHours},
+            #{algorithm}, #{clockSkewSeconds}, #{denylistCheckEnabled}, #{refreshTokenRotationEnabled},
+            #{updatedAt}, #{updatedBy}
+        )
+    </insert>
+</mapper>

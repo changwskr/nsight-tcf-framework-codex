@@ -1,0 +1,126 @@
+'@context':
+  '@vocab': 'https://nsight.local/ontology#'
+'@id': nsight:business-classification
+'@type': ClassificationScheme
+version: '0.1.0'
+sourceDoc: pdmg-service/docs/00.NSIGHT 애플리케이션 코드 분류표.md
+majorGroup:
+  code: MG
+  name: Market Group Platform
+businessCodes:
+  - code: CO
+    name: 공통
+    en: Common
+    functions:
+      A: { name: 공통관리, desc: "공통코드, 환경설정" }
+      B: { name: 사용자관리, desc: 사용자/권한 }
+      C: { name: 메뉴관리, desc: 메뉴 }
+      D: { name: 로그관리, desc: 공통로그 }
+  - code: IC
+    name: 통합고객
+    en: Integration Customer
+    functions:
+      A: { name: 고객통합조회, desc: 통합고객조회 }
+      B: { name: 고객통합관리, desc: 고객정보관리 }
+      C: { name: 고객통합검색, desc: 고객검색 }
+      D: { name: 고객식별, desc: 고객식별 }
+  - code: PC
+    name: 개인고객
+    en: Private Customer
+    functions:
+      A: { name: 개인고객조회, desc: 개인고객 }
+      B: { name: 개인고객관리, desc: 등록/수정 }
+  - code: BC
+    name: 기업고객
+    en: Business Customer
+    functions:
+      A: { name: 기업고객조회, desc: 기업고객 }
+      B: { name: 기업고객관리, desc: 기업정보관리 }
+  - code: MS
+    name: 미니싱글뷰
+    en: Mini Single View
+    functions:
+      A: { name: 고객요약조회, desc: Single View }
+      B: { name: 계좌요약조회, desc: 계좌요약 }
+      C: { name: 상품요약조회, desc: 상품요약 }
+  - code: SA
+    name: 상담판매
+    en: Sale
+    functions:
+      A: { name: 상담, desc: 상담업무 }
+      B: { name: 판매, desc: 판매업무 }
+      C: { name: 추천, desc: 추천상품 }
+  - code: PD
+    name: 통합상품
+    en: Product
+    note: 모듈접두 pd(pdmg)와 다름. 패키지는 nhnis.mg.pd.*
+    functions:
+      A: { name: 상품조회, desc: 상품조회 }
+      B: { name: 상품관리, desc: 상품관리 }
+      C: { name: 상품추천, desc: 추천상품 }
+  - code: CM
+    name: 캠페인
+    en: Campaign
+    functions:
+      A: { name: 캠페인조회, desc: 조회 }
+      B: { name: 캠페인생성, desc: 생성 }
+      C: { name: 캠페인실행, desc: 실행 }
+      D: { name: 캠페인결과, desc: 결과 }
+  - code: EB
+    name: EBM
+    en: Event Based Marketing
+    functions:
+      A: { name: 이벤트관리, desc: EBM }
+      B: { name: 이벤트평가, desc: 평가 }
+      C: { name: 이벤트발생, desc: 발생 }
+  - code: EP
+    name: 실시간처리
+    en: Event Processing
+    functions:
+      A: { name: 이벤트수신, desc: Kafka 등 }
+      B: { name: 이벤트처리, desc: Processing }
+      C: { name: 이벤트전송, desc: Publish }
+  - code: BP
+    name: 행동정보처리
+    en: Behavior Processing
+    functions:
+      A: { name: 행동수집, desc: 행동정보 }
+      B: { name: 행동분석, desc: 분석 }
+      C: { name: 행동가공, desc: ETL }
+  - code: BD
+    name: 고객행동데이터
+    en: Behavior Data
+    functions:
+      A: { name: 행동조회, desc: 고객행동 }
+      B: { name: 행동통계, desc: 통계 }
+      C: { name: 행동분석, desc: 분석 }
+  - code: SS
+    name: 영업지원
+    en: Sales Support
+    functions:
+      A: { name: 영업조회, desc: 영업 }
+      B: { name: 목표관리, desc: KPI }
+      C: { name: 실적관리, desc: 영업실적 }
+  - code: CS
+    name: CS
+    en: Customer Service
+    functions:
+      A: { name: VOC, desc: VOC }
+      B: { name: 민원, desc: 민원관리 }
+      C: { name: 상담이력, desc: 이력 }
+  - code: CT
+    name: 컨텐츠
+    en: Contents
+    functions:
+      A: { name: 컨텐츠조회, desc: 게시 }
+      B: { name: 컨텐츠관리, desc: 관리 }
+      C: { name: 공지관리, desc: 공지 }
+  - code: MM
+    name: 메시지
+    en: Message
+    note: 대그룹 MG와 구분. 접두 mgmma
+    functions:
+      A: { name: SMS, desc: 문자 }
+      B: { name: LMS, desc: 장문 }
+      C: { name: PUSH, desc: Push }
+      D: { name: EMAIL, desc: 메일 }

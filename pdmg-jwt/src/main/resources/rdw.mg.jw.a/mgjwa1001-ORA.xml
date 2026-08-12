@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.mg.jw.a.persistence.dao.mgjwa1001DAO">
+<sql id="jwtTokenWhere">
+        <where>
+            <if test="userId != null and userId != ''">
+                AND T.USER_ID = #{userId}
+            </if>
+            <if test="jti != null and jti != ''">
+                AND T.JTI = #{jti}
+            </if>
+            <if test="revokedYn != null and revokedYn != ''">
+                AND T.REVOKED_YN = #{revokedYn}
+            </if>
+            <if test="activeOnly != null and activeOnly != ''">
+                AND T.REVOKED_YN = 'N'
+                AND T.EXPIRES_AT &gt; CURRENT_TIMESTAMP
+            </if>
+        </where>
+    </sql>
+<select id="searchJwtTokens" parameterType="map" resultType="map">
+        SELECT T.TOKEN_ID AS "tokenId",
+               T.JTI AS "jti",
+               T.ISSUER AS "issuer",
+               T.USER_ID AS "userId",
+               U.USER_NAME AS "userName",
+               T.BRANCH_ID AS "branchId",
+               T.CHANNEL_ID AS "channelId",
+               T.AUTH_GROUP_ID AS "authGroupId",
+               T.TOKEN_TYPE AS "tokenType",
+               T.AUDIENCE AS "audience",
+               T.ISSUED_AT AS "issuedAt",
+               T.EXPIRES_AT AS "expiresAt",
+               T.REVOKED_YN AS "revokedYn",
+               T.REVOKED_AT AS "revokedAt",
+               T.REVOKE_REASON AS "revokeReason",
+               T.CLIENT_IP AS "clientIp"
+          FROM TCF_JWT_TOKEN T
+          LEFT JOIN OM_USER U ON T.USER_ID = U.USER_ID
+        <include refid="jwtTokenWhere"/>
+         ORDER BY T.ISSUED_AT DESC
+         OFFSET #{offset} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+<select id="countJwtTokens" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+          FROM TCF_JWT_TOKEN T
+        <include refid="jwtTokenWhere"/>
+    </select>
+<select id="selectJwtTokenByJti" parameterType="map" resultType="map">
+        SELECT TOKEN_ID AS "tokenId",
+               JTI AS "jti",
+               ISSUER AS "issuer",
+               USER_ID AS "userId",
+               EXPIRES_AT AS "expiresAt",
+               REVOKED_YN AS "revokedYn"
+          FROM TCF_JWT_TOKEN
+         WHERE ISSUER = #{issuer}
+           AND JTI = #{jti}
+    </select>
+</mapper>

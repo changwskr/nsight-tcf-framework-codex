@@ -16,10 +16,10 @@ import nhnis.mg.ui.support.RelayResult;
 import nhnis.mg.ui.support.TransactionInfo;
 
 /**
- * 화면이 보낸 전문을 pdmg-service로 중계한다.
+ * 화면이 보낸 전문을 pdmg-service로 중계한다 (서버사이드).
  *
- * <p>브라우저가 pdmg-service를 직접 호출하면 교차 출처가 되어 CORS 설정에 묶이므로,
- * UI 서버가 대신 호출하고 상태·소요시간을 함께 돌려준다.
+ * <p>현행 화면은 브라우저에서 pdmg-service를 직접 호출한다.
+ * 본 서비스는 카탈로그·target URL 계산 및 하위 호환 중계 API용으로 유지한다.
  */
 @Service
 public class TransactionRelayService {

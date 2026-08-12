@@ -1,0 +1,21 @@
+'@id': nsight:ontology-version
+version: '0.2.0'
+date: '2026-08-10'
+pilot: PDMG
+highlights:
+  - ADR-0001 accepted
+  - classification + naming + tx-runtime seeded
+  - all pdmg sample programs mapped (8888/9000/9001/5530/9999)
+  - impact + prompt context API
+  - import/validate scripts
+artifacts:
+  - ontology/core/concepts.yml
+  - ontology/business/classification.yml
+  - ontology/technical/tx-runtime.yml
+  - ontology/shapes/service-id.yml
+  - ontology/rules/component-boundaries.yml
+  - ontology/mappings/mgcoa8888.yml
+  - ontology/mappings/mgcoa9000.yml
+  - ontology/mappings/mgcoa9001.yml
+  - ontology/mappings/mgcoa5530.yml
+  - ontology/mappings/mgcoa9999.yml

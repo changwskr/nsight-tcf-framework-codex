@@ -1,0 +1,60 @@
+'@context':
+  '@vocab': https://nsight.local/ontology#
+'@id': nsight:mapping-mgcoa9100
+'@type': ProgramMapping
+version: 0.1.0-draft
+programId: mgcoa9100
+title: mgcoa9100
+majorGroup: MG
+businessCode: CO
+functionCode: A
+functionName: 공통관리
+identifier: '9100'
+packageRoot: nhnis.mg.co.a
+modules:
+  service: pdmg-service
+  fw: pdmg-fw
+  ui: pdmg-ui
+architecture:
+  runtimeRef: nsight:technical-tx-runtime
+  notes:
+  - auto-generated draft — review title/pk/exceptionCodes
+  txBoundary: inside-worker-tx
+development:
+  handler: nhnis.mg.co.a.entry.handler.mgcoa9100Handler
+  facade: nhnis.mg.co.a.application.facade.mgcoa9100Facade
+  controller: nhnis.mg.co.a.application.controller.mgcoa9100Controller
+  service: nhnis.mg.co.a.application.service.mgcoa9100Service
+  dao: null
+services:
+- serviceId: mgcoa9100S0
+  op: S
+  method: mgcoa9100S0
+  dtoIn: nhnis.mg.co.a.dto.mgcoa9100S0DTOin
+  sqlIds: [
+    ]
+data:
+  mapperXml: null
+  namespace: null
+  deleteMode: n/a
+operations:
+  uiRoute: /mgcoa9100/index.html
+  shellView: mgcoa9100
+  samples:
+  - sample-requests/mgcoa9100-inquiry.json
+  exceptionCodes:
+  - MP0404
+  envelope:
+    success: '{ hdr_nhnis, dto }'
+    error: '{ hdr_nhnis, result }'
+  configKeys:
+  - nhnis.fw.tcf.enabled
+  - nhnis.fw.timeout.enabled
+rulesRef:
+- R-HANDLER-NO-DAO
+- R-TX-OWNER-EXECUTOR
+- R-NAMING-SERVICEID-METHOD
+- R-PROGRAM-SINGLE-HANDLER
+shapesRef:
+- nsight:shape-service-id
+generated: true

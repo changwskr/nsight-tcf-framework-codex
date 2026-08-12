@@ -1,0 +1,28 @@
+{
+  "hdr_nhnis": {
+    "sys_comm": {
+      "rms_svc_c": "mgcoa9000U0",
+      "sync_dsc": "S",
+      "tr_sysid": "PDMG",
+      "ttl_ug_ync": 0,
+      "std_tgrm_rqr_rsp_dsc": "Q",
+      "std_tgrm_lclc": "KO",
+      "tr_trm_ipadr": "127.0.0.1",
+      "tr_dtm": "20260809000000",
+      "tr_brc": "10001",
+      "trmno": "LOCAL01",
+      "trm_kdc": "01",
+      "scid": "mgcoa9000",
+      "optr_eno": "sysadmin",
+      "tr_optrnm": "LOCAL_TESTER"
+    }
+  },
+  "dto": {
+    "txId": "mgcoa5530S0",
+    "txName": "마케팅희망고객 목록 조회(수정)",
+    "appId": "pdmg-service",
+    "pathUrl": "/mgcoa5530S0",
+    "httpMethod": "POST",
+    "chgUserId": "sysadmin"
+  }
+}

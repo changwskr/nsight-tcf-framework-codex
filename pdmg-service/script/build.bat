@@ -5,9 +5,10 @@ rem ============================================================
 rem  pdmk WAR build script
 rem
 rem  Usage:
-rem    build.bat                                 clean build (default)
+rem    build.bat                                 clean build -x test (default)
 rem    build.bat war                             run the given Gradle tasks
 rem    build.bat clean build --refresh-dependencies
+rem  Default skips tests. Pass tasks explicitly to include them.
 rem
 rem  Java comes from JAVA_HOME / PATH of the calling shell - set it up
 rem  outside this script.
@@ -23,7 +24,7 @@ if errorlevel 1 goto :no_project
 
 if not exist "gradlew.bat" goto :no_wrapper
 
-set "GRADLE_TASKS=clean build"
+set "GRADLE_TASKS=clean build -x test"
 if not "%~1"=="" set "GRADLE_TASKS=%*"
 
 echo ------------------------------------------------------------

@@ -1,0 +1,18 @@
+﻿{
+    "id":  "service:mgcoa8888S0|HANDLED_BY|component:nhnis.mg.co.a.entry.handler.mgcoa8888Handler|DESIGN",
+    "from":  "service:mgcoa8888S0",
+    "predicate":  "HANDLED_BY",
+    "to":  "component:nhnis.mg.co.a.entry.handler.mgcoa8888Handler",
+    "graphType":  "DESIGN",
+    "version":  "1.0",
+    "status":  "ACTIVE",
+    "provenance":  {
+                       "sourceType":  "YAML_MAPPING",
+                       "sourceSystem":  "pdmg",
+                       "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                       "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                       "discoveredBy":  "YamlGraphLoader",
+                       "extractedAt":  "2026-08-10T01:57:50.800145600Z",
+                       "verificationStatus":  "VERIFIED"
+                   }
+}

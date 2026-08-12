@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>런타임 진단 순서 가이드</title>
+  <script src="/_shared/ui-context.js"></script>
+  <link rel="stylesheet" href="/_shared/online.css">
+  <link rel="stylesheet" href="/_shared/om-admin.css">
+  <style>
+    .dg-wizard { max-width: 960px; }
+    .dg-progress { display:flex; gap:4px; margin-bottom:20px; overflow-x:auto; padding-bottom:4px; }
+    .dg-progress-item { flex:1; min-width:72px; text-align:center; cursor:pointer; user-select:none; }
+    .dg-progress-item.disabled { cursor:not-allowed; opacity:.45; }
+    .dg-progress-dot {
+      width:32px; height:32px; margin:0 auto 6px; border-radius:50%; border:2px solid var(--border);
+      background:var(--panel); display:flex; align-items:center; justify-content:center;
+      font-size:.82rem; font-weight:700;
+    }
+    .dg-progress-item.done .dg-progress-dot { border-color:#22c55e; background:rgba(34,197,94,.12); color:#16a34a; }
+    .dg-progress-item.current .dg-progress-dot { border-color:#3b82f6; background:rgba(59,130,246,.15); color:#2563eb; transform:scale(1.08); }
+    .dg-progress-label { font-size:.72rem; color:var(--muted); line-height:1.25; }
+    .dg-progress-item.current .dg-progress-label { color:#2563eb; font-weight:600; }
+    .dg-panel { border:1px solid var(--border); border-radius:12px; background:var(--panel); padding:20px 22px; min-height:280px; }
+    .dg-panel-head { margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); }
+    .dg-panel-title { font-size:1.15rem; font-weight:700; }
+    .dg-panel-question { color:var(--muted); font-size:.9rem; margin-top:4px; }
+    .dg-panel-guide { font-size:.88rem; color:var(--muted); line-height:1.55; margin-bottom:16px; }
+    .dg-nav { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:20px; flex-wrap:wrap; }
+    .dg-nav-left, .dg-nav-right { display:flex; gap:8px; flex-wrap:wrap; }
+    .dg-btn { padding:8px 16px; border-radius:8px; border:1px solid var(--border); background:var(--panel-2); color:var(--text); font-size:.9rem; font-weight:500; cursor:pointer; }
+    .dg-btn:hover:not(:disabled) { border-color:#3b82f6; color:#3b82f6; }
+    .dg-btn:disabled { opacity:.4; cursor:not-allowed; }
+    .dg-btn.primary { background:#3b82f6; border-color:#3b82f6; color:#fff; }
+    .dg-btn.primary:hover:not(:disabled) { background:#2563eb; color:#fff; }
+    .dg-link { display:inline-flex; align-items:center; padding:6px 12px; border-radius:6px; border:1px solid var(--border); background:var(--panel-2); text-decoration:none; color:var(--text); font-size:.85rem; }
+    .dg-link:hover { border-color:#3b82f6; color:#3b82f6; }
+    .dg-metric-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; margin-bottom:14px; }
+    .dg-metric { border:1px solid var(--border); border-radius:8px; padding:12px 14px; background:var(--panel-2); }
+    .dg-metric.warn { border-left:3px solid #f59e0b; }
+    .dg-metric.critical { border-left:3px solid #ef4444; }
+    .dg-metric.normal { border-left:3px solid #22c55e; }
+    .dg-metric .lbl { font-size:.78rem; color:var(--muted); margin-bottom:4px; }
+    .dg-metric .val { font-size:1.05rem; font-weight:600; }
+    .dg-result-box { padding:12px 14px; border-radius:8px; background:var(--panel-2); border:1px solid var(--border); margin-bottom:12px; font-size:.9rem; line-height:1.5; }
+    .dg-result-box.warn { border-color:#f59e0b; background:rgba(251,191,36,.06); }
+    .dg-result-box.critical { border-color:#ef4444; background:rgba(239,68,68,.06); }
+    .dg-result-box.ok { border-color:#22c55e; background:rgba(34,197,94,.06); }
+    .dg-sub-progress { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+    .dg-sub-chip { padding:4px 10px; border-radius:999px; font-size:.78rem; border:1px solid var(--border); background:var(--panel-2); color:var(--muted); }
+    .dg-sub-chip.done { border-color:#22c55e; color:#16a34a; }
+    .dg-sub-chip.current { border-color:#3b82f6; background:rgba(59,130,246,.1); color:#2563eb; font-weight:600; }
+    .dg-flow-mini { border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; font-size:.85rem; }
+    .dg-flow-mini.primary { border-color:#ef4444; background:rgba(239,68,68,.05); }
+    .dg-flow-mini.active { border-color:#f59e0b; }
+    .dg-flow-step-on { color:#d97706; font-weight:500; }
+    .dg-checklist { margin:0; padding-left:20px; line-height:1.7; font-size:.88rem; }
+    .dg-checklist li.done { color:#16a34a; }
+    .dg-table-mini .om-table { font-size:.84rem; }
+    .dg-toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin-bottom:14px; }
+    .dg-toolbar .field { min-width:220px; }
+  </style>
+</head>
+<body class="pdmg-page">
+<script>
+(function(){
+  if (window.self === window.top) return;
+  document.documentElement.classList.add("pdmg-embed");
+  document.addEventListener("click", function(e){
+    var a = e.target.closest('a[href*="index.html#/"]');
+    if (!a) return;
+    e.preventDefault();
+    var href = a.getAttribute("href") || "";
+    var i = href.indexOf("#");
+    if (i >= 0) window.parent.location.hash = href.slice(i);
+  });
+})();
+</script>
+  <div class="tcf-main tcf-main--wide">
+    <header class="tcf-topbar">
+      <div class="tcf-topbar__brand">
+        <h1>런타임 진단 순서 가이드 · mgcoa9100</h1>
+        <p>OM runtime-diagnosis-guide 대응. 0→6단계 순차 진단 · POST /mgcoa9100S0</p>
+      </div>
+      <nav class="tcf-topbar__nav" aria-label="화면 이동">
+        <a class="tcf-topbar__link" href="/index.html#/home">홈</a>
+        <a class="tcf-topbar__link" href="/index.html#/mgcoa9100">전문 테스트</a>
+        <a class="tcf-topbar__link tcf-topbar__link--active" href="/index.html#/rtdiag">진단 가이드</a>
+        <span class="badge" id="targetInfo">대상 확인 중...</span>
+      </nav>
+    </header>
+
+    <div class="om-alert info" style="margin-bottom:12px">
+      <strong>순차 진단 모드</strong> — pdmg-service 로컬 JVM/Thread/DB Pool 스냅샷을 단계별로 확인합니다.
+    </div>
+
+    <section class="dg-toolbar">
+      <div class="field field-wide">
+        <label for="targetBaseUrl">pdmg-service URL</label>
+        <input id="targetBaseUrl" type="text" value="http://localhost:8080">
+      </div>
+      <div class="field">
+        <label for="optrEno">사용자 ID</label>
+        <input id="optrEno" type="text" value="sysadmin" maxlength="50">
+      </div>
+      <button class="btn-primary" id="refreshBtn" type="button">데이터 새로고침</button>
+      <span id="rtmStatus" style="color:var(--muted);font-size:.85rem;align-self:center">준비</span>
+    </section>
+
+    <section class="om-status-banner normal" id="guideBanner" style="margin-bottom:16px">
+      <div>
+        <div class="om-status-main normal" id="guideMain">순차 진단 가이드</div>
+        <div id="guideMessage" style="margin-top:8px;color:var(--muted);font-size:.9rem">-</div>
+      </div>
+    </section>
+
+    <div class="dg-wizard">
+      <div class="dg-progress" id="dgProgress"></div>
+      <div class="dg-panel">
+        <div class="dg-panel-head">
+          <div class="dg-panel-title" id="dgPanelTitle">진단 시작</div>
+          <div class="dg-panel-question" id="dgPanelQuestion">순차 분석을 시작합니다</div>
+        </div>
+        <div id="dgPanelBody"></div>
+        <div class="dg-nav">
+          <div class="dg-nav-left">
+            <button type="button" class="dg-btn" id="btnPrev">← 이전</button>
+          </div>
+          <div class="dg-nav-right">
+            <button type="button" class="dg-btn primary" id="btnNext">분석 시작 →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/_shared/error-codes.js"></script>
+  <script src="/_shared/error-popup.js"></script>
+  <script src="/_shared/service-client.js"></script>
+  <script src="/rtdiag/rtdiag.js"></script>
+</body>
+</html>

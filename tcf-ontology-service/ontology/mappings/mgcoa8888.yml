@@ -1,0 +1,68 @@
+'@context':
+  '@vocab': 'https://nsight.local/ontology#'
+'@id': nsight:mapping-mgcoa8888
+'@type': ProgramMapping
+version: '0.1.0'
+programId: mgcoa8888
+title: 이미지로그
+majorGroup: MG
+businessCode: CO
+functionCode: A
+functionName: 공통관리
+identifier: '8888'
+packageRoot: nhnis.mg.co.a
+modules:
+  fw: pdmg-fw
+  service: pdmg-service
+  ui: pdmg-ui
+architecture:
+  runtimeRef: nsight:technical-tx-runtime
+  txBoundary: inside-worker-tx
+  notes:
+    - 조회 S0 / 삭제 D0
+    - ImageLog 테이블은 업무 TX 안에서도 접근 가능하나, 시스템 선후처리 ImageLog는 TX 밖
+development:
+  handler: nhnis.mg.co.a.entry.handler.mgcoa8888Handler
+  facade: nhnis.mg.co.a.application.facade.mgcoa8888Facade
+  controller: nhnis.mg.co.a.application.controller.mgcoa8888Controller
+  service: nhnis.mg.co.a.application.service.mgcoa8888Service
+  dao: nhnis.mg.co.a.persistence.dao.mgcoa8888DAO
+services:
+  - serviceId: mgcoa8888S0
+    op: S
+    method: mgcoa8888S0
+    dtoIn: nhnis.mg.co.a.dto.mgcoa8888S0DTOin
+    dtoOut: nhnis.mg.co.a.dto.mgcoa8888S0DTOout
+    sqlIds: [mgcoa8888S0_S0, mgcoa8888S0_S0_count]
+  - serviceId: mgcoa8888D0
+    op: D
+    method: mgcoa8888D0
+    dtoIn: nhnis.mg.co.a.dto.mgcoa8888D0DTOin
+    dtoOut: nhnis.mg.co.a.dto.mgcoa8888D0DTOout
+    sqlIds: [mgcoa8888D0_D0]
+data:
+  mapperXml: rdw.mg.co.a/mgcoa8888-ORA.xml
+  namespace: nhnis.mg.co.a.persistence.dao.mgcoa8888DAO
+  table: TB_FW_IMAGE_LOG
+  pk: GUID
+  deleteMode: physical
+operations:
+  uiRoute: /mgcoa8888/index.html
+  shellView: mgcoa8888
+  samples:
+    - sample-requests/mgcoa8888-list.json
+    - sample-requests/mgcoa8888-delete.json
+  exceptionCodes: [MP0404]
+  envelope:
+    success: '{ hdr_nhnis, dto }'
+    error: '{ hdr_nhnis, result }'
+  configKeys:
+    - nhnis.fw.tcf.enabled
+    - nhnis.fw.timeout.enabled
+rulesRef:
+  - R-HANDLER-NO-DAO
+  - R-TX-OWNER-EXECUTOR
+  - R-NAMING-SERVICEID-METHOD
+  - R-PROGRAM-SINGLE-HANDLER
+shapesRef:
+  - nsight:shape-service-id

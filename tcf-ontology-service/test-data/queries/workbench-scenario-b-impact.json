@@ -1,0 +1,145 @@
+﻿{
+    "table":  {
+                  "id":  "table:RDW:TB_FW_IMAGE_LOG",
+                  "type":  "TABLE",
+                  "name":  "TB_FW_IMAGE_LOG",
+                  "description":  "Table TB_FW_IMAGE_LOG",
+                  "attributes":  {
+                                     "tableName":  "TB_FW_IMAGE_LOG",
+                                     "schema":  "RDW",
+                                     "pk":  "GUID",
+                                     "deleteMode":  "physical"
+                                 },
+                  "version":  "1.0",
+                  "status":  "ACTIVE",
+                  "provenance":  {
+                                     "sourceType":  "YAML_MAPPING",
+                                     "sourceSystem":  "pdmg",
+                                     "sourcePath":  "ontology/mappings/mgcoa8888.yml",
+                                     "sourceDocument":  "ontology/mappings/mgcoa8888.yml",
+                                     "discoveredBy":  "YamlGraphLoader",
+                                     "extractedAt":  "2026-08-10T02:22:12.175444Z",
+                                     "verificationStatus":  "VERIFIED"
+                                 }
+              },
+    "affectedSqlIds":  [
+                           "mgcoa8888D0_D0",
+                           "mgcoa8888S0_S0",
+                           "mgcoa8888S0_S0_count"
+                       ],
+    "affectedMappers":  [
+                            "mgcoa8888-ORA.xml"
+                        ],
+    "affectedDaos":  [
+                         "mgcoa8888DAO"
+                     ],
+    "affectedServices":  [
+                             "mgcoa8888Service"
+                         ],
+    "affectedFacades":  [
+                            "mgcoa8888Facade"
+                        ],
+    "affectedHandlers":  [
+                             "mgcoa8888Handler"
+                         ],
+    "affectedServiceIds":  [
+                               "mgcoa8888D0",
+                               "mgcoa8888S0"
+                           ],
+    "affectedPrograms":  [
+                             "mgcoa8888"
+                         ],
+    "affectedFunctions":  [
+                              "A"
+                          ],
+    "affectedBusinesses":  [
+                               "CO"
+                           ],
+    "affectedSystems":  [
+                            "MG"
+                        ],
+    "paths":  [
+                  [
+                      {
+                          "to":  "table:RDW:TB_FW_IMAGE_LOG",
+                          "predicate":  "ACCESSES",
+                          "from":  "mapper:rdw.mg.co.a/mgcoa8888-ORA.xml",
+                          "graphType":  "DESIGN",
+                          "fromType":  "MAPPER",
+                          "fromName":  "mgcoa8888-ORA.xml"
+                      },
+                      {
+                          "to":  "mapper:rdw.mg.co.a/mgcoa8888-ORA.xml",
+                          "predicate":  "EXECUTES",
+                          "from":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888DAO"
+                      },
+                      {
+                          "to":  "component:nhnis.mg.co.a.persistence.dao.mgcoa8888DAO",
+                          "predicate":  "USES",
+                          "from":  "component:nhnis.mg.co.a.application.service.mgcoa8888Service",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888Service"
+                      },
+                      {
+                          "to":  "component:nhnis.mg.co.a.application.service.mgcoa8888Service",
+                          "predicate":  "CALLS",
+                          "from":  "component:nhnis.mg.co.a.application.facade.mgcoa8888Facade",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888Facade"
+                      },
+                      {
+                          "to":  "component:nhnis.mg.co.a.application.facade.mgcoa8888Facade",
+                          "predicate":  "CALLS",
+                          "from":  "component:nhnis.mg.co.a.entry.handler.mgcoa8888Handler",
+                          "graphType":  "DESIGN",
+                          "fromType":  "COMPONENT",
+                          "fromName":  "mgcoa8888Handler"
+                      },
+                      {
+                          "to":  "component:nhnis.mg.co.a.entry.handler.mgcoa8888Handler",
+                          "predicate":  "HANDLED_BY",
+                          "from":  "service:mgcoa8888D0",
+                          "graphType":  "DESIGN",
+                          "fromType":  "SERVICE_ID",
+                          "fromName":  "mgcoa8888D0"
+                      },
+                      {
+                          "to":  "service:mgcoa8888D0",
+                          "predicate":  "PROVIDES_SERVICE",
+                          "from":  "program:MG:CO:A:8888",
+                          "graphType":  "DESIGN",
+                          "fromType":  "PROGRAM",
+                          "fromName":  "mgcoa8888"
+                      },
+                      {
+                          "to":  "program:MG:CO:A:8888",
+                          "predicate":  "HAS_PROGRAM",
+                          "from":  "function:MG:CO:A",
+                          "graphType":  "DESIGN",
+                          "fromType":  "FUNCTION",
+                          "fromName":  "A"
+                      },
+                      {
+                          "to":  "function:MG:CO:A",
+                          "predicate":  "HAS_FUNCTION",
+                          "from":  "business:MG:CO",
+                          "graphType":  "DESIGN",
+                          "fromType":  "BUSINESS",
+                          "fromName":  "CO"
+                      },
+                      {
+                          "to":  "business:MG:CO",
+                          "predicate":  "HAS_BUSINESS",
+                          "from":  "system:MG",
+                          "graphType":  "DESIGN",
+                          "fromType":  "SYSTEM",
+                          "fromName":  "MG"
+                      }
+                  ]
+              ]
+}

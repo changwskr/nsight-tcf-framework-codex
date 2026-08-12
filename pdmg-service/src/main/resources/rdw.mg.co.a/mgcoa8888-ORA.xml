@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="nhnis.mg.persistence.dao.mgcoa8888DAO">
+<mapper namespace="nhnis.mg.co.a.persistence.dao.mgcoa8888DAO">
 
     <sql id="mgcoa8888Where">
         WHERE 1 = 1
@@ -19,6 +19,21 @@
         </if>
         <if test="exceptionOnly != null and exceptionOnly == true">
            AND T1.EXCEPTION_TYPE IS NOT NULL
+        </if>
+        <if test="requestTimeFrom != null and requestTimeFrom != ''">
+           AND T1.REQUEST_TIME &gt;= #{requestTimeFrom}
+        </if>
+        <if test="requestTimeTo != null and requestTimeTo != ''">
+           AND T1.REQUEST_TIME &lt;= #{requestTimeTo}
+        </if>
+        <if test="minElapsedSeconds != null">
+           AND T1.REQUEST_TIME IS NOT NULL
+           AND T1.RESPONSE_TIME IS NOT NULL
+           AND LENGTH(T1.REQUEST_TIME) &gt;= 14
+           AND LENGTH(T1.RESPONSE_TIME) &gt;= 14
+           AND (TO_DATE(SUBSTR(T1.RESPONSE_TIME, 1, 14), 'YYYYMMDDHH24MISS')
+              - TO_DATE(SUBSTR(T1.REQUEST_TIME, 1, 14), 'YYYYMMDDHH24MISS')) * 86400
+               &gt;= #{minElapsedSeconds}
         </if>
     </sql>
 
@@ -38,6 +53,8 @@
                     , T1.EXCEPTION_TYPE AS EXCEPTION_TYPE
                     , T1.EXCEPTION_CODE AS EXCEPTION_CODE
                     , T1.EXCEPTION_MSG  AS EXCEPTION_MSG
+                    , T1.REQUEST_MSG    AS REQUEST_MSG
+                    , T1.RESPONSE_MSG   AS RESPONSE_MSG
                  FROM TB_FW_IMAGE_LOG T1
                <include refid="mgcoa8888Where"/>
                 ORDER BY T1.REQUEST_TIME DESC, T1.GUID DESC

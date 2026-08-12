@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.mg.co.a.persistence.dao.mgcoa9000DAO">
+
+    <sql id="mgcoa9000Where">
+        WHERE 1 = 1
+        <if test="keyword != null and keyword != ''">
+           AND (
+                UPPER(T1.TX_ID) LIKE '%' || UPPER(#{keyword}) || '%'
+             OR UPPER(T1.TX_NAME) LIKE '%' || UPPER(#{keyword}) || '%'
+             OR UPPER(NVL(T1.APP_ID, '')) LIKE '%' || UPPER(#{keyword}) || '%'
+             OR UPPER(NVL(T1.PATH_URL, '')) LIKE '%' || UPPER(#{keyword}) || '%'
+             OR UPPER(NVL(T1.HTTP_METHOD, '')) LIKE '%' || UPPER(#{keyword}) || '%'
+           )
+        </if>
+        <if test="txId != null and txId != ''">
+           AND T1.TX_ID = #{txId}
+        </if>
+        <if test="txName != null and txName != ''">
+           AND T1.TX_NAME LIKE '%' || #{txName} || '%'
+        </if>
+        <if test="appId != null and appId != ''">
+           AND T1.APP_ID LIKE '%' || #{appId} || '%'
+        </if>
+        <if test="httpMethod != null and httpMethod != ''">
+           AND UPPER(T1.HTTP_METHOD) = UPPER(#{httpMethod})
+        </if>
+    </sql>
+
+    <select id="mgcoa9000S0_S0" resultType="java.util.HashMap"
+            parameterType="java.util.HashMap">
+        SELECT * FROM (
+          SELECT a.*, ROWNUM rnum
+            FROM (
+               SELECT /* mgcoa9000S0_S0 */
+                      T1.TX_ID       AS TX_ID
+                    , T1.TX_NAME     AS TX_NAME
+                    , T1.APP_ID      AS APP_ID
+                    , T1.PATH_URL    AS PATH_URL
+                    , T1.HTTP_METHOD AS HTTP_METHOD
+                    , T1.REG_USER_ID AS REG_USER_ID
+                    , T1.REG_DTM     AS REG_DTM
+                    , T1.CHG_USER_ID AS CHG_USER_ID
+                    , T1.CHG_DTM     AS CHG_DTM
+                 FROM TB_MG_TX_PARAM T1
+               <include refid="mgcoa9000Where"/>
+                ORDER BY T1.REG_DTM DESC, T1.TX_ID ASC
+            ) a
+           WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+        )
+        WHERE rnum > #{offset}
+    </select>
+
+    <select id="mgcoa9000S0_S0_count" resultType="int"
+            parameterType="java.util.HashMap">
+        SELECT /* mgcoa9000S0_S0_count */ COUNT(*)
+          FROM TB_MG_TX_PARAM T1
+        <include refid="mgcoa9000Where"/>
+    </select>
+
+    <select id="mgcoa9000S0_S0_exists" resultType="int"
+            parameterType="java.util.HashMap">
+        SELECT /* mgcoa9000S0_S0_exists */ COUNT(*)
+          FROM TB_MG_TX_PARAM T1
+         WHERE T1.TX_ID = #{txId}
+    </select>
+
+    <insert id="mgcoa9000C0_C0" parameterType="java.util.HashMap">
+        INSERT /* mgcoa9000C0_C0 */ INTO TB_MG_TX_PARAM (
+            TX_ID, TX_NAME, APP_ID, PATH_URL, HTTP_METHOD,
+            REG_USER_ID, REG_DTM
+        ) VALUES (
+            #{txId}, #{txName}, #{appId}, #{pathUrl}, #{httpMethod},
+            #{regUserId}, #{regDtm}
+        )
+    </insert>
+
+    <update id="mgcoa9000U0_U0" parameterType="java.util.HashMap">
+        UPDATE /* mgcoa9000U0_U0 */ TB_MG_TX_PARAM
+           SET TX_NAME     = #{txName}
+             , APP_ID      = #{appId}
+             , PATH_URL    = #{pathUrl}
+             , HTTP_METHOD = #{httpMethod}
+             , CHG_USER_ID = #{chgUserId}
+             , CHG_DTM     = #{chgDtm}
+         WHERE TX_ID = #{txId}
+    </update>
+
+    <delete id="mgcoa9000D0_D0" parameterType="java.util.HashMap">
+        DELETE /* mgcoa9000D0_D0 */ FROM TB_MG_TX_PARAM
+         WHERE TX_ID IN
+        <foreach collection="txIdList" item="txId" open="(" separator="," close=")">
+            #{txId}
+        </foreach>
+    </delete>
+
+</mapper>

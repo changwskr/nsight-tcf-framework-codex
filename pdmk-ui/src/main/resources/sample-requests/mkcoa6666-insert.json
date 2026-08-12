@@ -1,0 +1,41 @@
+{
+  "hdr_nhnis": {
+    "sys_comm": {
+      "std_gbl_id": "a2222222222222222222222222222222",
+      "rms_svc_c": "mkcoa6666I0",
+      "sync_dsc": "S",
+      "tr_sysid": "PDMK-OM",
+      "ttl_ug_ync": 0,
+      "std_tgrm_rqr_rsp_dsc": "Q",
+      "std_tgrm_lclc": "KO",
+      "tr_trm_ipadr": "127.0.0.1",
+      "tr_dtm": "20260808120000",
+      "tr_brc": "10001",
+      "trmno": "LOCAL01",
+      "trm_kdc": "01",
+      "scid": "mkcoa6666",
+      "optr_eno": "E0000001",
+      "tr_optrnm": "LOCAL_TESTER"
+    }
+  },
+  "dto": {
+    "serviceCode": "demo.new.S0",
+    "serviceName": "신규 샘플 서비스",
+    "businessCode": "mk",
+    "scid": "demo",
+    "enabled": "Y",
+    "status": "NORMAL",
+    "allowedSystemIds": "PDMK,PDMK-UI",
+    "allowedTerminalTypes": "01",
+    "allowedBranches": "*",
+    "syncType": "S",
+    "allowedStartTime": "0000",
+    "allowedEndTime": "2400",
+    "timeoutMs": 3000,
+    "maxTps": 50,
+    "maxConcurrent": 20,
+    "duplicateWindowSec": 0,
+    "auditLevel": "NORMAL",
+    "reason": "신규 등록 샘플"
+  }
+}

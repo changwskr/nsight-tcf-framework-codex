@@ -1,0 +1,105 @@
+'@context':
+  '@vocab': 'https://nsight.local/ontology#'
+'@id': nsight:technical-tx-runtime
+'@type': RuntimeModel
+version: '0.1.0'
+sourceDoc: pdmg-service/docs/00.BigPicture Tx 처리-1.md
+assumptions:
+  - nhnis.fw.tcf.enabled=true
+  - nhnis.fw.timeout.enabled=true
+  - nhnis.fw.commons.legacy-web.enabled=true
+  - nhnis.fw.commons.filter.enabled=true
+threads:
+  requestThread:
+    role: HTTP 요청 Thread
+    tx: outside-business-db-tx
+  workerThread:
+    role: pdmg-online-N
+    tx: owns-transaction-template
+txBoundary:
+  owner: DefaultOnlineTimeoutExecutor.TransactionTemplate(rdw)
+  includes:
+    - TransactionDispatcher
+    - TransactionHandler
+    - Business Facade (@Transactional REQUIRED joins)
+    - BizPrePostAspect
+    - Service
+    - DAO / Mapper / SQL
+    - Deadline check
+  excludes:
+    - DefaultFilter
+    - ServicePreventionInterceptor (pre/after)
+    - OnlineTransactionController
+    - TcfFacade wait (Future.get)
+    - ResponseBodyArgumentResolver
+    - ImageLog request/response persistence
+steps:
+  - seq: 1
+    id: DefaultFilter
+    thread: request
+    configKey: nhnis.fw.commons.filter.enabled
+  - seq: 2
+    id: Interceptor.preHandle
+    thread: request
+    configKey: nhnis.fw.commons.legacy-web.enabled
+    notes: ImageLog INSERT — 업무 TX와 별개
+  - seq: 3
+    id: OnlineTransactionController
+    thread: request
+    configKey: nhnis.fw.tcf.enabled
+  - seq: 4
+    id: TcfFacade
+    thread: request
+  - seq: 5
+    id: OnlineTimeoutExecutor
+    thread: request-waits / worker-runs
+    configKey: nhnis.fw.timeout.enabled
+    defaults:
+      milliseconds: 5000
+      poolSize: 20
+      queueCapacity: 100
+  - seq: 6
+    id: TransactionDispatcher
+    thread: worker
+    tx: inside
+  - seq: 7
+    id: TransactionHandler
+    thread: worker
+    tx: inside
+  - seq: 8
+    id: Facade
+    thread: worker
+    tx: inside-joins
+  - seq: 9
+    id: BizPre
+    thread: worker
+    tx: inside
+  - seq: 10
+    id: Service
+    thread: worker
+    tx: inside
+  - seq: 11
+    id: DAO
+    thread: worker
+    tx: inside
+  - seq: 12
+    id: BizPost
+    thread: worker
+    tx: inside
+  - seq: 13
+    id: Deadline
+    thread: worker
+    tx: commit-or-rollback
+  - seq: 14
+    id: ResponseBodyResolver
+    thread: request
+    tx: outside
+  - seq: 15
+    id: Interceptor.afterCompletion
+    thread: request
+    tx: outside
+outcomes:
+  success: HTTP 200 + dto
+  bizException: ROLLBACK + result 오류전문
+  timeout: HTTP 504 FW_TIMEOUT then worker ROLLBACK
+  overload: HTTP 503 FW_OVERLOADED — TX not started

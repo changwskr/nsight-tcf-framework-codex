@@ -1,0 +1,22 @@
+{
+  "hdr_nhnis": {
+    "sys_comm": {
+      "std_gbl_id": "d1111111111111111111111111111111",
+      "rms_svc_c": "mkcoa6666S1",
+      "sync_dsc": "S",
+      "tr_sysid": "PDMK-OM",
+      "std_tgrm_rqr_rsp_dsc": "Q",
+      "std_tgrm_lclc": "KO",
+      "tr_trm_ipadr": "127.0.0.1",
+      "tr_dtm": "20260808120000",
+      "tr_brc": "10001",
+      "trmno": "LOCAL01",
+      "trm_kdc": "01",
+      "scid": "mkcoa6666",
+      "optr_eno": "E0000001"
+    }
+  },
+  "dto": {
+    "serviceCode": "mkcoa6666S0"
+  }
+}

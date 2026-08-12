@@ -4,6 +4,7 @@
 DROP TABLE IF EXISTS TB_FW_IMAGE_LOG;
 DROP TABLE IF EXISTS TB_MK_CO_A_5530;
 DROP TABLE IF EXISTS TB_CR_AH_SALES_TIP_RACT;
+DROP TABLE IF EXISTS TB_MG_TX_PARAM;
 
 -- 시스템 전문 헤더 이미지로그 (ImageLogHandler / ImageLogDTO)
 CREATE TABLE TB_FW_IMAGE_LOG (
@@ -39,4 +40,18 @@ CREATE TABLE TB_MK_CO_A_5530 (
     L5103 VARCHAR(8)   NOT NULL,   -- 기준일자
     L5104 VARCHAR(5),              -- 취급점코드
     CONSTRAINT TB_MK_CO_A_5530_PK PRIMARY KEY (L5101, L5103)
+);
+
+-- mgcoa9000 거래 파라미터 원장
+CREATE TABLE TB_MG_TX_PARAM (
+    TX_ID        VARCHAR(100)  NOT NULL,  -- 거래 ID (PK)
+    TX_NAME      VARCHAR(200)  NOT NULL,  -- 거래 명
+    APP_ID       VARCHAR(100),             -- 어플리케이션
+    PATH_URL     VARCHAR(300),             -- 경로 URL
+    HTTP_METHOD  VARCHAR(10),              -- HTTP 메소드
+    REG_USER_ID  VARCHAR(50),              -- 등록 사용자 ID
+    REG_DTM      VARCHAR(17),              -- 등록 일시 (yyyyMMddHHmmss)
+    CHG_USER_ID  VARCHAR(50),              -- 변경 사용자 ID
+    CHG_DTM      VARCHAR(17),              -- 변경 일시
+    CONSTRAINT TB_MG_TX_PARAM_PK PRIMARY KEY (TX_ID)
 );

@@ -1,0 +1,61 @@
+'@context':
+  '@vocab': 'https://nsight.local/ontology#'
+'@id': nsight:mapping-mgcoa9999
+'@type': ProgramMapping
+version: '0.1.0'
+programId: mgcoa9999
+title: 영업팁 실적
+majorGroup: MG
+businessCode: CO
+functionCode: A
+functionName: 공통관리
+identifier: '9999'
+packageRoot: nhnis.mg.co.a
+modules:
+  fw: pdmg-fw
+  service: pdmg-service
+  ui: pdmg-ui
+architecture:
+  runtimeRef: nsight:technical-tx-runtime
+  txBoundary: inside-worker-tx
+  notes:
+    - 조회 전용 S0
+    - 복합 PK 원장
+development:
+  handler: nhnis.mg.co.a.entry.handler.mgcoa9999Handler
+  facade: nhnis.mg.co.a.application.facade.mgcoa9999Facade
+  controller: nhnis.mg.co.a.application.controller.mgcoa9999Controller
+  service: nhnis.mg.co.a.application.service.mgcoa9999Service
+  dao: nhnis.mg.co.a.persistence.dao.mgcoa9999DAO
+services:
+  - serviceId: mgcoa9999S0
+    op: S
+    method: mgcoa9999S0
+    dtoIn: nhnis.mg.co.a.dto.mgcoa9999S0DTOin
+    dtoOut: nhnis.mg.co.a.dto.mgcoa9999S0DTOout
+    sqlIds: [mgcoa9999S0_S0]
+data:
+  mapperXml: rdw.mg.co.a/mgcoa9999-ORA.xml
+  namespace: nhnis.mg.co.a.persistence.dao.mgcoa9999DAO
+  table: TB_CR_AH_SALES_TIP_RACT
+  pk: [TRT_BRC, TRTMN_ENO, SALZ_TIP_KDC, BAS_DT]
+  deleteMode: n/a
+operations:
+  uiRoute: /mgcoa9999/index.html
+  shellView: mgcoa9999
+  samples:
+    - sample-requests/mgcoa9999-list.json
+  exceptionCodes: [MP0404]
+  envelope:
+    success: '{ hdr_nhnis, dto }'
+    error: '{ hdr_nhnis, result }'
+  configKeys:
+    - nhnis.fw.tcf.enabled
+    - nhnis.fw.timeout.enabled
+rulesRef:
+  - R-HANDLER-NO-DAO
+  - R-TX-OWNER-EXECUTOR
+  - R-NAMING-SERVICEID-METHOD
+  - R-PROGRAM-SINGLE-HANDLER
+shapesRef:
+  - nsight:shape-service-id

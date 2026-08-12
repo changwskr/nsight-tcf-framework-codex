@@ -1,0 +1,15 @@
+'@id': nsight:ontology-version
+version: '0.1.0'
+date: '2026-08-10'
+pilot: PDMG
+highlights:
+  - ADR-0001 accepted
+  - classification + naming + tx-runtime seeded
+  - mgcoa9001 four-axis mapping demo
+artifacts:
+  - ontology/core/concepts.yml
+  - ontology/business/classification.yml
+  - ontology/technical/tx-runtime.yml
+  - ontology/shapes/service-id.yml
+  - ontology/rules/component-boundaries.yml
+  - ontology/mappings/mgcoa9001.yml

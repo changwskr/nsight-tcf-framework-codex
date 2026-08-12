@@ -1,0 +1,27 @@
+﻿{
+    "pattern":  {
+                    "name":  "ONLINE_PAGING_QUERY",
+                    "status":  "DERIVED_PATTERN"
+                },
+    "unresolved":  [
+                       "Program ID",
+                       "ServiceId",
+                       "Table/Column"
+                   ],
+    "gate":  {
+                 "status":  "PASS",
+                 "failCount":  0
+             },
+    "referenceServiceId":  "mgcoa5530S0",
+    "type":  "NSIGHT_DEVELOPMENT_CONTEXT",
+    "structure":  [
+                      "mgcoa5530S0",
+                      "mgcoa5530Handler",
+                      "mgcoa5530Facade",
+                      "mgcoa5530Service",
+                      "mgcoa5530DAO",
+                      "mgcoa5530-ORA.xml",
+                      "TB_MK_CO_A_5530",
+                      "[L5101, L5103]"
+                  ]
+}

@@ -1,0 +1,158 @@
+'@context':
+  '@vocab': 'https://nsight.local/ontology#'
+'@id': nsight:relations
+'@type': RelationVocabulary
+version: '0.2.0'
+description: Standard predicates for NSIGHT ontology graph
+
+predicates:
+  HAS_BUSINESS:
+    from: System
+    to: Business
+    meaning: 플랫폼이 업무영역을 가진다
+
+  HAS_FUNCTION:
+    from: Business
+    to: Function
+    meaning: 업무가 세부기능을 가진다
+
+  HAS_PROGRAM:
+    from: Function
+    to: Program
+    meaning: 세부기능 아래 프로그램이 있다
+
+  HAS_SERVICE:
+    from: Program
+    to: ServiceId
+    meaning: (alias) 프로그램이 온라인 서비스ID를 제공한다 → PROVIDES_SERVICE
+    aliasOf: PROVIDES_SERVICE
+
+  PROVIDES_SERVICE:
+    from: Program
+    to: ServiceId
+    meaning: 프로그램이 온라인 서비스ID를 제공한다
+
+  BELONGS_TO_PROGRAM:
+    from: ServiceId
+    to: Program
+    meaning: 서비스ID의 소속 프로그램 (역방향)
+
+  HANDLED_BY:
+    from: ServiceId
+    to: Component
+    meaning: 서비스가 Handler에 의해 라우팅된다
+    role: handler
+    graphType: DESIGN
+
+  CALLS:
+    from: Component
+    to: Component
+    meaning: 컴포넌트 간 정적 호출
+    graphType: DESIGN
+
+  USES:
+    from: Component
+    to: Component
+    meaning: Service가 DAO/Client를 사용
+    graphType: DESIGN
+
+  EXECUTES:
+    from: Component
+    to: [Mapper, SqlId]
+    meaning: DAO가 Mapper/SqlId를 실행
+    graphType: DESIGN
+
+  ACCESSES:
+    from: [Mapper, SqlId]
+    to: Table
+    meaning: Mapper/SQL이 테이블에 접근
+    graphType: DESIGN
+
+  HAS_COLUMN:
+    from: Table
+    to: Column
+    meaning: 테이블이 컬럼을 가진다
+
+  FLOWS_TO:
+    from: RuntimeComponent
+    to: RuntimeComponent
+    meaning: RUNTIME 파이프라인 순차 전이
+    graphType: RUNTIME
+
+  DISPATCHES_TO:
+    from: RuntimeComponent
+    to: RuntimeComponent
+    meaning: Dispatcher/Handler 런타임 라우팅
+    graphType: RUNTIME
+
+  STARTS_TRANSACTION:
+    from: RuntimeComponent
+    to: RuntimeComponent
+    meaning: TimeoutExecutor가 UnitOfWork(TransactionTemplate)를 시작
+    graphType: RUNTIME
+
+  PARTICIPATES_IN_TRANSACTION:
+    from: RuntimeComponent
+    to: RuntimeComponent
+    meaning: 컴포넌트가 업무 TX(UnitOfWork)에 참여
+    graphType: RUNTIME
+
+  RUNS_ON_THREAD:
+    from: RuntimeComponent
+    to: RuntimeComponent
+    meaning: request/worker 스레드 역할
+    graphType: RUNTIME
+
+  ORCHESTRATED_BY:
+    from: ServiceId
+    to: JavaClass
+    meaning: Facade 유스케이스 조정
+    role: facade
+
+  IMPLEMENTED_BY:
+    from: ServiceId
+    to: JavaClass
+    meaning: Service/DAO/Controller 구현
+    roles: [service, dao, controller]
+
+  USES_DTO:
+    from: ServiceId
+    to: JavaClass
+    meaning: 입출력 DTO
+
+  MAPPED_BY:
+    from: Program
+    to: MapperXml
+    meaning: MyBatis 매퍼 리소스
+
+  PERSISTS_TO:
+    from: Program
+    to: Table
+    meaning: 프로그램이 테이블에 영속화한다
+
+  EXPOSED_AT:
+    from: Program
+    to: UiRoute
+    meaning: UI 진입점
+
+  USES_EXCEPTION:
+    from: Program
+    to: ExceptionCode
+    meaning: 업무 오류 코드
+
+  CONFIGURED_BY:
+    from: Program
+    to: ConfigKey
+    meaning: 관련 설정 키
+
+legacyAliases:
+  offers: PROVIDES_SERVICE
+  HAS_SERVICE: PROVIDES_SERVICE
+  implementedBy: IMPLEMENTED_BY
+  persistsTo: PERSISTS_TO
+  mappedBy: MAPPED_BY
+  exposedAt: EXPOSED_AT
+  usesDto: USES_DTO
+  executes: EXECUTES
+  uses: USES
+  configuredBy: CONFIGURED_BY

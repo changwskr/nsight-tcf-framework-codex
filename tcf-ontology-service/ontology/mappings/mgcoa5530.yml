@@ -1,0 +1,62 @@
+'@context':
+  '@vocab': 'https://nsight.local/ontology#'
+'@id': nsight:mapping-mgcoa5530
+'@type': ProgramMapping
+version: '0.1.0'
+programId: mgcoa5530
+title: 마케팅희망고객
+majorGroup: MG
+businessCode: CO
+functionCode: A
+functionName: 공통관리
+identifier: '5530'
+packageRoot: nhnis.mg.co.a
+modules:
+  fw: pdmg-fw
+  service: pdmg-service
+  ui: pdmg-ui
+architecture:
+  runtimeRef: nsight:technical-tx-runtime
+  txBoundary: inside-worker-tx
+  notes:
+    - 조회 전용 S0
+    - timeout override 예: nhnis.fw.timeout.overrides.mgcoa5530S0
+development:
+  handler: nhnis.mg.co.a.entry.handler.mgcoa5530Handler
+  facade: nhnis.mg.co.a.application.facade.mgcoa5530Facade
+  controller: nhnis.mg.co.a.application.controller.mgcoa5530Controller
+  service: nhnis.mg.co.a.application.service.mgcoa5530Service
+  dao: nhnis.mg.co.a.persistence.dao.mgcoa5530DAO
+services:
+  - serviceId: mgcoa5530S0
+    op: S
+    method: mgcoa5530S0
+    dtoIn: nhnis.mg.co.a.dto.mgcoa5530S0DTOin
+    dtoOut: nhnis.mg.co.a.dto.mgcoa5530S0DTOout
+    sqlIds: [mgcoa5530S0_S0, mgcoa5530S0_S0_count]
+data:
+  mapperXml: rdw.mg.co.a/mgcoa5530-ORA.xml
+  namespace: nhnis.mg.co.a.persistence.dao.mgcoa5530DAO
+  table: TB_MK_CO_A_5530
+  pk: [L5101, L5103]
+  deleteMode: n/a
+operations:
+  uiRoute: /mgcoa5530/index.html
+  shellView: mgcoa5530
+  samples:
+    - sample-requests/mgcoa5530-list.json
+  exceptionCodes: [MP0404]
+  envelope:
+    success: '{ hdr_nhnis, dto }'
+    error: '{ hdr_nhnis, result }'
+  configKeys:
+    - nhnis.fw.tcf.enabled
+    - nhnis.fw.timeout.enabled
+    - nhnis.fw.timeout.overrides.mgcoa5530S0
+rulesRef:
+  - R-HANDLER-NO-DAO
+  - R-TX-OWNER-EXECUTOR
+  - R-NAMING-SERVICEID-METHOD
+  - R-PROGRAM-SINGLE-HANDLER
+shapesRef:
+  - nsight:shape-service-id

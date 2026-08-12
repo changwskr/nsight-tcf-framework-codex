@@ -1,0 +1,398 @@
+﻿{
+    "serviceId":  "mgcoa5530S0",
+    "concept":  {
+                    "id":  "service:mgcoa5530S0",
+                    "type":  "SERVICE_ID",
+                    "name":  "mgcoa5530S0",
+                    "description":  "ServiceId mgcoa5530S0",
+                    "attributes":  {
+                                       "groupCode":  "mg",
+                                       "businessCode":  "co",
+                                       "functionCode":  "a",
+                                       "programNo":  "5530",
+                                       "operationType":  "S",
+                                       "sequence":  "0",
+                                       "fullServiceId":  "mgcoa5530S0",
+                                       "programId":  "mgcoa5530",
+                                       "shortId":  "mgcoa5530S0",
+                                       "method":  "mgcoa5530S0",
+                                       "op":  "S"
+                                   },
+                    "version":  "1.0",
+                    "status":  "ACTIVE",
+                    "provenance":  {
+                                       "sourceType":  "YAML_MAPPING",
+                                       "sourceSystem":  "pdmg",
+                                       "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                       "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                       "discoveredBy":  "YamlGraphLoader",
+                                       "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                       "verificationStatus":  "VERIFIED"
+                                   }
+                },
+    "classification":  [
+                           {
+                               "from":  "system:MG",
+                               "predicate":  "HAS_BUSINESS",
+                               "to":  "business:MG:CO",
+                               "toType":  "BUSINESS"
+                           },
+                           {
+                               "from":  "business:MG:CO",
+                               "predicate":  "HAS_FUNCTION",
+                               "to":  "function:MG:CO:A",
+                               "toType":  "FUNCTION"
+                           },
+                           {
+                               "from":  "function:MG:CO:A",
+                               "predicate":  "HAS_PROGRAM",
+                               "to":  "program:MG:CO:A:5530",
+                               "toType":  "PROGRAM"
+                           },
+                           {
+                               "from":  "program:MG:CO:A:5530",
+                               "predicate":  "PROVIDES_SERVICE",
+                               "to":  "service:mgcoa5530S0",
+                               "toType":  "SERVICE_ID"
+                           }
+                       ],
+    "structure":  [
+                      {
+                          "depth":  1,
+                          "from":  "service:mgcoa5530S0",
+                          "predicate":  "HANDLED_BY",
+                          "to":  "component:nhnis.mg.co.a.entry.handler.mgcoa5530Handler",
+                          "graphType":  "DESIGN",
+                          "toType":  "COMPONENT",
+                          "toName":  "mgcoa5530Handler",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  2,
+                          "from":  "component:nhnis.mg.co.a.entry.handler.mgcoa5530Handler",
+                          "predicate":  "CALLS",
+                          "to":  "component:nhnis.mg.co.a.application.facade.mgcoa5530Facade",
+                          "graphType":  "DESIGN",
+                          "toType":  "COMPONENT",
+                          "toName":  "mgcoa5530Facade",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  3,
+                          "from":  "component:nhnis.mg.co.a.application.facade.mgcoa5530Facade",
+                          "predicate":  "CALLS",
+                          "to":  "component:nhnis.mg.co.a.application.service.mgcoa5530Service",
+                          "graphType":  "DESIGN",
+                          "toType":  "COMPONENT",
+                          "toName":  "mgcoa5530Service",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  4,
+                          "from":  "component:nhnis.mg.co.a.application.service.mgcoa5530Service",
+                          "predicate":  "USES",
+                          "to":  "component:nhnis.mg.co.a.persistence.dao.mgcoa5530DAO",
+                          "graphType":  "DESIGN",
+                          "toType":  "COMPONENT",
+                          "toName":  "mgcoa5530DAO",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  5,
+                          "from":  "component:nhnis.mg.co.a.persistence.dao.mgcoa5530DAO",
+                          "predicate":  "EXECUTES",
+                          "to":  "mapper:rdw.mg.co.a/mgcoa5530-ORA.xml",
+                          "graphType":  "DESIGN",
+                          "toType":  "MAPPER",
+                          "toName":  "mgcoa5530-ORA.xml",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  6,
+                          "from":  "mapper:rdw.mg.co.a/mgcoa5530-ORA.xml",
+                          "predicate":  "ACCESSES",
+                          "to":  "table:RDW:TB_MK_CO_A_5530",
+                          "graphType":  "DESIGN",
+                          "toType":  "TABLE",
+                          "toName":  "TB_MK_CO_A_5530",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  7,
+                          "from":  "table:RDW:TB_MK_CO_A_5530",
+                          "predicate":  "HAS_COLUMN",
+                          "to":  "column:RDW:TB_MK_CO_A_5530:[L5101, L5103]",
+                          "graphType":  "DESIGN",
+                          "toType":  "COLUMN",
+                          "toName":  "[L5101, L5103]",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  5,
+                          "from":  "component:nhnis.mg.co.a.persistence.dao.mgcoa5530DAO",
+                          "predicate":  "EXECUTES",
+                          "to":  "sql:mgcoa5530S0_S0_count",
+                          "graphType":  "DESIGN",
+                          "toType":  "SQL_ID",
+                          "toName":  "mgcoa5530S0_S0_count",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  6,
+                          "from":  "sql:mgcoa5530S0_S0_count",
+                          "predicate":  "ACCESSES",
+                          "to":  "table:RDW:TB_MK_CO_A_5530",
+                          "graphType":  "DESIGN",
+                          "toType":  "TABLE",
+                          "toName":  "TB_MK_CO_A_5530",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  7,
+                          "from":  "table:RDW:TB_MK_CO_A_5530",
+                          "predicate":  "HAS_COLUMN",
+                          "to":  "column:RDW:TB_MK_CO_A_5530:[L5101, L5103]",
+                          "graphType":  "DESIGN",
+                          "toType":  "COLUMN",
+                          "toName":  "[L5101, L5103]",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  5,
+                          "from":  "component:nhnis.mg.co.a.persistence.dao.mgcoa5530DAO",
+                          "predicate":  "EXECUTES",
+                          "to":  "sql:mgcoa5530S0_S0",
+                          "graphType":  "DESIGN",
+                          "toType":  "SQL_ID",
+                          "toName":  "mgcoa5530S0_S0",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  6,
+                          "from":  "sql:mgcoa5530S0_S0",
+                          "predicate":  "ACCESSES",
+                          "to":  "table:RDW:TB_MK_CO_A_5530",
+                          "graphType":  "DESIGN",
+                          "toType":  "TABLE",
+                          "toName":  "TB_MK_CO_A_5530",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      },
+                      {
+                          "depth":  7,
+                          "from":  "table:RDW:TB_MK_CO_A_5530",
+                          "predicate":  "HAS_COLUMN",
+                          "to":  "column:RDW:TB_MK_CO_A_5530:[L5101, L5103]",
+                          "graphType":  "DESIGN",
+                          "toType":  "COLUMN",
+                          "toName":  "[L5101, L5103]",
+                          "provenance":  {
+                                             "sourceType":  "YAML_MAPPING",
+                                             "sourceSystem":  "pdmg",
+                                             "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                             "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                             "discoveredBy":  "YamlGraphLoader",
+                                             "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                             "verificationStatus":  "VERIFIED"
+                                         }
+                      }
+                  ],
+    "summary":  [
+                    "mgcoa5530S0",
+                    "mgcoa5530Handler",
+                    "mgcoa5530Facade",
+                    "mgcoa5530Service",
+                    "mgcoa5530DAO",
+                    "mgcoa5530-ORA.xml",
+                    "TB_MK_CO_A_5530",
+                    "[L5101, L5103]"
+                ],
+    "tables":  [
+                   {
+                       "id":  "table:RDW:TB_MK_CO_A_5530",
+                       "type":  "TABLE",
+                       "name":  "TB_MK_CO_A_5530",
+                       "description":  "Table TB_MK_CO_A_5530",
+                       "attributes":  {
+                                          "tableName":  "TB_MK_CO_A_5530",
+                                          "schema":  "RDW",
+                                          "pk":  "[L5101, L5103]",
+                                          "deleteMode":  "n/a"
+                                      },
+                       "version":  "1.0",
+                       "status":  "ACTIVE",
+                       "provenance":  {
+                                          "sourceType":  "YAML_MAPPING",
+                                          "sourceSystem":  "pdmg",
+                                          "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                          "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                          "discoveredBy":  "YamlGraphLoader",
+                                          "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                          "verificationStatus":  "VERIFIED"
+                                      }
+                   }
+               ],
+    "sqlIds":  [
+                   {
+                       "id":  "sql:mgcoa5530S0_S0_count",
+                       "type":  "SQL_ID",
+                       "name":  "mgcoa5530S0_S0_count",
+                       "description":  "SQL mgcoa5530S0_S0_count",
+                       "attributes":  {
+                                          "sqlId":  "mgcoa5530S0_S0_count",
+                                          "serviceId":  "mgcoa5530S0"
+                                      },
+                       "version":  "1.0",
+                       "status":  "ACTIVE",
+                       "provenance":  {
+                                          "sourceType":  "YAML_MAPPING",
+                                          "sourceSystem":  "pdmg",
+                                          "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                          "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                          "discoveredBy":  "YamlGraphLoader",
+                                          "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                          "verificationStatus":  "VERIFIED"
+                                      }
+                   },
+                   {
+                       "id":  "sql:mgcoa5530S0_S0",
+                       "type":  "SQL_ID",
+                       "name":  "mgcoa5530S0_S0",
+                       "description":  "SQL mgcoa5530S0_S0",
+                       "attributes":  {
+                                          "sqlId":  "mgcoa5530S0_S0",
+                                          "serviceId":  "mgcoa5530S0"
+                                      },
+                       "version":  "1.0",
+                       "status":  "ACTIVE",
+                       "provenance":  {
+                                          "sourceType":  "YAML_MAPPING",
+                                          "sourceSystem":  "pdmg",
+                                          "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                          "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                          "discoveredBy":  "YamlGraphLoader",
+                                          "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                          "verificationStatus":  "VERIFIED"
+                                      }
+                   }
+               ],
+    "mappers":  [
+                    {
+                        "id":  "mapper:rdw.mg.co.a/mgcoa5530-ORA.xml",
+                        "type":  "MAPPER",
+                        "name":  "mgcoa5530-ORA.xml",
+                        "description":  "Mapper mgcoa5530-ORA.xml",
+                        "attributes":  {
+                                           "mapperXml":  "rdw.mg.co.a/mgcoa5530-ORA.xml",
+                                           "namespace":  "nhnis.mg.co.a.persistence.dao.mgcoa5530DAO",
+                                           "programId":  "mgcoa5530"
+                                       },
+                        "version":  "1.0",
+                        "status":  "ACTIVE",
+                        "provenance":  {
+                                           "sourceType":  "YAML_MAPPING",
+                                           "sourceSystem":  "pdmg",
+                                           "sourcePath":  "ontology/mappings/mgcoa5530.yml",
+                                           "sourceDocument":  "ontology/mappings/mgcoa5530.yml",
+                                           "discoveredBy":  "YamlGraphLoader",
+                                           "extractedAt":  "2026-08-10T02:32:12.933517Z",
+                                           "verificationStatus":  "VERIFIED"
+                                       }
+                    }
+                ]
+}
