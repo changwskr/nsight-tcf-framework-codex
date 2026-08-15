@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INF-140 Gate 정의 · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar">
+      <div class="infra-sidebar__brand"><h1>인프라 아키텍처 관리</h1><p>INF-140 Gate Def</p></div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">이동</div>
+          <a class="infra-menu-link" href="/index.html">홈</a>
+          <a class="infra-menu-link" href="/infra/checklist-master/index.html">INF-130 마스터</a>
+          <a class="infra-menu-link infra-menu-link--active" href="/infra/gate-defs/index.html">INF-140 Gate정의</a>
+          <a class="infra-menu-link" href="/infra/gates/index.html">INF-920 판정</a>
+        </div>
+      </nav>
+      <div class="infra-sidebar__foot">ifina1400* · Gate1~7</div>
+    </aside>
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div><h1>INF-140 품질 Gate 정의</h1><p>Gate 마스터. 판정은 INF-920.</p></div>
+        <div class="actions">
+          <button class="btn-secondary" type="button" id="searchBtn">조회</button>
+          <button class="btn-primary" type="button" id="addBtn">등록</button>
+        </div>
+      </header>
+      <section class="toolbar">
+        <div class="field field-wide"><label for="keyword">키워드</label><input id="keyword"></div>
+        <div class="field"><label for="activeYn">활성</label>
+          <select id="activeYn"><option value="">전체</option><option value="Y" selected>Y</option><option value="N">N</option></select></div>
+      </section>
+      <section class="response-meta" id="resultMeta">조회를 실행하세요.</section>
+      <section class="panel">
+        <div class="panel-head"><h2>Gates</h2><span class="group-tag" id="rowCount">0</span></div>
+        <div class="table-wrap"><table class="data-table"><thead>
+          <tr><th>Gate ID</th><th>명칭</th><th>설명</th><th>정렬</th><th>활성</th><th></th></tr>
+        </thead><tbody id="rowBody"><tr><td colspan="6" class="empty">-</td></tr></tbody></table></div>
+      </section>
+    </div>
+  </div>
+  <div class="modal" id="editModal" hidden>
+    <div class="modal-backdrop" data-close="true"></div>
+    <div class="modal-card">
+      <div class="panel-head"><h2 id="modalTitle">등록</h2><button class="btn-secondary" type="button" data-close="true">닫기</button></div>
+      <div class="modal-body">
+        <div class="field"><label for="formId">Gate ID *</label><input id="formId" placeholder="GATE8"></div>
+        <div class="field"><label for="formName">명칭 *</label><input id="formName"></div>
+        <div class="field field-span"><label for="formDesc">설명</label><input id="formDesc"></div>
+        <div class="field"><label for="formSort">정렬</label><input id="formSort" type="number" value="80"></div>
+        <div class="field"><label for="formActive">활성</label><select id="formActive"><option>Y</option><option>N</option></select></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" type="button" data-close="true">취소</button>
+        <button class="btn-primary" type="button" id="saveBtn">저장</button>
+      </div>
+    </div>
+  </div>
+  <script src="/_shared/infra-api.js"></script>
+  <script src="/infra/gate-defs/defs.js"></script>
+</body>
+</html>

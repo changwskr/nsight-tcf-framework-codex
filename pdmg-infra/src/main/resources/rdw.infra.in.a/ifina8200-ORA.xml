@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina8200DAO">
+  <select id="ifina8200S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT W.WAVE_ID AS WAVE_ID, W.WAVE_NAME AS WAVE_NAME, W.SEQUENCE_NO AS SEQUENCE_NO,
+           W.PLANNED_START AS PLANNED_START, W.PLANNED_END AS PLANNED_END,
+           W.STATUS_CD AS STATUS_CD, W.REMARK AS REMARK,
+           (SELECT COUNT(*) FROM TB_IF_MIGRATION_PLAN_PILOT P WHERE P.WAVE_ID = W.WAVE_ID) AS PLAN_CNT
+      FROM TB_IF_MIGRATION_WAVE_PILOT W
+     ORDER BY W.SEQUENCE_NO, W.WAVE_ID
+  </select>
+  <select id="ifina8200S0_S1" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT WAVE_ID AS WAVE_ID, WAVE_NAME AS WAVE_NAME, SEQUENCE_NO AS SEQUENCE_NO,
+           PLANNED_START AS PLANNED_START, PLANNED_END AS PLANNED_END,
+           STATUS_CD AS STATUS_CD, REMARK AS REMARK
+      FROM TB_IF_MIGRATION_WAVE_PILOT WHERE WAVE_ID = #{waveId}
+  </select>
+  <select id="ifina8200S0_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_MIGRATION_WAVE_PILOT WHERE WAVE_ID = #{waveId}
+  </select>
+  <insert id="ifina8200U0_insert" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_MIGRATION_WAVE_PILOT (
+      WAVE_ID, WAVE_NAME, SEQUENCE_NO, PLANNED_START, PLANNED_END, STATUS_CD, REMARK, REG_USER_ID, REG_DTM
+    ) VALUES (
+      #{waveId}, #{waveName}, #{sequenceNo}, #{plannedStart}, #{plannedEnd}, #{statusCd}, #{remark}, #{regUserId}, #{regDtm}
+    )
+  </insert>
+  <update id="ifina8200U0_update" parameterType="java.util.HashMap">
+    UPDATE TB_IF_MIGRATION_WAVE_PILOT
+       SET WAVE_NAME=#{waveName}, SEQUENCE_NO=#{sequenceNo}, PLANNED_START=#{plannedStart},
+           PLANNED_END=#{plannedEnd}, STATUS_CD=#{statusCd}, REMARK=#{remark},
+           CHG_USER_ID=#{chgUserId}, CHG_DTM=#{chgDtm}
+     WHERE WAVE_ID=#{waveId}
+  </update>
+  <select id="ifina8200S0_plans" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT PLAN_ID AS PLAN_ID, WAVE_ID AS WAVE_ID, TARGET_TYPE_CD AS TARGET_TYPE_CD,
+           TARGET_ID AS TARGET_ID, STRATEGY_7R_CD AS STRATEGY_7R_CD
+      FROM TB_IF_MIGRATION_PLAN_PILOT
+  </select>
+  <select id="ifina8200S0_criticalRels" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT RELATION_ID AS RELATION_ID, FROM_TYPE_CD AS FROM_TYPE_CD, FROM_ID AS FROM_ID,
+           TO_TYPE_CD AS TO_TYPE_CD, TO_ID AS TO_ID, RELATION_TYPE_CD AS RELATION_TYPE_CD
+      FROM TB_IF_ASSET_RELATION_PILOT
+     WHERE CRITICAL_YN = 'Y'
+  </select>
+</mapper>

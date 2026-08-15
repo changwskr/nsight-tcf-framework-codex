@@ -1,0 +1,25 @@
+{
+  "hdr": {
+    "sys_comm": {
+      "guid": "GUID-IFINA1500-E0-001",
+      "rms_svc_c": "ifina1500E0",
+      "optr_eno": "E0000005",
+      "tr_optrnm": "Admin"
+    }
+  },
+  "dto": {
+    "dryRunYn": "N",
+    "createMissingYn": "Y",
+    "entries": [
+      { "personId": "E0000002", "idpRole": "dba" },
+      { "personId": "E0000007", "idpRole": "middleware" },
+      {
+        "personId": "IDP-SYNC-01",
+        "idpRole": "infra-ops",
+        "personName": "IdP동기화",
+        "email": "idp.sync@example.com",
+        "orgId": "ORG-INFRA"
+      }
+    ]
+  }
+}

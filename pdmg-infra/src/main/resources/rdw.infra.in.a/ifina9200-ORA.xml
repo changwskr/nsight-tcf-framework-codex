@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina9200DAO">
+  <select id="ifina9200S0_defs" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT GATE_ID AS GATE_ID, NAME_KO AS NAME_KO, DESCRIPTION AS DESCRIPTION, SORT_NO AS SORT_NO, ACTIVE_YN AS ACTIVE_YN
+      FROM TB_IF_GATE_DEF_PILOT
+     WHERE NVL(ACTIVE_YN,'Y') = 'Y'
+     ORDER BY SORT_NO, GATE_ID
+  </select>
+  <select id="ifina9200S0_results" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT R.RESULT_ID AS RESULT_ID, R.GATE_ID AS GATE_ID, D.NAME_KO AS GATE_NAME,
+           R.TARGET_TYPE_CD AS TARGET_TYPE_CD, R.TARGET_ID AS TARGET_ID,
+           R.RESULT_CD AS RESULT_CD, R.PASS_YN AS PASS_YN, R.EVIDENCE AS EVIDENCE,
+           R.CHECKED_BY AS CHECKED_BY, R.CHECKED_AT AS CHECKED_AT, R.REMARK AS REMARK
+      FROM TB_IF_GATE_RESULT_PILOT R
+      JOIN TB_IF_GATE_DEF_PILOT D ON D.GATE_ID = R.GATE_ID
+     WHERE 1=1
+    <if test="targetTypeCd != null and targetTypeCd != ''">AND R.TARGET_TYPE_CD = #{targetTypeCd}</if>
+    <if test="targetId != null and targetId != ''">AND R.TARGET_ID = #{targetId}</if>
+    <if test="gateId != null and gateId != ''">AND R.GATE_ID = #{gateId}</if>
+     ORDER BY D.SORT_NO, R.GATE_ID
+  </select>
+  <select id="ifina9200S0_one" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM TB_IF_GATE_RESULT_PILOT
+     WHERE GATE_ID = #{gateId} AND TARGET_TYPE_CD = #{targetTypeCd} AND TARGET_ID = #{targetId}
+  </select>
+  <insert id="ifina9200U0_insert" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_GATE_RESULT_PILOT (
+      RESULT_ID, GATE_ID, TARGET_TYPE_CD, TARGET_ID, RESULT_CD, PASS_YN, EVIDENCE, CHECKED_BY, CHECKED_AT, REMARK
+    ) VALUES (
+      #{resultId}, #{gateId}, #{targetTypeCd}, #{targetId}, #{resultCd}, #{passYn}, #{evidence}, #{checkedBy}, #{checkedAt}, #{remark}
+    )
+  </insert>
+  <update id="ifina9200U0_update" parameterType="java.util.HashMap">
+    UPDATE TB_IF_GATE_RESULT_PILOT
+       SET RESULT_CD=#{resultCd}, PASS_YN=#{passYn}, EVIDENCE=#{evidence},
+           CHECKED_BY=#{checkedBy}, CHECKED_AT=#{checkedAt}, REMARK=#{remark}
+     WHERE GATE_ID=#{gateId} AND TARGET_TYPE_CD=#{targetTypeCd} AND TARGET_ID=#{targetId}
+  </update>
+</mapper>

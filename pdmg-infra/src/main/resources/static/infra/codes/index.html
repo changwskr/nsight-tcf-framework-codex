@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INF-110 분류코드 · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar">
+      <div class="infra-sidebar__brand"><h1>인프라 아키텍처 관리</h1><p>INF-110 분류코드</p></div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">이동</div>
+          <a class="infra-menu-link" href="/index.html">홈</a>
+          <a class="infra-menu-link infra-menu-link--active" href="/infra/codes/index.html">INF-110 분류코드</a>
+          <a class="infra-menu-link" href="/infra/orgs/index.html">INF-150 조직·담당자</a>
+        </div>
+      </nav>
+      <div class="infra-sidebar__foot">ifina1100* · 삭제 대신 active_yn=N</div>
+    </aside>
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div><h1>INF-110 분류코드</h1><p>코드셋 선택 후 값 조회·등록·수정. 사용중 코드는 비활성.</p></div>
+        <span class="badge">scid=INF-110</span>
+      </header>
+      <div style="display:grid;grid-template-columns:240px 1fr;gap:1rem;align-items:start">
+        <section class="panel">
+          <div class="panel-head"><h2>코드셋</h2></div>
+          <div id="codeSetList" class="table-wrap" style="max-height:520px;overflow:auto"></div>
+        </section>
+        <div>
+          <section class="toolbar">
+            <div class="field field-wide"><label for="keyword">검색</label><input id="keyword" placeholder="코드값/표시명"></div>
+            <div class="field"><label for="activeYn">활성</label><select id="activeYn"><option value="">전체</option><option value="Y" selected>Y</option><option value="N">N</option></select></div>
+            <div class="actions">
+              <button class="btn-secondary" type="button" id="searchBtn">조회</button>
+              <button class="btn-primary" type="button" id="addBtn">신규</button>
+            </div>
+          </section>
+          <section class="response-meta" id="resultMeta">코드셋을 선택하세요.</section>
+          <section class="panel">
+            <div class="panel-head"><h2 id="valueTitle">코드값</h2><span class="group-tag" id="resultCount">0건</span></div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>코드값</th><th>표시명</th><th>정렬</th><th>활성</th><th></th></tr></thead>
+                <tbody id="resultBody"><tr><td colspan="5" class="empty">데이터 없음</td></tr></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal" id="editModal" hidden>
+    <div class="modal-backdrop" data-close="true"></div>
+    <div class="modal-card">
+      <div class="panel-head"><h2 id="editTitle">코드값 등록</h2><button class="btn-secondary" type="button" data-close="true">닫기</button></div>
+      <div class="modal-body">
+        <div class="field"><label for="formCodeSetId">코드셋 *</label><input id="formCodeSetId" disabled></div>
+        <div class="field"><label for="formCodeValue">코드값 *</label><input id="formCodeValue"></div>
+        <div class="field"><label for="formNameKo">표시명 *</label><input id="formNameKo"></div>
+        <div class="field"><label for="formSortOrder">정렬</label><input id="formSortOrder" type="number" value="0"></div>
+        <div class="field"><label for="formActiveYn">활성</label><select id="formActiveYn"><option>Y</option><option>N</option></select></div>
+        <div class="field field-span"><label for="formRemark">비고</label><input id="formRemark"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" type="button" data-close="true">취소</button>
+        <button class="btn-primary" type="button" id="saveBtn">저장</button>
+      </div>
+    </div>
+  </div>
+  <script src="/_shared/infra-api.js"></script>
+  <script src="/infra/codes/codes.js"></script>
+</body>
+</html>

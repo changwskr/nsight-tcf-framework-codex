@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina3110DAO">
+  <sql id="ifina3110Where">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(T1.GROUP_ID) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(T1.GROUP_NAME) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.SYSTEM_ID,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="groupId != null and groupId != ''">AND T1.GROUP_ID = #{groupId}</if>
+    <if test="groupName != null and groupName != ''">AND T1.GROUP_NAME LIKE '%'||#{groupName}||'%'</if>
+    <if test="systemId != null and systemId != ''">AND T1.SYSTEM_ID = #{systemId}</if>
+    <if test="techRoleCd != null and techRoleCd != ''">AND T1.TECH_ROLE_CD = #{techRoleCd}</if>
+    <if test="envCd != null and envCd != ''">AND T1.ENV_CD = #{envCd}</if>
+    <if test="tierCd != null and tierCd != ''">AND T1.TIER_CD = #{tierCd}</if>
+    <if test="statusCd != null and statusCd != ''">AND T1.STATUS_CD = #{statusCd}</if>
+  </sql>
+  <select id="ifina3110S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.GROUP_ID, T1.GROUP_NAME, T1.SYSTEM_ID, T1.TECH_ROLE_CD, T1.ENV_CD, T1.TIER_CD, T1.STATUS_CD,
+               T1.ACTIVE_NODES, T1.STANDBY_NODES, T1.DR_NODES, T1.REMARK,
+               T1.REG_USER_ID, T1.REG_DTM, T1.CHG_USER_ID, T1.CHG_DTM
+          FROM TB_IF_SERVER_GROUP_PILOT T1
+        <include refid="ifina3110Where"/>
+         ORDER BY T1.REG_DTM DESC, T1.GROUP_ID ASC
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina3110S0_S0_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_SERVER_GROUP_PILOT T1 <include refid="ifina3110Where"/>
+  </select>
+  <select id="ifina3110S0_S0_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_SERVER_GROUP_PILOT T1 WHERE T1.GROUP_ID = #{groupId}
+  </select>
+  <select id="ifina3110S0_S0_countBySystem" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_SERVER_GROUP_PILOT T1 WHERE T1.SYSTEM_ID = #{systemId}
+  </select>
+  <insert id="ifina3110C0_C0" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_SERVER_GROUP_PILOT (
+      GROUP_ID,GROUP_NAME,SYSTEM_ID,TECH_ROLE_CD,ENV_CD,TIER_CD,STATUS_CD,
+      ACTIVE_NODES,STANDBY_NODES,DR_NODES,REMARK,REG_USER_ID,REG_DTM
+    ) VALUES (
+      #{groupId},#{groupName},#{systemId},#{techRoleCd},#{envCd},#{tierCd},#{statusCd},
+      #{activeNodes},#{standbyNodes},#{drNodes},#{remark},#{regUserId},#{regDtm}
+    )
+  </insert>
+  <update id="ifina3110U0_U0" parameterType="java.util.HashMap">
+    UPDATE TB_IF_SERVER_GROUP_PILOT SET GROUP_NAME=#{groupName}, SYSTEM_ID=#{systemId}, TECH_ROLE_CD=#{techRoleCd},
+      ENV_CD=#{envCd}, TIER_CD=#{tierCd}, STATUS_CD=#{statusCd},
+      ACTIVE_NODES=#{activeNodes}, STANDBY_NODES=#{standbyNodes}, DR_NODES=#{drNodes},
+      REMARK=#{remark}, CHG_USER_ID=#{chgUserId}, CHG_DTM=#{chgDtm}
+     WHERE GROUP_ID=#{groupId}
+  </update>
+  <delete id="ifina3110D0_D0" parameterType="java.util.HashMap">
+    DELETE FROM TB_IF_SERVER_GROUP_PILOT WHERE GROUP_ID IN
+    <foreach collection="groupIdList" item="groupId" open="(" separator="," close=")">#{groupId}</foreach>
+  </delete>
+</mapper>

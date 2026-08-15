@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina8300DAO">
+  <sql id="mapWhere">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(NVL(T1.PLAN_ID,'')) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.TARGET_ID,'')) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.GAP_REMARK,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="waveId != null and waveId != ''">AND T1.WAVE_ID = #{waveId}</if>
+    <if test="strategy7rCd != null and strategy7rCd != ''">AND T1.STRATEGY_7R_CD = #{strategy7rCd}</if>
+    <if test="targetTypeCd != null and targetTypeCd != ''">AND T1.TARGET_TYPE_CD = #{targetTypeCd}</if>
+    <if test="difficultyCd != null and difficultyCd != ''">AND T1.DIFFICULTY_CD = #{difficultyCd}</if>
+  </sql>
+  <select id="ifina8300S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.PLAN_ID AS PLAN_ID, T1.WAVE_ID AS WAVE_ID, T1.WAVE_NAME AS WAVE_NAME,
+               T1.TARGET_TYPE_CD AS TARGET_TYPE_CD, T1.TARGET_ID AS TARGET_ID,
+               T1.STRATEGY_7R_CD AS STRATEGY_7R_CD,
+               T1.CURRENT_PLATFORM_CD AS CURRENT_PLATFORM_CD,
+               T1.TARGET_PLATFORM_CD AS TARGET_PLATFORM_CD,
+               T1.DIFFICULTY_CD AS DIFFICULTY_CD, T1.STATUS_CD AS STATUS_CD,
+               T1.GAP_REMARK AS GAP_REMARK
+          FROM V_IF_MIGRATION_MAPPING T1
+        <include refid="mapWhere"/>
+         ORDER BY T1.DIFFICULTY_CD DESC, T1.WAVE_ID, T1.PLAN_ID
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina8300S0_S0_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM V_IF_MIGRATION_MAPPING T1 <include refid="mapWhere"/>
+  </select>
+</mapper>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifinaAuditDAO">
+  <insert id="ifinaChangeLog_insert" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_CHANGE_LOG_PILOT (
+      LOG_ID, TARGET_TYPE_CD, TARGET_ID, ACTION_CD, BEFORE_JSON, AFTER_JSON, CHANGED_BY, CHANGED_AT, REMARK
+    ) VALUES (
+      #{logId}, #{targetTypeCd}, #{targetId}, #{actionCd}, #{beforeJson}, #{afterJson}, #{changedBy}, #{changedAt}, #{remark}
+    )
+  </insert>
+  <sql id="changeWhere">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(NVL(T1.TARGET_ID,'')) LIKE '%'||UPPER(#{keyword})||'%' OR UPPER(NVL(T1.ACTION_CD,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="targetTypeCd != null and targetTypeCd != ''">AND T1.TARGET_TYPE_CD = #{targetTypeCd}</if>
+    <if test="targetId != null and targetId != ''">AND T1.TARGET_ID = #{targetId}</if>
+    <if test="actionCd != null and actionCd != ''">AND T1.ACTION_CD = #{actionCd}</if>
+  </sql>
+  <select id="ifina1600S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.LOG_ID AS LOG_ID, T1.TARGET_TYPE_CD AS TARGET_TYPE_CD, T1.TARGET_ID AS TARGET_ID,
+               T1.ACTION_CD AS ACTION_CD, T1.BEFORE_JSON AS BEFORE_JSON, T1.AFTER_JSON AS AFTER_JSON,
+               T1.CHANGED_BY AS CHANGED_BY, T1.CHANGED_AT AS CHANGED_AT, T1.REMARK AS REMARK
+          FROM TB_IF_CHANGE_LOG_PILOT T1
+        <include refid="changeWhere"/>
+         ORDER BY T1.CHANGED_AT DESC, T1.LOG_ID DESC
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina1600S0_S0_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_CHANGE_LOG_PILOT T1 <include refid="changeWhere"/>
+  </select>
+  <insert id="ifinaEvidence_insert" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_EVIDENCE_FILE_PILOT (
+      EVIDENCE_ID, TARGET_TYPE_CD, TARGET_ID, GATE_ID, FILE_NAME, FILE_URI, URL, UPLOADED_BY, UPLOADED_AT, REMARK
+    ) VALUES (
+      #{evidenceId}, #{targetTypeCd}, #{targetId}, #{gateId}, #{fileName}, #{fileUri}, #{url}, #{uploadedBy}, #{uploadedAt}, #{remark}
+    )
+  </insert>
+  <select id="ifinaEvidence_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_EVIDENCE_FILE_PILOT WHERE EVIDENCE_ID = #{evidenceId}
+  </select>
+  <sql id="evidenceWhere">
+    WHERE 1=1
+    <if test="targetTypeCd != null and targetTypeCd != ''">AND T1.TARGET_TYPE_CD = #{targetTypeCd}</if>
+    <if test="targetId != null and targetId != ''">AND T1.TARGET_ID = #{targetId}</if>
+  </sql>
+  <select id="ifina1600S0_evidence" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.EVIDENCE_ID AS EVIDENCE_ID, T1.TARGET_TYPE_CD AS TARGET_TYPE_CD, T1.TARGET_ID AS TARGET_ID,
+               T1.GATE_ID AS GATE_ID, T1.FILE_NAME AS FILE_NAME, T1.FILE_URI AS FILE_URI, T1.URL AS URL,
+               T1.UPLOADED_BY AS UPLOADED_BY, T1.UPLOADED_AT AS UPLOADED_AT, T1.REMARK AS REMARK
+          FROM TB_IF_EVIDENCE_FILE_PILOT T1
+        <include refid="evidenceWhere"/>
+         ORDER BY T1.UPLOADED_AT DESC, T1.EVIDENCE_ID DESC
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina1600S0_evidence_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_EVIDENCE_FILE_PILOT T1 <include refid="evidenceWhere"/>
+  </select>
+</mapper>

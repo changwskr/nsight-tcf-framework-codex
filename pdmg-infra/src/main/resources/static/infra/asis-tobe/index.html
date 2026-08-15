@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INF-830 AS-IS→TO-BE · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar">
+      <div class="infra-sidebar__brand"><h1>인프라 아키텍처 관리</h1><p>INF-830 Mapping</p></div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">이동</div>
+          <a class="infra-menu-link" href="/index.html">홈</a>
+          <a class="infra-menu-link" href="/infra/migration/index.html">INF-810 7R</a>
+          <a class="infra-menu-link infra-menu-link--active" href="/infra/asis-tobe/index.html">INF-830 매핑</a>
+          <a class="infra-menu-link" href="/infra/proposal/index.html">INF-940 제안</a>
+        </div>
+      </nav>
+      <div class="infra-sidebar__foot">ifina8300S0 · v_migration_mapping</div>
+    </aside>
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div><h1>INF-830 AS-IS → TO-BE</h1><p>7R·Wave·Gap 메모 좌우 비교.</p></div>
+        <div class="actions"><button class="btn-secondary" type="button" id="searchBtn">조회</button></div>
+      </header>
+      <section class="toolbar">
+        <div class="field"><label for="waveId">Wave</label>
+          <select id="waveId"><option value="">전체</option><option>W1</option><option>W2</option><option>W3</option></select>
+        </div>
+        <div class="field"><label for="strategy7rCd">7R</label>
+          <select id="strategy7rCd"><option value="">전체</option><option>REHOST</option><option>REPLATFORM</option><option>RETAIN</option><option>REPURCHASE</option></select>
+        </div>
+        <div class="field field-wide"><label for="keyword">키워드</label><input id="keyword"></div>
+      </section>
+      <section class="response-meta" id="resultMeta">조회를 실행하세요.</section>
+      <section class="panel">
+        <div class="panel-head"><h2>Mapping</h2><span class="group-tag" id="rowCount">0</span></div>
+        <div class="table-wrap"><table class="data-table"><thead>
+          <tr><th>Target</th><th>AS-IS</th><th>7R</th><th>TO-BE</th><th>Wave</th><th>난이도</th><th>Gap</th></tr>
+        </thead><tbody id="rowBody"><tr><td colspan="7" class="empty">-</td></tr></tbody></table></div>
+      </section>
+    </div>
+  </div>
+  <script src="/_shared/infra-api.js"></script>
+  <script src="/infra/asis-tobe/asis-tobe.js"></script>
+</body>
+</html>

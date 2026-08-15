@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INF-620 용량 · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar">
+      <div class="infra-sidebar__brand"><h1>인프라 아키텍처 관리</h1><p>INF-620 Capacity</p></div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">이동</div>
+          <a class="infra-menu-link" href="/index.html">홈</a>
+          <a class="infra-menu-link" href="/infra/groups/index.html">INF-310 서버군</a>
+          <a class="infra-menu-link infra-menu-link--active" href="/infra/capacity/index.html">INF-620 용량</a>
+          <a class="infra-menu-link" href="/infra/gates/index.html">INF-920 Gate</a>
+        </div>
+      </nav>
+      <div class="infra-sidebar__foot">ifina6200* · RL-CP Soft</div>
+    </aside>
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div><h1>INF-620 성능·용량 Snapshot</h1><p>CURRENT / PEAK / TARGET / N1 / DR. Soft RL-CP-001/002.</p></div>
+        <div class="actions">
+          <button class="btn-secondary" type="button" id="searchBtn">조회</button>
+          <button class="btn-primary" type="button" id="saveBtn">저장</button>
+        </div>
+      </header>
+      <section class="toolbar">
+        <div class="field"><label for="targetTypeCd">대상유형</label><select id="targetTypeCd"><option>GROUP</option><option>ASSET</option></select></div>
+        <div class="field field-wide"><label for="targetId">대상ID</label><input id="targetId" value="SG-WAS-A"></div>
+      </section>
+      <section class="response-meta" id="resultMeta">조회를 실행하세요.</section>
+      <section class="panel">
+        <div class="panel-head"><h2>Snapshots</h2><span class="group-tag" id="warnLine"></span></div>
+        <div class="table-wrap"><table class="data-table"><thead>
+          <tr><th>Scope</th><th>CPU%</th><th>Mem%</th><th>TPS</th><th>P95ms</th><th>DB Conn</th><th>Captured</th></tr>
+        </thead><tbody id="rowBody"><tr><td colspan="7" class="empty">-</td></tr></tbody></table></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Upsert</h2></div>
+        <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem">
+          <div class="field"><label for="metricScopeCd">Scope</label>
+            <select id="metricScopeCd"><option>CURRENT</option><option>PEAK</option><option>TARGET</option><option>N1</option><option>DR</option></select>
+          </div>
+          <div class="field"><label for="capturedAt">Captured</label><input id="capturedAt" placeholder="yyyyMMddHHmmss"></div>
+          <div class="field"><label for="cpuPct">CPU %</label><input id="cpuPct" type="number" step="0.01"></div>
+          <div class="field"><label for="memPct">Mem %</label><input id="memPct" type="number" step="0.01"></div>
+          <div class="field"><label for="tps">TPS</label><input id="tps" type="number" step="0.01"></div>
+          <div class="field"><label for="respP95Ms">Resp P95 ms</label><input id="respP95Ms" type="number" step="0.01"></div>
+          <div class="field"><label for="dbConnPeak">DB Conn Peak</label><input id="dbConnPeak" type="number"></div>
+          <div class="field"><label for="remark">비고</label><input id="remark"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="/_shared/infra-api.js"></script>
+  <script src="/infra/capacity/capacity.js"></script>
+</body>
+</html>

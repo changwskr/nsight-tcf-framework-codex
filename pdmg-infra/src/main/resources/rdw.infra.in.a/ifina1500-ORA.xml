@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina1500DAO">
+  <sql id="orgWhere">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(NVL(T1.ORG_ID,'')) LIKE '%'||UPPER(#{keyword})||'%' OR UPPER(NVL(T1.ORG_NAME,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="orgId != null and orgId != ''">AND T1.ORG_ID = #{orgId}</if>
+    <if test="activeYn != null and activeYn != ''">AND T1.ACTIVE_YN = #{activeYn}</if>
+  </sql>
+  <sql id="personWhere">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(NVL(T1.PERSON_ID,'')) LIKE '%'||UPPER(#{keyword})||'%' OR UPPER(NVL(T1.PERSON_NAME,'')) LIKE '%'||UPPER(#{keyword})||'%' OR UPPER(NVL(T1.EMAIL,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="personId != null and personId != ''">AND T1.PERSON_ID = #{personId}</if>
+    <if test="orgId != null and orgId != ''">AND T1.ORG_ID = #{orgId}</if>
+    <if test="activeYn != null and activeYn != ''">AND T1.ACTIVE_YN = #{activeYn}</if>
+  </sql>
+  <select id="ifina1500S0_org" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.ORG_ID AS ORG_ID, T1.ORG_NAME AS ORG_NAME, T1.PARENT_ORG_ID AS PARENT_ORG_ID, T1.ORG_TYPE_CD AS ORG_TYPE_CD,
+               T1.ACTIVE_YN AS ACTIVE_YN, T1.REMARK AS REMARK, T1.REG_USER_ID AS REG_USER_ID, T1.REG_DTM AS REG_DTM,
+               T1.CHG_USER_ID AS CHG_USER_ID, T1.CHG_DTM AS CHG_DTM
+          FROM TB_IF_ORG_UNIT_PILOT T1
+        <include refid="orgWhere"/>
+         ORDER BY T1.ORG_ID ASC
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina1500S0_org_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_ORG_UNIT_PILOT T1 <include refid="orgWhere"/>
+  </select>
+  <select id="ifina1500S0_org_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_ORG_UNIT_PILOT T1 WHERE T1.ORG_ID = #{orgId}
+  </select>
+  <select id="ifina1500S0_person" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.PERSON_ID AS PERSON_ID, T1.PERSON_NAME AS PERSON_NAME, T1.ORG_ID AS ORG_ID, O.ORG_NAME AS ORG_NAME,
+               T1.EMAIL AS EMAIL, T1.ROLE_CD AS ROLE_CD, T1.ACTIVE_YN AS ACTIVE_YN, T1.REMARK AS REMARK,
+               T1.REG_USER_ID AS REG_USER_ID, T1.REG_DTM AS REG_DTM, T1.CHG_USER_ID AS CHG_USER_ID, T1.CHG_DTM AS CHG_DTM
+          FROM TB_IF_PERSON_PILOT T1
+          LEFT JOIN TB_IF_ORG_UNIT_PILOT O ON O.ORG_ID = T1.ORG_ID
+        <include refid="personWhere"/>
+         ORDER BY T1.PERSON_ID ASC
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina1500S0_person_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_PERSON_PILOT T1 <include refid="personWhere"/>
+  </select>
+  <select id="ifina1500S0_person_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_PERSON_PILOT T1 WHERE T1.PERSON_ID = #{personId}
+  </select>
+  <select id="ifina1500S0_roleByPersonId" resultType="java.lang.String" parameterType="java.util.HashMap">
+    SELECT ROLE_CD FROM TB_IF_PERSON_PILOT
+     WHERE PERSON_ID = #{personId} AND ACTIVE_YN = 'Y'
+  </select>
+  <insert id="ifina1500C0_org" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_ORG_UNIT_PILOT (ORG_ID, ORG_NAME, PARENT_ORG_ID, ORG_TYPE_CD, ACTIVE_YN, REMARK, REG_USER_ID, REG_DTM, CHG_USER_ID, CHG_DTM)
+    VALUES (#{orgId}, #{orgName}, #{parentOrgId}, #{orgTypeCd}, #{activeYn}, #{remark}, #{regUserId}, #{regDtm}, #{chgUserId}, #{chgDtm})
+  </insert>
+  <update id="ifina1500U0_org" parameterType="java.util.HashMap">
+    UPDATE TB_IF_ORG_UNIT_PILOT SET ORG_NAME=#{orgName}, PARENT_ORG_ID=#{parentOrgId}, ORG_TYPE_CD=#{orgTypeCd},
+      ACTIVE_YN=#{activeYn}, REMARK=#{remark}, CHG_USER_ID=#{chgUserId}, CHG_DTM=#{chgDtm}
+     WHERE ORG_ID=#{orgId}
+  </update>
+  <insert id="ifina1500C0_person" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_PERSON_PILOT (PERSON_ID, PERSON_NAME, ORG_ID, EMAIL, ROLE_CD, ACTIVE_YN, REMARK, REG_USER_ID, REG_DTM, CHG_USER_ID, CHG_DTM)
+    VALUES (#{personId}, #{personName}, #{orgId}, #{email}, #{roleCd}, #{activeYn}, #{remark}, #{regUserId}, #{regDtm}, #{chgUserId}, #{chgDtm})
+  </insert>
+  <update id="ifina1500U0_person" parameterType="java.util.HashMap">
+    UPDATE TB_IF_PERSON_PILOT SET PERSON_NAME=#{personName}, ORG_ID=#{orgId}, EMAIL=#{email}, ROLE_CD=#{roleCd},
+      ACTIVE_YN=#{activeYn}, REMARK=#{remark}, CHG_USER_ID=#{chgUserId}, CHG_DTM=#{chgDtm}
+     WHERE PERSON_ID=#{personId}
+  </update>
+  <update id="ifina1500E0_role" parameterType="java.util.HashMap">
+    UPDATE TB_IF_PERSON_PILOT SET ROLE_CD=#{roleCd},
+      REMARK=#{remark}, CHG_USER_ID=#{chgUserId}, CHG_DTM=#{chgDtm}
+     WHERE PERSON_ID=#{personId}
+  </update>
+</mapper>

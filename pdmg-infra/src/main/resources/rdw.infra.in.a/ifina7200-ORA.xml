@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina7200DAO">
+  <select id="ifina7200S0_license" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT LICENSE_ID AS LICENSE_ID, PRODUCT_NAME AS PRODUCT_NAME, VENDOR_NAME AS VENDOR_NAME,
+           LICENSE_MODEL_CD AS LICENSE_MODEL_CD, QTY AS QTY
+      FROM TB_IF_LICENSE_PILOT WHERE LICENSE_ID = #{licenseId}
+  </select>
+  <select id="ifina7200S0_alloc" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT ASSET_ID AS ASSET_ID, LICENSE_ID AS LICENSE_ID, ALLOCATED_QTY AS ALLOCATED_QTY
+      FROM TB_IF_ASSET_LICENSE_PILOT WHERE LICENSE_ID = #{licenseId}
+     ORDER BY ASSET_ID
+  </select>
+  <delete id="ifina7200U0_deleteAll" parameterType="java.util.HashMap">
+    DELETE FROM TB_IF_ASSET_LICENSE_PILOT WHERE LICENSE_ID = #{licenseId}
+  </delete>
+  <insert id="ifina7200U0_upsert" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_ASSET_LICENSE_PILOT (ASSET_ID, LICENSE_ID, ALLOCATED_QTY)
+    VALUES (#{assetId}, #{licenseId}, #{allocatedQty})
+  </insert>
+</mapper>

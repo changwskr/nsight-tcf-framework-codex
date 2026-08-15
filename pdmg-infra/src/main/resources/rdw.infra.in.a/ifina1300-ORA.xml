@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina1300DAO">
+  <sql id="where">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(NVL(T1.CHECKLIST_ID,'')) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.ITEM_NAME,'')) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.CATEGORY_KO,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="categoryKo != null and categoryKo != ''">AND T1.CATEGORY_KO = #{categoryKo}</if>
+    <if test="activeYn != null and activeYn != ''">AND T1.ACTIVE_YN = #{activeYn}</if>
+    <if test="checklistId != null and checklistId != ''">AND T1.CHECKLIST_ID = #{checklistId}</if>
+  </sql>
+  <select id="ifina1300S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.CHECKLIST_ID AS CHECKLIST_ID, T1.ITEM_NAME AS ITEM_NAME, T1.CATEGORY_KO AS CATEGORY_KO,
+               T1.SEVERITY_CD AS SEVERITY_CD, T1.ACTIVE_YN AS ACTIVE_YN, T1.SORT_NO AS SORT_NO, T1.REMARK AS REMARK
+          FROM TB_IF_CHECKLIST_ITEM_PILOT T1
+        <include refid="where"/>
+         ORDER BY T1.SORT_NO, T1.CHECKLIST_ID
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina1300S0_S0_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_CHECKLIST_ITEM_PILOT T1 <include refid="where"/>
+  </select>
+  <select id="ifina1300S0_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_CHECKLIST_ITEM_PILOT WHERE CHECKLIST_ID = #{checklistId}
+  </select>
+  <select id="ifina1300S0_S1" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT CHECKLIST_ID AS CHECKLIST_ID, ITEM_NAME AS ITEM_NAME, CATEGORY_KO AS CATEGORY_KO,
+           SEVERITY_CD AS SEVERITY_CD, ACTIVE_YN AS ACTIVE_YN, SORT_NO AS SORT_NO, REMARK AS REMARK
+      FROM TB_IF_CHECKLIST_ITEM_PILOT WHERE CHECKLIST_ID = #{checklistId}
+  </select>
+  <insert id="ifina1300C0_C0" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_CHECKLIST_ITEM_PILOT (
+      CHECKLIST_ID, ITEM_NAME, CATEGORY_KO, SEVERITY_CD, ACTIVE_YN, SORT_NO, REMARK
+    ) VALUES (
+      #{checklistId}, #{itemName}, #{categoryKo}, #{severityCd}, #{activeYn}, #{sortNo}, #{remark}
+    )
+  </insert>
+  <update id="ifina1300U0_U0" parameterType="java.util.HashMap">
+    UPDATE TB_IF_CHECKLIST_ITEM_PILOT SET
+      ITEM_NAME=#{itemName}, CATEGORY_KO=#{categoryKo}, SEVERITY_CD=#{severityCd},
+      ACTIVE_YN=#{activeYn}, SORT_NO=#{sortNo}, REMARK=#{remark}
+     WHERE CHECKLIST_ID=#{checklistId}
+  </update>
+</mapper>

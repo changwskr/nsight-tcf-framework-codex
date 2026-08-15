@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina1999DAO">
+
+    <sql id="ifina1999Where">
+        WHERE 1 = 1
+        <if test="keyword != null and keyword != ''">
+           AND (
+                UPPER(T1.SERVER_ID) LIKE '%' || UPPER(#{keyword}) || '%'
+             OR UPPER(T1.SERVER_NAME) LIKE '%' || UPPER(#{keyword}) || '%'
+             OR UPPER(NVL(T1.TECH_ROLE, '')) LIKE '%' || UPPER(#{keyword}) || '%'
+             OR UPPER(NVL(T1.ENV_CD, '')) LIKE '%' || UPPER(#{keyword}) || '%'
+             OR UPPER(NVL(T1.STATUS_CD, '')) LIKE '%' || UPPER(#{keyword}) || '%'
+           )
+        </if>
+        <if test="serverId != null and serverId != ''">
+           AND T1.SERVER_ID = #{serverId}
+        </if>
+        <if test="serverName != null and serverName != ''">
+           AND T1.SERVER_NAME LIKE '%' || #{serverName} || '%'
+        </if>
+        <if test="techRole != null and techRole != ''">
+           AND T1.TECH_ROLE = #{techRole}
+        </if>
+        <if test="envCd != null and envCd != ''">
+           AND T1.ENV_CD = #{envCd}
+        </if>
+        <if test="statusCd != null and statusCd != ''">
+           AND T1.STATUS_CD = #{statusCd}
+        </if>
+    </sql>
+
+    <select id="ifina1999S0_S0" resultType="java.util.HashMap"
+            parameterType="java.util.HashMap">
+        SELECT * FROM (
+          SELECT a.*, ROWNUM rnum
+            FROM (
+               SELECT /* ifina1999S0_S0 */
+                      T1.SERVER_ID   AS SERVER_ID
+                    , T1.SERVER_NAME AS SERVER_NAME
+                    , T1.TECH_ROLE   AS TECH_ROLE
+                    , T1.ENV_CD      AS ENV_CD
+                    , T1.TIER_CD     AS TIER_CD
+                    , T1.STATUS_CD   AS STATUS_CD
+                    , T1.REMARK      AS REMARK
+                    , T1.REG_USER_ID AS REG_USER_ID
+                    , T1.REG_DTM     AS REG_DTM
+                    , T1.CHG_USER_ID AS CHG_USER_ID
+                    , T1.CHG_DTM     AS CHG_DTM
+                 FROM TB_IF_SERVER_PILOT T1
+               <include refid="ifina1999Where"/>
+                ORDER BY T1.REG_DTM DESC, T1.SERVER_ID ASC
+            ) a
+           WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+        )
+        WHERE rnum > #{offset}
+    </select>
+
+    <select id="ifina1999S0_S0_count" resultType="int"
+            parameterType="java.util.HashMap">
+        SELECT /* ifina1999S0_S0_count */ COUNT(*)
+          FROM TB_IF_SERVER_PILOT T1
+        <include refid="ifina1999Where"/>
+    </select>
+
+    <select id="ifina1999S0_S0_exists" resultType="int"
+            parameterType="java.util.HashMap">
+        SELECT /* ifina1999S0_S0_exists */ COUNT(*)
+          FROM TB_IF_SERVER_PILOT T1
+         WHERE T1.SERVER_ID = #{serverId}
+    </select>
+
+    <insert id="ifina1999C0_C0" parameterType="java.util.HashMap">
+        INSERT /* ifina1999C0_C0 */ INTO TB_IF_SERVER_PILOT (
+            SERVER_ID, SERVER_NAME, TECH_ROLE, ENV_CD, TIER_CD, STATUS_CD, REMARK,
+            REG_USER_ID, REG_DTM
+        ) VALUES (
+            #{serverId}, #{serverName}, #{techRole}, #{envCd}, #{tierCd}, #{statusCd}, #{remark},
+            #{regUserId}, #{regDtm}
+        )
+    </insert>
+
+    <update id="ifina1999U0_U0" parameterType="java.util.HashMap">
+        UPDATE /* ifina1999U0_U0 */ TB_IF_SERVER_PILOT
+           SET SERVER_NAME = #{serverName}
+             , TECH_ROLE   = #{techRole}
+             , ENV_CD      = #{envCd}
+             , TIER_CD     = #{tierCd}
+             , STATUS_CD   = #{statusCd}
+             , REMARK      = #{remark}
+             , CHG_USER_ID = #{chgUserId}
+             , CHG_DTM     = #{chgDtm}
+         WHERE SERVER_ID = #{serverId}
+    </update>
+
+    <delete id="ifina1999D0_D0" parameterType="java.util.HashMap">
+        DELETE /* ifina1999D0_D0 */ FROM TB_IF_SERVER_PILOT
+         WHERE SERVER_ID IN
+        <foreach collection="serverIdList" item="serverId" open="(" separator="," close=")">
+            #{serverId}
+        </foreach>
+    </delete>
+
+</mapper>

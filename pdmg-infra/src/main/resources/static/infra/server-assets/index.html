@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INF-320 정규 자산 · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar">
+      <div class="infra-sidebar__brand"><h1>인프라 아키텍처 관리</h1><p>INF-320 정규 자산</p></div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">이동</div>
+          <a class="infra-menu-link" href="/index.html">홈</a>
+          <a class="infra-menu-link" href="/infra/assets/index.html">파일럿 ifina1999</a>
+          <a class="infra-menu-link infra-menu-link--active" href="/infra/server-assets/index.html">정규 ifina3100</a>
+          <a class="infra-menu-link" href="/infra/groups/index.html">INF-310 서버군</a>
+        </div>
+      </nav>
+      <div class="infra-sidebar__foot">ifina3100* · TB_IF_SERVER_ASSET_PILOT</div>
+    </aside>
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div><h1>INF-320 정규 서버 자산</h1><p>ifina3100 S0/S1/C0/U0/D0. D0는 기본 RETIRED.</p></div>
+        <span class="badge">scid=INF-320</span>
+      </header>
+      <section class="toolbar">
+        <div class="field field-wide"><label for="keyword">검색</label><input id="keyword" placeholder="자산/시스템/군"></div>
+        <div class="field"><label for="systemId">시스템</label><input id="systemId" placeholder="SYS-ONLINE"></div>
+        <div class="field"><label for="statusCd">상태</label><select id="statusCd"><option value="">전체</option><option>DISCOVERED</option><option>CONFIRMED</option><option>RETIRED</option></select></div>
+        <div class="field"><label for="pageSize">페이지</label><select id="pageSize"><option value="10" selected>10</option><option value="20">20</option></select></div>
+        <div class="actions">
+          <button class="btn-secondary" type="button" id="searchBtn">조회</button>
+          <button class="btn-primary" type="button" id="addBtn">신규</button>
+        </div>
+      </section>
+      <section class="response-meta" id="resultMeta">조회를 실행하세요.</section>
+      <section class="panel">
+        <div class="panel-head"><h2>정규 자산</h2><span class="group-tag" id="resultCount">0건</span></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Asset ID</th><th>자산명</th><th>Kind</th><th>역할</th><th>시스템</th><th>군</th><th>상태</th><th></th></tr></thead>
+            <tbody id="resultBody"><tr><td colspan="8" class="empty">데이터 없음</td></tr></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button class="btn-secondary" type="button" id="prevPageBtn" disabled>이전</button>
+          <span id="pageInfo">1 / 1</span>
+          <button class="btn-secondary" type="button" id="nextPageBtn" disabled>다음</button>
+        </div>
+      </section>
+      <section class="panel" id="detailPanel" hidden>
+        <div class="panel-head"><h2>상세 (S1) · 확장속성</h2><button class="btn-secondary" type="button" id="closeDetailBtn">닫기</button></div>
+        <div id="detailSummary" style="padding:.75rem 1rem"></div>
+        <div class="panel-head"><h3>확장항목 (asset_attr)</h3></div>
+        <div id="detailAttrs" class="modal-body"></div>
+        <pre id="detailBody" style="white-space:pre-wrap;font-size:.85rem;margin:0;padding:1rem"></pre>
+      </section>
+    </div>
+  </div>
+  <div class="modal" id="editModal" hidden>
+    <div class="modal-backdrop" data-close="true"></div>
+    <div class="modal-card">
+      <div class="panel-head"><h2 id="editTitle">자산 등록</h2><button class="btn-secondary" type="button" data-close="true">닫기</button></div>
+      <div class="modal-body">
+        <div class="field"><label for="formAssetId">Asset ID *</label><input id="formAssetId"></div>
+        <div class="field"><label for="formAssetName">자산명 *</label><input id="formAssetName"></div>
+        <div class="field"><label for="formAssetKindCd">Kind *</label><select id="formAssetKindCd"><option>VM</option><option>BARE_METAL</option><option>SAAS</option></select></div>
+        <div class="field"><label for="formTechRoleCd">역할 *</label><select id="formTechRoleCd"><option>WAS</option><option>WEB</option><option>DATABASE</option><option>BATCH</option></select></div>
+        <div class="field"><label for="formEnvCd">환경 *</label><select id="formEnvCd"><option>PROD</option><option>STG</option><option>DEV</option></select></div>
+        <div class="field"><label for="formTierCd">Tier</label><select id="formTierCd"><option>TIER0</option><option>TIER1</option><option selected>TIER2</option><option>TIER3</option></select></div>
+        <div class="field"><label for="formSystemId">시스템</label><input id="formSystemId" value="SYS-ONLINE"></div>
+        <div class="field"><label for="formGroupId">서버군</label><input id="formGroupId" value="SG-WAS-A"></div>
+        <div class="field"><label for="formStatusCd">상태</label><select id="formStatusCd"><option>DISCOVERED</option><option selected>CONFIRMED</option></select></div>
+        <div class="field"><label for="formOsName">OS</label><input id="formOsName" placeholder="RHEL"></div>
+        <div class="field"><label for="formOsVersion">OS Ver</label><input id="formOsVersion" placeholder="7.9"></div>
+        <div class="field"><label for="formOsEolDate">OS EOL</label><input id="formOsEolDate" placeholder="YYYY-MM-DD"></div>
+        <div class="field field-span"><label for="formRemark">비고</label><input id="formRemark"></div>
+        <div class="field field-span"><h3>확장항목 (EAV)</h3></div>
+        <div id="editAttrs" class="field field-span"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" type="button" data-close="true">취소</button>
+        <button class="btn-primary" type="button" id="saveBtn">저장</button>
+      </div>
+    </div>
+  </div>
+  <script src="/_shared/infra-api.js"></script>
+  <script src="/infra/server-assets/server-assets.js"></script>
+</body>
+</html>

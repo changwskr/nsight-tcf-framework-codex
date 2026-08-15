@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina1400DAO">
+  <sql id="where">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(NVL(T1.GATE_ID,'')) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.NAME_KO,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="activeYn != null and activeYn != ''">AND T1.ACTIVE_YN = #{activeYn}</if>
+    <if test="gateId != null and gateId != ''">AND T1.GATE_ID = #{gateId}</if>
+  </sql>
+  <select id="ifina1400S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.GATE_ID AS GATE_ID, T1.NAME_KO AS NAME_KO, T1.DESCRIPTION AS DESCRIPTION,
+               T1.SORT_NO AS SORT_NO, T1.ACTIVE_YN AS ACTIVE_YN
+          FROM TB_IF_GATE_DEF_PILOT T1
+        <include refid="where"/>
+         ORDER BY T1.SORT_NO, T1.GATE_ID
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina1400S0_S0_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_GATE_DEF_PILOT T1 <include refid="where"/>
+  </select>
+  <select id="ifina1400S0_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_GATE_DEF_PILOT WHERE GATE_ID = #{gateId}
+  </select>
+  <select id="ifina1400S0_S1" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT GATE_ID AS GATE_ID, NAME_KO AS NAME_KO, DESCRIPTION AS DESCRIPTION,
+           SORT_NO AS SORT_NO, ACTIVE_YN AS ACTIVE_YN
+      FROM TB_IF_GATE_DEF_PILOT WHERE GATE_ID = #{gateId}
+  </select>
+  <insert id="ifina1400C0_C0" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_GATE_DEF_PILOT (GATE_ID, NAME_KO, DESCRIPTION, SORT_NO, ACTIVE_YN)
+    VALUES (#{gateId}, #{nameKo}, #{description}, #{sortNo}, #{activeYn})
+  </insert>
+  <update id="ifina1400U0_U0" parameterType="java.util.HashMap">
+    UPDATE TB_IF_GATE_DEF_PILOT SET
+      NAME_KO=#{nameKo}, DESCRIPTION=#{description}, SORT_NO=#{sortNo}, ACTIVE_YN=#{activeYn}
+     WHERE GATE_ID=#{gateId}
+  </update>
+</mapper>

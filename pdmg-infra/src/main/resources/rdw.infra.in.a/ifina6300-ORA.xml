@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina6300DAO">
+  <select id="ifina6300S0_S1" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT PROFILE_ID AS PROFILE_ID, TARGET_TYPE_CD AS TARGET_TYPE_CD, TARGET_ID AS TARGET_ID,
+           SECURITY_GRADE_CD AS SECURITY_GRADE_CD, PERSONAL_INFO_YN AS PERSONAL_INFO_YN,
+           CREDIT_INFO_YN AS CREDIT_INFO_YN, FINANCIAL_TXN_YN AS FINANCIAL_TXN_YN,
+           ADMIN_INFO_YN AS ADMIN_INFO_YN, EXTERNAL_CONN_YN AS EXTERNAL_CONN_YN,
+           INTERNET_CONN_YN AS INTERNET_CONN_YN, ENCRYPTION_YN AS ENCRYPTION_YN,
+           KMS_HSM_YN AS KMS_HSM_YN, PAM_YN AS PAM_YN, EDR_YN AS EDR_YN, AUDIT_LOG_YN AS AUDIT_LOG_YN,
+           AUTH_METHOD_CD AS AUTH_METHOD_CD, NETWORK_ZONE_CD AS NETWORK_ZONE_CD, REMARK AS REMARK
+      FROM TB_IF_SECURITY_PROFILE_PILOT
+     WHERE TARGET_TYPE_CD = #{targetTypeCd} AND TARGET_ID = #{targetId}
+  </select>
+  <select id="ifina6300S0_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_SECURITY_PROFILE_PILOT
+     WHERE TARGET_TYPE_CD = #{targetTypeCd} AND TARGET_ID = #{targetId}
+  </select>
+  <insert id="ifina6300U0_insert" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_SECURITY_PROFILE_PILOT (
+      PROFILE_ID, TARGET_TYPE_CD, TARGET_ID, SECURITY_GRADE_CD,
+      PERSONAL_INFO_YN, CREDIT_INFO_YN, FINANCIAL_TXN_YN, ADMIN_INFO_YN,
+      EXTERNAL_CONN_YN, INTERNET_CONN_YN, ENCRYPTION_YN, KMS_HSM_YN,
+      PAM_YN, EDR_YN, AUDIT_LOG_YN, AUTH_METHOD_CD, NETWORK_ZONE_CD, REMARK, REG_USER_ID, REG_DTM
+    ) VALUES (
+      #{profileId}, #{targetTypeCd}, #{targetId}, #{securityGradeCd},
+      #{personalInfoYn}, #{creditInfoYn}, #{financialTxnYn}, #{adminInfoYn},
+      #{externalConnYn}, #{internetConnYn}, #{encryptionYn}, #{kmsHsmYn},
+      #{pamYn}, #{edrYn}, #{auditLogYn}, #{authMethodCd}, #{networkZoneCd}, #{remark}, #{regUserId}, #{regDtm}
+    )
+  </insert>
+  <update id="ifina6300U0_update" parameterType="java.util.HashMap">
+    UPDATE TB_IF_SECURITY_PROFILE_PILOT
+       SET SECURITY_GRADE_CD=#{securityGradeCd}, PERSONAL_INFO_YN=#{personalInfoYn},
+           CREDIT_INFO_YN=#{creditInfoYn}, FINANCIAL_TXN_YN=#{financialTxnYn},
+           ADMIN_INFO_YN=#{adminInfoYn}, EXTERNAL_CONN_YN=#{externalConnYn},
+           INTERNET_CONN_YN=#{internetConnYn}, ENCRYPTION_YN=#{encryptionYn},
+           KMS_HSM_YN=#{kmsHsmYn}, PAM_YN=#{pamYn}, EDR_YN=#{edrYn}, AUDIT_LOG_YN=#{auditLogYn},
+           AUTH_METHOD_CD=#{authMethodCd}, NETWORK_ZONE_CD=#{networkZoneCd}, REMARK=#{remark},
+           CHG_USER_ID=#{chgUserId}, CHG_DTM=#{chgDtm}
+     WHERE TARGET_TYPE_CD=#{targetTypeCd} AND TARGET_ID=#{targetId}
+  </update>
+</mapper>

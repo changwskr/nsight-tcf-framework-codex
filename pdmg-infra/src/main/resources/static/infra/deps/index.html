@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INF-530 의존맵 · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar">
+      <div class="infra-sidebar__brand"><h1>인프라 아키텍처 관리</h1><p>INF-530 의존맵</p></div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">이동</div>
+          <a class="infra-menu-link" href="/index.html">홈</a>
+          <a class="infra-menu-link" href="/infra/apps/index.html">INF-220 App</a>
+          <a class="infra-menu-link infra-menu-link--active" href="/infra/deps/index.html">INF-530 의존맵</a>
+          <a class="infra-menu-link" href="/infra/risks/index.html">INF-020 리스크</a>
+        </div>
+      </nav>
+      <div class="infra-sidebar__foot">ifina5300* · nodes/edges</div>
+    </aside>
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div><h1>INF-530 의존관계 맵</h1><p>rootId+depth BFS 또는 전체 목록. Critical 강조.</p></div>
+        <div class="actions">
+          <button class="btn-secondary" type="button" id="searchBtn">조회</button>
+          <button class="btn-primary" type="button" id="addBtn">관계+</button>
+        </div>
+      </header>
+      <section class="toolbar">
+        <div class="field"><label for="rootType">Root Type</label>
+          <select id="rootType"><option>ASSET</option><option>APP</option><option>DB</option><option>GROUP</option></select>
+        </div>
+        <div class="field field-wide"><label for="rootId">Root ID</label><input id="rootId" placeholder="INF-APP-001" value="INF-APP-001"></div>
+        <div class="field"><label for="depth">Depth</label><select id="depth"><option>1</option><option selected>2</option><option>3</option></select></div>
+        <div class="field"><label for="criticalYn">Critical</label><select id="criticalYn"><option value="">전체</option><option>Y</option><option>N</option></select></div>
+      </section>
+      <section class="response-meta" id="resultMeta">조회를 실행하세요.</section>
+      <section class="split-2">
+        <article class="panel">
+          <div class="panel-head"><h2>Nodes</h2><span class="group-tag" id="nodeCount">0</span></div>
+          <div class="table-wrap"><table class="data-table"><thead><tr><th>Type</th><th>ID</th></tr></thead>
+            <tbody id="nodeBody"><tr><td colspan="2" class="empty">-</td></tr></tbody></table></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><h2>Edges</h2><span class="group-tag" id="edgeCount">0</span></div>
+          <div class="table-wrap"><table class="data-table"><thead><tr><th>From</th><th>Type</th><th>To</th><th>Crit</th><th></th></tr></thead>
+            <tbody id="edgeBody"><tr><td colspan="5" class="empty">-</td></tr></tbody></table></div>
+        </article>
+      </section>
+    </div>
+  </div>
+  <div class="modal" id="editModal" hidden>
+    <div class="modal-backdrop" data-close="true"></div>
+    <div class="modal-card">
+      <div class="panel-head"><h2>관계 등록</h2><button class="btn-secondary" type="button" data-close="true">닫기</button></div>
+      <div class="modal-body">
+        <div class="field"><label for="formRelationId">Relation ID *</label><input id="formRelationId"></div>
+        <div class="field"><label for="formFromType">From Type</label><select id="formFromType"><option>APP</option><option>ASSET</option><option>DB</option><option>GROUP</option></select></div>
+        <div class="field"><label for="formFromId">From ID *</label><input id="formFromId"></div>
+        <div class="field"><label for="formToType">To Type</label><select id="formToType"><option>ASSET</option><option>DB</option><option>APP</option><option>GROUP</option></select></div>
+        <div class="field"><label for="formToId">To ID *</label><input id="formToId"></div>
+        <div class="field"><label for="formRelType">Relation *</label><select id="formRelType"><option>CALLS</option><option>USES_DB</option><option>USES_CACHE</option><option>USES_MQ</option><option>FILE_XFER</option><option>REPLICATES</option></select></div>
+        <div class="field"><label for="formCritical">Critical</label><select id="formCritical"><option>N</option><option>Y</option></select></div>
+        <div class="field field-span"><label for="formRemark">비고</label><input id="formRemark"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" type="button" data-close="true">취소</button>
+        <button class="btn-primary" type="button" id="saveBtn">저장</button>
+      </div>
+    </div>
+  </div>
+  <script src="/_shared/infra-api.js"></script>
+  <script src="/infra/deps/deps.js"></script>
+</body>
+</html>

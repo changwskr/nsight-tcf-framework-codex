@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina5100DAO">
+  <sql id="ifina5100Where">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(NVL(T1.ENDPOINT_ID,'')) LIKE '%'||UPPER(#{keyword})||'%' OR UPPER(NVL(T1.ASSET_ID,'')) LIKE '%'||UPPER(#{keyword})||'%' OR UPPER(NVL(T1.ADDRESS,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="endpointId != null and endpointId != ''">AND T1.ENDPOINT_ID = #{endpointId}</if>
+    <if test="assetId != null and assetId != ''">AND T1.ASSET_ID = #{assetId}</if>
+    <if test="address != null and address != ''">AND T1.ADDRESS = #{address}</if>
+    <if test="endpointTypeCd != null and endpointTypeCd != ''">AND T1.ENDPOINT_TYPE_CD = #{endpointTypeCd}</if>
+    <if test="primaryYn != null and primaryYn != ''">AND T1.PRIMARY_YN = #{primaryYn}</if>
+  </sql>
+  <select id="ifina5100S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.ENDPOINT_ID AS ENDPOINT_ID, T1.ASSET_ID AS ASSET_ID, T1.ENDPOINT_TYPE_CD AS ENDPOINT_TYPE_CD, T1.ADDRESS AS ADDRESS, T1.PORT_NO AS PORT_NO, T1.PROTOCOL_CD AS PROTOCOL_CD, T1.PRIMARY_YN AS PRIMARY_YN, T1.REMARK AS REMARK, T1.REG_USER_ID AS REG_USER_ID, T1.REG_DTM AS REG_DTM, T1.CHG_USER_ID AS CHG_USER_ID, T1.CHG_DTM AS CHG_DTM
+          FROM TB_IF_NETWORK_EP_PILOT T1
+        <include refid="ifina5100Where"/>
+         ORDER BY T1.REG_DTM DESC, T1.ENDPOINT_ID ASC
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina5100S0_S0_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_NETWORK_EP_PILOT T1 <include refid="ifina5100Where"/>
+  </select>
+  <select id="ifina5100S0_S0_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_NETWORK_EP_PILOT T1 WHERE T1.ENDPOINT_ID = #{endpointId}
+  </select>
+  <insert id="ifina5100C0_C0" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_NETWORK_EP_PILOT (ENDPOINT_ID, ASSET_ID, ENDPOINT_TYPE_CD, ADDRESS, PORT_NO, PROTOCOL_CD, PRIMARY_YN, REMARK, REG_USER_ID, REG_DTM, CHG_USER_ID, CHG_DTM) VALUES (#{endpointId}, #{assetId}, #{endpointTypeCd}, #{address}, #{portNo}, #{protocolCd}, #{primaryYn}, #{remark}, #{regUserId}, #{regDtm}, #{chgUserId}, #{chgDtm})
+  </insert>
+  <update id="ifina5100U0_U0" parameterType="java.util.HashMap">
+    UPDATE TB_IF_NETWORK_EP_PILOT SET ASSET_ID=#{assetId},
+      ENDPOINT_TYPE_CD=#{endpointTypeCd},
+      ADDRESS=#{address},
+      PORT_NO=#{portNo},
+      PROTOCOL_CD=#{protocolCd},
+      PRIMARY_YN=#{primaryYn},
+      REMARK=#{remark},
+      CHG_USER_ID=#{chgUserId},
+      CHG_DTM=#{chgDtm} WHERE ENDPOINT_ID=#{endpointId}
+  </update>
+  <delete id="ifina5100D0_D0" parameterType="java.util.HashMap">
+    DELETE FROM TB_IF_NETWORK_EP_PILOT WHERE ENDPOINT_ID IN
+    <foreach collection="endpointIdList" item="endpointId" open="(" separator="," close=")">#{endpointId}</foreach>
+  </delete>
+  <update id="ifina5100U0_clearPrimary" parameterType="java.util.HashMap">
+    UPDATE TB_IF_NETWORK_EP_PILOT SET PRIMARY_YN='N' WHERE ASSET_ID=#{assetId} AND PRIMARY_YN='Y'
+      <if test="endpointId != null and endpointId != ''">AND ENDPOINT_ID &lt;&gt; #{endpointId}</if>
+  </update>
+  <select id="ifina5100S0_dupAddress" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_NETWORK_EP_PILOT T1
+     WHERE T1.ADDRESS = #{address}
+       AND COALESCE(T1.PORT_NO, '') = #{portNo}
+       <if test="endpointId != null and endpointId != ''">AND T1.ENDPOINT_ID &lt;&gt; #{endpointId}</if>
+  </select>
+
+</mapper>

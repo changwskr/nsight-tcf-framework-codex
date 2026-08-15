@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina2100DAO">
+  <sql id="ifina2100Where">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(T1.SYSTEM_ID) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(T1.SYSTEM_NAME) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.OWNER_ORG,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="systemId != null and systemId != ''">AND T1.SYSTEM_ID = #{systemId}</if>
+    <if test="systemName != null and systemName != ''">AND T1.SYSTEM_NAME LIKE '%'||#{systemName}||'%'</if>
+    <if test="ownerOrg != null and ownerOrg != ''">AND T1.OWNER_ORG = #{ownerOrg}</if>
+    <if test="statusCd != null and statusCd != ''">AND T1.STATUS_CD = #{statusCd}</if>
+  </sql>
+  <select id="ifina2100S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.SYSTEM_ID, T1.SYSTEM_NAME, T1.OWNER_ORG, T1.STATUS_CD, T1.REMARK,
+               T1.REG_USER_ID, T1.REG_DTM, T1.CHG_USER_ID, T1.CHG_DTM
+          FROM TB_IF_BIZ_SYSTEM_PILOT T1
+        <include refid="ifina2100Where"/>
+         ORDER BY T1.REG_DTM DESC, T1.SYSTEM_ID ASC
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina2100S0_S0_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_BIZ_SYSTEM_PILOT T1 <include refid="ifina2100Where"/>
+  </select>
+  <select id="ifina2100S0_S0_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_BIZ_SYSTEM_PILOT T1 WHERE T1.SYSTEM_ID = #{systemId}
+  </select>
+  <insert id="ifina2100C0_C0" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_BIZ_SYSTEM_PILOT (SYSTEM_ID,SYSTEM_NAME,OWNER_ORG,STATUS_CD,REMARK,REG_USER_ID,REG_DTM)
+    VALUES (#{systemId},#{systemName},#{ownerOrg},#{statusCd},#{remark},#{regUserId},#{regDtm})
+  </insert>
+  <update id="ifina2100U0_U0" parameterType="java.util.HashMap">
+    UPDATE TB_IF_BIZ_SYSTEM_PILOT SET SYSTEM_NAME=#{systemName}, OWNER_ORG=#{ownerOrg}, STATUS_CD=#{statusCd},
+      REMARK=#{remark}, CHG_USER_ID=#{chgUserId}, CHG_DTM=#{chgDtm} WHERE SYSTEM_ID=#{systemId}
+  </update>
+  <delete id="ifina2100D0_D0" parameterType="java.util.HashMap">
+    DELETE FROM TB_IF_BIZ_SYSTEM_PILOT WHERE SYSTEM_ID IN
+    <foreach collection="systemIdList" item="systemId" open="(" separator="," close=")">#{systemId}</foreach>
+  </delete>
+</mapper>

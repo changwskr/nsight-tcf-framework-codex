@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina9100DAO">
+
+    <select id="ifina9100S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+        SELECT I.CHECKLIST_ID AS CHECKLIST_ID
+             , I.ITEM_NAME    AS ITEM_NAME
+             , I.SEVERITY_CD  AS SEVERITY_CD
+             , I.SORT_NO      AS SORT_NO
+             , I.ACTIVE_YN    AS ACTIVE_YN
+             , NVL(R.CHECKED_YN, 'N') AS CHECKED_YN
+             , R.REMARK       AS REMARK
+          FROM TB_IF_CHECKLIST_ITEM_PILOT I
+          LEFT JOIN TB_IF_CHECKLIST_RESULT_PILOT R
+            ON R.CHECKLIST_ID = I.CHECKLIST_ID
+           AND R.TARGET_TYPE = #{targetType}
+           AND R.TARGET_ID = #{targetId}
+         WHERE I.ACTIVE_YN = 'Y'
+         ORDER BY I.SORT_NO ASC, I.CHECKLIST_ID ASC
+    </select>
+
+    <select id="ifina9100U0_U0_exists" resultType="int" parameterType="java.util.HashMap">
+        SELECT COUNT(*) FROM TB_IF_CHECKLIST_RESULT_PILOT
+         WHERE CHECKLIST_ID = #{checklistId}
+           AND TARGET_TYPE = #{targetType}
+           AND TARGET_ID = #{targetId}
+    </select>
+
+    <insert id="ifina9100U0_U0_insert" parameterType="java.util.HashMap">
+        INSERT INTO TB_IF_CHECKLIST_RESULT_PILOT (
+            CHECKLIST_ID, TARGET_TYPE, TARGET_ID, CHECKED_YN, REMARK, CHG_USER_ID, CHG_DTM
+        ) VALUES (
+            #{checklistId}, #{targetType}, #{targetId}, #{checkedYn}, #{remark}, #{chgUserId}, #{chgDtm}
+        )
+    </insert>
+
+    <update id="ifina9100U0_U0_update" parameterType="java.util.HashMap">
+        UPDATE TB_IF_CHECKLIST_RESULT_PILOT
+           SET CHECKED_YN = #{checkedYn}
+             , REMARK = #{remark}
+             , CHG_USER_ID = #{chgUserId}
+             , CHG_DTM = #{chgDtm}
+         WHERE CHECKLIST_ID = #{checklistId}
+           AND TARGET_TYPE = #{targetType}
+           AND TARGET_ID = #{targetId}
+    </update>
+
+</mapper>

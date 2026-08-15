@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INF-340 일괄등록 · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar">
+      <div class="infra-sidebar__brand"><h1>인프라 아키텍처 관리</h1><p>INF-340 일괄등록</p></div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">이동</div>
+          <a class="infra-menu-link" href="/index.html">홈</a>
+          <a class="infra-menu-link" href="/infra/assets/index.html">INF-320 자산</a>
+          <a class="infra-menu-link infra-menu-link--active" href="/infra/bulk/index.html">INF-340 일괄등록</a>
+        </div>
+      </nav>
+      <div class="infra-sidebar__foot">ifina3400V0/C0</div>
+    </aside>
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div><h1>INF-340 일괄등록</h1><p>JSON rows 검증 후 서버 자산(파일럿)에 반영합니다. 오류코드: E_REQ, E_DUP_ID, E_FK_GROUP.</p></div>
+      </header>
+      <section class="toolbar">
+        <div class="field"><label for="applyMode">반영모드</label>
+          <select id="applyMode"><option value="okOnly" selected>정상건만</option><option value="allOrNothing">전체롤백</option></select>
+        </div>
+        <div class="actions">
+          <button class="btn-secondary" type="button" id="sampleBtn">샘플 채우기</button>
+          <button class="btn-secondary" type="button" id="validateBtn">검증(V0)</button>
+          <button class="btn-primary" type="button" id="applyBtn">반영(C0)</button>
+        </div>
+      </section>
+      <section class="split-2">
+        <article class="panel">
+          <div class="panel-head"><h2>업로드 rows (JSON 배열)</h2></div>
+          <div class="panel-body"><textarea id="rowsJson" style="width:100%;min-height:280px;font-family:Consolas,monospace"></textarea></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><h2>결과</h2><span class="group-tag" id="summary">-</span></div>
+          <div class="panel-body">
+            <div class="response-meta" id="meta">아직 실행하지 않았습니다.</div>
+            <pre id="resultPre" style="white-space:pre-wrap;font-size:0.85rem;background:var(--panel-2);padding:12px;border-radius:10px;max-height:360px;overflow:auto"></pre>
+          </div>
+        </article>
+      </section>
+    </div>
+  </div>
+  <script src="/_shared/infra-api.js"></script>
+  <script src="/infra/bulk/bulk.js"></script>
+</body>
+</html>

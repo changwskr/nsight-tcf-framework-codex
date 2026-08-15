@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina5300DAO">
+  <sql id="relWhere">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(NVL(T1.FROM_ID,'')) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.TO_ID,'')) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.RELATION_ID,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="fromTypeCd != null and fromTypeCd != ''">AND T1.FROM_TYPE_CD = #{fromTypeCd}</if>
+    <if test="fromId != null and fromId != ''">AND T1.FROM_ID = #{fromId}</if>
+    <if test="toTypeCd != null and toTypeCd != ''">AND T1.TO_TYPE_CD = #{toTypeCd}</if>
+    <if test="toId != null and toId != ''">AND T1.TO_ID = #{toId}</if>
+    <if test="relationTypeCd != null and relationTypeCd != ''">AND T1.RELATION_TYPE_CD = #{relationTypeCd}</if>
+    <if test="criticalYn != null and criticalYn != ''">AND T1.CRITICAL_YN = #{criticalYn}</if>
+    <if test="rootId != null and rootId != ''">
+      AND (T1.FROM_ID = #{rootId} OR T1.TO_ID = #{rootId})
+    </if>
+  </sql>
+  <select id="ifina5300S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.RELATION_ID AS RELATION_ID, T1.FROM_TYPE_CD AS FROM_TYPE_CD, T1.FROM_ID AS FROM_ID,
+               T1.TO_TYPE_CD AS TO_TYPE_CD, T1.TO_ID AS TO_ID, T1.RELATION_TYPE_CD AS RELATION_TYPE_CD,
+               T1.CRITICAL_YN AS CRITICAL_YN, T1.REMARK AS REMARK, T1.REG_USER_ID AS REG_USER_ID, T1.REG_DTM AS REG_DTM
+          FROM TB_IF_ASSET_RELATION_PILOT T1
+        <include refid="relWhere"/>
+         ORDER BY T1.CRITICAL_YN DESC, T1.RELATION_ID
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina5300S0_S0_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_ASSET_RELATION_PILOT T1 <include refid="relWhere"/>
+  </select>
+  <select id="ifina5300S0_S0_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_ASSET_RELATION_PILOT WHERE RELATION_ID = #{relationId}
+  </select>
+  <insert id="ifina5300C0_C0" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_ASSET_RELATION_PILOT (
+      RELATION_ID, FROM_TYPE_CD, FROM_ID, TO_TYPE_CD, TO_ID, RELATION_TYPE_CD, CRITICAL_YN, REMARK, REG_USER_ID, REG_DTM
+    ) VALUES (
+      #{relationId}, #{fromTypeCd}, #{fromId}, #{toTypeCd}, #{toId}, #{relationTypeCd}, #{criticalYn}, #{remark}, #{regUserId}, #{regDtm}
+    )
+  </insert>
+  <delete id="ifina5300D0_D0" parameterType="java.util.HashMap">
+    DELETE FROM TB_IF_ASSET_RELATION_PILOT
+     WHERE RELATION_ID IN
+    <foreach collection="relationIdList" item="id" open="(" separator="," close=")">#{id}</foreach>
+  </delete>
+</mapper>

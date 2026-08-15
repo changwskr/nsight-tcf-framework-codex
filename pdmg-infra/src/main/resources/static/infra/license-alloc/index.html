@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INF-720 라이선스 할당 · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar">
+      <div class="infra-sidebar__brand"><h1>인프라 아키텍처 관리</h1><p>INF-720 Alloc</p></div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">이동</div>
+          <a class="infra-menu-link" href="/index.html">홈</a>
+          <a class="infra-menu-link" href="/infra/licenses/index.html">INF-710 라이선스</a>
+          <a class="infra-menu-link infra-menu-link--active" href="/infra/license-alloc/index.html">INF-720 할당</a>
+          <a class="infra-menu-link" href="/infra/tco/index.html">INF-730 TCO</a>
+        </div>
+      </nav>
+      <div class="infra-sidebar__foot">ifina7200* · HARD sum≤Qty</div>
+    </aside>
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div><h1>INF-720 라이선스 할당</h1><p>자산별 할당. 합계 &gt; 계약 Qty 시 HARD 거부.</p></div>
+        <div class="actions">
+          <button class="btn-secondary" type="button" id="searchBtn">조회</button>
+          <button class="btn-primary" type="button" id="saveBtn">할당 저장</button>
+        </div>
+      </header>
+      <section class="toolbar">
+        <div class="field"><label for="licenseId">License ID</label>
+          <select id="licenseId">
+            <option value="LIC-ORA-01">LIC-ORA-01</option>
+            <option value="LIC-MQ-01">LIC-MQ-01</option>
+            <option value="LIC-WL-01">LIC-WL-01</option>
+          </select>
+        </div>
+      </section>
+      <section class="response-meta" id="resultMeta">조회를 실행하세요.</section>
+      <section class="panel">
+        <div class="panel-head"><h2>계약 요약</h2><span class="group-tag" id="summaryLine"></span></div>
+        <div class="table-wrap"><table class="data-table"><thead>
+          <tr><th>Product</th><th>Vendor</th><th>Model</th><th>계약 Qty</th><th>할당 합</th><th>잔여</th></tr>
+        </thead><tbody id="sumBody"><tr><td colspan="6" class="empty">-</td></tr></tbody></table></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>할당 편집</h2>
+          <button class="btn-secondary" type="button" id="addRowBtn">행 추가</button>
+        </div>
+        <div class="table-wrap"><table class="data-table"><thead>
+          <tr><th>Asset ID</th><th>Allocated Qty</th><th></th></tr>
+        </thead><tbody id="allocBody"><tr><td colspan="3" class="empty">-</td></tr></tbody></table></div>
+      </section>
+    </div>
+  </div>
+  <script src="/_shared/infra-api.js"></script>
+  <script src="/infra/license-alloc/alloc.js"></script>
+</body>
+</html>

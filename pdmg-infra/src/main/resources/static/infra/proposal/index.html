@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INF-940 제안서 · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar">
+      <div class="infra-sidebar__brand"><h1>인프라 아키텍처 관리</h1><p>INF-940 Proposal</p></div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">이동</div>
+          <a class="infra-menu-link" href="/index.html">홈</a>
+          <a class="infra-menu-link" href="/infra/dashboard/index.html">INF-010 대시보드</a>
+          <a class="infra-menu-link" href="/infra/asis-tobe/index.html">INF-830 매핑</a>
+          <a class="infra-menu-link infra-menu-link--active" href="/infra/proposal/index.html">INF-940 제안</a>
+        </div>
+      </nav>
+      <div class="infra-sidebar__foot">ifina9400S0/E0 · CSV·XLSX·PDF</div>
+    </aside>
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div><h1>INF-940 제안서용 현황표</h1><p>표 선택 조회·CSV/XLSX/PDF Export. 일괄 Export는 표1~10 멀티시트 XLSX.</p></div>
+        <div class="actions">
+          <button class="btn-secondary" type="button" id="searchBtn">조회</button>
+          <button class="btn-secondary" type="button" id="exportCsvBtn">CSV</button>
+          <button class="btn-secondary" type="button" id="exportXlsxBtn">XLSX</button>
+          <button class="btn-secondary" type="button" id="exportPdfBtn">PDF</button>
+          <button class="btn-primary" type="button" id="exportAllBtn">일괄 XLSX(10종)</button>
+        </div>
+      </header>
+      <section class="toolbar">
+        <div class="field field-wide"><label for="tableId">표</label>
+          <select id="tableId">
+            <option value="1">1. 시스템별 서버군</option>
+            <option value="2">2. 서버군 Peak 용량</option>
+            <option value="3">3. MW·DB 제품</option>
+            <option value="4">4. EOL/EOS</option>
+            <option value="5">5. HA·DR</option>
+            <option value="6">6. 성능·용량</option>
+            <option value="7">7. 7R 적합성</option>
+            <option value="8">8. 목표 서버군</option>
+            <option value="9" selected>9. 전환 매핑</option>
+            <option value="10">10. TCO</option>
+            <option value="0">0. 서버 인벤토리</option>
+          </select>
+        </div>
+      </section>
+      <section class="response-meta" id="resultMeta">조회를 실행하세요.</section>
+      <section class="panel">
+        <div class="panel-head"><h2 id="tableTitle">표</h2><span class="group-tag" id="rowCount">0</span></div>
+        <div class="table-wrap"><table class="data-table"><thead id="tblHead"></thead><tbody id="tblBody"><tr><td class="empty">-</td></tr></tbody></table></div>
+      </section>
+    </div>
+  </div>
+  <script src="/_shared/infra-api.js"></script>
+  <script src="/infra/proposal/proposal.js"></script>
+</body>
+</html>

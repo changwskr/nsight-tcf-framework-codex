@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina5200DAO">
+  <sql id="ifina5200Where">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(NVL(T1.INTERFACE_ID,'')) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.FROM_APP_ID,'')) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.TO_APP_ID,'')) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.TO_EXTERNAL_NAME,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="interfaceId != null and interfaceId != ''">AND T1.INTERFACE_ID = #{interfaceId}</if>
+    <if test="fromAppId != null and fromAppId != ''">AND T1.FROM_APP_ID = #{fromAppId}</if>
+    <if test="toAppId != null and toAppId != ''">AND T1.TO_APP_ID = #{toAppId}</if>
+    <if test="protocolCd != null and protocolCd != ''">AND T1.PROTOCOL_CD = #{protocolCd}</if>
+    <if test="directionCd != null and directionCd != ''">AND T1.DIRECTION_CD = #{directionCd}</if>
+    <if test="criticalYn != null and criticalYn != ''">AND T1.CRITICAL_YN = #{criticalYn}</if>
+  </sql>
+  <select id="ifina5200S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.INTERFACE_ID AS INTERFACE_ID, T1.FROM_APP_ID AS FROM_APP_ID, T1.TO_APP_ID AS TO_APP_ID,
+               T1.TO_EXTERNAL_NAME AS TO_EXTERNAL_NAME, T1.PROTOCOL_CD AS PROTOCOL_CD, T1.DIRECTION_CD AS DIRECTION_CD,
+               T1.CRITICAL_YN AS CRITICAL_YN, T1.REMARK AS REMARK,
+               T1.REG_USER_ID AS REG_USER_ID, T1.REG_DTM AS REG_DTM, T1.CHG_USER_ID AS CHG_USER_ID, T1.CHG_DTM AS CHG_DTM
+          FROM TB_IF_APP_INTERFACE_PILOT T1
+        <include refid="ifina5200Where"/>
+         ORDER BY T1.CRITICAL_YN DESC, T1.INTERFACE_ID
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina5200S0_S0_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_APP_INTERFACE_PILOT T1 <include refid="ifina5200Where"/>
+  </select>
+  <select id="ifina5200S0_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_APP_INTERFACE_PILOT WHERE INTERFACE_ID = #{interfaceId}
+  </select>
+  <select id="ifina5200S0_appExists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_APPLICATION_PILOT WHERE APP_ID = #{appId}
+  </select>
+  <select id="ifina5200S0_S1" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT INTERFACE_ID AS INTERFACE_ID, FROM_APP_ID AS FROM_APP_ID, TO_APP_ID AS TO_APP_ID,
+           TO_EXTERNAL_NAME AS TO_EXTERNAL_NAME, PROTOCOL_CD AS PROTOCOL_CD, DIRECTION_CD AS DIRECTION_CD,
+           CRITICAL_YN AS CRITICAL_YN, REMARK AS REMARK
+      FROM TB_IF_APP_INTERFACE_PILOT WHERE INTERFACE_ID = #{interfaceId}
+  </select>
+  <insert id="ifina5200C0_C0" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_APP_INTERFACE_PILOT (
+      INTERFACE_ID, FROM_APP_ID, TO_APP_ID, TO_EXTERNAL_NAME, PROTOCOL_CD, DIRECTION_CD,
+      CRITICAL_YN, REMARK, REG_USER_ID, REG_DTM
+    ) VALUES (
+      #{interfaceId}, #{fromAppId}, #{toAppId}, #{toExternalName}, #{protocolCd}, #{directionCd},
+      #{criticalYn}, #{remark}, #{regUserId}, #{regDtm}
+    )
+  </insert>
+  <update id="ifina5200U0_U0" parameterType="java.util.HashMap">
+    UPDATE TB_IF_APP_INTERFACE_PILOT SET
+      FROM_APP_ID=#{fromAppId}, TO_APP_ID=#{toAppId}, TO_EXTERNAL_NAME=#{toExternalName},
+      PROTOCOL_CD=#{protocolCd}, DIRECTION_CD=#{directionCd}, CRITICAL_YN=#{criticalYn},
+      REMARK=#{remark}, CHG_USER_ID=#{chgUserId}, CHG_DTM=#{chgDtm}
+     WHERE INTERFACE_ID=#{interfaceId}
+  </update>
+  <delete id="ifina5200D0_D0" parameterType="java.util.HashMap">
+    DELETE FROM TB_IF_APP_INTERFACE_PILOT WHERE INTERFACE_ID IN
+    <foreach collection="interfaceIdList" item="id" open="(" separator="," close=")">#{id}</foreach>
+  </delete>
+</mapper>

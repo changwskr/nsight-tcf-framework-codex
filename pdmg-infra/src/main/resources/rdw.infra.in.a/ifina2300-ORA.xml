@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina2300DAO">
+  <sql id="mapWhere">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(NVL(T1.APP_ID,'')) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.REF_ID,'')) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.MAP_ID,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="appId != null and appId != ''">AND T1.APP_ID = #{appId}</if>
+    <if test="mapTypeCd != null and mapTypeCd != ''">AND T1.MAP_TYPE_CD = #{mapTypeCd}</if>
+    <if test="refId != null and refId != ''">AND T1.REF_ID = #{refId}</if>
+    <if test="roleCd != null and roleCd != ''">AND T1.ROLE_CD = #{roleCd}</if>
+  </sql>
+  <select id="ifina2300S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.MAP_ID AS MAP_ID, T1.APP_ID AS APP_ID, T1.MAP_TYPE_CD AS MAP_TYPE_CD,
+               T1.REF_ID AS REF_ID, T1.ROLE_CD AS ROLE_CD, T1.REMARK AS REMARK,
+               T1.REG_USER_ID AS REG_USER_ID, T1.REG_DTM AS REG_DTM
+          FROM TB_IF_APP_MAP_PILOT T1
+        <include refid="mapWhere"/>
+         ORDER BY T1.APP_ID, T1.MAP_TYPE_CD, T1.MAP_ID
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina2300S0_S0_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_APP_MAP_PILOT T1 <include refid="mapWhere"/>
+  </select>
+  <select id="ifina2300S0_S0_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_APP_MAP_PILOT WHERE MAP_ID = #{mapId}
+  </select>
+  <insert id="ifina2300C0_C0" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_APP_MAP_PILOT (
+      MAP_ID, APP_ID, MAP_TYPE_CD, REF_ID, ROLE_CD, REMARK, REG_USER_ID, REG_DTM
+    ) VALUES (
+      #{mapId}, #{appId}, #{mapTypeCd}, #{refId}, #{roleCd}, #{remark}, #{regUserId}, #{regDtm}
+    )
+  </insert>
+  <delete id="ifina2300D0_D0" parameterType="java.util.HashMap">
+    DELETE FROM TB_IF_APP_MAP_PILOT
+     WHERE MAP_ID IN
+    <foreach collection="mapIdList" item="id" open="(" separator="," close=")">#{id}</foreach>
+  </delete>
+</mapper>

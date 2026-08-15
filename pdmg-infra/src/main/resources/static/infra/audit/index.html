@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INF-160 변경이력 · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar">
+      <div class="infra-sidebar__brand"><h1>인프라 아키텍처 관리</h1><p>INF-160 변경·증빙</p></div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">이동</div>
+          <a class="infra-menu-link" href="/index.html">홈</a>
+          <a class="infra-menu-link" href="/infra/dashboard/index.html">INF-010 대시보드</a>
+          <a class="infra-menu-link" href="/infra/gates/index.html">INF-920 Gate</a>
+          <a class="infra-menu-link infra-menu-link--active" href="/infra/audit/index.html">INF-160 변경이력</a>
+          <a class="infra-menu-link" href="/infra/server-assets/index.html">INF-320 정규자산</a>
+        </div>
+      </nav>
+      <div class="infra-sidebar__foot">ifina1600S0/C0 · CHANGE|EVIDENCE</div>
+    </aside>
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div><h1>INF-160 변경이력 · 증빙</h1><p>change_log 조회 / evidence_file 등록·조회.</p></div>
+        <span class="badge">scid=INF-160</span>
+      </header>
+      <section class="panel" id="registerPanel">
+        <div class="panel-head"><h2>증적 등록 (ifina1600C0)</h2></div>
+        <div class="toolbar">
+          <div class="field"><label for="regTargetType">대상유형</label><input id="regTargetType" value="GROUP"></div>
+          <div class="field"><label for="regTargetId">대상ID *</label><input id="regTargetId" placeholder="SG-WAS-B"></div>
+          <div class="field"><label for="regGateId">Gate</label><input id="regGateId" placeholder="GATE3"></div>
+          <div class="field field-wide"><label for="regFile">실파일 (≤2MB)</label><input id="regFile" type="file"></div>
+          <div class="field field-wide"><label for="regFileName">파일명 *</label><input id="regFileName" placeholder="evidence.pdf"></div>
+          <div class="field field-wide"><label for="regRemark">비고</label><input id="regRemark" placeholder="회의록/승인 근거"></div>
+          <div class="actions">
+            <button class="btn-primary" type="button" id="registerBtn">등록</button>
+          </div>
+        </div>
+        <div class="response-meta" id="registerMeta">파일 선택 시 Base64로 ifina1600C0에 저장됩니다. 메타만 등록도 가능.</div>
+      </section>
+      <section class="toolbar">
+        <div class="field"><label for="entityType">유형</label>
+          <select id="entityType"><option value="CHANGE">변경로그</option><option value="EVIDENCE">증빙파일</option></select>
+        </div>
+        <div class="field field-wide"><label for="keyword">검색</label><input id="keyword" placeholder="대상ID / Action"></div>
+        <div class="field"><label for="targetTypeCd">대상유형</label><input id="targetTypeCd" placeholder="ASSET"></div>
+        <div class="field"><label for="targetId">대상ID</label><input id="targetId"></div>
+        <div class="field"><label for="actionCd">Action</label><input id="actionCd" placeholder="CREATE"></div>
+        <div class="actions">
+          <button class="btn-secondary" type="button" id="searchBtn">조회</button>
+        </div>
+      </section>
+      <section class="response-meta" id="resultMeta">조회를 실행하세요.</section>
+      <section class="panel">
+        <div class="panel-head"><h2 id="tableTitle">변경로그</h2><span class="group-tag" id="resultCount">0건</span></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead id="resultHead"></thead>
+            <tbody id="resultBody"><tr><td colspan="8" class="empty">데이터 없음</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="/_shared/infra-api.js"></script>
+  <script src="/infra/audit/audit.js"></script>
+</body>
+</html>

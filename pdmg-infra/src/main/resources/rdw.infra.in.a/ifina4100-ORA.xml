@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina4100DAO">
+  <sql id="ifina4100Where">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(NVL(T1.MW_ID,'')) LIKE '%'||UPPER(#{keyword})||'%' OR UPPER(NVL(T1.ASSET_ID,'')) LIKE '%'||UPPER(#{keyword})||'%' OR UPPER(NVL(T1.PRODUCT_NAME,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="mwId != null and mwId != ''">AND T1.MW_ID = #{mwId}</if>
+    <if test="assetId != null and assetId != ''">AND T1.ASSET_ID = #{assetId}</if>
+    <if test="productName != null and productName != ''">AND T1.PRODUCT_NAME = #{productName}</if>
+    <if test="statusCd != null and statusCd != ''">AND T1.STATUS_CD = #{statusCd}</if>
+  </sql>
+  <select id="ifina4100S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.MW_ID AS MW_ID, T1.ASSET_ID AS ASSET_ID, T1.PRODUCT_NAME AS PRODUCT_NAME, T1.VERSION_NO AS VERSION_NO, T1.EOL_DATE AS EOL_DATE, T1.STATUS_CD AS STATUS_CD, T1.REMARK AS REMARK, T1.REG_USER_ID AS REG_USER_ID, T1.REG_DTM AS REG_DTM, T1.CHG_USER_ID AS CHG_USER_ID, T1.CHG_DTM AS CHG_DTM
+          FROM TB_IF_MW_INSTALL_PILOT T1
+        <include refid="ifina4100Where"/>
+         ORDER BY T1.REG_DTM DESC, T1.MW_ID ASC
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina4100S0_S0_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_MW_INSTALL_PILOT T1 <include refid="ifina4100Where"/>
+  </select>
+  <select id="ifina4100S0_S0_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_MW_INSTALL_PILOT T1 WHERE T1.MW_ID = #{mwId}
+  </select>
+  <insert id="ifina4100C0_C0" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_MW_INSTALL_PILOT (MW_ID, ASSET_ID, PRODUCT_NAME, VERSION_NO, EOL_DATE, STATUS_CD, REMARK, REG_USER_ID, REG_DTM, CHG_USER_ID, CHG_DTM) VALUES (#{mwId}, #{assetId}, #{productName}, #{versionNo}, #{eolDate}, #{statusCd}, #{remark}, #{regUserId}, #{regDtm}, #{chgUserId}, #{chgDtm})
+  </insert>
+  <update id="ifina4100U0_U0" parameterType="java.util.HashMap">
+    UPDATE TB_IF_MW_INSTALL_PILOT SET ASSET_ID=#{assetId},
+      PRODUCT_NAME=#{productName},
+      VERSION_NO=#{versionNo},
+      EOL_DATE=#{eolDate},
+      STATUS_CD=#{statusCd},
+      REMARK=#{remark},
+      CHG_USER_ID=#{chgUserId},
+      CHG_DTM=#{chgDtm} WHERE MW_ID=#{mwId}
+  </update>
+  <delete id="ifina4100D0_D0" parameterType="java.util.HashMap">
+    DELETE FROM TB_IF_MW_INSTALL_PILOT WHERE MW_ID IN
+    <foreach collection="mwIdList" item="mwId" open="(" separator="," close=")">#{mwId}</foreach>
+  </delete>
+</mapper>

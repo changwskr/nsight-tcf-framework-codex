@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INF-220 Application · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar">
+      <div class="infra-sidebar__brand"><h1>인프라 아키텍처 관리</h1><p>INF-220 Application</p></div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">이동</div>
+          <a class="infra-menu-link" href="/index.html">홈</a>
+          <a class="infra-menu-link" href="/infra/systems/index.html">INF-210 시스템</a>
+          <a class="infra-menu-link infra-menu-link--active" href="/infra/apps/index.html">INF-220 Application</a>
+          <a class="infra-menu-link" href="/infra/groups/index.html">INF-310 서버군</a>
+        </div>
+      </nav>
+      <div class="infra-sidebar__foot">ifina2200* · TB_IF_APPLICATION_PILOT</div>
+    </aside>
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div><h1>INF-220 Application</h1><p>업무 Application CRUD. systemId FK 필수.</p></div>
+        <span class="badge">scid=INF-220</span>
+      </header>
+      <section class="toolbar">
+        <div class="field field-wide"><label for="keyword">검색</label><input id="keyword" placeholder="App ID/명/시스템"></div>
+        <div class="field"><label for="systemId">시스템</label><input id="systemId" placeholder="SYS-ONLINE"></div>
+        <div class="field"><label for="pageSize">페이지</label><select id="pageSize"><option value="10" selected>10</option><option value="20">20</option></select></div>
+        <div class="actions">
+          <button class="btn-secondary" type="button" id="searchBtn">조회</button>
+          <button class="btn-primary" type="button" id="addBtn">신규</button>
+        </div>
+      </section>
+      <section class="response-meta" id="resultMeta">조회를 실행하세요.</section>
+      <section class="panel">
+        <div class="panel-head"><h2>Application</h2><span class="group-tag" id="resultCount">0건</span></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>App ID</th><th>App명</th><th>시스템</th><th>언어</th><th>상태</th><th>비고</th><th></th></tr></thead>
+            <tbody id="resultBody"><tr><td colspan="7" class="empty">데이터 없음</td></tr></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button class="btn-secondary" type="button" id="prevPageBtn" disabled>이전</button>
+          <span id="pageInfo">1 / 1</span>
+          <button class="btn-secondary" type="button" id="nextPageBtn" disabled>다음</button>
+        </div>
+      </section>
+    </div>
+  </div>
+  <div class="modal" id="editModal" hidden>
+    <div class="modal-backdrop" data-close="true"></div>
+    <div class="modal-card">
+      <div class="panel-head"><h2 id="editTitle">Application 등록</h2><button class="btn-secondary" type="button" data-close="true">닫기</button></div>
+      <div class="modal-body">
+        <div class="field"><label for="formAppId">App ID *</label><input id="formAppId"></div>
+        <div class="field"><label for="formAppName">App명 *</label><input id="formAppName"></div>
+        <div class="field"><label for="formSystemId">시스템 *</label><input id="formSystemId" value="SYS-ONLINE"></div>
+        <div class="field"><label for="formLangCd">언어</label><select id="formLangCd"><option>JAVA</option><option>NODE</option><option>PYTHON</option><option>SHELL</option></select></div>
+        <div class="field"><label for="formStatusCd">상태</label><select id="formStatusCd"><option>DISCOVERED</option><option selected>CONFIRMED</option><option>VALIDATING</option></select></div>
+        <div class="field field-span"><label for="formRemark">비고</label><input id="formRemark"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" type="button" data-close="true">취소</button>
+        <button class="btn-primary" type="button" id="saveBtn">저장</button>
+      </div>
+    </div>
+  </div>
+  <script src="/_shared/infra-api.js"></script>
+  <script src="/infra/apps/apps.js"></script>
+</body>
+</html>

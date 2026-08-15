@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina7100DAO">
+  <sql id="licWhere">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(NVL(T1.LICENSE_ID,'')) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.PRODUCT_NAME,'')) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.VENDOR_NAME,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="vendorName != null and vendorName != ''">AND T1.VENDOR_NAME = #{vendorName}</if>
+    <if test="licenseModelCd != null and licenseModelCd != ''">AND T1.LICENSE_MODEL_CD = #{licenseModelCd}</if>
+  </sql>
+  <select id="ifina7100S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.LICENSE_ID AS LICENSE_ID, T1.PRODUCT_NAME AS PRODUCT_NAME, T1.VENDOR_NAME AS VENDOR_NAME,
+               T1.LICENSE_MODEL_CD AS LICENSE_MODEL_CD, T1.QTY AS QTY, T1.ANNUAL_MAINT_AMT AS ANNUAL_MAINT_AMT,
+               T1.CURRENCY_CD AS CURRENCY_CD, T1.CONTRACT_END_DT AS CONTRACT_END_DT,
+               T1.MOBILITY_YN AS MOBILITY_YN, T1.REMARK AS REMARK,
+               (SELECT NVL(SUM(A.ALLOCATED_QTY),0) FROM TB_IF_ASSET_LICENSE_PILOT A WHERE A.LICENSE_ID = T1.LICENSE_ID) AS ALLOCATED_QTY
+          FROM TB_IF_LICENSE_PILOT T1
+        <include refid="licWhere"/>
+         ORDER BY T1.CONTRACT_END_DT, T1.LICENSE_ID
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina7100S0_S0_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_LICENSE_PILOT T1 <include refid="licWhere"/>
+  </select>
+  <select id="ifina7100S0_S1" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM TB_IF_LICENSE_PILOT WHERE LICENSE_ID = #{licenseId}
+  </select>
+  <select id="ifina7100S0_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_LICENSE_PILOT WHERE LICENSE_ID = #{licenseId}
+  </select>
+  <select id="ifina7100S0_alloc" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT ASSET_ID AS ASSET_ID, LICENSE_ID AS LICENSE_ID, ALLOCATED_QTY AS ALLOCATED_QTY
+      FROM TB_IF_ASSET_LICENSE_PILOT WHERE LICENSE_ID = #{licenseId}
+  </select>
+  <insert id="ifina7100C0_C0" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_LICENSE_PILOT (
+      LICENSE_ID, PRODUCT_NAME, VENDOR_NAME, LICENSE_MODEL_CD, QTY, ANNUAL_MAINT_AMT,
+      CURRENCY_CD, CONTRACT_END_DT, MOBILITY_YN, REMARK, REG_USER_ID, REG_DTM
+    ) VALUES (
+      #{licenseId}, #{productName}, #{vendorName}, #{licenseModelCd}, #{qty}, #{annualMaintAmt},
+      #{currencyCd}, #{contractEndDt}, #{mobilityYn}, #{remark}, #{regUserId}, #{regDtm}
+    )
+  </insert>
+  <update id="ifina7100U0_U0" parameterType="java.util.HashMap">
+    UPDATE TB_IF_LICENSE_PILOT
+       SET PRODUCT_NAME=#{productName}, VENDOR_NAME=#{vendorName}, LICENSE_MODEL_CD=#{licenseModelCd},
+           QTY=#{qty}, ANNUAL_MAINT_AMT=#{annualMaintAmt}, CURRENCY_CD=#{currencyCd},
+           CONTRACT_END_DT=#{contractEndDt}, MOBILITY_YN=#{mobilityYn}, REMARK=#{remark},
+           CHG_USER_ID=#{chgUserId}, CHG_DTM=#{chgDtm}
+     WHERE LICENSE_ID=#{licenseId}
+  </update>
+  <delete id="ifina7100D0_D0" parameterType="java.util.HashMap">
+    DELETE FROM TB_IF_LICENSE_PILOT
+     WHERE LICENSE_ID IN
+    <foreach collection="licenseIdList" item="id" open="(" separator="," close=")">#{id}</foreach>
+  </delete>
+</mapper>

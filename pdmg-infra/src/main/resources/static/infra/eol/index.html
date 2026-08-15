@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INF-430 EOL/EOS · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar">
+      <div class="infra-sidebar__brand"><h1>인프라 아키텍처 관리</h1><p>INF-430 EOL</p></div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">이동</div>
+          <a class="infra-menu-link" href="/index.html">홈</a>
+          <a class="infra-menu-link" href="/infra/middleware/index.html">INF-410 MW</a>
+          <a class="infra-menu-link" href="/infra/db/index.html">INF-420 DB</a>
+          <a class="infra-menu-link infra-menu-link--active" href="/infra/eol/index.html">INF-430 EOL</a>
+          <a class="infra-menu-link" href="/infra/risks/index.html">INF-020 리스크</a>
+        </div>
+      </nav>
+      <div class="infra-sidebar__foot">ifina4300S0 · V_IF_EOL_RISK</div>
+    </aside>
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div><h1>INF-430 EOL/EOS 현황</h1><p>OS/MW/DB EOL 통합 뷰. 기본 12개월 이내.</p></div>
+        <button class="btn-secondary" type="button" id="searchBtn">조회</button>
+      </header>
+      <section class="toolbar">
+        <div class="field field-wide"><label for="keyword">검색</label><input id="keyword" placeholder="object/asset"></div>
+        <div class="field"><label for="sourceCd">소스</label><select id="sourceCd"><option value="">전체</option><option>OS</option><option>MW</option><option>DB</option></select></div>
+        <div class="field"><label for="maxDaysLeft">잔여일 ≤</label><select id="maxDaysLeft"><option value="90">90</option><option value="180">180</option><option value="365" selected>365</option><option value="730">730</option></select></div>
+      </section>
+      <section class="response-meta" id="resultMeta">조회를 실행하세요.</section>
+      <section class="panel">
+        <div class="panel-head"><h2>EOL 위험</h2><span class="group-tag" id="resultCount">0건</span></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Sev</th><th>소스</th><th>ID</th><th>이름</th><th>자산</th><th>EOL</th><th>잔여일</th></tr></thead>
+            <tbody id="resultBody"><tr><td colspan="7" class="empty">데이터 없음</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="/_shared/infra-api.js"></script>
+  <script src="/infra/eol/eol.js"></script>
+</body>
+</html>

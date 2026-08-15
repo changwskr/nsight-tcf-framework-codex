@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina2200DAO">
+  <sql id="ifina2200Where">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(T1.APP_ID) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(T1.APP_NAME) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.SYSTEM_ID,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="appId != null and appId != ''">AND T1.APP_ID = #{appId}</if>
+    <if test="appName != null and appName != ''">AND T1.APP_NAME LIKE '%'||#{appName}||'%'</if>
+    <if test="systemId != null and systemId != ''">AND T1.SYSTEM_ID = #{systemId}</if>
+    <if test="statusCd != null and statusCd != ''">AND T1.STATUS_CD = #{statusCd}</if>
+  </sql>
+  <select id="ifina2200S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.APP_ID, T1.APP_NAME, T1.SYSTEM_ID, T1.LANG_CD, T1.STATUS_CD, T1.REMARK,
+               T1.REG_USER_ID, T1.REG_DTM, T1.CHG_USER_ID, T1.CHG_DTM
+          FROM TB_IF_APPLICATION_PILOT T1
+        <include refid="ifina2200Where"/>
+         ORDER BY T1.REG_DTM DESC, T1.APP_ID ASC
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina2200S0_S0_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_APPLICATION_PILOT T1 <include refid="ifina2200Where"/>
+  </select>
+  <select id="ifina2200S0_S0_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_APPLICATION_PILOT T1 WHERE T1.APP_ID = #{appId}
+  </select>
+  <insert id="ifina2200C0_C0" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_APPLICATION_PILOT (APP_ID,APP_NAME,SYSTEM_ID,LANG_CD,STATUS_CD,REMARK,REG_USER_ID,REG_DTM)
+    VALUES (#{appId},#{appName},#{systemId},#{langCd},#{statusCd},#{remark},#{regUserId},#{regDtm})
+  </insert>
+  <update id="ifina2200U0_U0" parameterType="java.util.HashMap">
+    UPDATE TB_IF_APPLICATION_PILOT SET APP_NAME=#{appName}, SYSTEM_ID=#{systemId}, LANG_CD=#{langCd},
+      STATUS_CD=#{statusCd}, REMARK=#{remark}, CHG_USER_ID=#{chgUserId}, CHG_DTM=#{chgDtm}
+     WHERE APP_ID=#{appId}
+  </update>
+  <delete id="ifina2200D0_D0" parameterType="java.util.HashMap">
+    DELETE FROM TB_IF_APPLICATION_PILOT WHERE APP_ID IN
+    <foreach collection="appIdList" item="appId" open="(" separator="," close=")">#{appId}</foreach>
+  </delete>
+</mapper>

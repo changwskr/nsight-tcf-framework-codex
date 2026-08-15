@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>화면 준비중 · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar">
+      <div class="infra-sidebar__brand">
+        <h1>인프라 아키텍처 관리</h1>
+        <p>후속 화면 플레이스홀더</p>
+      </div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">이동</div>
+          <a class="infra-menu-link" href="/index.html">홈</a>
+          <a class="infra-menu-link" href="/infra/dashboard/index.html">INF-010 대시보드</a>
+          <a class="infra-menu-link" href="/infra/assets/index.html">INF-320 서버 자산</a>
+        </div>
+      </nav>
+    </aside>
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div>
+          <h1 id="screenTitle">화면 준비중</h1>
+          <p>화면·서비스·DB 설계서에 정의된 메뉴입니다. Phase 순서에 따라 구현합니다.</p>
+        </div>
+      </header>
+      <div class="notice" id="notice">
+        이 화면은 아직 연결되지 않았습니다.
+      </div>
+    </div>
+  </div>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id') || 'INF-???';
+    const map = {
+      'INF-020': '리스크·Gate 현황',
+      'INF-110': '분류코드 관리',
+      'INF-120': '조사 템플릿 관리',
+      'INF-150': '조직·담당자 관리',
+      'INF-210': '업무 시스템 관리',
+      'INF-220': 'Application 관리',
+      'INF-310': '서버군 관리',
+      'INF-340': '일괄등록',
+      'INF-410': 'Middleware',
+      'INF-420': 'DB Instance',
+      'INF-510': 'Network Endpoint',
+      'INF-910': 'Checklist'
+    };
+    document.getElementById('screenTitle').textContent = `${id} ${map[id] || ''}`.trim();
+    document.getElementById('notice').innerHTML =
+      `<strong>${id}</strong> 화면은 설계서에 정의되어 있으며, 현재 UI 골격만 연결되어 있습니다.<br>`
+      + `다음 구현 후보: INF-310(서버군), INF-210(시스템), INF-340(일괄), INF-910(Checklist).<br>`
+      + `<a href="/infra/assets/index.html">활성 화면 INF-320으로 이동</a>`;
+  </script>
+</body>
+</html>

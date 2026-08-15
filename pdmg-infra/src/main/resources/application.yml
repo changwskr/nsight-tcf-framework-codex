@@ -1,0 +1,87 @@
+server:
+  port: 8081
+
+spring:
+  profiles:
+    active: local
+  application:
+    name: pdmg-infra
+  config:
+    import: classpath:exceptionCode.yml
+  mvc:
+    cors:
+      allowed-origins:
+        - http://localhost:8090
+        - http://127.0.0.1:8090
+      allowed-methods:
+        - GET
+        - POST
+        - OPTIONS
+      allowed-headers:
+        - "*"
+
+  datasource:
+    rdw:
+      jdbc-url: jdbc:log4jdbc:h2:mem:pdmg_infra;MODE=Oracle;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+      username: sa
+      password:
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+      schema-locations: classpath:db/h2/schema.sql
+      data-locations: classpath:db/h2/data.sql
+
+nhnis:
+  fw:
+    tcf:
+      enabled: true
+    timeout:
+      enabled: true
+      milliseconds: 5000
+      pool-size: 20
+      queue-capacity: 100
+    commons:
+      legacy-web:
+        enabled: true
+      filter:
+        enabled: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+
+jwt:
+  enabled: false
+  secret: "${PDMG_JWT_SECRET:pdmg-infra-local-dev-secret-key-32b}"
+  access-token-expiration: 180000
+
+# RACI Soft/Hard (화면 §34.13). person.ROLE_CD 조회 + 정적 폴백. off | soft | hard
+infra:
+  auth:
+    raci:
+      mode: soft
+      default-role: ARCH
+    # OPEN-02 IdP → person.ROLE_CD 동기화 (ifina1500E0). 실 IdP 커넥터는 후속.
+    idp:
+      enabled: true
+      create-missing: true
+      default-org-id: ORG-INFRA
+      role-map:
+        infra-arch: ARCH
+        role-arch: ARCH
+        infra-ops: OPS
+        role-ops: OPS
+        security-arch: SEC
+        role-sec: SEC
+        pmo: PMO
+        role-pmo: PMO
+        infra-admin: ADMIN
+        role-admin: ADMIN
+        dba: DBA
+        role-dba: DBA
+        middleware: MW
+        role-mw: MW

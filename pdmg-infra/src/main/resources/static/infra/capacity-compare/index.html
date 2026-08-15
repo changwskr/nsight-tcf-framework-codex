@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INF-640 용량비교 · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar">
+      <div class="infra-sidebar__brand"><h1>인프라 아키텍처 관리</h1><p>INF-640 Compare</p></div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">이동</div>
+          <a class="infra-menu-link" href="/index.html">홈</a>
+          <a class="infra-menu-link" href="/infra/capacity/index.html">INF-620 용량</a>
+          <a class="infra-menu-link infra-menu-link--active" href="/infra/capacity-compare/index.html">INF-640 비교</a>
+          <a class="infra-menu-link" href="/infra/groups/index.html">INF-310 서버군</a>
+        </div>
+      </nav>
+      <div class="infra-sidebar__foot">ifina6400S0 · multi group</div>
+    </aside>
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div><h1>INF-640 용량 비교</h1><p>가로=서버군, 세로=Metric. Peak/Target 비교.</p></div>
+        <div class="actions">
+          <button class="btn-secondary" type="button" id="searchBtn">비교</button>
+        </div>
+      </header>
+      <section class="toolbar">
+        <div class="field"><label for="metricScopeCd">Scope</label>
+          <select id="metricScopeCd"><option>PEAK</option><option>CURRENT</option><option>TARGET</option><option>N1</option><option>DR</option></select>
+        </div>
+        <div class="field field-wide"><label for="targetIds">대상군 (쉼표)</label><input id="targetIds" value="SG-WAS-A, SG-WAS-B"></div>
+      </section>
+      <section class="response-meta" id="resultMeta">조회를 실행하세요.</section>
+      <section class="panel">
+        <div class="panel-head"><h2>비교 매트릭스</h2><span class="group-tag" id="scopeTag"></span></div>
+        <div class="table-wrap"><table class="data-table" id="cmpTable"><thead id="cmpHead"></thead><tbody id="cmpBody"><tr><td class="empty">-</td></tr></tbody></table></div>
+      </section>
+    </div>
+  </div>
+  <script src="/_shared/infra-api.js"></script>
+  <script src="/infra/capacity-compare/capacity-compare.js"></script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina1200DAO">
+  <sql id="tmplWhere">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(NVL(T1.TEMPLATE_ID,'')) LIKE '%'||UPPER(#{keyword})||'%' OR UPPER(NVL(T1.TEMPLATE_NAME,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="templateId != null and templateId != ''">AND T1.TEMPLATE_ID = #{templateId}</if>
+    <if test="techRoleCd != null and techRoleCd != ''">AND T1.TECH_ROLE_CD = #{techRoleCd}</if>
+    <if test="activeYn != null and activeYn != ''">AND T1.ACTIVE_YN = #{activeYn}</if>
+  </sql>
+  <sql id="itemWhere">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(NVL(T1.ITEM_ID,'')) LIKE '%'||UPPER(#{keyword})||'%' OR UPPER(NVL(T1.ITEM_NAME,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="templateId != null and templateId != ''">AND T1.TEMPLATE_ID = #{templateId}</if>
+    <if test="itemId != null and itemId != ''">AND T1.ITEM_ID = #{itemId}</if>
+    <if test="activeYn != null and activeYn != ''">AND T1.ACTIVE_YN = #{activeYn}</if>
+  </sql>
+  <select id="ifina1200S0_tmpl" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.TEMPLATE_ID AS TEMPLATE_ID, T1.TEMPLATE_NAME AS TEMPLATE_NAME, T1.TECH_ROLE_CD AS TECH_ROLE_CD,
+               T1.ACTIVE_YN AS ACTIVE_YN, T1.REMARK AS REMARK, T1.REG_USER_ID AS REG_USER_ID, T1.REG_DTM AS REG_DTM,
+               T1.CHG_USER_ID AS CHG_USER_ID, T1.CHG_DTM AS CHG_DTM
+          FROM TB_IF_SURVEY_TMPL_PILOT T1
+        <include refid="tmplWhere"/>
+         ORDER BY T1.TEMPLATE_ID ASC
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina1200S0_tmpl_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_SURVEY_TMPL_PILOT T1 <include refid="tmplWhere"/>
+  </select>
+  <select id="ifina1200S0_tmpl_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_SURVEY_TMPL_PILOT T1 WHERE T1.TEMPLATE_ID = #{templateId}
+  </select>
+  <select id="ifina1200S0_item" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.TEMPLATE_ID AS TEMPLATE_ID, T.TEMPLATE_NAME AS TEMPLATE_NAME, T1.ITEM_ID AS ITEM_ID, T1.ITEM_NAME AS ITEM_NAME,
+               T1.ITEM_TYPE_CD AS ITEM_TYPE_CD, T1.REQUIRED_YN AS REQUIRED_YN, T1.SORT_NO AS SORT_NO, T1.ACTIVE_YN AS ACTIVE_YN,
+               T1.REMARK AS REMARK, T1.REG_USER_ID AS REG_USER_ID, T1.REG_DTM AS REG_DTM, T1.CHG_USER_ID AS CHG_USER_ID, T1.CHG_DTM AS CHG_DTM
+          FROM TB_IF_SURVEY_ITEM_PILOT T1
+          LEFT JOIN TB_IF_SURVEY_TMPL_PILOT T ON T.TEMPLATE_ID = T1.TEMPLATE_ID
+        <include refid="itemWhere"/>
+         ORDER BY T1.TEMPLATE_ID ASC, T1.SORT_NO ASC, T1.ITEM_ID ASC
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina1200S0_item_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_SURVEY_ITEM_PILOT T1 <include refid="itemWhere"/>
+  </select>
+  <select id="ifina1200S0_item_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_SURVEY_ITEM_PILOT T1 WHERE T1.TEMPLATE_ID = #{templateId} AND T1.ITEM_ID = #{itemId}
+  </select>
+  <insert id="ifina1200C0_tmpl" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_SURVEY_TMPL_PILOT (TEMPLATE_ID, TEMPLATE_NAME, TECH_ROLE_CD, ACTIVE_YN, REMARK, REG_USER_ID, REG_DTM, CHG_USER_ID, CHG_DTM)
+    VALUES (#{templateId}, #{templateName}, #{techRoleCd}, #{activeYn}, #{remark}, #{regUserId}, #{regDtm}, #{chgUserId}, #{chgDtm})
+  </insert>
+  <update id="ifina1200U0_tmpl" parameterType="java.util.HashMap">
+    UPDATE TB_IF_SURVEY_TMPL_PILOT SET TEMPLATE_NAME=#{templateName}, TECH_ROLE_CD=#{techRoleCd}, ACTIVE_YN=#{activeYn},
+      REMARK=#{remark}, CHG_USER_ID=#{chgUserId}, CHG_DTM=#{chgDtm} WHERE TEMPLATE_ID=#{templateId}
+  </update>
+  <delete id="ifina1200D0_tmpl" parameterType="java.util.HashMap">
+    DELETE FROM TB_IF_SURVEY_TMPL_PILOT WHERE TEMPLATE_ID IN
+    <foreach collection="templateIdList" item="templateId" open="(" separator="," close=")">#{templateId}</foreach>
+  </delete>
+  <insert id="ifina1200C0_item" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_SURVEY_ITEM_PILOT (TEMPLATE_ID, ITEM_ID, ITEM_NAME, ITEM_TYPE_CD, REQUIRED_YN, SORT_NO, ACTIVE_YN, REMARK, REG_USER_ID, REG_DTM, CHG_USER_ID, CHG_DTM)
+    VALUES (#{templateId}, #{itemId}, #{itemName}, #{itemTypeCd}, #{requiredYn}, #{sortNo}, #{activeYn}, #{remark}, #{regUserId}, #{regDtm}, #{chgUserId}, #{chgDtm})
+  </insert>
+  <update id="ifina1200U0_item" parameterType="java.util.HashMap">
+    UPDATE TB_IF_SURVEY_ITEM_PILOT SET ITEM_NAME=#{itemName}, ITEM_TYPE_CD=#{itemTypeCd}, REQUIRED_YN=#{requiredYn},
+      SORT_NO=#{sortNo}, ACTIVE_YN=#{activeYn}, REMARK=#{remark}, CHG_USER_ID=#{chgUserId}, CHG_DTM=#{chgDtm}
+     WHERE TEMPLATE_ID=#{templateId} AND ITEM_ID=#{itemId}
+  </update>
+  <delete id="ifina1200D0_item" parameterType="java.util.HashMap">
+    DELETE FROM TB_IF_SURVEY_ITEM_PILOT WHERE TEMPLATE_ID=#{templateId} AND ITEM_ID IN
+    <foreach collection="itemIdList" item="itemId" open="(" separator="," close=")">#{itemId}</foreach>
+  </delete>
+  <delete id="ifina1200D0_item_by_tmpl" parameterType="java.util.HashMap">
+    DELETE FROM TB_IF_SURVEY_ITEM_PILOT WHERE TEMPLATE_ID IN
+    <foreach collection="templateIdList" item="templateId" open="(" separator="," close=")">#{templateId}</foreach>
+  </delete>
+</mapper>

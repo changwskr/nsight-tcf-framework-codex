@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina9300DAO">
+  <select id="checklistOpen" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT R.TARGET_TYPE AS TARGET_TYPE, R.TARGET_ID AS TARGET_ID,
+           I.ITEM_NAME AS ITEM_NAME, I.SEVERITY_CD AS SEVERITY_CD, R.REMARK AS REMARK
+      FROM TB_IF_CHECKLIST_RESULT_PILOT R
+      JOIN TB_IF_CHECKLIST_ITEM_PILOT I ON I.CHECKLIST_ID = R.CHECKLIST_ID
+     WHERE R.CHECKED_YN = 'N' AND NVL(I.ACTIVE_YN,'Y') = 'Y'
+  </select>
+  <select id="haGaps" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT TARGET_TYPE_CD AS TARGET_TYPE_CD, TARGET_ID AS TARGET_ID,
+           HA_YN AS HA_YN, RTO_MINUTES AS RTO_MINUTES, RPO_MINUTES AS RPO_MINUTES
+      FROM TB_IF_AVAIL_PROFILE_PILOT
+     WHERE HA_YN = 'N' OR RTO_MINUTES IS NULL OR RPO_MINUTES IS NULL
+  </select>
+  <select id="capacityGaps" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT G.GROUP_ID AS GROUP_ID, G.GROUP_NAME AS GROUP_NAME, G.STATUS_CD AS STATUS_CD
+      FROM TB_IF_SERVER_GROUP_PILOT G
+     WHERE NOT EXISTS (
+       SELECT 1 FROM TB_IF_CAPACITY_PILOT C
+        WHERE C.TARGET_TYPE_CD = 'GROUP' AND C.TARGET_ID = G.GROUP_ID AND C.METRIC_SCOPE_CD = 'PEAK'
+     )
+  </select>
+  <select id="waveGaps" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT PLAN_ID AS PLAN_ID, TARGET_TYPE_CD AS TARGET_TYPE_CD, TARGET_ID AS TARGET_ID,
+           STRATEGY_7R_CD AS STRATEGY_7R_CD, STATUS_CD AS STATUS_CD
+      FROM TB_IF_MIGRATION_PLAN_PILOT
+     WHERE WAVE_ID IS NULL
+  </select>
+  <select id="validatingGroups" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT GROUP_ID AS GROUP_ID, GROUP_NAME AS GROUP_NAME, STATUS_CD AS STATUS_CD, TIER_CD AS TIER_CD
+      FROM TB_IF_SERVER_GROUP_PILOT
+     WHERE STATUS_CD IN ('VALIDATING','DISCOVERED')
+  </select>
+</mapper>

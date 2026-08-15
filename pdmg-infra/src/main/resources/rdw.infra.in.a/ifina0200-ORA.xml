@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina0200DAO">
+  <select id="ifina0200S0_checklistOpen" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT R.CHECKLIST_ID AS CHECKLIST_ID, I.ITEM_NAME AS ITEM_NAME, I.SEVERITY_CD AS SEVERITY_CD,
+           R.TARGET_TYPE AS TARGET_TYPE, R.TARGET_ID AS TARGET_ID, R.REMARK AS REMARK
+      FROM TB_IF_CHECKLIST_RESULT_PILOT R
+      JOIN TB_IF_CHECKLIST_ITEM_PILOT I ON I.CHECKLIST_ID = R.CHECKLIST_ID
+     WHERE R.CHECKED_YN = 'N'
+       AND NVL(I.ACTIVE_YN, 'Y') = 'Y'
+    <if test="severityCd != null and severityCd != ''">AND I.SEVERITY_CD = #{severityCd}</if>
+    <if test="keyword != null and keyword != ''">
+       AND (UPPER(NVL(R.TARGET_ID,'')) LIKE '%'||UPPER(#{keyword})||'%'
+         OR UPPER(NVL(I.ITEM_NAME,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+     ORDER BY I.SEVERITY_CD, R.TARGET_ID, I.SORT_NO
+  </select>
+  <select id="ifina0200S0_eol" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT SOURCE_CD AS SOURCE_CD, OBJECT_ID AS OBJECT_ID, OBJECT_NAME AS OBJECT_NAME,
+           ASSET_ID AS ASSET_ID, EOL_DATE AS EOL_DATE
+      FROM V_IF_EOL_RISK E
+     WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+       AND (UPPER(NVL(OBJECT_ID,'')) LIKE '%'||UPPER(#{keyword})||'%'
+         OR UPPER(NVL(ASSET_ID,'')) LIKE '%'||UPPER(#{keyword})||'%'
+         OR UPPER(NVL(OBJECT_NAME,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+     ORDER BY EOL_DATE ASC
+  </select>
+  <select id="ifina0200S0_gateOpen" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT R.RESULT_ID AS RESULT_ID, R.GATE_ID AS GATE_ID, D.NAME_KO AS GATE_NAME,
+           R.TARGET_TYPE_CD AS TARGET_TYPE_CD, R.TARGET_ID AS TARGET_ID,
+           R.RESULT_CD AS RESULT_CD, R.REMARK AS REMARK, R.CHECKED_AT AS CHECKED_AT
+      FROM TB_IF_GATE_RESULT_PILOT R
+      JOIN TB_IF_GATE_DEF_PILOT D ON D.GATE_ID = R.GATE_ID
+     WHERE R.RESULT_CD IN ('FAIL', 'CONDITIONAL')
+    <if test="keyword != null and keyword != ''">
+       AND (UPPER(NVL(R.TARGET_ID,'')) LIKE '%'||UPPER(#{keyword})||'%'
+         OR UPPER(NVL(R.GATE_ID,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+     ORDER BY CASE R.RESULT_CD WHEN 'FAIL' THEN 0 ELSE 1 END, R.GATE_ID, R.TARGET_ID
+  </select>
+</mapper>

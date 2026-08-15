@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina6200DAO">
+  <select id="ifina6200S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT SNAPSHOT_ID AS SNAPSHOT_ID, TARGET_TYPE_CD AS TARGET_TYPE_CD, TARGET_ID AS TARGET_ID,
+           METRIC_SCOPE_CD AS METRIC_SCOPE_CD, CAPTURED_AT AS CAPTURED_AT,
+           CPU_PCT AS CPU_PCT, MEM_PCT AS MEM_PCT, TPS AS TPS, RESP_P95_MS AS RESP_P95_MS,
+           DB_CONN_PEAK AS DB_CONN_PEAK, REMARK AS REMARK, REG_USER_ID AS REG_USER_ID, REG_DTM AS REG_DTM
+      FROM TB_IF_CAPACITY_PILOT
+     WHERE TARGET_TYPE_CD = #{targetTypeCd} AND TARGET_ID = #{targetId}
+     ORDER BY CASE METRIC_SCOPE_CD
+                WHEN 'CURRENT' THEN 1 WHEN 'PEAK' THEN 2 WHEN 'TARGET' THEN 3
+                WHEN 'N1' THEN 4 WHEN 'DR' THEN 5 ELSE 9 END, SNAPSHOT_ID
+  </select>
+  <select id="ifina6200S0_S1" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT SNAPSHOT_ID AS SNAPSHOT_ID, TARGET_TYPE_CD AS TARGET_TYPE_CD, TARGET_ID AS TARGET_ID,
+           METRIC_SCOPE_CD AS METRIC_SCOPE_CD, CAPTURED_AT AS CAPTURED_AT,
+           CPU_PCT AS CPU_PCT, MEM_PCT AS MEM_PCT, TPS AS TPS, RESP_P95_MS AS RESP_P95_MS,
+           DB_CONN_PEAK AS DB_CONN_PEAK, REMARK AS REMARK
+      FROM TB_IF_CAPACITY_PILOT
+     WHERE TARGET_TYPE_CD = #{targetTypeCd} AND TARGET_ID = #{targetId}
+       AND METRIC_SCOPE_CD = #{metricScopeCd}
+  </select>
+  <select id="ifina6200S0_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_CAPACITY_PILOT
+     WHERE TARGET_TYPE_CD = #{targetTypeCd} AND TARGET_ID = #{targetId}
+       AND METRIC_SCOPE_CD = #{metricScopeCd}
+  </select>
+  <insert id="ifina6200U0_insert" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_CAPACITY_PILOT (
+      SNAPSHOT_ID, TARGET_TYPE_CD, TARGET_ID, METRIC_SCOPE_CD, CAPTURED_AT,
+      CPU_PCT, MEM_PCT, TPS, RESP_P95_MS, DB_CONN_PEAK, REMARK, REG_USER_ID, REG_DTM
+    ) VALUES (
+      #{snapshotId}, #{targetTypeCd}, #{targetId}, #{metricScopeCd}, #{capturedAt},
+      #{cpuPct}, #{memPct}, #{tps}, #{respP95Ms}, #{dbConnPeak}, #{remark}, #{regUserId}, #{regDtm}
+    )
+  </insert>
+  <update id="ifina6200U0_update" parameterType="java.util.HashMap">
+    UPDATE TB_IF_CAPACITY_PILOT
+       SET CAPTURED_AT=#{capturedAt}, CPU_PCT=#{cpuPct}, MEM_PCT=#{memPct}, TPS=#{tps},
+           RESP_P95_MS=#{respP95Ms}, DB_CONN_PEAK=#{dbConnPeak}, REMARK=#{remark},
+           SNAPSHOT_ID=NVL(#{snapshotId}, SNAPSHOT_ID)
+     WHERE TARGET_TYPE_CD=#{targetTypeCd} AND TARGET_ID=#{targetId}
+       AND METRIC_SCOPE_CD=#{metricScopeCd}
+  </update>
+</mapper>

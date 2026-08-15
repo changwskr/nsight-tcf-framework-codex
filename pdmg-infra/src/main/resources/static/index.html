@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>인프라 아키텍처 관리 · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar" aria-label="주 메뉴">
+      <div class="infra-sidebar__brand">
+        <h1>인프라 아키텍처 관리</h1>
+        <p>은행 정보계 차세대 CMDB / Architecture Repository</p>
+      </div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">00. 통합 현황</div>
+          <a class="infra-menu-link" href="/infra/dashboard/index.html">INF-010 통합 대시보드</a>
+          <a class="infra-menu-link" href="/infra/risks/index.html">INF-020 리스크·Gate</a>
+        </div>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">10. 기준정보</div>
+          <a class="infra-menu-link" href="/infra/codes/index.html">INF-110 분류코드</a>
+          <a class="infra-menu-link" href="/infra/checklist-master/index.html">INF-130 Checklist마스터</a>
+          <a class="infra-menu-link" href="/infra/gate-defs/index.html">INF-140 Gate정의</a>
+          <a class="infra-menu-link" href="/infra/surveys/index.html">INF-120 조사 템플릿</a>
+          <a class="infra-menu-link" href="/infra/orgs/index.html">INF-150 조직·담당자</a>
+          <a class="infra-menu-link" href="/infra/audit/index.html">INF-160 변경이력</a>
+        </div>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">20. 업무·Application</div>
+          <a class="infra-menu-link" href="/infra/systems/index.html">INF-210 업무 시스템</a>
+          <a class="infra-menu-link" href="/infra/apps/index.html">INF-220 Application</a>
+        </div>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">30. 서버군·자산</div>
+          <a class="infra-menu-link" href="/infra/groups/index.html">INF-310 서버군</a>
+          <a class="infra-menu-link" href="/infra/assets/index.html">INF-320 파일럿</a>
+          <a class="infra-menu-link" href="/infra/server-assets/index.html">INF-320 정규자산</a>
+          <a class="infra-menu-link" href="/infra/bulk/index.html">INF-340 일괄등록</a>
+        </div>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">40~90. 확장</div>
+          <a class="infra-menu-link" href="/infra/middleware/index.html">INF-410 Middleware</a>
+          <a class="infra-menu-link" href="/infra/db/index.html">INF-420 DB</a>
+          <a class="infra-menu-link" href="/infra/network/index.html">INF-510 Network</a>
+          <a class="infra-menu-link" href="/infra/interfaces/index.html">INF-520 Interface</a>
+          <a class="infra-menu-link" href="/infra/deps/index.html">INF-530 의존맵</a>
+          <a class="infra-menu-link" href="/infra/eol/index.html">INF-430 EOL</a>
+          <a class="infra-menu-link" href="/infra/ha/index.html">INF-610 HA/DR</a>
+          <a class="infra-menu-link" href="/infra/gates/index.html">INF-920 Gate</a>
+          <a class="infra-menu-link" href="/infra/checklist/index.html">INF-910 Checklist</a>
+        </div>
+      </nav>
+      <div class="infra-sidebar__foot">
+        pdmg-infra · port 8081 · TCF ON<br>
+        파일럿 serviceId: ifina1999*
+      </div>
+    </aside>
+
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div>
+          <h1>홈</h1>
+          <p>화면설계서 INF 메뉴를 내장 UI로 제공합니다. 1차 MVP는 대시보드·서버 자산(파일럿 ifina1999)부터 연동합니다.</p>
+        </div>
+        <span class="badge" id="healthBadge">상태 확인 중…</span>
+      </header>
+
+      <section class="kpi-grid" id="homeKpis">
+        <article class="kpi-card"><div class="label">서버 자산</div><div class="value" id="kpiAssets">-</div></article>
+        <article class="kpi-card"><div class="label">시스템</div><div class="value" id="kpiSystems">-</div></article>
+        <article class="kpi-card"><div class="label">서버군</div><div class="value" id="kpiGroups">-</div></article>
+        <article class="kpi-card"><div class="label">Phase</div><div class="value" style="font-size:1rem">MVP-1</div></article>
+      </section>
+
+      <section class="hub-grid">
+        <article class="hub-card">
+          <h2>INF-110 분류코드 <span class="group-tag">CRUD</span></h2>
+          <p>코드셋/값. ifina1100*, 삭제 대신 비활성.</p>
+          <a href="/infra/codes/index.html">분류코드 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-120 조사 템플릿 <span class="group-tag">CRUD</span></h2>
+          <p>템플릿·항목. ifina1200*, INF-330 EAV 기준.</p>
+          <a href="/infra/surveys/index.html">조사 템플릿 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-150 조직·담당자 <span class="group-tag">CRUD</span></h2>
+          <p>조직/담당자. ifina1500*, ORG|PERSON.</p>
+          <a href="/infra/orgs/index.html">조직·담당자 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-010 대시보드 <span class="group-tag">집계</span></h2>
+          <p>ifina0100S0 집계 KPI · 최근 정규 자산. Gate 샘플은 설계서 잔여.</p>
+          <a href="/infra/dashboard/index.html">대시보드 열기 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-020 리스크·Gate <span class="group-tag">워크리스트</span></h2>
+          <p>Checklist 미완 · EOL · Gate FAIL/CONDITIONAL. ifina0200S0.</p>
+          <a href="/infra/risks/index.html">리스크 큐 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-930 조사미완 <span class="group-tag">파생큐</span></h2>
+          <p>HA·용량·Wave·상태 Gap. ifina9300S0.</p>
+          <a href="/infra/survey-gaps/index.html">미완료 현황 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-160 변경이력 <span class="group-tag">조회</span></h2>
+          <p>change_log / evidence. ifina1600S0 · 자산 CUD 동기 기록.</p>
+          <a href="/infra/audit/index.html">변경이력 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-430 EOL/EOS <span class="group-tag">조회</span></h2>
+          <p>V_IF_EOL_RISK · OS/MW/DB 잔여일. ifina4300S0.</p>
+          <a href="/infra/eol/index.html">EOL 현황 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-230 App 연결 <span class="group-tag">CRUD</span></h2>
+          <p>App↔Server/Group/DB. ifina2300S0/C0/D0.</p>
+          <a href="/infra/app-maps/index.html">App 연결 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-530 의존맵 <span class="group-tag">CRUD</span></h2>
+          <p>nodes/edges · rootId+depth BFS. ifina5300*.</p>
+          <a href="/infra/deps/index.html">의존맵 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-610 HA·DR <span class="group-tag">UPSERT</span></h2>
+          <p>availability profile. Soft on save · Gate5 HARD.</p>
+          <a href="/infra/ha/index.html">HA/DR →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-620 용량 <span class="group-tag">UPSERT</span></h2>
+          <p>CURRENT/PEAK/TARGET/N1/DR. Soft RL-CP-001/002.</p>
+          <a href="/infra/capacity/index.html">용량 Snapshot →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-630 보안 <span class="group-tag">UPSERT</span></h2>
+          <p>security profile. Soft RL-SC-002/003.</p>
+          <a href="/infra/security/index.html">보안 프로파일 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-640 용량비교 <span class="group-tag">조회</span></h2>
+          <p>복수 서버군 Peak/Target 매트릭스. ifina6400S0.</p>
+          <a href="/infra/capacity-compare/index.html">용량 비교 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-810 7R <span class="group-tag">CRUD</span></h2>
+          <p>전환계획. RL-MG-001/002 HARD · Wave Soft.</p>
+          <a href="/infra/migration/index.html">7R 계획 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-820 Wave <span class="group-tag">UPSERT</span></h2>
+          <p>Migration Wave · Critical 교차 Soft RL-MG-004.</p>
+          <a href="/infra/waves/index.html">Wave 관리 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-830 AS-IS→TO-BE <span class="group-tag">조회</span></h2>
+          <p>전환 매핑 · Gap. ifina8300S0.</p>
+          <a href="/infra/asis-tobe/index.html">매핑 보기 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-940 제안서 <span class="group-tag">조회</span></h2>
+          <p>10대 표 tableId. ifina9400S0.</p>
+          <a href="/infra/proposal/index.html">제안 현황 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-710 라이선스 <span class="group-tag">CRUD</span></h2>
+          <p>계약·할당. Soft 만료 RL-LC-001.</p>
+          <a href="/infra/licenses/index.html">라이선스 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-720 할당 <span class="group-tag">U0</span></h2>
+          <p>자산 할당. HARD sum≤Qty. ifina7200.</p>
+          <a href="/infra/license-alloc/index.html">할당 편집 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-730 TCO <span class="group-tag">S0/C0</span></h2>
+          <p>비용 Snapshot · 5Y TCO. ifina7300.</p>
+          <a href="/infra/tco/index.html">TCO →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-920 Gate <span class="group-tag">판정</span></h2>
+          <p>Gate1~7 · RL-GT-001/002/003. ifina9200S0/U0.</p>
+          <a href="/infra/gates/index.html">Architecture Gate →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-320 정규 자산 <span class="group-tag">CRUD</span></h2>
+          <p>ifina3100* · S1 상세 · 파일럿 이관(E0).</p>
+          <a href="/infra/server-assets/index.html">정규 자산 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-210 시스템 <span class="group-tag">CRUD</span></h2>
+          <p>업무 시스템 마스터. ifina2100S0/C0/U0/D0.</p>
+          <a href="/infra/systems/index.html">시스템 관리 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-310 서버군 <span class="group-tag">CRUD</span></h2>
+          <p>산정 단위 서버군. ifina3110*, 시스템 FK 검증.</p>
+          <a href="/infra/groups/index.html">서버군 관리 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-220 Application <span class="group-tag">CRUD</span></h2>
+          <p>Application 마스터. ifina2200*, 시스템 FK.</p>
+          <a href="/infra/apps/index.html">Application 관리 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-340 일괄등록 <span class="group-tag">V0/C0</span></h2>
+          <p>JSON rows 검증·반영. E_DUP_ID / E_FK_GROUP.</p>
+          <a href="/infra/bulk/index.html">일괄등록 →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-410 Middleware <span class="group-tag">CRUD</span></h2>
+          <p>자산 설치 MW. ifina4100*, asset FK.</p>
+          <a href="/infra/middleware/index.html">Middleware →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-420 DB <span class="group-tag">CRUD</span></h2>
+          <p>DB 인스턴스. ifina4200*, asset/system FK.</p>
+          <a href="/infra/db/index.html">DB Instance →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-510 Network <span class="group-tag">CRUD</span></h2>
+          <p>Endpoint. ifina5100*, Primary·RL-NT-001.</p>
+          <a href="/infra/network/index.html">Network →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-520 Interface <span class="group-tag">CRUD</span></h2>
+          <p>App↔App/External. ifina5200*.</p>
+          <a href="/infra/interfaces/index.html">Interface →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-910 Checklist <span class="group-tag">활성</span></h2>
+          <p>대상별 실사 체크·진행률. ifina9100S0/U0.</p>
+          <a href="/infra/checklist/index.html">Checklist →</a>
+        </article>
+        <article class="hub-card">
+          <h2>INF-130/140 마스터 <span class="group-tag">CRUD</span></h2>
+          <p>Checklist·Gate 정의. ifina1300/1400.</p>
+          <a href="/infra/checklist-master/index.html">마스터 →</a>
+        </article>
+      </section>
+    </div>
+  </div>
+
+  <script src="/_shared/infra-api.js"></script>
+  <script>
+    (async function () {
+      const healthBadge = document.getElementById('healthBadge');
+      const kpiAssets = document.getElementById('kpiAssets');
+      const kpiSystems = document.getElementById('kpiSystems');
+      const kpiGroups = document.getElementById('kpiGroups');
+      try {
+        const h = await fetch('/health').then((r) => r.json());
+        healthBadge.textContent = `${h.application || 'pdmg-infra'} · ${h.status || 'UP'}`;
+        healthBadge.classList.add('badge--ok');
+      } catch (e) {
+        healthBadge.textContent = '헬스 실패';
+        healthBadge.classList.add('badge--fail');
+      }
+      async function count(serviceId, listKey) {
+        const res = await InfraApi.postService(serviceId, { pageNo: 1, pageSize: 1 }, 'INF-010');
+        return res.dto && res.dto.totalCount != null ? res.dto.totalCount : '-';
+      }
+      try { kpiAssets.textContent = await count('ifina1999S0'); } catch (_) { kpiAssets.textContent = '?'; }
+      try { kpiSystems.textContent = await count('ifina2100S0'); } catch (_) { kpiSystems.textContent = '?'; }
+      try { kpiGroups.textContent = await count('ifina3110S0'); } catch (_) { kpiGroups.textContent = '?'; }
+    })();
+  </script>
+</body>
+</html>

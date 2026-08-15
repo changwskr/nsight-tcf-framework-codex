@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina7300DAO">
+  <select id="ifina7300S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT COST_ID AS COST_ID, TARGET_TYPE_CD AS TARGET_TYPE_CD, TARGET_ID AS TARGET_ID,
+           PERIOD_YM AS PERIOD_YM, SCENARIO_CD AS SCENARIO_CD, COST_TYPE_CD AS COST_TYPE_CD,
+           AMOUNT AS AMOUNT, CURRENCY_CD AS CURRENCY_CD, REMARK AS REMARK
+      FROM TB_IF_COST_PILOT
+     WHERE TARGET_TYPE_CD = #{targetTypeCd} AND TARGET_ID = #{targetId}
+       AND PERIOD_YM = #{periodYm}
+    <if test="scenarioCd != null and scenarioCd != ''">AND SCENARIO_CD = #{scenarioCd}</if>
+     ORDER BY SCENARIO_CD, COST_TYPE_CD, COST_ID
+  </select>
+  <select id="ifina7300S0_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_COST_PILOT WHERE COST_ID = #{costId}
+  </select>
+  <select id="ifina7300S0_countTarget" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_COST_PILOT
+     WHERE TARGET_TYPE_CD = #{targetTypeCd} AND TARGET_ID = #{targetId}
+  </select>
+  <insert id="ifina7300C0_C0" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_COST_PILOT (
+      COST_ID, TARGET_TYPE_CD, TARGET_ID, PERIOD_YM, SCENARIO_CD, COST_TYPE_CD,
+      AMOUNT, CURRENCY_CD, REMARK, REG_USER_ID, REG_DTM
+    ) VALUES (
+      #{costId}, #{targetTypeCd}, #{targetId}, #{periodYm}, #{scenarioCd}, #{costTypeCd},
+      #{amount}, #{currencyCd}, #{remark}, #{regUserId}, #{regDtm}
+    )
+  </insert>
+</mapper>

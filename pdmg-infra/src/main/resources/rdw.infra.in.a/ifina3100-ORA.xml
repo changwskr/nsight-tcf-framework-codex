@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina3100DAO">
+  <sql id="ifina3100Where">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(NVL(T1.ASSET_ID,'')) LIKE '%'||UPPER(#{keyword})||'%' OR UPPER(NVL(T1.ASSET_NAME,'')) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.SYSTEM_ID,'')) LIKE '%'||UPPER(#{keyword})||'%' OR UPPER(NVL(T1.GROUP_ID,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="assetId != null and assetId != ''">AND T1.ASSET_ID = #{assetId}</if>
+    <if test="assetName != null and assetName != ''">AND T1.ASSET_NAME = #{assetName}</if>
+    <if test="systemId != null and systemId != ''">AND T1.SYSTEM_ID = #{systemId}</if>
+    <if test="groupId != null and groupId != ''">AND T1.GROUP_ID = #{groupId}</if>
+    <if test="assetKindCd != null and assetKindCd != ''">AND T1.ASSET_KIND_CD = #{assetKindCd}</if>
+    <if test="techRoleCd != null and techRoleCd != ''">AND T1.TECH_ROLE_CD = #{techRoleCd}</if>
+    <if test="envCd != null and envCd != ''">AND T1.ENV_CD = #{envCd}</if>
+    <if test="statusCd != null and statusCd != ''">AND T1.STATUS_CD = #{statusCd}</if>
+  </sql>
+  <sql id="ifina3100Cols">
+    T1.ASSET_ID AS ASSET_ID, T1.ASSET_NAME AS ASSET_NAME, T1.GROUP_ID AS GROUP_ID, T1.SYSTEM_ID AS SYSTEM_ID,
+    T1.ASSET_KIND_CD AS ASSET_KIND_CD, T1.TECH_ROLE_CD AS TECH_ROLE_CD, T1.ENV_CD AS ENV_CD, T1.TIER_CD AS TIER_CD,
+    T1.SERVICE_MODEL_CD AS SERVICE_MODEL_CD, T1.DEPLOY_MODEL_CD AS DEPLOY_MODEL_CD, T1.STATUS_CD AS STATUS_CD,
+    T1.OS_NAME AS OS_NAME, T1.OS_VERSION AS OS_VERSION, T1.OS_EOL_DATE AS OS_EOL_DATE,
+    T1.REMARK AS REMARK, T1.REG_USER_ID AS REG_USER_ID, T1.REG_DTM AS REG_DTM, T1.CHG_USER_ID AS CHG_USER_ID, T1.CHG_DTM AS CHG_DTM
+  </sql>
+  <select id="ifina3100S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT <include refid="ifina3100Cols"/>
+          FROM TB_IF_SERVER_ASSET_PILOT T1
+        <include refid="ifina3100Where"/>
+         ORDER BY T1.REG_DTM DESC, T1.ASSET_ID ASC
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina3100S0_S0_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_SERVER_ASSET_PILOT T1 <include refid="ifina3100Where"/>
+  </select>
+  <select id="ifina3100S0_S0_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_SERVER_ASSET_PILOT T1 WHERE T1.ASSET_ID = #{assetId}
+  </select>
+  <select id="ifina3100S1_S1" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT <include refid="ifina3100Cols"/> FROM TB_IF_SERVER_ASSET_PILOT T1 WHERE T1.ASSET_ID = #{assetId}
+  </select>
+  <select id="ifina3100S1_endpoints" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT ENDPOINT_ID, ENDPOINT_TYPE_CD, ADDRESS, PORT_NO, PROTOCOL_CD, PRIMARY_YN
+      FROM TB_IF_NETWORK_EP_PILOT WHERE ASSET_ID = #{assetId} ORDER BY PRIMARY_YN DESC, ENDPOINT_ID
+  </select>
+  <select id="ifina3100S1_mw_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_MW_INSTALL_PILOT WHERE ASSET_ID = #{assetId}
+  </select>
+  <select id="ifina3100S1_db_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_DB_INSTANCE_PILOT WHERE ASSET_ID = #{assetId}
+  </select>
+  <select id="ifina3100S1_attrs" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT I.TEMPLATE_ID AS TEMPLATE_ID, I.ITEM_ID AS ITEM_ID, I.ITEM_NAME AS ITEM_NAME,
+           I.ITEM_TYPE_CD AS ITEM_TYPE_CD, I.REQUIRED_YN AS REQUIRED_YN, I.SORT_NO AS SORT_NO,
+           A.ATTR_VALUE AS ATTR_VALUE
+      FROM TB_IF_SURVEY_ITEM_PILOT I
+      LEFT JOIN TB_IF_ASSET_ATTR_PILOT A
+        ON A.ASSET_ID = #{assetId} AND A.ITEM_ID = I.ITEM_ID
+     WHERE I.ACTIVE_YN = 'Y'
+       AND I.TEMPLATE_ID IN
+    <foreach collection="templateIdList" item="tid" open="(" separator="," close=")">#{tid}</foreach>
+     ORDER BY I.TEMPLATE_ID ASC, I.SORT_NO ASC, I.ITEM_ID ASC
+  </select>
+  <insert id="ifina3100C0_C0" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_SERVER_ASSET_PILOT (
+      ASSET_ID, ASSET_NAME, GROUP_ID, SYSTEM_ID, ASSET_KIND_CD, TECH_ROLE_CD, ENV_CD, TIER_CD,
+      SERVICE_MODEL_CD, DEPLOY_MODEL_CD, STATUS_CD, OS_NAME, OS_VERSION, OS_EOL_DATE,
+      REMARK, REG_USER_ID, REG_DTM, CHG_USER_ID, CHG_DTM
+    ) VALUES (
+      #{assetId}, #{assetName}, #{groupId}, #{systemId}, #{assetKindCd}, #{techRoleCd}, #{envCd}, #{tierCd},
+      #{serviceModelCd}, #{deployModelCd}, #{statusCd}, #{osName}, #{osVersion}, #{osEolDate},
+      #{remark}, #{regUserId}, #{regDtm}, #{chgUserId}, #{chgDtm}
+    )
+  </insert>
+  <update id="ifina3100U0_U0" parameterType="java.util.HashMap">
+    UPDATE TB_IF_SERVER_ASSET_PILOT SET
+      ASSET_NAME=#{assetName}, GROUP_ID=#{groupId}, SYSTEM_ID=#{systemId}, ASSET_KIND_CD=#{assetKindCd},
+      TECH_ROLE_CD=#{techRoleCd}, ENV_CD=#{envCd}, TIER_CD=#{tierCd}, SERVICE_MODEL_CD=#{serviceModelCd},
+      DEPLOY_MODEL_CD=#{deployModelCd}, STATUS_CD=#{statusCd},
+      OS_NAME=#{osName}, OS_VERSION=#{osVersion}, OS_EOL_DATE=#{osEolDate},
+      REMARK=#{remark},
+      CHG_USER_ID=#{chgUserId}, CHG_DTM=#{chgDtm}
+     WHERE ASSET_ID=#{assetId}
+  </update>
+  <select id="ifina3100U0_attr_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_ASSET_ATTR_PILOT WHERE ASSET_ID=#{assetId} AND ITEM_ID=#{itemId}
+  </select>
+  <insert id="ifina3100U0_attr_insert" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_ASSET_ATTR_PILOT (ASSET_ID, ITEM_ID, ATTR_VALUE, UPDATED_AT)
+    VALUES (#{assetId}, #{itemId}, #{attrValue}, #{updatedAt})
+  </insert>
+  <update id="ifina3100U0_attr_update" parameterType="java.util.HashMap">
+    UPDATE TB_IF_ASSET_ATTR_PILOT SET ATTR_VALUE=#{attrValue}, UPDATED_AT=#{updatedAt}
+     WHERE ASSET_ID=#{assetId} AND ITEM_ID=#{itemId}
+  </update>
+  <update id="ifina3100D0_retire" parameterType="java.util.HashMap">
+    UPDATE TB_IF_SERVER_ASSET_PILOT SET STATUS_CD='RETIRED', CHG_USER_ID=#{chgUserId}, CHG_DTM=#{chgDtm}
+     WHERE ASSET_ID IN
+    <foreach collection="assetIdList" item="assetId" open="(" separator="," close=")">#{assetId}</foreach>
+  </update>
+  <delete id="ifina3100D0_D0" parameterType="java.util.HashMap">
+    DELETE FROM TB_IF_SERVER_ASSET_PILOT WHERE ASSET_ID IN
+    <foreach collection="assetIdList" item="assetId" open="(" separator="," close=")">#{assetId}</foreach>
+  </delete>
+  <delete id="ifina3100D0_attr_delete" parameterType="java.util.HashMap">
+    DELETE FROM TB_IF_ASSET_ATTR_PILOT WHERE ASSET_ID IN
+    <foreach collection="assetIdList" item="assetId" open="(" separator="," close=")">#{assetId}</foreach>
+  </delete>
+</mapper>

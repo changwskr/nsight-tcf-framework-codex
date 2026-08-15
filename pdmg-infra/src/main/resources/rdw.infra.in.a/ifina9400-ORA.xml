@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina9400DAO">
+  <select id="table1_systemGroups" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT S.SYSTEM_ID AS SYSTEM_ID, S.SYSTEM_NAME AS SYSTEM_NAME,
+           G.GROUP_ID AS GROUP_ID, G.GROUP_NAME AS GROUP_NAME,
+           G.TECH_ROLE_CD AS TECH_ROLE_CD, G.ENV_CD AS ENV_CD,
+           G.TIER_CD AS TIER_CD, G.STATUS_CD AS STATUS_CD,
+           G.ACTIVE_NODES AS ACTIVE_NODES
+      FROM TB_IF_BIZ_SYSTEM_PILOT S
+      LEFT JOIN TB_IF_SERVER_GROUP_PILOT G ON G.SYSTEM_ID = S.SYSTEM_ID
+     ORDER BY S.SYSTEM_ID, G.GROUP_ID
+  </select>
+  <select id="table2_groupCapacity" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM V_IF_SERVER_GROUP_CAPACITY ORDER BY GROUP_ID
+  </select>
+  <select id="table3_mwDb" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT 'OS' AS SOURCE_CD, ASSET_ID AS OBJECT_ID,
+           TRIM(COALESCE(OS_NAME, '') || CASE WHEN OS_VERSION IS NULL OR OS_VERSION = '' THEN '' ELSE ' ' || OS_VERSION END) AS PRODUCT_NAME,
+           OS_VERSION AS VERSION_NO, ASSET_ID AS ASSET_ID, OS_EOL_DATE AS EOL_DATE, STATUS_CD AS STATUS_CD
+      FROM TB_IF_SERVER_ASSET_PILOT
+     WHERE OS_EOL_DATE IS NOT NULL
+    UNION ALL
+    SELECT 'MW' AS SOURCE_CD, MW_ID AS OBJECT_ID, PRODUCT_NAME AS PRODUCT_NAME,
+           VERSION_NO AS VERSION_NO, ASSET_ID AS ASSET_ID, EOL_DATE AS EOL_DATE, STATUS_CD AS STATUS_CD
+      FROM TB_IF_MW_INSTALL_PILOT
+    UNION ALL
+    SELECT 'DB' AS SOURCE_CD, DB_ID AS OBJECT_ID, DB_NAME AS PRODUCT_NAME,
+           VERSION_NO AS VERSION_NO, ASSET_ID AS ASSET_ID, EOL_DATE AS EOL_DATE, STATUS_CD AS STATUS_CD
+      FROM TB_IF_DB_INSTANCE_PILOT
+     ORDER BY SOURCE_CD, OBJECT_ID
+  </select>
+  <select id="table4_eol" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM V_IF_EOL_RISK ORDER BY EOL_DATE, OBJECT_ID
+  </select>
+  <select id="table5_ha" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT TARGET_TYPE_CD AS TARGET_TYPE_CD, TARGET_ID AS TARGET_ID,
+           HA_YN AS HA_YN, HA_MODE_CD AS HA_MODE_CD, DR_YN AS DR_YN, DR_MODE_CD AS DR_MODE_CD,
+           RTO_MINUTES AS RTO_MINUTES, RPO_MINUTES AS RPO_MINUTES, OPS_HOURS_CD AS OPS_HOURS_CD
+      FROM TB_IF_AVAIL_PROFILE_PILOT
+     ORDER BY TARGET_ID
+  </select>
+  <select id="table6_capacity" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT TARGET_TYPE_CD AS TARGET_TYPE_CD, TARGET_ID AS TARGET_ID, METRIC_SCOPE_CD AS METRIC_SCOPE_CD,
+           CPU_PCT AS CPU_PCT, MEM_PCT AS MEM_PCT, TPS AS TPS, RESP_P95_MS AS RESP_P95_MS
+      FROM TB_IF_CAPACITY_PILOT
+     WHERE METRIC_SCOPE_CD IN ('PEAK','TARGET','N1')
+     ORDER BY TARGET_ID, METRIC_SCOPE_CD
+  </select>
+  <select id="table7_strategy" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT STRATEGY_7R_CD AS STRATEGY_7R_CD,
+           TARGET_PLATFORM_CD AS TARGET_PLATFORM_CD,
+           COUNT(*) AS PLAN_CNT
+      FROM TB_IF_MIGRATION_PLAN_PILOT
+     GROUP BY STRATEGY_7R_CD, TARGET_PLATFORM_CD
+     ORDER BY STRATEGY_7R_CD, TARGET_PLATFORM_CD
+  </select>
+  <select id="table8_target" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT PLAN_ID AS PLAN_ID, TARGET_TYPE_CD AS TARGET_TYPE_CD, TARGET_ID AS TARGET_ID,
+           TARGET_PLATFORM_CD AS TARGET_PLATFORM_CD, WAVE_ID AS WAVE_ID,
+           DIFFICULTY_CD AS DIFFICULTY_CD, STATUS_CD AS STATUS_CD
+      FROM TB_IF_MIGRATION_PLAN_PILOT
+     WHERE TARGET_TYPE_CD = 'GROUP'
+     ORDER BY WAVE_ID, TARGET_ID
+  </select>
+  <select id="table9_mapping" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM V_IF_MIGRATION_MAPPING ORDER BY WAVE_ID, PLAN_ID
+  </select>
+  <select id="table10_tco" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM V_IF_PROPOSAL_TCO
+     ORDER BY TARGET_TYPE_CD, TARGET_ID, PERIOD_YM
+  </select>
+  <select id="tableInventory" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM V_IF_SERVER_INVENTORY ORDER BY ASSET_ID
+  </select>
+</mapper>

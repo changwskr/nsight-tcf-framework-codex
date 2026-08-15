@@ -1,0 +1,30 @@
+{
+  "hdr_nhnis": {
+    "sys_comm": {
+      "rms_svc_c": "ifina1999U0",
+      "sync_dsc": "S",
+      "tr_sysid": "PDMG",
+      "ttl_ug_ync": 0,
+      "std_tgrm_rqr_rsp_dsc": "Q",
+      "std_tgrm_lclc": "KO",
+      "tr_trm_ipadr": "127.0.0.1",
+      "tr_dtm": "20260815000000",
+      "tr_brc": "10001",
+      "trmno": "LOCAL01",
+      "trm_kdc": "01",
+      "scid": "ifina1999",
+      "optr_eno": "E0000001",
+      "tr_optrnm": "LOCAL_TESTER"
+    }
+  },
+  "dto": {
+    "serverId": "INF-WEB-001",
+    "serverName": "nsight-web-01-upd",
+    "techRole": "WEB",
+    "envCd": "PROD",
+    "tierCd": "TIER2",
+    "statusCd": "CONFIRMED",
+    "remark": "파일럿 수정",
+    "chgUserId": "LOCAL"
+  }
+}

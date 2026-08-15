@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INF-520 Interface · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar">
+      <div class="infra-sidebar__brand"><h1>인프라 아키텍처 관리</h1><p>INF-520 Interface</p></div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">이동</div>
+          <a class="infra-menu-link" href="/index.html">홈</a>
+          <a class="infra-menu-link" href="/infra/apps/index.html">INF-220 App</a>
+          <a class="infra-menu-link" href="/infra/network/index.html">INF-510 Network</a>
+          <a class="infra-menu-link infra-menu-link--active" href="/infra/interfaces/index.html">INF-520 Interface</a>
+          <a class="infra-menu-link" href="/infra/deps/index.html">INF-530 의존맵</a>
+        </div>
+      </nav>
+      <div class="infra-sidebar__foot">ifina5200* · App↔App/External</div>
+    </aside>
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div><h1>INF-520 Application Interface</h1><p>From/To App · 외부명 · Protocol/Direction · Critical.</p></div>
+        <div class="actions">
+          <button class="btn-secondary" type="button" id="searchBtn">조회</button>
+          <button class="btn-primary" type="button" id="addBtn">등록</button>
+        </div>
+      </header>
+      <section class="toolbar">
+        <div class="field field-wide"><label for="keyword">키워드</label><input id="keyword" placeholder="IF / APP / 외부명"></div>
+        <div class="field"><label for="criticalYn">Critical</label>
+          <select id="criticalYn"><option value="">전체</option><option value="Y">Y</option><option value="N">N</option></select></div>
+      </section>
+      <section class="response-meta" id="resultMeta">조회를 실행하세요.</section>
+      <section class="panel">
+        <div class="panel-head"><h2>Interfaces</h2><span class="group-tag" id="rowCount">0</span></div>
+        <div class="table-wrap"><table class="data-table"><thead>
+          <tr><th>ID</th><th>From</th><th>To App</th><th>External</th><th>Protocol</th><th>Dir</th><th>Crit</th><th></th></tr>
+        </thead><tbody id="rowBody"><tr><td colspan="8" class="empty">-</td></tr></tbody></table></div>
+      </section>
+    </div>
+  </div>
+  <div class="modal" id="editModal" hidden>
+    <div class="modal-backdrop" data-close="true"></div>
+    <div class="modal-card">
+      <div class="panel-head"><h2 id="modalTitle">Interface 등록</h2><button class="btn-secondary" type="button" data-close="true">닫기</button></div>
+      <div class="modal-body">
+        <div class="field"><label for="formId">Interface ID *</label><input id="formId"></div>
+        <div class="field"><label for="formFrom">From App *</label><input id="formFrom" placeholder="APP-ONLINE-A"></div>
+        <div class="field"><label for="formTo">To App</label><input id="formTo" placeholder="APP-ONLINE-B"></div>
+        <div class="field"><label for="formExt">External</label><input id="formExt" placeholder="외부 시스템명"></div>
+        <div class="field"><label for="formProto">Protocol</label>
+          <select id="formProto"><option>HTTP</option><option>HTTPS</option><option>MQ</option><option>TCP</option><option>GRPC</option></select></div>
+        <div class="field"><label for="formDir">Direction</label>
+          <select id="formDir"><option>OUTBOUND</option><option>INBOUND</option><option>BIDIRECTIONAL</option></select></div>
+        <div class="field"><label for="formCrit">Critical</label><select id="formCrit"><option>N</option><option>Y</option></select></div>
+        <div class="field field-span"><label for="formRemark">비고</label><input id="formRemark"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" type="button" data-close="true">취소</button>
+        <button class="btn-primary" type="button" id="saveBtn">저장</button>
+      </div>
+    </div>
+  </div>
+  <script src="/_shared/infra-api.js"></script>
+  <script src="/infra/interfaces/interfaces.js"></script>
+</body>
+</html>

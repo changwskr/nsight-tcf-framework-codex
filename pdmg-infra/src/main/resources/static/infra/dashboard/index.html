@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INF-010 통합 대시보드 · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar" aria-label="주 메뉴">
+      <div class="infra-sidebar__brand">
+        <h1>인프라 아키텍처 관리</h1>
+        <p>INF-010 통합 대시보드</p>
+      </div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">이동</div>
+          <a class="infra-menu-link" href="/index.html">홈</a>
+          <a class="infra-menu-link infra-menu-link--active" href="/infra/dashboard/index.html">INF-010 대시보드</a>
+          <a class="infra-menu-link" href="/infra/risks/index.html">INF-020 리스크</a>
+          <a class="infra-menu-link" href="/infra/systems/index.html">INF-210 시스템</a>
+          <a class="infra-menu-link" href="/infra/groups/index.html">INF-310 서버군</a>
+          <a class="infra-menu-link" href="/infra/server-assets/index.html">INF-320 정규자산</a>
+          <a class="infra-menu-link" href="/infra/audit/index.html">INF-160 변경이력</a>
+        </div>
+      </nav>
+      <div class="infra-sidebar__foot">집계: ifina0100S0<br>미리보기: 정규 자산</div>
+    </aside>
+
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div>
+          <h1>INF-010 통합 대시보드</h1>
+          <p>전체 인프라 조사 진행상태와 차세대 전환 준비도를 한 화면에서 확인합니다.</p>
+        </div>
+        <div class="actions">
+          <button class="btn-secondary" type="button" id="reloadBtn">새로고침</button>
+          <a class="btn-primary" href="/infra/server-assets/index.html" style="display:inline-flex;align-items:center">정규 자산</a>
+        </div>
+      </header>
+
+      <section class="response-meta" id="metaLine">로딩 중…</section>
+
+      <section class="kpi-grid">
+        <article class="kpi-card"><div class="label">정규 자산</div><div class="value" id="kpiAsset">-</div></article>
+        <article class="kpi-card"><div class="label">서버군</div><div class="value" id="kpiGroup">-</div></article>
+        <article class="kpi-card"><div class="label">시스템</div><div class="value" id="kpiSystem">-</div></article>
+        <article class="kpi-card"><div class="label">DB</div><div class="value" id="kpiDb">-</div></article>
+        <article class="kpi-card"><div class="label">MW / EP</div><div class="value" style="font-size:1.2rem"><span id="kpiMw">-</span> / <span id="kpiEp">-</span></div></article>
+        <article class="kpi-card"><div class="label">변경로그 / CONFIRMED</div><div class="value" style="font-size:1.1rem"><span id="kpiChange">-</span> · <span id="kpiConfirmed">-</span></div></article>
+      </section>
+
+      <section class="split-2">
+        <article class="panel">
+          <div class="panel-head"><h2>서버군 분포 (샘플)</h2></div>
+          <div class="panel-body">
+            <div class="gate-list">
+              <div class="gate-row"><span>WEB</span><strong>42</strong></div>
+              <div class="gate-row"><span>WAS</span><strong>118</strong></div>
+              <div class="gate-row"><span>DB</span><strong>24</strong></div>
+              <div class="gate-row"><span>DATA</span><strong>31</strong></div>
+              <div class="gate-row"><span>BATCH</span><strong>28</strong></div>
+            </div>
+          </div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><h2>서비스 모델 분포 (샘플)</h2></div>
+          <div class="panel-body">
+            <div class="gate-list">
+              <div class="gate-row"><span>Bare Metal</span><strong>18%</strong></div>
+              <div class="gate-row"><span>IaaS</span><strong>39%</strong></div>
+              <div class="gate-row"><span>PaaS</span><strong>24%</strong></div>
+              <div class="gate-row"><span>SaaS</span><strong>9%</strong></div>
+              <div class="gate-row"><span>미정</span><strong>10%</strong></div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="split-2">
+        <article class="panel">
+          <div class="panel-head"><h2>주요 Risk</h2></div>
+          <div class="panel-body">
+            <ul class="risk-list">
+              <li><span>Tier1 HA 미정</span><span class="badge badge--fail">8건</span></li>
+              <li><span>DR/RTO/RPO 미정</span><span class="badge badge--fail">14건</span></li>
+              <li><span>EOL/EOS 1년 이내</span><span class="badge badge--warn">23건</span></li>
+              <li><span>License 미확인</span><span class="badge badge--warn">31건</span></li>
+              <li><span>Peak TPS 미수집</span><span class="badge">42건</span></li>
+            </ul>
+          </div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><h2>Architecture Gate</h2></div>
+          <div class="panel-body">
+            <div class="gate-list">
+              <div class="gate-row"><span>G1 Inventory</span><span class="badge badge--ok">PASS</span></div>
+              <div class="gate-row"><span>G2 Dependency</span><span class="badge badge--ok">PASS</span></div>
+              <div class="gate-row"><span>G3 Capacity</span><span class="badge badge--warn">CONDITIONAL</span></div>
+              <div class="gate-row"><span>G4 Target Platform</span><span class="badge">NOT READY</span></div>
+              <div class="gate-row"><span>G5 DR/Security</span><span class="badge">NOT READY</span></div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <article class="panel">
+        <div class="panel-head"><h2>최근 정규 자산</h2><span class="group-tag" id="previewCount">0건</span></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Server ID</th>
+                <th>서버명</th>
+                <th>역할</th>
+                <th>환경</th>
+                <th>시스템</th>
+                <th>상태</th>
+              </tr>
+            </thead>
+            <tbody id="previewBody">
+              <tr><td colspan="6" class="empty">로딩 중…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </div>
+  </div>
+
+  <script src="/_shared/infra-api.js"></script>
+  <script src="/infra/dashboard/dashboard.js"></script>
+</body>
+</html>

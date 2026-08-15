@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina1100DAO">
+  <select id="ifina1100S0_sets" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT T1.CODE_SET_ID AS CODE_SET_ID, T1.CODE_SET_NAME AS CODE_SET_NAME, T1.REMARK AS REMARK
+      FROM TB_IF_CODE_SET_PILOT T1
+     ORDER BY T1.CODE_SET_ID
+  </select>
+  <sql id="ifina1100Where">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(NVL(T1.CODE_VALUE,'')) LIKE '%'||UPPER(#{keyword})||'%' OR UPPER(NVL(T1.NAME_KO,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="codeSetId != null and codeSetId != ''">AND T1.CODE_SET_ID = #{codeSetId}</if>
+    <if test="codeValue != null and codeValue != ''">AND T1.CODE_VALUE = #{codeValue}</if>
+    <if test="activeYn != null and activeYn != ''">AND T1.ACTIVE_YN = #{activeYn}</if>
+  </sql>
+  <select id="ifina1100S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.CODE_SET_ID AS CODE_SET_ID, S.CODE_SET_NAME AS CODE_SET_NAME, T1.CODE_VALUE AS CODE_VALUE,
+               T1.NAME_KO AS NAME_KO, T1.SORT_ORDER AS SORT_ORDER, T1.ACTIVE_YN AS ACTIVE_YN, T1.REMARK AS REMARK,
+               T1.REG_USER_ID AS REG_USER_ID, T1.REG_DTM AS REG_DTM, T1.CHG_USER_ID AS CHG_USER_ID, T1.CHG_DTM AS CHG_DTM
+          FROM TB_IF_CODE_VALUE_PILOT T1
+          LEFT JOIN TB_IF_CODE_SET_PILOT S ON S.CODE_SET_ID = T1.CODE_SET_ID
+        <include refid="ifina1100Where"/>
+         ORDER BY T1.CODE_SET_ID ASC, T1.SORT_ORDER ASC, T1.CODE_VALUE ASC
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina1100S0_S0_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_CODE_VALUE_PILOT T1 <include refid="ifina1100Where"/>
+  </select>
+  <select id="ifina1100S0_S0_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_CODE_VALUE_PILOT T1 WHERE T1.CODE_SET_ID = #{codeSetId} AND T1.CODE_VALUE = #{codeValue}
+  </select>
+  <select id="ifina1100S0_set_exists" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM TB_IF_CODE_SET_PILOT T1 WHERE T1.CODE_SET_ID = #{codeSetId}
+  </select>
+  <insert id="ifina1100C0_C0" parameterType="java.util.HashMap">
+    INSERT INTO TB_IF_CODE_VALUE_PILOT (CODE_SET_ID, CODE_VALUE, NAME_KO, SORT_ORDER, ACTIVE_YN, REMARK, REG_USER_ID, REG_DTM, CHG_USER_ID, CHG_DTM)
+    VALUES (#{codeSetId}, #{codeValue}, #{nameKo}, #{sortOrder}, #{activeYn}, #{remark}, #{regUserId}, #{regDtm}, #{chgUserId}, #{chgDtm})
+  </insert>
+  <update id="ifina1100U0_U0" parameterType="java.util.HashMap">
+    UPDATE TB_IF_CODE_VALUE_PILOT SET NAME_KO=#{nameKo}, SORT_ORDER=#{sortOrder}, ACTIVE_YN=#{activeYn},
+      REMARK=#{remark}, CHG_USER_ID=#{chgUserId}, CHG_DTM=#{chgDtm}
+     WHERE CODE_SET_ID=#{codeSetId} AND CODE_VALUE=#{codeValue}
+  </update>
+</mapper>

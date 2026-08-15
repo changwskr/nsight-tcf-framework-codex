@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina4300DAO">
+  <sql id="eolUnion">
+    SELECT 'OS' AS SOURCE_CD, ASSET_ID AS OBJECT_ID,
+           TRIM(COALESCE(OS_NAME, '') || CASE WHEN OS_VERSION IS NULL OR OS_VERSION = '' THEN '' ELSE ' ' || OS_VERSION END) AS OBJECT_NAME,
+           ASSET_ID AS ASSET_ID, OS_EOL_DATE AS EOL_DATE
+      FROM TB_IF_SERVER_ASSET_PILOT
+     WHERE OS_EOL_DATE IS NOT NULL
+    UNION ALL
+    SELECT 'MW' AS SOURCE_CD, MW_ID AS OBJECT_ID, PRODUCT_NAME AS OBJECT_NAME, ASSET_ID AS ASSET_ID, EOL_DATE AS EOL_DATE
+      FROM TB_IF_MW_INSTALL_PILOT
+     WHERE EOL_DATE IS NOT NULL
+    UNION ALL
+    SELECT 'DB' AS SOURCE_CD, DB_ID AS OBJECT_ID, DB_NAME AS OBJECT_NAME, ASSET_ID AS ASSET_ID, EOL_DATE AS EOL_DATE
+      FROM TB_IF_DB_INSTANCE_PILOT
+     WHERE EOL_DATE IS NOT NULL
+  </sql>
+  <sql id="eolWhere">
+    WHERE 1=1
+    <if test="keyword != null and keyword != ''">
+      AND (UPPER(NVL(T1.OBJECT_ID,'')) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.OBJECT_NAME,'')) LIKE '%'||UPPER(#{keyword})||'%'
+        OR UPPER(NVL(T1.ASSET_ID,'')) LIKE '%'||UPPER(#{keyword})||'%')
+    </if>
+    <if test="sourceCd != null and sourceCd != ''">AND T1.SOURCE_CD = #{sourceCd}</if>
+  </sql>
+  <select id="ifina4300S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT * FROM (
+      SELECT a.*, ROWNUM rnum FROM (
+        SELECT T1.SOURCE_CD AS SOURCE_CD, T1.OBJECT_ID AS OBJECT_ID, T1.OBJECT_NAME AS OBJECT_NAME,
+               T1.ASSET_ID AS ASSET_ID, T1.EOL_DATE AS EOL_DATE
+          FROM (<include refid="eolUnion"/>) T1
+        <include refid="eolWhere"/>
+         ORDER BY T1.EOL_DATE ASC, T1.SOURCE_CD, T1.OBJECT_ID
+      ) a WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+    ) WHERE rnum &gt; #{offset}
+  </select>
+  <select id="ifina4300S0_S0_count" resultType="int" parameterType="java.util.HashMap">
+    SELECT COUNT(*) FROM (<include refid="eolUnion"/>) T1 <include refid="eolWhere"/>
+  </select>
+</mapper>

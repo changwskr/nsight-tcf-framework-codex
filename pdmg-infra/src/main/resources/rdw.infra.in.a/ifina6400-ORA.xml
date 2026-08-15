@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nhnis.infra.in.a.persistence.dao.ifina6400DAO">
+  <select id="ifina6400S0_S0" resultType="java.util.HashMap" parameterType="java.util.HashMap">
+    SELECT SNAPSHOT_ID AS SNAPSHOT_ID, TARGET_TYPE_CD AS TARGET_TYPE_CD, TARGET_ID AS TARGET_ID,
+           METRIC_SCOPE_CD AS METRIC_SCOPE_CD, CAPTURED_AT AS CAPTURED_AT,
+           CPU_PCT AS CPU_PCT, MEM_PCT AS MEM_PCT, TPS AS TPS, RESP_P95_MS AS RESP_P95_MS,
+           DB_CONN_PEAK AS DB_CONN_PEAK, REMARK AS REMARK
+      FROM TB_IF_CAPACITY_PILOT
+     WHERE TARGET_TYPE_CD = #{targetTypeCd}
+       AND METRIC_SCOPE_CD = #{metricScopeCd}
+       AND TARGET_ID IN
+    <foreach collection="targetIdList" item="id" open="(" separator="," close=")">#{id}</foreach>
+     ORDER BY TARGET_ID
+  </select>
+</mapper>

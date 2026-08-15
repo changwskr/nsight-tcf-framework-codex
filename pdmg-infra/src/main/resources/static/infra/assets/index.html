@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INF-320 서버 자산 · pdmg-infra</title>
+  <link rel="stylesheet" href="/_shared/infra.css">
+</head>
+<body>
+  <div class="infra-shell">
+    <aside class="infra-sidebar" aria-label="주 메뉴">
+      <div class="infra-sidebar__brand">
+        <h1>인프라 아키텍처 관리</h1>
+        <p>INF-320 서버 자산 (파일럿)</p>
+      </div>
+      <nav>
+        <div class="infra-menu-group">
+          <div class="infra-menu-group__label">이동</div>
+          <a class="infra-menu-link" href="/index.html">홈</a>
+          <a class="infra-menu-link" href="/infra/dashboard/index.html">INF-010 대시보드</a>
+          <a class="infra-menu-link" href="/infra/systems/index.html">INF-210 시스템</a>
+          <a class="infra-menu-link" href="/infra/groups/index.html">INF-310 서버군</a>
+          <a class="infra-menu-link infra-menu-link--active" href="/infra/assets/index.html">파일럿 ifina1999</a>
+          <a class="infra-menu-link" href="/infra/server-assets/index.html">정규 ifina3100</a>
+        </div>
+      </nav>
+      <div class="infra-sidebar__foot">ifina1999* / ifina1999E0<br>TB_IF_SERVER_PILOT</div>
+    </aside>
+
+    <div class="infra-main">
+      <header class="infra-topbar">
+        <div>
+          <h1>INF-320 서버 자산</h1>
+          <p>파일럿 테이블 기준 조회·등록·수정·삭제. 정규 CMDB(ifina3100) 이관 전 UX 검증용입니다.</p>
+        </div>
+        <span class="badge">scid=INF-320</span>
+      </header>
+
+      <section class="toolbar">
+        <div class="field field-wide" hidden>
+          <label for="targetBaseUrl">API Base URL</label>
+          <input id="targetBaseUrl" type="text" value="" placeholder="(same origin)">
+        </div>
+        <div class="field field-wide">
+          <label for="keyword">검색</label>
+          <input id="keyword" type="text" placeholder="서버ID/명 키워드" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="techRole">역할</label>
+          <select id="techRole">
+            <option value="">전체</option>
+            <option>WEB</option>
+            <option>WAS</option>
+            <option>DATABASE</option>
+            <option>BATCH</option>
+            <option>CACHE</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="envCd">환경</label>
+          <select id="envCd">
+            <option value="">전체</option>
+            <option>PROD</option>
+            <option>STG</option>
+            <option>DEV</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="statusCd">상태</label>
+          <select id="statusCd">
+            <option value="">전체</option>
+            <option>DISCOVERED</option>
+            <option>VALIDATING</option>
+            <option>CONFIRMED</option>
+            <option>RETIRED</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pageSize">페이지</label>
+          <select id="pageSize">
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+        <div class="actions">
+          <button class="btn-secondary" type="button" id="searchBtn">조회</button>
+          <button class="btn-secondary" type="button" id="migrateBtn">정규 이관(E0)</button>
+          <button class="btn-primary" type="button" id="addBtn">신규</button>
+        </div>
+      </section>
+
+      <section class="response-meta" id="resultMeta"><span class="empty">조회를 실행하세요.</span></section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>자산 목록</h2>
+          <span class="group-tag" id="resultCount">0건</span>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Server ID</th>
+                <th>서버명</th>
+                <th>역할</th>
+                <th>환경</th>
+                <th>Tier</th>
+                <th>상태</th>
+                <th>비고</th>
+                <th>변경일시</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="resultBody">
+              <tr><td colspan="9" class="empty">데이터 없음</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button class="btn-secondary" type="button" id="prevPageBtn" disabled>이전</button>
+          <span id="pageInfo">1 / 1</span>
+          <button class="btn-secondary" type="button" id="nextPageBtn" disabled>다음</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="modal" id="editModal" hidden>
+    <div class="modal-backdrop" data-close="true"></div>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <div class="panel-head">
+        <h2 id="editTitle">서버 자산 등록</h2>
+        <button class="btn-secondary" type="button" data-close="true">닫기</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label for="formServerId">Server ID *</label>
+          <input id="formServerId" maxlength="40">
+        </div>
+        <div class="field">
+          <label for="formServerName">서버명 *</label>
+          <input id="formServerName" maxlength="100">
+        </div>
+        <div class="field">
+          <label for="formTechRole">기술역할</label>
+          <select id="formTechRole">
+            <option>WEB</option>
+            <option>WAS</option>
+            <option>DATABASE</option>
+            <option>BATCH</option>
+            <option>CACHE</option>
+            <option>OTHER</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="formEnvCd">환경</label>
+          <select id="formEnvCd">
+            <option>DEV</option>
+            <option>STG</option>
+            <option selected>PROD</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="formTierCd">Tier</label>
+          <select id="formTierCd">
+            <option>TIER0</option>
+            <option>TIER1</option>
+            <option selected>TIER2</option>
+            <option>TIER3</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="formStatusCd">Lifecycle</label>
+          <select id="formStatusCd">
+            <option>DISCOVERED</option>
+            <option>VALIDATING</option>
+            <option selected>CONFIRMED</option>
+            <option>RETIRED</option>
+          </select>
+        </div>
+        <div class="field field-span">
+          <label for="formRemark">비고</label>
+          <input id="formRemark" maxlength="200">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" type="button" data-close="true">취소</button>
+        <button class="btn-primary" type="button" id="saveBtn">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/_shared/infra-api.js"></script>
+  <script src="/infra/assets/assets.js"></script>
+</body>
+</html>
